@@ -1,0 +1,1077 @@
+import React, { useState } from 'react';
+
+// Sightline UI Mockup v2 - Differentiated from AI ERP
+// Shows WHY you should trust the data, not just WHAT the data is
+// Cryptographic proofs, causal graphs, physics-based invariants, policy traceability
+
+const SightlineDashboard = () => {
+  const [selectedProject, setSelectedProject] = useState('GB200-Q4-2025-CoreWeave');
+  const [activeTab, setActiveTab] = useState('ledger');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showCausalGraph, setShowCausalGraph] = useState(false);
+
+  const projects = [
+    { id: 'GB200-Q4-2025-CoreWeave', name: 'GB200 Batch Q4-2025', host: 'CoreWeave DEN-1', units: 256, value: '$18.4M', confidence: 0.91, state: 'BURNED_IN' },
+    { id: 'H100-Q4-2025-Lambda', name: 'H100 Batch Q4-2025', host: 'Lambda SJC-2', units: 512, value: '$12.8M', confidence: 0.78, state: 'RACKED' },
+    { id: 'GB200-Q1-2026-Voltage', name: 'GB200 Batch Q1-2026', host: 'Voltage Park ATL', units: 128, value: '$9.2M', confidence: 0.84, state: 'SHIPPED' },
+  ];
+
+  const events = [
+    { 
+      id: 1, 
+      type: 'BURNED_IN', 
+      timestamp: '2025-12-02T14:23:00Z', 
+      confidence: 0.94,
+      confidenceBreakdown: {
+        hardwareAttestation: true,
+        multiPartyProof: true,
+        singlePartyEvents: 0,
+        unverifiedAssertions: 0,
+      },
+      signers: [
+        { party: 'host:coreweave', keyId: 'cw-den1-0x7a3f...', sig: '0x8b2c4d...', timestamp: '2025-12-02T14:22:58Z' },
+        { party: 'buyer:internal', keyId: 'buyer-fin-0x3e1a...', sig: '0x9f4e2a...', timestamp: '2025-12-02T14:23:00Z' },
+      ],
+      evidence: 'burn-in-logs-256units.json',
+      evidenceHash: 'sha256:a3f2c1d4e5b6...',
+      parentEvents: [2],
+      status: 'verified',
+      merkleRoot: '0x7f3a2b1c...',
+      blockHeight: 48291,
+    },
+    { 
+      id: 2, 
+      type: 'RACKED', 
+      timestamp: '2025-11-28T09:15:00Z', 
+      confidence: 0.96,
+      confidenceBreakdown: {
+        hardwareAttestation: true,
+        multiPartyProof: true,
+        singlePartyEvents: 0,
+        unverifiedAssertions: 0,
+      },
+      signers: [
+        { party: 'host:coreweave', keyId: 'cw-den1-0x7a3f...', sig: '0x2d4f6a...', timestamp: '2025-11-28T09:14:55Z' },
+        { party: 'buyer:internal', keyId: 'buyer-fin-0x3e1a...', sig: '0x1c3b5e...', timestamp: '2025-11-28T09:15:00Z' },
+      ],
+      evidence: 'rack-assignment-den1-r42-48.pdf',
+      evidenceHash: 'sha256:b4c3d2e1f0a9...',
+      parentEvents: [3],
+      status: 'verified',
+      merkleRoot: '0x6e2b3c4d...',
+      blockHeight: 48156,
+    },
+    { 
+      id: 3, 
+      type: 'RECEIVED_AT_HOST', 
+      timestamp: '2025-11-25T16:42:00Z', 
+      confidence: 0.98,
+      confidenceBreakdown: {
+        hardwareAttestation: false,
+        multiPartyProof: true,
+        singlePartyEvents: 0,
+        unverifiedAssertions: 0,
+      },
+      signers: [
+        { party: 'host:coreweave', keyId: 'cw-den1-0x7a3f...', sig: '0x5a6b7c...', timestamp: '2025-11-25T16:41:50Z' },
+        { party: 'logistics:flexport', keyId: 'flex-0x9d2e...', sig: '0x4e5f6a...', timestamp: '2025-11-25T16:42:00Z' },
+      ],
+      evidence: 'intake-serials-256.csv',
+      evidenceHash: 'sha256:c5d4e3f2a1b0...',
+      parentEvents: [4],
+      status: 'verified',
+      merkleRoot: '0x5d3c4b2a...',
+      blockHeight: 48021,
+    },
+    { 
+      id: 4, 
+      type: 'CUSTOMS_CLEARED', 
+      timestamp: '2025-11-22T11:30:00Z', 
+      confidence: 0.99,
+      confidenceBreakdown: {
+        hardwareAttestation: false,
+        multiPartyProof: true,
+        singlePartyEvents: 0,
+        unverifiedAssertions: 0,
+      },
+      signers: [
+        { party: 'logistics:flexport', keyId: 'flex-0x9d2e...', sig: '0x7c8d9e...', timestamp: '2025-11-22T11:29:55Z' },
+        { party: 'customs:cbp', keyId: 'cbp-0x1f2a...', sig: '0x3b4c5d...', timestamp: '2025-11-22T11:30:00Z' },
+      ],
+      evidence: 'cbp-release-7501.pdf',
+      evidenceHash: 'sha256:d6e5f4a3b2c1...',
+      parentEvents: [5],
+      status: 'verified',
+      merkleRoot: '0x4c2b3a1d...',
+      blockHeight: 47886,
+    },
+    { 
+      id: 5, 
+      type: 'SHIPPED', 
+      timestamp: '2025-11-15T08:00:00Z', 
+      confidence: 0.97,
+      confidenceBreakdown: {
+        hardwareAttestation: false,
+        multiPartyProof: true,
+        singlePartyEvents: 0,
+        unverifiedAssertions: 0,
+      },
+      signers: [
+        { party: 'broker:wiwynn', keyId: 'wiwynn-0x4b5c...', sig: '0x8e9f0a...', timestamp: '2025-11-15T07:59:50Z' },
+        { party: 'logistics:flexport', keyId: 'flex-0x9d2e...', sig: '0x2a3b4c...', timestamp: '2025-11-15T08:00:00Z' },
+      ],
+      evidence: 'bol-flex-2025-1115.pdf',
+      evidenceHash: 'sha256:e7f6a5b4c3d2...',
+      parentEvents: [6],
+      status: 'verified',
+      merkleRoot: '0x3b1a2c4d...',
+      blockHeight: 47592,
+    },
+  ];
+
+  const agentRecommendations = [
+    { 
+      id: 1, 
+      type: 'PAYMENT_RELEASE', 
+      priority: 'high', 
+      title: 'Release milestone payment', 
+      description: 'BURNED_IN state verified. All constraints satisfied.',
+      amount: '$2.76M',
+      timestamp: '2 hours ago',
+      policyRule: {
+        id: 'payment-release-v2.3.1',
+        name: 'MilestonePaymentRelease',
+        condition: `state >= BURNED_IN 
+  AND confidence >= 0.90 
+  AND invariants.all_pass == true 
+  AND NOT exists(open_exception)`,
+        version: '2.3.1',
+        lastModified: '2025-11-01',
+        approvedBy: 'finance-policy-committee',
+      },
+      causalChain: [
+        { event: 'BURNED_IN', confidence: 0.94 },
+        { event: 'RACKED', confidence: 0.96 },
+        { event: 'RECEIVED_AT_HOST', confidence: 0.98 },
+      ],
+      invariantsChecked: [
+        { name: 'Unit Conservation', status: 'PASS' },
+        { name: 'Power Bounds', status: 'PASS' },
+        { name: 'Multi-Party Proof', status: 'PASS' },
+      ],
+    },
+    { 
+      id: 2, 
+      type: 'DRAW_REQUEST', 
+      priority: 'medium', 
+      title: 'Initiate facility draw', 
+      description: 'Project at 85% completion. Additional capital available.',
+      amount: '$1.84M',
+      timestamp: '4 hours ago',
+      policyRule: {
+        id: 'advance-rate-v1.8.0',
+        name: 'TierAAdvanceRate',
+        condition: `analyzability >= 0.85 
+  AND state >= RACKED 
+  AND drawn < facility_limit * 0.90`,
+        version: '1.8.0',
+        lastModified: '2025-10-15',
+        approvedBy: 'treasury-committee',
+      },
+      causalChain: [
+        { event: 'BURNED_IN', confidence: 0.94 },
+        { event: 'Facility Agreement', confidence: 1.0 },
+      ],
+      invariantsChecked: [
+        { name: 'Facility Limit', status: 'PASS' },
+        { name: 'Covenant Compliance', status: 'PASS' },
+      ],
+    },
+  ];
+
+  const invariants = [
+    { 
+      name: 'Unit Conservation', 
+      formula: 'allocated = shipped = received = racked', 
+      status: 'ENFORCED',
+      values: { allocated: 256, shipped: 256, received: 256, racked: 256 },
+      enforcement: 'STRUCTURAL',
+      description: 'Violation impossible: ledger rejects events that break conservation',
+      lastViolationAttempt: null,
+    },
+    { 
+      name: 'Power Bounds', 
+      formula: 'draw ≤ allocated', 
+      status: 'ENFORCED',
+      values: { draw: 892, allocated: 960, unit: 'kW' },
+      enforcement: 'CONTINUOUS',
+      description: 'Host telemetry validates in real-time; breach triggers alert',
+      lastViolationAttempt: null,
+    },
+    { 
+      name: 'Temporal Causality', 
+      formula: '∀ events: parent.timestamp < child.timestamp', 
+      status: 'ENFORCED',
+      values: { validPairs: 9, totalPairs: 9 },
+      enforcement: 'STRUCTURAL',
+      description: 'Violation impossible: DAG structure prevents causal paradoxes',
+      lastViolationAttempt: null,
+    },
+    { 
+      name: 'Multi-Party Proof', 
+      formula: 'critical_states.all(s => s.signers.length >= 2)', 
+      status: 'ENFORCED',
+      values: { verified: 6, required: 6 },
+      enforcement: 'STRUCTURAL',
+      description: 'State transition blocked until all required signatures received',
+      lastViolationAttempt: '2025-11-20T10:30:00Z',
+      lastViolationDetail: 'RACKED submitted with single signature; held for 4h until host co-signed',
+    },
+  ];
+
+  const formatTimestamp = (ts) => {
+    const date = new Date(ts);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getConfidenceColor = (conf) => {
+    if (conf >= 0.9) return '#22c55e';
+    if (conf >= 0.7) return '#eab308';
+    return '#ef4444';
+  };
+
+  const truncateHash = (hash) => {
+    if (!hash) return '';
+    return hash.slice(0, 10) + '...' + hash.slice(-6);
+  };
+
+  const stateOrder = ['PO_ISSUED', 'CAPACITY_RESERVED', 'DEPOSIT_PAID', 'HARDWARE_ALLOCATED', 'SHIPPED', 'CUSTOMS_CLEARED', 'RECEIVED_AT_HOST', 'RACKED', 'BURNED_IN', 'LIVE_REVENUE'];
+  const currentStateIndex = stateOrder.indexOf('BURNED_IN');
+
+  return (
+    <div style={{
+      fontFamily: '"IBM Plex Mono", "SF Mono", "Fira Code", monospace',
+      backgroundColor: '#0a0a0a',
+      color: '#e5e5e5',
+      minHeight: '100vh',
+      fontSize: '13px',
+      lineHeight: 1.5,
+    }}>
+      {/* Header */}
+      <header style={{
+        borderBottom: '1px solid #262626',
+        padding: '12px 24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em', color: '#fff' }}>
+            SIGHTLINE
+          </div>
+          <div style={{ color: '#737373', fontSize: '12px' }}>
+            EVENT-SOURCED COORDINATION LEDGER
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: '#737373' }}>Merkle Root:</span>
+            <span style={{ color: '#93c5fd', fontFamily: 'monospace' }}>0x7f3a2b1c...</span>
+            <span style={{ color: '#22c55e', fontSize: '10px' }}>✓ VERIFIED</span>
+          </div>
+          <span style={{ color: '#525252' }}>|</span>
+          <span style={{ color: '#737373' }}>Block: 48,291</span>
+          <span style={{ 
+            backgroundColor: '#14532d', 
+            color: '#22c55e', 
+            padding: '2px 8px', 
+            borderRadius: '2px',
+            fontSize: '11px',
+          }}>
+            AGENT ACTIVE
+          </span>
+        </div>
+      </header>
+
+      <div style={{ display: 'flex' }}>
+        {/* Sidebar */}
+        <aside style={{
+          width: '280px',
+          borderRight: '1px solid #262626',
+          padding: '16px 0',
+          flexShrink: 0,
+        }}>
+          <div style={{ padding: '0 16px 12px', color: '#737373', fontSize: '11px', letterSpacing: '0.1em' }}>
+            ACTIVE PROJECTS
+          </div>
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              onClick={() => setSelectedProject(project.id)}
+              style={{
+                padding: '12px 16px',
+                cursor: 'pointer',
+                backgroundColor: selectedProject === project.id ? '#171717' : 'transparent',
+                borderLeft: selectedProject === project.id ? '2px solid #3b82f6' : '2px solid transparent',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span style={{ color: '#fff', fontWeight: 500 }}>{project.name}</span>
+                <span style={{ color: getConfidenceColor(project.confidence), fontSize: '12px' }}>
+                  {(project.confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#737373' }}>
+                {project.host} · {project.units} units · {project.value}
+              </div>
+              <div style={{ 
+                marginTop: '6px',
+                fontSize: '10px',
+                color: '#a3a3a3',
+                backgroundColor: '#262626',
+                padding: '2px 6px',
+                borderRadius: '2px',
+                display: 'inline-block',
+              }}>
+                {project.state}
+              </div>
+            </div>
+          ))}
+          
+          {/* Trust Indicators */}
+          <div style={{ padding: '16px', marginTop: '16px', borderTop: '1px solid #262626' }}>
+            <div style={{ fontSize: '11px', color: '#737373', letterSpacing: '0.1em', marginBottom: '12px' }}>
+              LEDGER INTEGRITY
+            </div>
+            <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373' }}>Events</span>
+                <span style={{ color: '#22c55e' }}>9 verified</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373' }}>Signatures</span>
+                <span style={{ color: '#22c55e' }}>18 valid</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373' }}>Invariants</span>
+                <span style={{ color: '#22c55e' }}>4/4 enforced</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#737373' }}>Conflicts</span>
+                <span style={{ color: '#a3a3a3' }}>0 open</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main style={{ flex: 1, padding: '24px', overflow: 'auto' }}>
+          {/* Project Header */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#fff', margin: 0, marginBottom: '4px' }}>
+                  GB200 Batch Q4-2025
+                </h1>
+                <div style={{ color: '#737373', fontSize: '12px' }}>
+                  CoreWeave DEN-1 · Wiwynn (broker) · SVB (lender) · 256 × NVIDIA GB200
+                </div>
+              </div>
+              {/* Confidence Decomposition */}
+              <div style={{ 
+                backgroundColor: '#171717', 
+                border: '1px solid #262626', 
+                borderRadius: '4px', 
+                padding: '12px 16px',
+                minWidth: '200px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', color: '#737373' }}>CONFIDENCE</span>
+                  <span style={{ fontSize: '24px', fontWeight: 600, color: '#22c55e' }}>91%</span>
+                </div>
+                <div style={{ fontSize: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#737373' }}>Hardware attestation</span>
+                    <span style={{ color: '#22c55e' }}>YES</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#737373' }}>Multi-party proofs</span>
+                    <span style={{ color: '#22c55e' }}>6/6</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#737373' }}>Single-party events</span>
+                    <span style={{ color: '#a3a3a3' }}>0</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#737373' }}>Unverified assertions</span>
+                    <span style={{ color: '#a3a3a3' }}>0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* State Machine with Causal Connections */}
+          <div style={{
+            backgroundColor: '#171717',
+            border: '1px solid #262626',
+            borderRadius: '4px',
+            padding: '20px',
+            marginBottom: '24px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', color: '#737373', letterSpacing: '0.1em' }}>
+                CAUSAL STATE GRAPH
+              </div>
+              <button
+                onClick={() => setShowCausalGraph(!showCausalGraph)}
+                style={{
+                  backgroundColor: showCausalGraph ? '#1e3a5f' : '#262626',
+                  border: 'none',
+                  color: showCausalGraph ? '#93c5fd' : '#737373',
+                  padding: '4px 10px',
+                  borderRadius: '2px',
+                  fontSize: '10px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {showCausalGraph ? 'SHOW LINEAR' : 'SHOW DAG'}
+              </button>
+            </div>
+            
+            {!showCausalGraph ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto' }}>
+                {stateOrder.map((state, index) => (
+                  <React.Fragment key={state}>
+                    <div style={{
+                      padding: '8px 12px',
+                      backgroundColor: index <= currentStateIndex ? '#1e3a5f' : '#262626',
+                      border: index === currentStateIndex ? '1px solid #3b82f6' : '1px solid transparent',
+                      borderRadius: '2px',
+                      fontSize: '10px',
+                      color: index <= currentStateIndex ? '#93c5fd' : '#525252',
+                      whiteSpace: 'nowrap',
+                      fontWeight: index === currentStateIndex ? 600 : 400,
+                    }}>
+                      {state.replace(/_/g, ' ')}
+                      {index <= currentStateIndex && (
+                        <div style={{ fontSize: '8px', color: '#22c55e', marginTop: '2px' }}>
+                          ✓ 2-sig
+                        </div>
+                      )}
+                    </div>
+                    {index < stateOrder.length - 1 && (
+                      <div style={{ color: index < currentStateIndex ? '#3b82f6' : '#404040', fontSize: '14px' }}>
+                        →
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            ) : (
+              /* DAG Visualization */
+              <div style={{ 
+                backgroundColor: '#0a0a0a', 
+                borderRadius: '4px', 
+                padding: '20px',
+                minHeight: '150px',
+              }}>
+                <svg width="100%" height="150" viewBox="0 0 800 150">
+                  {/* Nodes */}
+                  <g transform="translate(50, 75)">
+                    <rect x="-40" y="-20" width="80" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">PO_ISSUED</text>
+                  </g>
+                  <g transform="translate(180, 40)">
+                    <rect x="-45" y="-20" width="90" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">CAPACITY_RES</text>
+                  </g>
+                  <g transform="translate(180, 110)">
+                    <rect x="-45" y="-20" width="90" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">DEPOSIT_PAID</text>
+                  </g>
+                  <g transform="translate(330, 75)">
+                    <rect x="-50" y="-20" width="100" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">HW_ALLOCATED</text>
+                  </g>
+                  <g transform="translate(470, 75)">
+                    <rect x="-35" y="-20" width="70" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">SHIPPED</text>
+                  </g>
+                  <g transform="translate(580, 75)">
+                    <rect x="-35" y="-20" width="70" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">RECEIVED</text>
+                  </g>
+                  <g transform="translate(690, 75)">
+                    <rect x="-35" y="-20" width="70" height="40" rx="3" fill="#1e3a5f" stroke="#3b82f6" strokeWidth="2" />
+                    <text x="0" y="5" textAnchor="middle" fill="#93c5fd" fontSize="9" fontFamily="monospace">BURNED_IN</text>
+                  </g>
+                  <g transform="translate(790, 75)">
+                    <rect x="-35" y="-20" width="70" height="40" rx="3" fill="#262626" stroke="#404040" />
+                    <text x="0" y="5" textAnchor="middle" fill="#525252" fontSize="9" fontFamily="monospace">LIVE_REV</text>
+                  </g>
+                  
+                  {/* Edges */}
+                  <line x1="90" y1="75" x2="135" y2="50" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="90" y1="75" x2="135" y2="100" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="225" y1="50" x2="280" y2="70" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="225" y1="100" x2="280" y2="80" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="380" y1="75" x2="435" y2="75" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="505" y1="75" x2="545" y2="75" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="615" y1="75" x2="655" y2="75" stroke="#3b82f6" strokeWidth="1" markerEnd="url(#arrow)" />
+                  <line x1="725" y1="75" x2="755" y2="75" stroke="#404040" strokeWidth="1" strokeDasharray="4" />
+                  
+                  <defs>
+                    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 Z" fill="#3b82f6" />
+                    </marker>
+                  </defs>
+                </svg>
+                <div style={{ fontSize: '10px', color: '#737373', marginTop: '8px', textAlign: 'center' }}>
+                  Directed acyclic graph showing causal dependencies. Parallel paths (CAPACITY + DEPOSIT) must both complete before HARDWARE_ALLOCATED.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '1px solid #262626' }}>
+            {['ledger', 'proofs', 'invariants', 'agent'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
+                  color: activeTab === tab ? '#fff' : '#737373',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {tab === 'proofs' ? 'CRYPTOGRAPHIC PROOFS' : tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Ledger Tab - Enhanced */}
+          {activeTab === 'ledger' && (
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ flex: 1, backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '4px' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '130px 100px 70px 140px 100px',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid #262626',
+                  fontSize: '10px',
+                  color: '#737373',
+                  letterSpacing: '0.1em',
+                }}>
+                  <div>EVENT</div>
+                  <div>TIMESTAMP</div>
+                  <div>CONF</div>
+                  <div>SIGNATURES</div>
+                  <div>MERKLE</div>
+                </div>
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    onClick={() => setSelectedEvent(selectedEvent?.id === event.id ? null : event)}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '130px 100px 70px 140px 100px',
+                      padding: '12px 16px',
+                      borderBottom: '1px solid #1f1f1f',
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      backgroundColor: selectedEvent?.id === event.id ? '#1e3a5f' : 'transparent',
+                    }}
+                  >
+                    <div style={{ color: '#93c5fd', fontWeight: 500 }}>{event.type}</div>
+                    <div style={{ color: '#a3a3a3', fontSize: '11px' }}>{formatTimestamp(event.timestamp)}</div>
+                    <div style={{ color: getConfidenceColor(event.confidence) }}>
+                      {(event.confidence * 100).toFixed(0)}%
+                    </div>
+                    <div style={{ color: '#737373', fontSize: '10px' }}>
+                      {event.signers.length} parties
+                      <span style={{ color: '#22c55e', marginLeft: '6px' }}>✓</span>
+                    </div>
+                    <div style={{ color: '#525252', fontSize: '10px', fontFamily: 'monospace' }}>
+                      {truncateHash(event.merkleRoot)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Event Detail Panel */}
+              {selectedEvent && (
+                <div style={{ 
+                  width: '320px', 
+                  backgroundColor: '#171717', 
+                  border: '1px solid #262626', 
+                  borderRadius: '4px',
+                  padding: '16px',
+                }}>
+                  <div style={{ fontSize: '11px', color: '#737373', letterSpacing: '0.1em', marginBottom: '16px' }}>
+                    EVENT DETAIL
+                  </div>
+                  
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ color: '#fff', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                      {selectedEvent.type}
+                    </div>
+                    <div style={{ color: '#737373', fontSize: '11px' }}>
+                      Block #{selectedEvent.blockHeight}
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '10px', color: '#737373', marginBottom: '8px' }}>SIGNATURES</div>
+                    {selectedEvent.signers.map((signer, idx) => (
+                      <div key={idx} style={{ 
+                        backgroundColor: '#0a0a0a', 
+                        padding: '8px', 
+                        borderRadius: '3px',
+                        marginBottom: '6px',
+                        fontSize: '10px',
+                      }}>
+                        <div style={{ color: '#a3a3a3', marginBottom: '4px' }}>{signer.party}</div>
+                        <div style={{ color: '#525252', fontFamily: 'monospace' }}>
+                          Key: {truncateHash(signer.keyId)}
+                        </div>
+                        <div style={{ color: '#525252', fontFamily: 'monospace' }}>
+                          Sig: {truncateHash(signer.sig)}
+                        </div>
+                        <div style={{ color: '#22c55e', marginTop: '4px' }}>
+                          ✓ Valid · {formatTimestamp(signer.timestamp)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '10px', color: '#737373', marginBottom: '8px' }}>EVIDENCE</div>
+                    <div style={{ 
+                      backgroundColor: '#0a0a0a', 
+                      padding: '8px', 
+                      borderRadius: '3px',
+                      fontSize: '10px',
+                    }}>
+                      <div style={{ color: '#3b82f6', marginBottom: '4px', cursor: 'pointer' }}>
+                        {selectedEvent.evidence}
+                      </div>
+                      <div style={{ color: '#525252', fontFamily: 'monospace' }}>
+                        {selectedEvent.evidenceHash}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#737373', marginBottom: '8px' }}>CAUSAL PARENTS</div>
+                    <div style={{ color: '#a3a3a3', fontSize: '11px' }}>
+                      {selectedEvent.parentEvents.length > 0 
+                        ? `Event IDs: ${selectedEvent.parentEvents.join(', ')}`
+                        : 'Genesis event (no parents)'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cryptographic Proofs Tab */}
+          {activeTab === 'proofs' && (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <div style={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '4px', padding: '20px' }}>
+                <div style={{ fontSize: '11px', color: '#737373', letterSpacing: '0.1em', marginBottom: '16px' }}>
+                  MERKLE TREE VERIFICATION
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#a3a3a3', marginBottom: '8px' }}>Current Root</div>
+                    <div style={{ 
+                      backgroundColor: '#0a0a0a', 
+                      padding: '12px', 
+                      borderRadius: '4px',
+                      fontFamily: 'monospace',
+                      fontSize: '12px',
+                      color: '#22c55e',
+                      wordBreak: 'break-all',
+                    }}>
+                      0x7f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#737373', marginTop: '8px' }}>
+                      Published at block 48,291 · Dec 2, 2025 2:25 PM
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#a3a3a3', marginBottom: '8px' }}>Verification Status</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#22c55e' }}>✓</span>
+                        <span style={{ color: '#a3a3a3', fontSize: '12px' }}>Local replica in sync</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#22c55e' }}>✓</span>
+                        <span style={{ color: '#a3a3a3', fontSize: '12px' }}>All events hash to root</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#22c55e' }}>✓</span>
+                        <span style={{ color: '#a3a3a3', fontSize: '12px' }}>No gaps in sequence</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: '#22c55e' }}>✓</span>
+                        <span style={{ color: '#a3a3a3', fontSize: '12px' }}>Causal ordering valid</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '4px', padding: '20px' }}>
+                <div style={{ fontSize: '11px', color: '#737373', letterSpacing: '0.1em', marginBottom: '16px' }}>
+                  SIGNATURE REGISTRY
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '150px 1fr 100px 100px',
+                  padding: '8px 0',
+                  borderBottom: '1px solid #262626',
+                  fontSize: '10px',
+                  color: '#737373',
+                }}>
+                  <div>PARTY</div>
+                  <div>PUBLIC KEY</div>
+                  <div>EVENTS SIGNED</div>
+                  <div>STATUS</div>
+                </div>
+                {[
+                  { party: 'buyer:internal', key: '0x3e1a...9f4b', events: 9, status: 'ACTIVE' },
+                  { party: 'host:coreweave', key: '0x7a3f...2c1d', events: 5, status: 'ACTIVE' },
+                  { party: 'broker:wiwynn', key: '0x4b5c...6d7e', events: 3, status: 'ACTIVE' },
+                  { party: 'logistics:flexport', key: '0x9d2e...3f4a', events: 4, status: 'ACTIVE' },
+                  { party: 'customs:cbp', key: '0x1f2a...5b6c', events: 1, status: 'ACTIVE' },
+                  { party: 'bank:svb', key: '0x8c9d...1e2f', events: 1, status: 'ACTIVE' },
+                ].map((party, idx) => (
+                  <div key={idx} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '150px 1fr 100px 100px',
+                    padding: '10px 0',
+                    borderBottom: '1px solid #1f1f1f',
+                    fontSize: '11px',
+                  }}>
+                    <div style={{ color: '#a3a3a3' }}>{party.party}</div>
+                    <div style={{ color: '#525252', fontFamily: 'monospace' }}>{party.key}</div>
+                    <div style={{ color: '#a3a3a3' }}>{party.events}</div>
+                    <div style={{ color: '#22c55e' }}>{party.status}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Invariants Tab - Enhanced */}
+          {activeTab === 'invariants' && (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {invariants.map((inv, index) => (
+                <div key={index} style={{
+                  backgroundColor: '#171717',
+                  border: '1px solid #262626',
+                  borderRadius: '4px',
+                  padding: '20px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ color: '#fff', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                        {inv.name}
+                      </div>
+                      <div style={{ 
+                        color: '#93c5fd', 
+                        fontSize: '12px', 
+                        fontFamily: 'monospace',
+                        backgroundColor: '#0a0a0a',
+                        padding: '4px 8px',
+                        borderRadius: '3px',
+                        display: 'inline-block',
+                      }}>
+                        {inv.formula}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{
+                        backgroundColor: '#14532d',
+                        color: '#22c55e',
+                        padding: '4px 12px',
+                        borderRadius: '3px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        marginBottom: '4px',
+                      }}>
+                        {inv.status}
+                      </div>
+                      <div style={{ 
+                        fontSize: '10px', 
+                        color: inv.enforcement === 'STRUCTURAL' ? '#a78bfa' : '#fbbf24',
+                      }}>
+                        {inv.enforcement}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ color: '#737373', fontSize: '12px', marginBottom: '12px' }}>
+                    {inv.description}
+                  </div>
+                  
+                  <div style={{ 
+                    backgroundColor: '#0a0a0a', 
+                    padding: '12px', 
+                    borderRadius: '4px',
+                    display: 'flex',
+                    gap: '24px',
+                    fontSize: '12px',
+                  }}>
+                    <div style={{ color: '#737373' }}>
+                      Current values:
+                    </div>
+                    <div style={{ color: '#a3a3a3', fontFamily: 'monospace' }}>
+                      {inv.name === 'Unit Conservation' && 
+                        `allocated=${inv.values.allocated} shipped=${inv.values.shipped} received=${inv.values.received} racked=${inv.values.racked}`}
+                      {inv.name === 'Power Bounds' && 
+                        `draw=${inv.values.draw}${inv.values.unit} ≤ allocated=${inv.values.allocated}${inv.values.unit}`}
+                      {inv.name === 'Temporal Causality' && 
+                        `${inv.values.validPairs}/${inv.values.totalPairs} causal pairs valid`}
+                      {inv.name === 'Multi-Party Proof' && 
+                        `${inv.values.verified}/${inv.values.required} critical states dual-signed`}
+                    </div>
+                  </div>
+                  
+                  {inv.lastViolationAttempt && (
+                    <div style={{ 
+                      marginTop: '12px', 
+                      padding: '8px 12px', 
+                      backgroundColor: '#422006',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                    }}>
+                      <span style={{ color: '#fbbf24' }}>Last blocked attempt:</span>
+                      <span style={{ color: '#a3a3a3', marginLeft: '8px' }}>{inv.lastViolationDetail}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              <div style={{
+                backgroundColor: '#0f172a',
+                border: '1px solid #1e3a5f',
+                borderRadius: '4px',
+                padding: '16px',
+                fontSize: '12px',
+              }}>
+                <div style={{ color: '#93c5fd', marginBottom: '8px', fontWeight: 500 }}>
+                  Why "ENFORCED" matters
+                </div>
+                <div style={{ color: '#a3a3a3' }}>
+                  STRUCTURAL invariants cannot be violated—the ledger architecture makes violation impossible. 
+                  This is not a check that runs after the fact. It's a property of the system.
+                  <br /><br />
+                  CONTINUOUS invariants are monitored in real-time via external telemetry. 
+                  Breach triggers immediate alert and policy evaluation.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Agent Tab - Enhanced with Policy Traceability */}
+          {activeTab === 'agent' && (
+            <div>
+              <div style={{ fontSize: '11px', color: '#737373', marginBottom: '16px', letterSpacing: '0.1em' }}>
+                AGENT RECOMMENDATIONS — POLICY TRACEABLE
+              </div>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {agentRecommendations.map((rec) => (
+                  <div
+                    key={rec.id}
+                    style={{
+                      backgroundColor: '#171717',
+                      border: rec.priority === 'high' ? '1px solid #3b82f6' : '1px solid #262626',
+                      borderRadius: '4px',
+                      padding: '20px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                          <span style={{
+                            fontSize: '10px',
+                            padding: '2px 8px',
+                            borderRadius: '2px',
+                            backgroundColor: rec.priority === 'high' ? '#1e3a5f' : '#422006',
+                            color: rec.priority === 'high' ? '#93c5fd' : '#fbbf24',
+                          }}>
+                            {rec.priority.toUpperCase()}
+                          </span>
+                          <span style={{ color: '#fff', fontWeight: 500, fontSize: '14px' }}>{rec.title}</span>
+                        </div>
+                        <div style={{ color: '#a3a3a3', fontSize: '12px' }}>
+                          {rec.description}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: '#fff', fontSize: '20px', fontWeight: 600 }}>{rec.amount}</div>
+                        <div style={{ color: '#525252', fontSize: '11px' }}>{rec.timestamp}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Policy Rule - The Key Differentiator */}
+                    <div style={{ 
+                      backgroundColor: '#0a0a0a', 
+                      borderRadius: '4px', 
+                      padding: '16px',
+                      marginBottom: '16px',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <div style={{ fontSize: '10px', color: '#737373', letterSpacing: '0.1em' }}>
+                          TRIGGERED POLICY
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#525252' }}>
+                          v{rec.policyRule.version} · {rec.policyRule.lastModified}
+                        </div>
+                      </div>
+                      <div style={{ 
+                        fontFamily: 'monospace', 
+                        fontSize: '11px', 
+                        color: '#a78bfa',
+                        whiteSpace: 'pre',
+                        marginBottom: '12px',
+                      }}>
+                        {rec.policyRule.condition}
+                      </div>
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '10px' }}>
+                        <div>
+                          <span style={{ color: '#737373' }}>Policy ID:</span>
+                          <span style={{ color: '#3b82f6', marginLeft: '6px', cursor: 'pointer' }}>{rec.policyRule.id}</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#737373' }}>Approved by:</span>
+                          <span style={{ color: '#a3a3a3', marginLeft: '6px' }}>{rec.policyRule.approvedBy}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Causal Chain & Invariants */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                      <div>
+                        <div style={{ fontSize: '10px', color: '#737373', marginBottom: '8px' }}>CAUSAL CHAIN</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {rec.causalChain.map((item, idx) => (
+                            <div key={idx} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              fontSize: '11px',
+                            }}>
+                              <span style={{ color: '#525252' }}>{idx + 1}.</span>
+                              <span style={{ color: '#93c5fd' }}>{item.event}</span>
+                              <span style={{ color: getConfidenceColor(item.confidence) }}>
+                                {(item.confidence * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10px', color: '#737373', marginBottom: '8px' }}>INVARIANTS CHECKED</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {rec.invariantsChecked.map((inv, idx) => (
+                            <div key={idx} style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              fontSize: '11px',
+                            }}>
+                              <span style={{ color: '#22c55e' }}>✓</span>
+                              <span style={{ color: '#a3a3a3' }}>{inv.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#1d4ed8',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                        fontWeight: 500,
+                      }}>
+                        Approve
+                      </button>
+                      <button style={{
+                        padding: '10px 20px',
+                        backgroundColor: 'transparent',
+                        color: '#737373',
+                        border: '1px solid #404040',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                      }}>
+                        Reject with Reason
+                      </button>
+                      <button style={{
+                        padding: '10px 20px',
+                        backgroundColor: 'transparent',
+                        color: '#737373',
+                        border: '1px solid #404040',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                      }}>
+                        View Full Audit Trail
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Why This Is Different */}
+              <div style={{
+                marginTop: '24px',
+                backgroundColor: '#0f172a',
+                border: '1px solid #1e3a5f',
+                borderRadius: '4px',
+                padding: '16px',
+                fontSize: '12px',
+              }}>
+                <div style={{ color: '#93c5fd', marginBottom: '8px', fontWeight: 500 }}>
+                  Why this isn't "AI recommendation"
+                </div>
+                <div style={{ color: '#a3a3a3' }}>
+                  This recommendation is not a prediction. It's a deterministic evaluation of policy against cryptographically verified state.
+                  <br /><br />
+                  <span style={{ color: '#fff' }}>You can trace exactly why:</span> The BURNED_IN event was signed by both CoreWeave and your internal system. 
+                  Unit conservation holds (256 = 256 = 256 = 256). The policy rule <span style={{ color: '#a78bfa', fontFamily: 'monospace' }}>payment-release-v2.3.1</span> matched. 
+                  <br /><br />
+                  If any upstream event is disputed, the causal chain breaks and the recommendation disappears. No black box.
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default SightlineDashboard;

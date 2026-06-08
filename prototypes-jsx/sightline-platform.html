@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>budgetAuthorities</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+// ============================================================================
+// DATA MODEL
+// ============================================================================
+
+const budgetAuthorities = {
+  'MKT-2025-Q1': { id: 'MKT-2025-Q1', name: 'Q1 Marketing', authorized: 150000, department: 'Marketing', owner: 'M. Chen', period: '2025-Q1', glAccount: '6100-100' },
+  'PROD-2025-Q1': { id: 'PROD-2025-Q1', name: 'Q1 Product', authorized: 200000, department: 'Product', owner: 'L. Park', period: '2025-Q1', glAccount: '6100-200' },
+  'ENG-2025-Q1': { id: 'ENG-2025-Q1', name: 'Q1 Engineering', authorized: 280000, department: 'Engineering', owner: 'S. Patel', period: '2025-Q1', glAccount: '6100-300' },
+  'OPS-2025-Q1': { id: 'OPS-2025-Q1', name: 'Q1 Operations', authorized: 95000, department: 'Operations', owner: 'R. Kim', period: '2025-Q1', glAccount: '6100-400' }
+};
+
+const vendorsList = [
+  { id: 'V-001', name: 'Brandworks Creative LLC', contact: 'Sarah Mitchell', email: 'sarah@brandworks.co', paymentTerms: 'Net 30', bankAccount: '****4521' },
+  { id: 'V-002', name: 'MediaCorp Digital', contact: 'James Wong', email: 'jwong@mediacorp.io', paymentTerms: 'Net 45', bankAccount: '****8832' },
+  { id: 'V-003', name: 'SecureCheck Partners', contact: 'Diana Ross', email: 'd.ross@securecheck.com', paymentTerms: 'Net 30', bankAccount: '****2290' },
+  { id: 'V-004', name: 'CloudScale Inc', contact: 'Mike Peters', email: 'mike@cloudscale.io', paymentTerms: 'Net 15', bankAccount: '****7761' }
+];
+
+const users = {
+  'M. Chen': { name: 'M. Chen', role: 'BUDGET_HOLDER', budgets: ['MKT-2025-Q1'], department: 'Marketing' },
+  'L. Park': { name: 'L. Park', role: 'BUDGET_HOLDER', budgets: ['PROD-2025-Q1'], department: 'Product' },
+  'S. Patel': { name: 'S. Patel', role: 'BUDGET_HOLDER', budgets: ['ENG-2025-Q1'], department: 'Engineering' },
+  'J. Torres': { name: 'J. Torres', role: 'PROCUREMENT', budgets: [], department: 'Finance' },
+  'Treasury': { name: 'Treasury', role: 'TREASURY', budgets: [], department: 'Finance' }
+};
+
+// Transfer requests
+const initialTransfers = [
+  { id: 'TRF-001', fromBudget: 'OPS-2025-Q1', toBudget: 'MKT-2025-Q1', amount: 15000, reason: 'Reallocation for Q1 campaign overrun', status: 'PENDING', requestedBy: 'M. Chen', requestedAt: '2025-03-08T10:00:00Z' }
+];
+
+// Invoices (separate from envelopes for vendor submission flow)
+const initialInvoices = [
+  { id: 'INV-001', envelopeId: 'ENV-001', vendorId: 'V-001', invoiceNumber: 'INV-BW-2401', amount: 12000, lineItemId: 'ENV-001-L1', submittedAt: '2025-03-15T09:00:00Z', status: 'PENDING_MATCH', description: 'March 2025 retainer', periodCovered: 'March 2025', attachmentUrl: '/invoices/inv-bw-2401.pdf' },
+  { id: 'INV-002', envelopeId: 'ENV-002', vendorId: 'V-002', invoiceNumber: 'INV-MC-2403', amount: 18500, lineItemId: 'ENV-002-L1', submittedAt: '2025-03-14T14:30:00Z', status: 'MATCHED', matchedAt: '2025-03-14T14:35:00Z', description: 'March media spend', periodCovered: 'March 2025' }
+];
+
+// Receipts (goods/services received)
+const initialReceipts = [
+  { id: 'RCP-001', envelopeId: 'ENV-001', lineItemId: 'ENV-001-L1', description: 'March creative services delivered', receivedAt: '2025-03-14T17:00:00Z', receivedBy: 'J. Smith', quantity: 1 },
+  { id: 'RCP-002', envelopeId: 'ENV-002', lineItemId: 'ENV-002-L1', description: 'March media campaign executed', receivedAt: '2025-03-13T12:00:00Z', receivedBy: 'A. Wong', quantity: 1 }
+];
+
+// Payment queue
+const initialPaymentQueue = [
+  { id: 'PAY-001', invoiceId: 'INV-002', envelopeId: 'ENV-002', vendorId: 'V-002', amount: 18500, status: 'READY', dueDate: '2025-03-29', addedAt: '2025-03-14T14:35:00Z' }
+];
+
+const initialEnvelopes = [
+  {
+    id: 'ENV-001', poNumber: 'PO-4521', title: 'Agency Retainer - Brandworks Q1', vendorId: 'V-001',
+    status: 'IN_PROGRESS', risk: 'LOW', createdAt: '2025-01-14T09:32:00Z', requestedBy: 'J. Smith',
+    lineItems: [
+      { id: 'ENV-001-L1', description: 'Monthly retainer - Creative services', budgetId: 'MKT-2025-Q1', amount: 36000, fulfillmentType: 'RECURRING', expectedUnits: 3, completedUnits: 2, glCode: '6100-100-5010' },
+      { id: 'ENV-001-L2', description: 'Brand refresh project', budgetId: 'PROD-2025-Q1', amount: 4000, fulfillmentType: 'MILESTONE', expectedUnits: 1, completedUnits: 0, glCode: '6100-200-5010' }
+    ],
+    controls: [
+      { id: 'C1', type: 'BUDGET_HOLDER', budgetId: 'MKT-2025-Q1', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-14T14:15:00Z', proof: '0x8f3a2b1c' },
+      { id: 'C2', type: 'BUDGET_HOLDER', budgetId: 'PROD-2025-Q1', status: 'SATISFIED', by: 'L. Park', at: '2025-01-14T14:45:00Z', proof: '0x9c4d3e2f' },
+      { id: 'C3', type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-14T16:30:00Z', proof: '0x2b1c8f3a' },
+      { id: 'C4', type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Total < $50K' }
+    ],
+    events: [
+      { id: 'E001', timestamp: '2025-01-14T09:32:00Z', type: 'INITIATED', actor: 'J. Smith', detail: 'Envelope created' },
+      { id: 'E002', timestamp: '2025-01-15T10:00:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4521 issued', vendorVisible: true },
+      { id: 'E003', timestamp: '2025-02-03T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-88432 - $12,000', data: { amount: 12000 }, vendorVisible: true },
+      { id: 'E004', timestamp: '2025-03-03T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-91205 - $12,000', data: { amount: 12000 }, vendorVisible: true }
+    ]
+  },
+  {
+    id: 'ENV-002', poNumber: 'PO-4522', title: 'Q1 Digital Media Campaign', vendorId: 'V-002',
+    status: 'IN_PROGRESS', risk: 'MEDIUM', riskNote: 'Spend pacing above forecast', createdAt: '2025-01-17T09:00:00Z', requestedBy: 'A. Wong',
+    lineItems: [
+      { id: 'ENV-002-L1', description: 'Paid social media - Q1', budgetId: 'MKT-2025-Q1', amount: 40000, fulfillmentType: 'RECURRING', expectedUnits: 3, completedUnits: 2, glCode: '6100-100-5020' },
+      { id: 'ENV-002-L2', description: 'Programmatic display', budgetId: 'MKT-2025-Q1', amount: 25000, fulfillmentType: 'RECURRING', expectedUnits: 3, completedUnits: 2, glCode: '6100-100-5020' }
+    ],
+    controls: [
+      { id: 'C1', type: 'BUDGET_HOLDER', budgetId: 'MKT-2025-Q1', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-17T11:00:00Z', proof: '0x4e2f1a3b' },
+      { id: 'C2', type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-17T15:45:00Z', proof: '0x9a3d5c2e' },
+      { id: 'C3', type: 'THRESHOLD_50K', status: 'SATISFIED', by: 'VP Finance', at: '2025-01-18T09:00:00Z', proof: '0x1f8b4d2a' }
+    ],
+    events: [
+      { id: 'E001', timestamp: '2025-01-17T09:00:00Z', type: 'INITIATED', actor: 'A. Wong', detail: 'Envelope created' },
+      { id: 'E002', timestamp: '2025-01-18T10:30:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4522 issued', vendorVisible: true },
+      { id: 'E003', timestamp: '2025-02-12T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-89102 - $22,000', data: { amount: 22000 }, vendorVisible: true },
+      { id: 'E004', timestamp: '2025-03-07T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-92341 - $24,500', data: { amount: 24500 }, vendorVisible: true }
+    ]
+  },
+  {
+    id: 'ENV-003', poNumber: 'PO-4530', title: 'Cloud Infrastructure - Q1', vendorId: 'V-004',
+    status: 'IN_PROGRESS', risk: 'LOW', createdAt: '2025-01-20T08:00:00Z', requestedBy: 'DevOps Team',
+    lineItems: [
+      { id: 'ENV-003-L1', description: 'AWS compute and storage', budgetId: 'ENG-2025-Q1', amount: 75000, fulfillmentType: 'RECURRING', expectedUnits: 3, completedUnits: 2, glCode: '6100-300-5010' }
+    ],
+    controls: [
+      { id: 'C1', type: 'BUDGET_HOLDER', budgetId: 'ENG-2025-Q1', status: 'SATISFIED', by: 'S. Patel', at: '2025-01-20T09:00:00Z', proof: '0x5d1f2e3a' },
+      { id: 'C2', type: 'PROCUREMENT_REVIEW', status: 'NOT_REQUIRED', rule: 'Existing MSA' },
+      { id: 'C3', type: 'THRESHOLD_50K', status: 'SATISFIED', by: 'VP Finance', at: '2025-01-20T11:00:00Z', proof: '0x7b2c4d5e' }
+    ],
+    events: [
+      { id: 'E001', timestamp: '2025-01-20T08:00:00Z', type: 'INITIATED', actor: 'DevOps Team', detail: 'Envelope created' },
+      { id: 'E002', timestamp: '2025-01-20T12:00:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4530 issued', vendorVisible: true },
+      { id: 'E003', timestamp: '2025-02-01T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-87001 - $25,000', data: { amount: 25000 }, vendorVisible: true },
+      { id: 'E004', timestamp: '2025-03-01T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-90002 - $25,000', data: { amount: 25000 }, vendorVisible: true }
+    ]
+  }
+];
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(n);
+const formatDate = (s) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const formatDateTime = (s) => new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+const generateId = (prefix) => `${prefix}-${Math.floor(Math.random() * 9000) + 1000}`;
+const generateProof = () => '0x' + Math.random().toString(16).substr(2, 8);
+
+const calcTotals = (env) => {
+  const committed = env.lineItems.reduce((s, li) => s + li.amount, 0);
+  const disbursed = env.events.filter(e => e.type === 'DISBURSED').reduce((s, e) => s + (e.data?.amount || 0), 0);
+  return { committed, disbursed, remaining: committed - disbursed };
+};
+
+const calcBudgetPosition = (budgetId, envelopes, transfers) => {
+  const budget = budgetAuthorities[budgetId];
+  let authorized = budget.authorized;
+  
+  // Adjust for approved transfers
+  transfers.filter(t => t.status === 'APPROVED').forEach(t => {
+    if (t.fromBudget === budgetId) authorized -= t.amount;
+    if (t.toBudget === budgetId) authorized += t.amount;
+  });
+  
+  let committed = 0, disbursed = 0;
+  envelopes.forEach(env => {
+    env.lineItems.forEach(li => { if (li.budgetId === budgetId) committed += li.amount; });
+    const share = env.lineItems.filter(li => li.budgetId === budgetId).reduce((s, li) => s + li.amount, 0);
+    const total = env.lineItems.reduce((s, li) => s + li.amount, 0);
+    const envDisbursed = env.events.filter(e => e.type === 'DISBURSED').reduce((s, e) => s + (e.data?.amount || 0), 0);
+    if (total > 0) disbursed += envDisbursed * share / total;
+  });
+  
+  return { authorized, committed, disbursed: Math.round(disbursed), available: authorized - committed };
+};
+
+// ============================================================================
+// SHARED COMPONENTS
+// ============================================================================
+
+const StatusBadge = ({ status, small }) => {
+  const cfg = {
+    'PENDING_APPROVAL': { bg: '#2e1e2e', border: '#9333ea', color: '#c4b5fd', label: 'Pending Approval' },
+    'PENDING_MATCH': { bg: '#2e2a1a', border: '#d97706', color: '#fcd34d', label: 'Pending Match' },
+    'MATCHED': { bg: '#1e2e2e', border: '#0891b2', color: '#67e8f9', label: 'Matched' },
+    'IN_PROGRESS': { bg: '#1a2a2e', border: '#0891b2', color: '#67e8f9', label: 'In Progress' },
+    'READY': { bg: '#1e2e1e', border: '#059669', color: '#6ee7b7', label: 'Ready' },
+    'PROCESSING': { bg: '#2e2a1a', border: '#d97706', color: '#fcd34d', label: 'Processing' },
+    'COMPLETE': { bg: '#1e2e1e', border: '#059669', color: '#6ee7b7', label: 'Complete' },
+    'PENDING': { bg: '#2e2a1a', border: '#d97706', color: '#fcd34d', label: 'Pending' },
+    'APPROVED': { bg: '#1e2e1e', border: '#059669', color: '#6ee7b7', label: 'Approved' },
+    'REJECTED': { bg: '#2e1e1e', border: '#dc2626', color: '#fca5a5', label: 'Rejected' },
+    'MATCH_FAILED': { bg: '#2e1e1e', border: '#dc2626', color: '#fca5a5', label: 'Match Failed' }
+  }[status] || { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: status };
+  
+  return (
+    <span style={{ display: 'inline-block', padding: small ? '2px 8px' : '4px 12px', fontSize: small ? '9px' : '10px', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase', backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: '4px', color: cfg.color }}>
+      {cfg.label}
+    </span>
+  );
+};
+
+const Card = ({ children, style }) => (
+  <div style={{ padding: '16px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', ...style }}>
+    {children}
+  </div>
+);
+
+const SectionHeader = ({ children }) => (
+  <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '12px' }}>
+    {children}
+  </div>
+);
+
+const MetricCard = ({ label, value, color, subtext }) => (
+  <div style={{ padding: '14px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '6px' }}>
+    <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{label}</div>
+    <div style={{ fontSize: '20px', fontWeight: '500', color: color || '#e2e2e8', fontFeatureSettings: '"tnum"' }}>{value}</div>
+    {subtext && <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>{subtext}</div>}
+  </div>
+);
+
+// ============================================================================
+// VENDOR PORTAL - Invoice Submission
+// ============================================================================
+
+const VendorPortal = ({ envelopes, invoices, setInvoices, receipts }) => {
+  const [selectedPO, setSelectedPO] = useState(null);
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({ invoiceNumber: '', amount: '', lineItemId: '', description: '', periodCovered: '' });
+  
+  // In real system, vendor would be authenticated. For demo, show all.
+  const vendorEnvelopes = envelopes.filter(e => e.poNumber);
+  const vendorInvoices = invoices;
+  
+  const handleSubmitInvoice = () => {
+    const newInvoice = {
+      id: generateId('INV'),
+      envelopeId: selectedPO.id,
+      vendorId: selectedPO.vendorId,
+      invoiceNumber: invoiceForm.invoiceNumber,
+      amount: parseFloat(invoiceForm.amount),
+      lineItemId: invoiceForm.lineItemId,
+      description: invoiceForm.description,
+      periodCovered: invoiceForm.periodCovered,
+      submittedAt: new Date().toISOString(),
+      status: 'PENDING_MATCH'
+    };
+    setInvoices([...invoices, newInvoice]);
+    setShowSubmitForm(false);
+    setInvoiceForm({ invoiceNumber: '', amount: '', lineItemId: '', description: '', periodCovered: '' });
+  };
+  
+  return (
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Vendor Portal</div>
+        <h2 style={{ fontSize: '20px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>Invoice Submission</h2>
+      </div>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        {/* Active POs */}
+        <div>
+          <SectionHeader>Active Purchase Orders</SectionHeader>
+          {vendorEnvelopes.map(env => {
+            const totals = calcTotals(env);
+            const vendor = vendorsList.find(v => v.id === env.vendorId);
+            const isSelected = selectedPO?.id === env.id;
+            
+            return (
+              <Card key={env.id} style={{ marginBottom: '12px', cursor: 'pointer', borderColor: isSelected ? 'rgba(59,130,246,0.5)' : undefined, backgroundColor: isSelected ? 'rgba(59,130,246,0.05)' : undefined }} onClick={() => setSelectedPO(env)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>{env.poNumber}</div>
+                    <div style={{ fontSize: '11px', color: '#e2e2e8', marginTop: '2px' }}>{env.title}</div>
+                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>{vendor?.name}</div>
+                  </div>
+                  <StatusBadge status={env.status} small />
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ color: '#6b7280' }}>PO Amount: <span style={{ color: '#d97706' }}>{formatCurrency(totals.committed)}</span></span>
+                  <span style={{ color: '#6b7280' }}>Remaining: <span style={{ color: '#9ca3af' }}>{formatCurrency(totals.remaining)}</span></span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+        
+        {/* Selected PO Detail + Submit Form */}
+        <div>
+          {selectedPO ? (
+            <>
+              <SectionHeader>PO {selectedPO.poNumber} - Line Items</SectionHeader>
+              {selectedPO.lineItems.map(li => {
+                const liInvoices = vendorInvoices.filter(inv => inv.lineItemId === li.id);
+                const invoiced = liInvoices.reduce((s, inv) => s + inv.amount, 0);
+                const remaining = li.amount - invoiced;
+                
+                return (
+                  <Card key={li.id} style={{ marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{li.description}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#d97706' }}>{formatCurrency(li.amount)}</div>
+                    </div>
+                    <div style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                      <div style={{ width: `${(invoiced / li.amount) * 100}%`, height: '100%', backgroundColor: '#3b82f6' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6b7280' }}>
+                      <span>Invoiced: {formatCurrency(invoiced)}</span>
+                      <span>Available: {formatCurrency(remaining)}</span>
+                    </div>
+                  </Card>
+                );
+              })}
+              
+              {!showSubmitForm ? (
+                <button onClick={() => setShowSubmitForm(true)} style={{ width: '100%', padding: '14px', fontSize: '12px', fontWeight: '600', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', marginTop: '12px' }}>
+                  Submit New Invoice
+                </button>
+              ) : (
+                <Card style={{ marginTop: '12px' }}>
+                  <SectionHeader>Submit Invoice</SectionHeader>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <input type="text" placeholder="Invoice Number (e.g., INV-2024-001)" value={invoiceForm.invoiceNumber} onChange={e => setInvoiceForm({ ...invoiceForm, invoiceNumber: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <input type="number" placeholder="Amount" value={invoiceForm.amount} onChange={e => setInvoiceForm({ ...invoiceForm, amount: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                      <select value={invoiceForm.lineItemId} onChange={e => setInvoiceForm({ ...invoiceForm, lineItemId: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }}>
+                        <option value="">Select line item...</option>
+                        {selectedPO.lineItems.map(li => <option key={li.id} value={li.id}>{li.description}</option>)}
+                      </select>
+                    </div>
+                    <input type="text" placeholder="Description" value={invoiceForm.description} onChange={e => setInvoiceForm({ ...invoiceForm, description: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <input type="text" placeholder="Period Covered (e.g., March 2025)" value={invoiceForm.periodCovered} onChange={e => setInvoiceForm({ ...invoiceForm, periodCovered: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button onClick={() => setShowSubmitForm(false)} style={{ flex: 1, padding: '10px', fontSize: '11px', backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={handleSubmitInvoice} disabled={!invoiceForm.invoiceNumber || !invoiceForm.amount || !invoiceForm.lineItemId} style={{ flex: 1, padding: '10px', fontSize: '11px', fontWeight: '600', backgroundColor: '#059669', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', opacity: (!invoiceForm.invoiceNumber || !invoiceForm.amount || !invoiceForm.lineItemId) ? 0.5 : 1 }}>Submit Invoice</button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+              
+              {/* Invoice History for this PO */}
+              <div style={{ marginTop: '24px' }}>
+                <SectionHeader>Invoice History</SectionHeader>
+                {vendorInvoices.filter(inv => inv.envelopeId === selectedPO.id).map(inv => (
+                  <Card key={inv.id} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{inv.invoiceNumber}</div>
+                        <div style={{ fontSize: '10px', color: '#6b7280' }}>{formatDateTime(inv.submittedAt)}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>{formatCurrency(inv.amount)}</div>
+                        <StatusBadge status={inv.status} small />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+              Select a purchase order to view details and submit invoices
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// THREE-WAY MATCH
+// ============================================================================
+
+const ThreeWayMatchView = ({ invoices, setInvoices, receipts, envelopes, paymentQueue, setPaymentQueue }) => {
+  const pendingInvoices = invoices.filter(inv => inv.status === 'PENDING_MATCH');
+  
+  const performMatch = (invoice) => {
+    const envelope = envelopes.find(e => e.id === invoice.envelopeId);
+    const lineItem = envelope?.lineItems.find(li => li.id === invoice.lineItemId);
+    const receipt = receipts.find(r => r.envelopeId === invoice.envelopeId && r.lineItemId === invoice.lineItemId);
+    
+    // Check PO exists and matches
+    const poMatch = envelope && envelope.poNumber;
+    // Check receipt exists
+    const receiptMatch = receipt !== undefined;
+    // Check amount is within tolerance (±5%)
+    const amountMatch = lineItem && Math.abs(invoice.amount - (lineItem.amount / lineItem.expectedUnits)) < (lineItem.amount * 0.05);
+    
+    const allMatch = poMatch && receiptMatch && amountMatch;
+    
+    const now = new Date().toISOString();
+    
+    // Update invoice status
+    setInvoices(prev => prev.map(inv => 
+      inv.id === invoice.id 
+        ? { ...inv, status: allMatch ? 'MATCHED' : 'MATCH_FAILED', matchedAt: allMatch ? now : undefined, matchDetails: { poMatch, receiptMatch, amountMatch } }
+        : inv
+    ));
+    
+    // If matched, add to payment queue
+    if (allMatch) {
+      const vendor = vendorsList.find(v => v.id === invoice.vendorId);
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + (vendor?.paymentTerms === 'Net 45' ? 45 : vendor?.paymentTerms === 'Net 15' ? 15 : 30));
+      
+      setPaymentQueue(prev => [...prev, {
+        id: generateId('PAY'),
+        invoiceId: invoice.id,
+        envelopeId: invoice.envelopeId,
+        vendorId: invoice.vendorId,
+        amount: invoice.amount,
+        status: 'READY',
+        dueDate: dueDate.toISOString().split('T')[0],
+        addedAt: now
+      }]);
+    }
+  };
+  
+  return (
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>AP Processing</div>
+        <h2 style={{ fontSize: '20px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>Three-Way Match</h2>
+        <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+          Verify invoices against Purchase Orders and Goods Receipts
+        </p>
+      </div>
+      
+      {/* Summary metrics */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <MetricCard label="Pending Match" value={pendingInvoices.length} color="#d97706" />
+        <MetricCard label="Matched Today" value={invoices.filter(i => i.status === 'MATCHED' && i.matchedAt?.startsWith(new Date().toISOString().split('T')[0])).length} color="#10b981" />
+        <MetricCard label="Match Failed" value={invoices.filter(i => i.status === 'MATCH_FAILED').length} color="#dc2626" />
+        <MetricCard label="Total Queue Value" value={formatCurrency(pendingInvoices.reduce((s, i) => s + i.amount, 0))} color="#3b82f6" />
+      </div>
+      
+      {/* Pending invoices */}
+      <SectionHeader>Invoices Pending Match · {pendingInvoices.length}</SectionHeader>
+      
+      {pendingInvoices.length === 0 ? (
+        <Card><div style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>No invoices pending match</div></Card>
+      ) : (
+        pendingInvoices.map(invoice => {
+          const envelope = envelopes.find(e => e.id === invoice.envelopeId);
+          const lineItem = envelope?.lineItems.find(li => li.id === invoice.lineItemId);
+          const receipt = receipts.find(r => r.envelopeId === invoice.envelopeId && r.lineItemId === invoice.lineItemId);
+          const vendor = vendorsList.find(v => v.id === invoice.vendorId);
+          
+          const expectedAmount = lineItem ? lineItem.amount / lineItem.expectedUnits : 0;
+          const amountVariance = lineItem ? ((invoice.amount - expectedAmount) / expectedAmount * 100).toFixed(1) : 0;
+          
+          return (
+            <Card key={invoice.id} style={{ marginBottom: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr auto', gap: '24px', alignItems: 'center' }}>
+                {/* Invoice info */}
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e2e8' }}>{invoice.invoiceNumber}</div>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{vendor?.name} · {invoice.description}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>Submitted {formatDateTime(invoice.submittedAt)}</div>
+                </div>
+                
+                {/* PO Check */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>PO</div>
+                  <div style={{ fontSize: '12px', color: envelope?.poNumber ? '#6ee7b7' : '#fca5a5', fontWeight: '600' }}>
+                    {envelope?.poNumber ? `✓ ${envelope.poNumber}` : '✕ Not Found'}
+                  </div>
+                </div>
+                
+                {/* Receipt Check */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Receipt</div>
+                  <div style={{ fontSize: '12px', color: receipt ? '#6ee7b7' : '#fca5a5', fontWeight: '600' }}>
+                    {receipt ? `✓ ${formatDate(receipt.receivedAt)}` : '✕ Not Found'}
+                  </div>
+                </div>
+                
+                {/* Amount Check */}
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Amount</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#3b82f6' }}>{formatCurrency(invoice.amount)}</div>
+                  <div style={{ fontSize: '10px', color: Math.abs(parseFloat(amountVariance)) > 5 ? '#fca5a5' : '#6b7280' }}>
+                    {amountVariance > 0 ? '+' : ''}{amountVariance}% vs expected
+                  </div>
+                </div>
+                
+                {/* Action */}
+                <button onClick={() => performMatch(invoice)} style={{ padding: '10px 20px', fontSize: '11px', fontWeight: '600', backgroundColor: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                  Run Match
+                </button>
+              </div>
+            </Card>
+          );
+        })
+      )}
+      
+      {/* Recently matched */}
+      <div style={{ marginTop: '32px' }}>
+        <SectionHeader>Recently Processed</SectionHeader>
+        {invoices.filter(i => i.status === 'MATCHED' || i.status === 'MATCH_FAILED').slice(0, 5).map(invoice => {
+          const vendor = vendorsList.find(v => v.id === invoice.vendorId);
+          return (
+            <Card key={invoice.id} style={{ marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{invoice.invoiceNumber} · {vendor?.name}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>{formatDateTime(invoice.matchedAt || invoice.submittedAt)}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>{formatCurrency(invoice.amount)}</span>
+                  <StatusBadge status={invoice.status} small />
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// TREASURY - Payment Queue
+// ============================================================================
+
+const TreasuryView = ({ paymentQueue, setPaymentQueue, invoices, envelopes, setEnvelopes }) => {
+  const readyPayments = paymentQueue.filter(p => p.status === 'READY');
+  const processingPayments = paymentQueue.filter(p => p.status === 'PROCESSING');
+  
+  const executePayment = (payment) => {
+    const now = new Date().toISOString();
+    const paymentRef = `ACH-${Math.floor(Math.random() * 90000) + 10000}`;
+    
+    // Update payment status
+    setPaymentQueue(prev => prev.map(p => 
+      p.id === payment.id ? { ...p, status: 'COMPLETE', executedAt: now, paymentRef } : p
+    ));
+    
+    // Add disbursement event to envelope
+    setEnvelopes(prev => prev.map(env => {
+      if (env.id !== payment.envelopeId) return env;
+      return {
+        ...env,
+        events: [...env.events, {
+          id: `E${String(env.events.length + 1).padStart(3, '0')}`,
+          timestamp: now,
+          type: 'DISBURSED',
+          actor: 'Treasury',
+          detail: `${paymentRef} - ${formatCurrency(payment.amount)}`,
+          data: { amount: payment.amount, paymentRef, invoiceId: payment.invoiceId },
+          vendorVisible: true
+        }]
+      };
+    }));
+  };
+  
+  const executeBatch = () => {
+    readyPayments.forEach(p => executePayment(p));
+  };
+  
+  // Group by vendor for batch view
+  const byVendor = readyPayments.reduce((acc, p) => {
+    const vendor = vendorsList.find(v => v.id === p.vendorId);
+    if (!acc[p.vendorId]) acc[p.vendorId] = { vendor, payments: [], total: 0 };
+    acc[p.vendorId].payments.push(p);
+    acc[p.vendorId].total += p.amount;
+    return acc;
+  }, {});
+  
+  const totalReady = readyPayments.reduce((s, p) => s + p.amount, 0);
+  
+  return (
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Treasury</div>
+        <h2 style={{ fontSize: '20px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>Payment Execution</h2>
+      </div>
+      
+      {/* Summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <MetricCard label="Ready to Pay" value={readyPayments.length} color="#10b981" subtext={formatCurrency(totalReady)} />
+        <MetricCard label="Processing" value={processingPayments.length} color="#d97706" />
+        <MetricCard label="Vendors" value={Object.keys(byVendor).length} color="#6366f1" />
+        <MetricCard label="Oldest Due" value={readyPayments.length > 0 ? formatDate(readyPayments.sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0].dueDate) : '—'} color="#9ca3af" />
+      </div>
+      
+      {/* Batch action */}
+      {readyPayments.length > 0 && (
+        <Card style={{ marginBottom: '24px', backgroundColor: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#6ee7b7' }}>Batch Payment Ready</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                {readyPayments.length} payments totaling {formatCurrency(totalReady)} to {Object.keys(byVendor).length} vendors
+              </div>
+            </div>
+            <button onClick={executeBatch} style={{ padding: '12px 24px', fontSize: '12px', fontWeight: '600', backgroundColor: '#059669', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Execute All Payments
+            </button>
+          </div>
+        </Card>
+      )}
+      
+      {/* By vendor */}
+      <SectionHeader>Payment Queue by Vendor</SectionHeader>
+      
+      {Object.entries(byVendor).map(([vendorId, data]) => (
+        <Card key={vendorId} style={{ marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e2e8' }}>{data.vendor?.name}</div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                Bank: {data.vendor?.bankAccount} · {data.vendor?.paymentTerms}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '18px', fontWeight: '600', color: '#10b981' }}>{formatCurrency(data.total)}</div>
+              <div style={{ fontSize: '10px', color: '#6b7280' }}>{data.payments.length} payment{data.payments.length > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          
+          {data.payments.map(payment => {
+            const invoice = invoices.find(i => i.id === payment.invoiceId);
+            const envelope = envelopes.find(e => e.id === payment.envelopeId);
+            const isOverdue = new Date(payment.dueDate) < new Date();
+            
+            return (
+              <div key={payment.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '6px', marginBottom: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: '#e2e2e8' }}>{invoice?.invoiceNumber} · {envelope?.poNumber}</div>
+                  <div style={{ fontSize: '10px', color: isOverdue ? '#fca5a5' : '#6b7280' }}>
+                    Due: {formatDate(payment.dueDate)} {isOverdue && '(OVERDUE)'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#e2e2e8' }}>{formatCurrency(payment.amount)}</span>
+                  <button onClick={() => executePayment(payment)} style={{ padding: '6px 12px', fontSize: '10px', fontWeight: '600', backgroundColor: '#3b82f6', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Pay
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      ))}
+      
+      {readyPayments.length === 0 && (
+        <Card><div style={{ textAlign: 'center', color: '#6b7280', padding: '40px' }}>No payments ready for execution</div></Card>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// BUDGET TRANSFERS
+// ============================================================================
+
+const BudgetTransferView = ({ transfers, setTransfers, envelopes }) => {
+  const [showNewTransfer, setShowNewTransfer] = useState(false);
+  const [transferForm, setTransferForm] = useState({ fromBudget: '', toBudget: '', amount: '', reason: '' });
+  
+  const handleSubmitTransfer = () => {
+    const newTransfer = {
+      id: generateId('TRF'),
+      fromBudget: transferForm.fromBudget,
+      toBudget: transferForm.toBudget,
+      amount: parseFloat(transferForm.amount),
+      reason: transferForm.reason,
+      status: 'PENDING',
+      requestedBy: 'M. Chen',
+      requestedAt: new Date().toISOString()
+    };
+    setTransfers([...transfers, newTransfer]);
+    setShowNewTransfer(false);
+    setTransferForm({ fromBudget: '', toBudget: '', amount: '', reason: '' });
+  };
+  
+  const handleApproveTransfer = (transfer) => {
+    setTransfers(prev => prev.map(t => 
+      t.id === transfer.id ? { ...t, status: 'APPROVED', approvedBy: 'VP Finance', approvedAt: new Date().toISOString() } : t
+    ));
+  };
+  
+  const handleRejectTransfer = (transfer) => {
+    setTransfers(prev => prev.map(t => 
+      t.id === transfer.id ? { ...t, status: 'REJECTED', rejectedBy: 'VP Finance', rejectedAt: new Date().toISOString() } : t
+    ));
+  };
+  
+  return (
+    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+        <div>
+          <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Budget Management</div>
+          <h2 style={{ fontSize: '20px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>Transfer Requests</h2>
+        </div>
+        <button onClick={() => setShowNewTransfer(true)} style={{ padding: '10px 20px', fontSize: '12px', fontWeight: '600', backgroundColor: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+          + New Transfer
+        </button>
+      </div>
+      
+      {/* Budget positions */}
+      <SectionHeader>Current Budget Positions</SectionHeader>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        {Object.values(budgetAuthorities).map(budget => {
+          const position = calcBudgetPosition(budget.id, envelopes, transfers);
+          const utilizationPct = (position.committed / position.authorized * 100).toFixed(0);
+          
+          return (
+            <Card key={budget.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e2e8' }}>{budget.name}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>{budget.owner}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: position.available > 0 ? '#10b981' : '#dc2626' }}>{formatCurrency(position.available)}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>available</div>
+                </div>
+              </div>
+              <div style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, utilizationPct)}%`, height: '100%', backgroundColor: utilizationPct > 90 ? '#dc2626' : utilizationPct > 75 ? '#d97706' : '#3b82f6' }} />
+              </div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '6px' }}>{utilizationPct}% utilized · {formatCurrency(position.authorized)} authorized</div>
+            </Card>
+          );
+        })}
+      </div>
+      
+      {/* New transfer form */}
+      {showNewTransfer && (
+        <Card style={{ marginBottom: '24px', backgroundColor: 'rgba(59,130,246,0.05)', borderColor: 'rgba(59,130,246,0.3)' }}>
+          <SectionHeader>New Transfer Request</SectionHeader>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '12px', alignItems: 'center' }}>
+              <select value={transferForm.fromBudget} onChange={e => setTransferForm({ ...transferForm, fromBudget: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }}>
+                <option value="">From budget...</option>
+                {Object.values(budgetAuthorities).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <span style={{ color: '#6b7280' }}>→</span>
+              <select value={transferForm.toBudget} onChange={e => setTransferForm({ ...transferForm, toBudget: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }}>
+                <option value="">To budget...</option>
+                {Object.values(budgetAuthorities).filter(b => b.id !== transferForm.fromBudget).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <input type="number" placeholder="Amount" value={transferForm.amount} onChange={e => setTransferForm({ ...transferForm, amount: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <textarea placeholder="Reason for transfer..." value={transferForm.reason} onChange={e => setTransferForm({ ...transferForm, reason: e.target.value })} rows={2} style={{ width: '100%', padding: '10px', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#e2e2e8', fontFamily: 'inherit', resize: 'none', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={() => setShowNewTransfer(false)} style={{ flex: 1, padding: '10px', fontSize: '11px', backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleSubmitTransfer} disabled={!transferForm.fromBudget || !transferForm.toBudget || !transferForm.amount} style={{ flex: 1, padding: '10px', fontSize: '11px', fontWeight: '600', backgroundColor: '#3b82f6', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit', opacity: (!transferForm.fromBudget || !transferForm.toBudget || !transferForm.amount) ? 0.5 : 1 }}>Submit Request</button>
+            </div>
+          </div>
+        </Card>
+      )}
+      
+      {/* Transfer requests */}
+      <SectionHeader>Transfer Requests</SectionHeader>
+      {transfers.map(transfer => {
+        const fromBudget = budgetAuthorities[transfer.fromBudget];
+        const toBudget = budgetAuthorities[transfer.toBudget];
+        
+        return (
+          <Card key={transfer.id} style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#fca5a5' }}>{fromBudget?.name}</span>
+                  <span style={{ color: '#6b7280' }}>→</span>
+                  <span style={{ fontSize: '12px', color: '#6ee7b7' }}>{toBudget?.name}</span>
+                </div>
+                <div style={{ fontSize: '18px', fontWeight: '600', color: '#e2e2e8', marginBottom: '4px' }}>{formatCurrency(transfer.amount)}</div>
+                <div style={{ fontSize: '11px', color: '#6b7280' }}>{transfer.reason}</div>
+                <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '8px' }}>
+                  Requested by {transfer.requestedBy} · {formatDateTime(transfer.requestedAt)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                <StatusBadge status={transfer.status} />
+                {transfer.status === 'PENDING' && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => handleApproveTransfer(transfer)} style={{ padding: '6px 12px', fontSize: '10px', fontWeight: '600', backgroundColor: '#059669', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>Approve</button>
+                    <button onClick={() => handleRejectTransfer(transfer)} style={{ padding: '6px 12px', fontSize: '10px', fontWeight: '600', backgroundColor: '#dc2626', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>Reject</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================================================
+// REPORTING
+// ============================================================================
+
+const ReportingView = ({ envelopes, transfers }) => {
+  const [reportType, setReportType] = useState('BUDGET_VS_ACTUAL');
+  
+  // Calculate budget vs actual by budget
+  const budgetReport = Object.values(budgetAuthorities).map(budget => {
+    const position = calcBudgetPosition(budget.id, envelopes, transfers);
+    return {
+      ...budget,
+      ...position,
+      variance: position.authorized - position.committed,
+      variancePct: ((position.authorized - position.committed) / position.authorized * 100).toFixed(1)
+    };
+  });
+  
+  // Calculate by vendor
+  const vendorReport = vendorsList.map(vendor => {
+    const vendorEnvelopes = envelopes.filter(e => e.vendorId === vendor.id);
+    const committed = vendorEnvelopes.reduce((s, e) => s + e.lineItems.reduce((ls, li) => ls + li.amount, 0), 0);
+    const disbursed = vendorEnvelopes.reduce((s, e) => s + e.events.filter(ev => ev.type === 'DISBURSED').reduce((ds, ev) => ds + (ev.data?.amount || 0), 0), 0);
+    return { ...vendor, committed, disbursed, envelopeCount: vendorEnvelopes.length };
+  }).filter(v => v.committed > 0).sort((a, b) => b.committed - a.committed);
+  
+  // Calculate by department
+  const deptReport = ['Marketing', 'Product', 'Engineering', 'Operations'].map(dept => {
+    const deptBudgets = Object.values(budgetAuthorities).filter(b => b.department === dept);
+    const authorized = deptBudgets.reduce((s, b) => s + calcBudgetPosition(b.id, envelopes, transfers).authorized, 0);
+    const committed = deptBudgets.reduce((s, b) => s + calcBudgetPosition(b.id, envelopes, transfers).committed, 0);
+    const disbursed = deptBudgets.reduce((s, b) => s + calcBudgetPosition(b.id, envelopes, transfers).disbursed, 0);
+    return { department: dept, authorized, committed, disbursed, available: authorized - committed };
+  });
+  
+  const totalAuthorized = budgetReport.reduce((s, b) => s + b.authorized, 0);
+  const totalCommitted = budgetReport.reduce((s, b) => s + b.committed, 0);
+  const totalDisbursed = budgetReport.reduce((s, b) => s + b.disbursed, 0);
+  
+  return (
+    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '24px' }}>
+        <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>Financial Intelligence</div>
+        <h2 style={{ fontSize: '20px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>Reports & Analytics</h2>
+      </div>
+      
+      {/* Report type selector */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+        {[
+          { id: 'BUDGET_VS_ACTUAL', label: 'Budget vs Actual' },
+          { id: 'BY_VENDOR', label: 'By Vendor' },
+          { id: 'BY_DEPARTMENT', label: 'By Department' }
+        ].map(type => (
+          <button key={type.id} onClick={() => setReportType(type.id)} style={{
+            padding: '10px 20px', fontSize: '11px', fontWeight: '600',
+            backgroundColor: reportType === type.id ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${reportType === type.id ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.06)'}`,
+            borderRadius: '6px', color: reportType === type.id ? '#93c5fd' : '#6b7280',
+            cursor: 'pointer', fontFamily: 'inherit'
+          }}>
+            {type.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* Summary metrics */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+        <MetricCard label="Total Authorized" value={formatCurrency(totalAuthorized)} color="#10b981" />
+        <MetricCard label="Total Committed" value={formatCurrency(totalCommitted)} color="#d97706" subtext={`${(totalCommitted / totalAuthorized * 100).toFixed(0)}% of authorized`} />
+        <MetricCard label="Total Disbursed" value={formatCurrency(totalDisbursed)} color="#3b82f6" subtext={`${(totalDisbursed / totalAuthorized * 100).toFixed(0)}% of authorized`} />
+        <MetricCard label="Available" value={formatCurrency(totalAuthorized - totalCommitted)} color="#9ca3af" />
+      </div>
+      
+      {/* Budget vs Actual */}
+      {reportType === 'BUDGET_VS_ACTUAL' && (
+        <>
+          <SectionHeader>Budget vs Actual by Budget Authority</SectionHeader>
+          <Card>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 120px', gap: '16px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '9px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div>Budget</div>
+              <div style={{ textAlign: 'right' }}>Authorized</div>
+              <div style={{ textAlign: 'right' }}>Committed</div>
+              <div style={{ textAlign: 'right' }}>Disbursed</div>
+              <div style={{ textAlign: 'right' }}>Variance</div>
+              <div>Utilization</div>
+            </div>
+            {budgetReport.map(budget => (
+              <div key={budget.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 120px', gap: '16px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{budget.name}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>{budget.owner}</div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#10b981', fontFeatureSettings: '"tnum"' }}>{formatCurrency(budget.authorized)}</div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#d97706', fontFeatureSettings: '"tnum"' }}>{formatCurrency(budget.committed)}</div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#3b82f6', fontFeatureSettings: '"tnum"' }}>{formatCurrency(budget.disbursed)}</div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: budget.variance >= 0 ? '#6ee7b7' : '#fca5a5', fontFeatureSettings: '"tnum"' }}>
+                  {budget.variance >= 0 ? '+' : ''}{formatCurrency(budget.variance)}
+                </div>
+                <div>
+                  <div style={{ height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(100, (budget.committed / budget.authorized) * 100)}%`, height: '100%', backgroundColor: (budget.committed / budget.authorized) > 0.9 ? '#dc2626' : '#3b82f6' }} />
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>{((budget.committed / budget.authorized) * 100).toFixed(0)}%</div>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
+      
+      {/* By Vendor */}
+      {reportType === 'BY_VENDOR' && (
+        <>
+          <SectionHeader>Spend by Vendor</SectionHeader>
+          <Card>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px', gap: '16px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '9px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div>Vendor</div>
+              <div style={{ textAlign: 'right' }}>Committed</div>
+              <div style={{ textAlign: 'right' }}>Disbursed</div>
+              <div style={{ textAlign: 'right' }}>Remaining</div>
+              <div style={{ textAlign: 'center' }}>Envelopes</div>
+            </div>
+            {vendorReport.map(vendor => (
+              <div key={vendor.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px', gap: '16px', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{vendor.name}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>{vendor.contact}</div>
+                </div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#d97706', fontFeatureSettings: '"tnum"' }}>{formatCurrency(vendor.committed)}</div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#3b82f6', fontFeatureSettings: '"tnum"' }}>{formatCurrency(vendor.disbursed)}</div>
+                <div style={{ textAlign: 'right', fontSize: '12px', color: '#9ca3af', fontFeatureSettings: '"tnum"' }}>{formatCurrency(vendor.committed - vendor.disbursed)}</div>
+                <div style={{ textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>{vendor.envelopeCount}</div>
+              </div>
+            ))}
+          </Card>
+        </>
+      )}
+      
+      {/* By Department */}
+      {reportType === 'BY_DEPARTMENT' && (
+        <>
+          <SectionHeader>Spend by Department</SectionHeader>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+            {deptReport.map(dept => (
+              <Card key={dept.department}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#e2e2e8' }}>{dept.department}</div>
+                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '4px' }}>{formatCurrency(dept.authorized)} authorized</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '600', color: dept.available > 0 ? '#10b981' : '#dc2626' }}>{formatCurrency(dept.available)}</div>
+                    <div style={{ fontSize: '10px', color: '#6b7280' }}>available</div>
+                  </div>
+                </div>
+                
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ height: '12px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${(dept.disbursed / dept.authorized) * 100}%`, backgroundColor: '#3b82f6' }} />
+                    <div style={{ width: `${((dept.committed - dept.disbursed) / dept.authorized) * 100}%`, backgroundColor: '#d97706' }} />
+                  </div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '10px' }}>
+                  <div><span style={{ color: '#6b7280' }}>Disbursed:</span> <span style={{ color: '#3b82f6' }}>{formatCurrency(dept.disbursed)}</span></div>
+                  <div><span style={{ color: '#6b7280' }}>Committed:</span> <span style={{ color: '#d97706' }}>{formatCurrency(dept.committed - dept.disbursed)}</span></div>
+                  <div><span style={{ color: '#6b7280' }}>Available:</span> <span style={{ color: '#10b981' }}>{formatCurrency(dept.available)}</span></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// MAIN APPLICATION
+// ============================================================================
+
+const SightlinePlatform = () => {
+  const [activeView, setActiveView] = useState('ENVELOPES');
+  const [envelopes, setEnvelopes] = useState(initialEnvelopes);
+  const [invoices, setInvoices] = useState(initialInvoices);
+  const [receipts] = useState(initialReceipts);
+  const [paymentQueue, setPaymentQueue] = useState(initialPaymentQueue);
+  const [transfers, setTransfers] = useState(initialTransfers);
+  const [selectedEnvelope, setSelectedEnvelope] = useState(envelopes[0]);
+  
+  const navItems = [
+    { id: 'ENVELOPES', label: 'Envelopes', icon: '◈' },
+    { id: 'VENDOR', label: 'Vendor Portal', icon: '◇' },
+    { id: 'MATCH', label: 'Three-Way Match', icon: '⬡' },
+    { id: 'TREASURY', label: 'Treasury', icon: '●' },
+    { id: 'TRANSFERS', label: 'Transfers', icon: '⇄' },
+    { id: 'REPORTS', label: 'Reports', icon: '▤' }
+  ];
+  
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#06060a', color: '#e2e2e8', fontFamily: "'JetBrains Mono', 'Fira Code', monospace", fontSize: '12px' }}>
+      {/* Header */}
+      <header style={{ padding: '12px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          <div>
+            <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase' }}>Sightline</div>
+            <div style={{ fontSize: '14px', fontWeight: '500', color: '#f8f8fc' }}>Financial Coordination Platform</div>
+          </div>
+          
+          {/* Navigation */}
+          <nav style={{ display: 'flex', gap: '4px' }}>
+            {navItems.map(item => (
+              <button key={item.id} onClick={() => setActiveView(item.id)} style={{
+                padding: '8px 16px', fontSize: '11px', fontWeight: '500',
+                backgroundColor: activeView === item.id ? 'rgba(59,130,246,0.2)' : 'transparent',
+                border: 'none', borderRadius: '6px',
+                color: activeView === item.id ? '#93c5fd' : '#6b7280',
+                cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: '6px'
+              }}>
+                <span style={{ fontSize: '12px' }}>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        
+        <div style={{ fontSize: '11px', color: '#6b7280' }}>
+          M. Chen · Marketing
+        </div>
+      </header>
+      
+      {/* Main Content */}
+      {activeView === 'ENVELOPES' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', minHeight: 'calc(100vh - 57px)' }}>
+          {/* Envelope list */}
+          <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto' }}>
+            <div style={{ padding: '16px' }}>
+              <SectionHeader>Envelopes · {envelopes.length}</SectionHeader>
+            </div>
+            {envelopes.map(env => {
+              const totals = calcTotals(env);
+              const isSelected = selectedEnvelope?.id === env.id;
+              return (
+                <div key={env.id} onClick={() => setSelectedEnvelope(env)} style={{
+                  padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer',
+                  backgroundColor: isSelected ? 'rgba(59,130,246,0.08)' : 'transparent',
+                  borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '500', color: '#e2e2e8' }}>{env.title}</div>
+                    <StatusBadge status={env.status} small />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6b7280' }}>
+                    <span>{env.poNumber || 'PO Pending'}</span>
+                    <span style={{ color: '#d97706' }}>{formatCurrency(totals.committed)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Envelope detail */}
+          <div style={{ overflowY: 'auto', padding: '24px' }}>
+            {selectedEnvelope && (
+              <>
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>{selectedEnvelope.id} · {selectedEnvelope.poNumber || 'PO PENDING'}</div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>{selectedEnvelope.title}</h2>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>{vendorsList.find(v => v.id === selectedEnvelope.vendorId)?.name}</div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+                  <MetricCard label="Committed" value={formatCurrency(calcTotals(selectedEnvelope).committed)} color="#d97706" />
+                  <MetricCard label="Disbursed" value={formatCurrency(calcTotals(selectedEnvelope).disbursed)} color="#3b82f6" />
+                  <MetricCard label="Remaining" value={formatCurrency(calcTotals(selectedEnvelope).remaining)} color="#9ca3af" />
+                </div>
+                
+                <SectionHeader>Line Items</SectionHeader>
+                {selectedEnvelope.lineItems.map(li => (
+                  <Card key={li.id} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{li.description}</div>
+                        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>{budgetAuthorities[li.budgetId]?.name} · {li.glCode}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#d97706' }}>{formatCurrency(li.amount)}</div>
+                        <div style={{ fontSize: '10px', color: '#6b7280' }}>{li.completedUnits}/{li.expectedUnits}</div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                
+                <div style={{ marginTop: '24px' }}>
+                  <SectionHeader>Events · {selectedEnvelope.events.length}</SectionHeader>
+                  {selectedEnvelope.events.map(e => (
+                    <div key={e.id} style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: e.type === 'DISBURSED' ? '#3b82f6' : '#6b7280', marginTop: '4px', flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontSize: '10px', color: '#6b7280' }}>{formatDateTime(e.timestamp)} · {e.actor}</div>
+                        <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{e.detail}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {activeView === 'VENDOR' && <VendorPortal envelopes={envelopes} invoices={invoices} setInvoices={setInvoices} receipts={receipts} />}
+      {activeView === 'MATCH' && <ThreeWayMatchView invoices={invoices} setInvoices={setInvoices} receipts={receipts} envelopes={envelopes} paymentQueue={paymentQueue} setPaymentQueue={setPaymentQueue} />}
+      {activeView === 'TREASURY' && <TreasuryView paymentQueue={paymentQueue} setPaymentQueue={setPaymentQueue} invoices={invoices} envelopes={envelopes} setEnvelopes={setEnvelopes} />}
+      {activeView === 'TRANSFERS' && <BudgetTransferView transfers={transfers} setTransfers={setTransfers} envelopes={envelopes} />}
+      {activeView === 'REPORTS' && <ReportingView envelopes={envelopes} transfers={transfers} />}
+    </div>
+  );
+};
+
+// export default SightlinePlatform;
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(budgetAuthorities));
+</script>
+</body>
+</html>

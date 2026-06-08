@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SightlinePrototype</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+// Shared event log - the single source of truth
+const initialEvents = [
+  {
+    id: 'evt_001',
+    timestamp: '2025-01-15T09:00:00Z',
+    type: 'COMMITMENT_CREATED',
+    party: 'buyer',
+    partyName: 'Nexus AI Labs',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      gpuType: 'H100 80GB',
+      quantity: 64,
+      hours: 720,
+      ratePerGpuHour: 2.85,
+      totalCommitted: 131328.00,
+      startDate: '2025-02-01',
+      endDate: '2025-02-28'
+    },
+    signature: '0x7a3f...e821',
+    verified: true
+  },
+  {
+    id: 'evt_002',
+    timestamp: '2025-01-15T09:15:00Z',
+    type: 'COMMITMENT_ACCEPTED',
+    party: 'seller',
+    partyName: 'CoreWeave West',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      acceptedTerms: true,
+      invoiceSchedule: 'weekly'
+    },
+    signature: '0x9b2c...f912',
+    verified: true
+  },
+  {
+    id: 'evt_003',
+    timestamp: '2025-02-07T00:00:00Z',
+    type: 'USAGE_REPORTED',
+    party: 'seller',
+    partyName: 'CoreWeave West',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      periodStart: '2025-02-01',
+      periodEnd: '2025-02-07',
+      gpuHoursDelivered: 10752,
+      gpuHoursCommitted: 10752,
+      utilizationRate: 1.0,
+      amountDue: 30643.20
+    },
+    signature: '0x4d1a...b334',
+    verified: true
+  },
+  {
+    id: 'evt_004',
+    timestamp: '2025-02-07T08:30:00Z',
+    type: 'USAGE_CONFIRMED',
+    party: 'buyer',
+    partyName: 'Nexus AI Labs',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      periodEnd: '2025-02-07',
+      confirmedHours: 10752,
+      discrepancy: 0
+    },
+    signature: '0x2e8f...c445',
+    verified: true
+  },
+  {
+    id: 'evt_005',
+    timestamp: '2025-02-14T00:00:00Z',
+    type: 'USAGE_REPORTED',
+    party: 'seller',
+    partyName: 'CoreWeave West',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      periodStart: '2025-02-08',
+      periodEnd: '2025-02-14',
+      gpuHoursDelivered: 10920,
+      gpuHoursCommitted: 10752,
+      utilizationRate: 1.016,
+      amountDue: 31122.00,
+      note: 'Overage: 168 GPU-hours at contract rate'
+    },
+    signature: '0x8c3b...d556',
+    verified: true
+  },
+  {
+    id: 'evt_006',
+    timestamp: '2025-02-14T10:15:00Z',
+    type: 'VARIANCE_FLAGGED',
+    party: 'buyer',
+    partyName: 'Nexus AI Labs',
+    data: {
+      commitmentId: 'CMT-2025-0142',
+      varianceType: 'OVERAGE_DISPUTE',
+      reportedHours: 10920,
+      measuredHours: 10584,
+      difference: 336,
+      amountDisputed: 957.60,
+      evidence: 'Internal telemetry shows 336 fewer GPU-hours than reported'
+    },
+    signature: '0x5f2d...e667',
+    verified: true
+  }
+];
+
+// Derive current state from events
+function deriveState(events) {
+  const state = {
+    commitment: null,
+    totalDelivered: 0,
+    totalConfirmed: 0,
+    totalBilled: 0,
+    totalPaid: 0,
+    openVariances: [],
+    status: 'DRAFT'
+  };
+
+  events.forEach(event => {
+    switch (event.type) {
+      case 'COMMITMENT_CREATED':
+        state.commitment = event.data;
+        state.status = 'PENDING_ACCEPTANCE';
+        break;
+      case 'COMMITMENT_ACCEPTED':
+        state.status = 'ACTIVE';
+        break;
+      case 'USAGE_REPORTED':
+        state.totalDelivered += event.data.gpuHoursDelivered;
+        state.totalBilled += event.data.amountDue;
+        break;
+      case 'USAGE_CONFIRMED':
+        state.totalConfirmed += event.data.confirmedHours;
+        break;
+      case 'VARIANCE_FLAGGED':
+        state.openVariances.push(event.data);
+        state.status = 'VARIANCE_OPEN';
+        break;
+      case 'VARIANCE_RESOLVED':
+        state.openVariances = state.openVariances.filter(
+          v => v.varianceType !== event.data.varianceType
+        );
+        if (state.openVariances.length === 0) state.status = 'ACTIVE';
+        break;
+      case 'PAYMENT_MADE':
+        state.totalPaid += event.data.amount;
+        break;
+    }
+  });
+
+  return state;
+}
+
+// Format helpers
+const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+const formatNumber = (n) => new Intl.NumberFormat('en-US').format(n);
+const formatDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+// Event type styling
+const eventStyles = {
+  COMMITMENT_CREATED: { bg: '#dbeafe', border: '#3b82f6', icon: '📋' },
+  COMMITMENT_ACCEPTED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+  USAGE_REPORTED: { bg: '#fef3c7', border: '#f59e0b', icon: '📊' },
+  USAGE_CONFIRMED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+  VARIANCE_FLAGGED: { bg: '#fee2e2', border: '#ef4444', icon: '⚠' },
+  VARIANCE_RESOLVED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+  PAYMENT_MADE: { bg: '#e0e7ff', border: '#6366f1', icon: '💰' }
+};
+
+// Status badge component
+function StatusBadge({ status }) {
+  const statusConfig = {
+    DRAFT: { bg: '#f3f4f6', text: '#6b7280', label: 'Draft' },
+    PENDING_ACCEPTANCE: { bg: '#fef3c7', text: '#92400e', label: 'Pending Acceptance' },
+    ACTIVE: { bg: '#d1fae5', text: '#065f46', label: 'Active' },
+    VARIANCE_OPEN: { bg: '#fee2e2', text: '#991b1b', label: 'Variance Open' },
+    COMPLETED: { bg: '#dbeafe', text: '#1e40af', label: 'Completed' }
+  };
+  const config = statusConfig[status] || statusConfig.DRAFT;
+  
+  return (
+    <span style={{
+      padding: '4px 12px',
+      borderRadius: '9999px',
+      fontSize: '12px',
+      fontWeight: '600',
+      backgroundColor: config.bg,
+      color: config.text,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em'
+    }}>
+      {config.label}
+    </span>
+  );
+}
+
+// Shared Event Log Component
+function EventLog({ events, perspective }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {events.slice().reverse().map(event => {
+        const style = eventStyles[event.type] || { bg: '#f3f4f6', border: '#9ca3af', icon: '•' };
+        const isOwnEvent = event.party === perspective;
+        
+        return (
+          <div
+            key={event.id}
+            style={{
+              backgroundColor: style.bg,
+              borderLeft: `4px solid ${style.border}`,
+              borderRadius: '8px',
+              padding: '16px',
+              opacity: isOwnEvent ? 1 : 0.85
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>{style.icon}</span>
+                <span style={{ fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>
+                  {event.type.replace(/_/g, ' ')}
+                </span>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(event.timestamp)}</div>
+                <div style={{ fontSize: '11px', color: '#9ca3af' }}>{formatTime(event.timestamp)}</div>
+              </div>
+            </div>
+            
+            <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '8px' }}>
+              <span style={{ fontWeight: '500' }}>{event.partyName}</span>
+              {isOwnEvent ? ' (you)' : ''}
+            </div>
+            
+            <div style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace', backgroundColor: 'rgba(255,255,255,0.5)', padding: '8px', borderRadius: '4px' }}>
+              {Object.entries(event.data).map(([key, value]) => (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                  <span style={{ color: '#9ca3af' }}>{key}:</span>
+                  <span style={{ color: '#374151' }}>
+                    {typeof value === 'number' && key.toLowerCase().includes('amount') 
+                      ? formatCurrency(value)
+                      : typeof value === 'number'
+                      ? formatNumber(value)
+                      : String(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ 
+                width: '8px', 
+                height: '8px', 
+                borderRadius: '50%', 
+                backgroundColor: event.verified ? '#10b981' : '#f59e0b' 
+              }} />
+              <span style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>
+                {event.signature}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Summary Card Component
+function SummaryCard({ label, value, subtext, variant = 'default' }) {
+  const variants = {
+    default: { bg: '#ffffff', border: '#e5e7eb' },
+    success: { bg: '#f0fdf4', border: '#86efac' },
+    warning: { bg: '#fffbeb', border: '#fcd34d' },
+    danger: { bg: '#fef2f2', border: '#fca5a5' }
+  };
+  const v = variants[variant];
+  
+  return (
+    <div style={{
+      backgroundColor: v.bg,
+      border: `1px solid ${v.border}`,
+      borderRadius: '12px',
+      padding: '20px',
+      flex: 1,
+      minWidth: '140px'
+    }}>
+      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '4px' }}>
+        {value}
+      </div>
+      {subtext && (
+        <div style={{ fontSize: '12px', color: '#9ca3af' }}>{subtext}</div>
+      )}
+    </div>
+  );
+}
+
+// Buyer Dashboard
+function BuyerDashboard({ events, state, onAddEvent }) {
+  const commitment = state.commitment;
+  const variance = state.openVariances[0];
+  
+  return (
+    <div style={{ padding: '32px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>
+              GPU Compute Commitment
+            </h1>
+            <StatusBadge status={state.status} />
+          </div>
+          <div style={{ color: '#6b7280' }}>
+            {commitment?.commitmentId} • Buyer View: <strong>Nexus AI Labs</strong>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+          <SummaryCard 
+            label="Committed Value" 
+            value={formatCurrency(commitment?.totalCommitted || 0)}
+            subtext={`${formatNumber(commitment?.quantity || 0)} × H100 × ${formatNumber(commitment?.hours || 0)}h`}
+          />
+          <SummaryCard 
+            label="Delivered (Reported)" 
+            value={`${formatNumber(state.totalDelivered)} hrs`}
+            subtext={`${((state.totalDelivered / (commitment?.quantity * commitment?.hours || 1)) * 100).toFixed(1)}% of commitment`}
+            variant="success"
+          />
+          <SummaryCard 
+            label="Confirmed by You" 
+            value={`${formatNumber(state.totalConfirmed)} hrs`}
+            subtext={state.totalConfirmed < state.totalDelivered ? 'Pending confirmation' : 'Fully confirmed'}
+            variant={state.totalConfirmed < state.totalDelivered ? 'warning' : 'success'}
+          />
+          <SummaryCard 
+            label="Amount Billed" 
+            value={formatCurrency(state.totalBilled)}
+            subtext={`${formatCurrency(state.totalPaid)} paid`}
+          />
+        </div>
+
+        {/* Variance Alert */}
+        {variance && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fca5a5',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '32px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠</span> Open Variance: {variance.varianceType.replace(/_/g, ' ')}
+                </div>
+                <div style={{ fontSize: '14px', color: '#7f1d1d', marginBottom: '4px' }}>
+                  You reported {formatNumber(variance.measuredHours)} GPU-hours vs seller's {formatNumber(variance.reportedHours)} ({formatNumber(variance.difference)} difference)
+                </div>
+                <div style={{ fontSize: '13px', color: '#991b1b' }}>
+                  Disputed amount: <strong>{formatCurrency(variance.amountDisputed)}</strong>
+                </div>
+                <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', fontStyle: 'italic' }}>
+                  "{variance.evidence}"
+                </div>
+              </div>
+              <button
+                onClick={() => onAddEvent({
+                  type: 'VARIANCE_RESOLVED',
+                  party: 'buyer',
+                  partyName: 'Nexus AI Labs',
+                  data: {
+                    commitmentId: commitment.commitmentId,
+                    varianceType: variance.varianceType,
+                    resolution: 'CREDIT_ISSUED',
+                    creditAmount: variance.amountDisputed,
+                    note: 'Seller acknowledged telemetry discrepancy'
+                  }
+                })}
+                style={{
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '14px'
+                }}
+              >
+                Mark Resolved
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Two Column Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          {/* Commitment Details */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px'
+          }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+              Commitment Details
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                ['Counterparty', 'CoreWeave West'],
+                ['GPU Type', commitment?.gpuType],
+                ['Quantity', `${commitment?.quantity} GPUs`],
+                ['Duration', `${commitment?.hours} hours`],
+                ['Rate', `${formatCurrency(commitment?.ratePerGpuHour || 0)}/GPU-hour`],
+                ['Period', `${formatDate(commitment?.startDate)} – ${formatDate(commitment?.endDate)}`]
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                  <span style={{ color: '#6b7280', fontSize: '14px' }}>{label}</span>
+                  <span style={{ color: '#111827', fontSize: '14px', fontWeight: '500' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Event Log */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px',
+            maxHeight: '500px',
+            overflow: 'auto'
+          }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+              Shared Event Log
+            </h2>
+            <EventLog events={events} perspective="buyer" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Seller Dashboard
+function SellerDashboard({ events, state, onAddEvent }) {
+  const commitment = state.commitment;
+  const variance = state.openVariances[0];
+  const [showReportModal, setShowReportModal] = useState(false);
+  
+  return (
+    <div style={{ padding: '32px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>
+              GPU Compute Commitment
+            </h1>
+            <StatusBadge status={state.status} />
+          </div>
+          <div style={{ color: '#6b7280' }}>
+            {commitment?.commitmentId} • Seller View: <strong>CoreWeave West</strong>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+          <SummaryCard 
+            label="Contract Value" 
+            value={formatCurrency(commitment?.totalCommitted || 0)}
+            subtext={`${formatNumber(commitment?.quantity || 0)} × H100 × ${formatNumber(commitment?.hours || 0)}h`}
+          />
+          <SummaryCard 
+            label="Delivered" 
+            value={`${formatNumber(state.totalDelivered)} hrs`}
+            subtext={`${((state.totalDelivered / (commitment?.quantity * commitment?.hours || 1)) * 100).toFixed(1)}% delivered`}
+            variant="success"
+          />
+          <SummaryCard 
+            label="Buyer Confirmed" 
+            value={`${formatNumber(state.totalConfirmed)} hrs`}
+            subtext={state.totalDelivered - state.totalConfirmed > 0 ? `${formatNumber(state.totalDelivered - state.totalConfirmed)} pending` : 'Fully confirmed'}
+            variant={state.totalDelivered - state.totalConfirmed > 0 ? 'warning' : 'success'}
+          />
+          <SummaryCard 
+            label="Invoiced" 
+            value={formatCurrency(state.totalBilled)}
+            subtext={`${formatCurrency(state.totalPaid)} collected`}
+          />
+        </div>
+
+        {/* Variance Alert (Seller perspective) */}
+        {variance && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fcd34d',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '32px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠</span> Buyer Dispute: {variance.varianceType.replace(/_/g, ' ')}
+                </div>
+                <div style={{ fontSize: '14px', color: '#78350f', marginBottom: '4px' }}>
+                  Buyer claims {formatNumber(variance.measuredHours)} GPU-hours vs your reported {formatNumber(variance.reportedHours)}
+                </div>
+                <div style={{ fontSize: '13px', color: '#92400e' }}>
+                  Amount at risk: <strong>{formatCurrency(variance.amountDisputed)}</strong>
+                </div>
+                <div style={{ fontSize: '12px', color: '#a16207', marginTop: '8px', fontStyle: 'italic' }}>
+                  Buyer evidence: "{variance.evidence}"
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => onAddEvent({
+                    type: 'VARIANCE_RESOLVED',
+                    party: 'seller',
+                    partyName: 'CoreWeave West',
+                    data: {
+                      commitmentId: commitment.commitmentId,
+                      varianceType: variance.varianceType,
+                      resolution: 'CREDIT_ISSUED',
+                      creditAmount: variance.amountDisputed,
+                      note: 'Credit issued per buyer telemetry'
+                    }
+                  })}
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '13px'
+                  }}
+                >
+                  Issue Credit
+                </button>
+                <button
+                  style={{
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '13px'
+                  }}
+                >
+                  Dispute
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Bar */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          marginBottom: '32px',
+          padding: '16px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb'
+        }}>
+          <button
+            onClick={() => onAddEvent({
+              type: 'USAGE_REPORTED',
+              party: 'seller',
+              partyName: 'CoreWeave West',
+              data: {
+                commitmentId: commitment.commitmentId,
+                periodStart: '2025-02-15',
+                periodEnd: '2025-02-21',
+                gpuHoursDelivered: 10752,
+                gpuHoursCommitted: 10752,
+                utilizationRate: 1.0,
+                amountDue: 30643.20
+              }
+            })}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '14px'
+            }}
+          >
+            Report Week 3 Usage
+          </button>
+          <button
+            style={{
+              backgroundColor: 'white',
+              color: '#374151',
+              border: '1px solid #d1d5db',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '14px'
+            }}
+          >
+            Generate Invoice
+          </button>
+        </div>
+
+        {/* Two Column Layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          {/* Commitment Details */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px'
+          }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+              Commitment Details
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                ['Customer', 'Nexus AI Labs'],
+                ['GPU Type', commitment?.gpuType],
+                ['Quantity', `${commitment?.quantity} GPUs`],
+                ['Duration', `${commitment?.hours} hours`],
+                ['Rate', `${formatCurrency(commitment?.ratePerGpuHour || 0)}/GPU-hour`],
+                ['Period', `${formatDate(commitment?.startDate)} – ${formatDate(commitment?.endDate)}`],
+                ['Invoice Schedule', 'Weekly']
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                  <span style={{ color: '#6b7280', fontSize: '14px' }}>{label}</span>
+                  <span style={{ color: '#111827', fontSize: '14px', fontWeight: '500' }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Event Log */}
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            padding: '24px',
+            maxHeight: '500px',
+            overflow: 'auto'
+          }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+              Shared Event Log
+            </h2>
+            <EventLog events={events} perspective="seller" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main App with View Toggle
+function SightlinePrototype() {
+  const [view, setView] = useState('buyer');
+  const [events, setEvents] = useState(initialEvents);
+  const state = deriveState(events);
+
+  const addEvent = (eventData) => {
+    const newEvent = {
+      id: `evt_${String(events.length + 1).padStart(3, '0')}`,
+      timestamp: new Date().toISOString(),
+      ...eventData,
+      signature: `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`,
+      verified: true
+    };
+    setEvents([...events, newEvent]);
+  };
+
+  return (
+    <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+      {/* View Toggle Header */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backgroundColor: '#1f2937',
+        padding: '12px 32px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ color: 'white', fontWeight: '700', fontSize: '18px' }}>◈ Sightline</span>
+          <span style={{ color: '#9ca3af', fontSize: '13px' }}>Coordination Protocol</span>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '4px', backgroundColor: '#374151', borderRadius: '8px', padding: '4px' }}>
+          <button
+            onClick={() => setView('buyer')}
+            style={{
+              backgroundColor: view === 'buyer' ? '#3b82f6' : 'transparent',
+              color: view === 'buyer' ? 'white' : '#9ca3af',
+              border: 'none',
+              padding: '8px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '14px',
+              transition: 'all 0.15s'
+            }}
+          >
+            Buyer View
+          </button>
+          <button
+            onClick={() => setView('seller')}
+            style={{
+              backgroundColor: view === 'seller' ? '#10b981' : 'transparent',
+              color: view === 'seller' ? 'white' : '#9ca3af',
+              border: 'none',
+              padding: '8px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontSize: '14px',
+              transition: 'all 0.15s'
+            }}
+          >
+            Seller View
+          </button>
+        </div>
+
+        <div style={{ color: '#6b7280', fontSize: '12px' }}>
+          {events.length} events • State derived in real-time
+        </div>
+      </div>
+
+      {/* Dashboard Views */}
+      {view === 'buyer' ? (
+        <BuyerDashboard events={events} state={state} onAddEvent={addEvent} />
+      ) : (
+        <SellerDashboard events={events} state={state} onAddEvent={addEvent} />
+      )}
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(SightlinePrototype));
+</script>
+</body>
+</html>

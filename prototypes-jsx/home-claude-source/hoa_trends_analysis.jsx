@@ -1,0 +1,401 @@
+import React, { useState } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts';
+
+const data = [
+  {month: '2004-01', value: 15}, {month: '2004-06', value: 16}, {month: '2004-12', value: 15},
+  {month: '2005-06', value: 23}, {month: '2005-12', value: 17},
+  {month: '2006-06', value: 23}, {month: '2006-12', value: 18},
+  {month: '2007-06', value: 31}, {month: '2007-12', value: 25},
+  {month: '2008-06', value: 34}, {month: '2008-09', value: 29}, {month: '2008-12', value: 24},
+  {month: '2009-06', value: 40}, {month: '2009-12', value: 30},
+  {month: '2010-06', value: 43}, {month: '2010-07', value: 55}, {month: '2010-08', value: 58}, {month: '2010-10', value: 61}, {month: '2010-12', value: 59},
+  {month: '2011-06', value: 50}, {month: '2011-12', value: 39},
+  {month: '2012-06', value: 56}, {month: '2012-12', value: 49},
+  {month: '2013-01', value: 54}, {month: '2013-04', value: 61}, {month: '2013-12', value: 48},
+  {month: '2014-06', value: 73}, {month: '2014-12', value: 56},
+  {month: '2015-06', value: 68}, {month: '2015-08', value: 59}, {month: '2015-12', value: 52},
+  {month: '2016-06', value: 68}, {month: '2016-12', value: 46},
+  {month: '2017-06', value: 63}, {month: '2017-12', value: 50},
+  {month: '2018-06', value: 69}, {month: '2018-12', value: 49},
+  {month: '2019-06', value: 67}, {month: '2019-12', value: 52},
+  {month: '2020-03', value: 57}, {month: '2020-06', value: 81}, {month: '2020-07', value: 82}, {month: '2020-12', value: 56},
+  {month: '2021-06', value: 74}, {month: '2021-12', value: 60},
+  {month: '2022-04', value: 77}, {month: '2022-12', value: 55},
+  {month: '2023-05', value: 77}, {month: '2023-12', value: 59},
+  {month: '2024-05', value: 85}, {month: '2024-06', value: 89}, {month: '2024-12', value: 64},
+  {month: '2025-06', value: 88}, {month: '2025-07', value: 100}, {month: '2025-11', value: 82}
+];
+
+// Full monthly data for the main chart
+const fullData = [
+  {month: '2004-01', value: 15, year: 2004}, {month: '2004-02', value: 15, year: 2004}, {month: '2004-03', value: 15, year: 2004},
+  {month: '2004-04', value: 17, year: 2004}, {month: '2004-05', value: 16, year: 2004}, {month: '2004-06', value: 16, year: 2004},
+  {month: '2004-07', value: 18, year: 2004}, {month: '2004-08', value: 17, year: 2004}, {month: '2004-09', value: 16, year: 2004},
+  {month: '2004-10', value: 15, year: 2004}, {month: '2004-11', value: 15, year: 2004}, {month: '2004-12', value: 15, year: 2004},
+  {month: '2005-01', value: 17, year: 2005}, {month: '2005-02', value: 18, year: 2005}, {month: '2005-03', value: 19, year: 2005},
+  {month: '2005-04', value: 20, year: 2005}, {month: '2005-05', value: 21, year: 2005}, {month: '2005-06', value: 23, year: 2005},
+  {month: '2005-07', value: 21, year: 2005}, {month: '2005-08', value: 20, year: 2005}, {month: '2005-09', value: 19, year: 2005},
+  {month: '2005-10', value: 20, year: 2005}, {month: '2005-11', value: 18, year: 2005}, {month: '2005-12', value: 17, year: 2005},
+  {month: '2006-01', value: 19, year: 2006}, {month: '2006-02', value: 19, year: 2006}, {month: '2006-03', value: 21, year: 2006},
+  {month: '2006-04', value: 22, year: 2006}, {month: '2006-05', value: 25, year: 2006}, {month: '2006-06', value: 23, year: 2006},
+  {month: '2006-07', value: 24, year: 2006}, {month: '2006-08', value: 24, year: 2006}, {month: '2006-09', value: 22, year: 2006},
+  {month: '2006-10', value: 23, year: 2006}, {month: '2006-11', value: 19, year: 2006}, {month: '2006-12', value: 18, year: 2006},
+  {month: '2007-01', value: 24, year: 2007}, {month: '2007-02', value: 24, year: 2007}, {month: '2007-03', value: 26, year: 2007},
+  {month: '2007-04', value: 29, year: 2007}, {month: '2007-05', value: 28, year: 2007}, {month: '2007-06', value: 31, year: 2007},
+  {month: '2007-07', value: 28, year: 2007}, {month: '2007-08', value: 29, year: 2007}, {month: '2007-09', value: 26, year: 2007},
+  {month: '2007-10', value: 27, year: 2007}, {month: '2007-11', value: 25, year: 2007}, {month: '2007-12', value: 25, year: 2007},
+  {month: '2008-01', value: 28, year: 2008}, {month: '2008-02', value: 28, year: 2008}, {month: '2008-03', value: 31, year: 2008},
+  {month: '2008-04', value: 28, year: 2008}, {month: '2008-05', value: 31, year: 2008}, {month: '2008-06', value: 34, year: 2008},
+  {month: '2008-07', value: 35, year: 2008}, {month: '2008-08', value: 28, year: 2008}, {month: '2008-09', value: 29, year: 2008},
+  {month: '2008-10', value: 27, year: 2008}, {month: '2008-11', value: 24, year: 2008}, {month: '2008-12', value: 24, year: 2008},
+  {month: '2009-01', value: 31, year: 2009}, {month: '2009-02', value: 31, year: 2009}, {month: '2009-03', value: 35, year: 2009},
+  {month: '2009-04', value: 38, year: 2009}, {month: '2009-05', value: 39, year: 2009}, {month: '2009-06', value: 40, year: 2009},
+  {month: '2009-07', value: 38, year: 2009}, {month: '2009-08', value: 37, year: 2009}, {month: '2009-09', value: 36, year: 2009},
+  {month: '2009-10', value: 33, year: 2009}, {month: '2009-11', value: 30, year: 2009}, {month: '2009-12', value: 30, year: 2009},
+  {month: '2010-01', value: 36, year: 2010}, {month: '2010-02', value: 34, year: 2010}, {month: '2010-03', value: 40, year: 2010},
+  {month: '2010-04', value: 40, year: 2010}, {month: '2010-05', value: 43, year: 2010}, {month: '2010-06', value: 43, year: 2010},
+  {month: '2010-07', value: 55, year: 2010}, {month: '2010-08', value: 58, year: 2010}, {month: '2010-09', value: 54, year: 2010},
+  {month: '2010-10', value: 61, year: 2010}, {month: '2010-11', value: 59, year: 2010}, {month: '2010-12', value: 59, year: 2010},
+  {month: '2011-01', value: 41, year: 2011}, {month: '2011-02', value: 43, year: 2011}, {month: '2011-03', value: 49, year: 2011},
+  {month: '2011-04', value: 47, year: 2011}, {month: '2011-05', value: 47, year: 2011}, {month: '2011-06', value: 50, year: 2011},
+  {month: '2011-07', value: 50, year: 2011}, {month: '2011-08', value: 45, year: 2011}, {month: '2011-09', value: 43, year: 2011},
+  {month: '2011-10', value: 41, year: 2011}, {month: '2011-11', value: 39, year: 2011}, {month: '2011-12', value: 39, year: 2011},
+  {month: '2012-01', value: 48, year: 2012}, {month: '2012-02', value: 47, year: 2012}, {month: '2012-03', value: 50, year: 2012},
+  {month: '2012-04', value: 53, year: 2012}, {month: '2012-05', value: 53, year: 2012}, {month: '2012-06', value: 56, year: 2012},
+  {month: '2012-07', value: 54, year: 2012}, {month: '2012-08', value: 53, year: 2012}, {month: '2012-09', value: 51, year: 2012},
+  {month: '2012-10', value: 53, year: 2012}, {month: '2012-11', value: 47, year: 2012}, {month: '2012-12', value: 49, year: 2012},
+  {month: '2013-01', value: 54, year: 2013}, {month: '2013-02', value: 55, year: 2013}, {month: '2013-03', value: 60, year: 2013},
+  {month: '2013-04', value: 61, year: 2013}, {month: '2013-05', value: 58, year: 2013}, {month: '2013-06', value: 58, year: 2013},
+  {month: '2013-07', value: 57, year: 2013}, {month: '2013-08', value: 51, year: 2013}, {month: '2013-09', value: 50, year: 2013},
+  {month: '2013-10', value: 51, year: 2013}, {month: '2013-11', value: 48, year: 2013}, {month: '2013-12', value: 48, year: 2013},
+  {month: '2014-01', value: 60, year: 2014}, {month: '2014-02', value: 56, year: 2014}, {month: '2014-03', value: 61, year: 2014},
+  {month: '2014-04', value: 68, year: 2014}, {month: '2014-05', value: 70, year: 2014}, {month: '2014-06', value: 73, year: 2014},
+  {month: '2014-07', value: 72, year: 2014}, {month: '2014-08', value: 64, year: 2014}, {month: '2014-09', value: 61, year: 2014},
+  {month: '2014-10', value: 62, year: 2014}, {month: '2014-11', value: 58, year: 2014}, {month: '2014-12', value: 56, year: 2014},
+  {month: '2015-01', value: 62, year: 2015}, {month: '2015-02', value: 63, year: 2015}, {month: '2015-03', value: 66, year: 2015},
+  {month: '2015-04', value: 70, year: 2015}, {month: '2015-05', value: 65, year: 2015}, {month: '2015-06', value: 68, year: 2015},
+  {month: '2015-07', value: 66, year: 2015}, {month: '2015-08', value: 59, year: 2015}, {month: '2015-09', value: 56, year: 2015},
+  {month: '2015-10', value: 54, year: 2015}, {month: '2015-11', value: 48, year: 2015}, {month: '2015-12', value: 52, year: 2015},
+  {month: '2016-01', value: 56, year: 2016}, {month: '2016-02', value: 53, year: 2016}, {month: '2016-03', value: 59, year: 2016},
+  {month: '2016-04', value: 63, year: 2016}, {month: '2016-05', value: 64, year: 2016}, {month: '2016-06', value: 68, year: 2016},
+  {month: '2016-07', value: 65, year: 2016}, {month: '2016-08', value: 59, year: 2016}, {month: '2016-09', value: 55, year: 2016},
+  {month: '2016-10', value: 55, year: 2016}, {month: '2016-11', value: 48, year: 2016}, {month: '2016-12', value: 46, year: 2016},
+  {month: '2017-01', value: 58, year: 2017}, {month: '2017-02', value: 58, year: 2017}, {month: '2017-03', value: 59, year: 2017},
+  {month: '2017-04', value: 63, year: 2017}, {month: '2017-05', value: 63, year: 2017}, {month: '2017-06', value: 63, year: 2017},
+  {month: '2017-07', value: 64, year: 2017}, {month: '2017-08', value: 59, year: 2017}, {month: '2017-09', value: 53, year: 2017},
+  {month: '2017-10', value: 51, year: 2017}, {month: '2017-11', value: 49, year: 2017}, {month: '2017-12', value: 50, year: 2017},
+  {month: '2018-01', value: 61, year: 2018}, {month: '2018-02', value: 60, year: 2018}, {month: '2018-03', value: 62, year: 2018},
+  {month: '2018-04', value: 64, year: 2018}, {month: '2018-05', value: 66, year: 2018}, {month: '2018-06', value: 69, year: 2018},
+  {month: '2018-07', value: 64, year: 2018}, {month: '2018-08', value: 61, year: 2018}, {month: '2018-09', value: 55, year: 2018},
+  {month: '2018-10', value: 54, year: 2018}, {month: '2018-11', value: 48, year: 2018}, {month: '2018-12', value: 49, year: 2018},
+  {month: '2019-01', value: 62, year: 2019}, {month: '2019-02', value: 61, year: 2019}, {month: '2019-03', value: 63, year: 2019},
+  {month: '2019-04', value: 66, year: 2019}, {month: '2019-05', value: 66, year: 2019}, {month: '2019-06', value: 67, year: 2019},
+  {month: '2019-07', value: 65, year: 2019}, {month: '2019-08', value: 60, year: 2019}, {month: '2019-09', value: 57, year: 2019},
+  {month: '2019-10', value: 57, year: 2019}, {month: '2019-11', value: 51, year: 2019}, {month: '2019-12', value: 52, year: 2019},
+  {month: '2020-01', value: 63, year: 2020}, {month: '2020-02', value: 62, year: 2020}, {month: '2020-03', value: 57, year: 2020},
+  {month: '2020-04', value: 64, year: 2020}, {month: '2020-05', value: 72, year: 2020}, {month: '2020-06', value: 81, year: 2020},
+  {month: '2020-07', value: 82, year: 2020}, {month: '2020-08', value: 71, year: 2020}, {month: '2020-09', value: 65, year: 2020},
+  {month: '2020-10', value: 65, year: 2020}, {month: '2020-11', value: 55, year: 2020}, {month: '2020-12', value: 56, year: 2020},
+  {month: '2021-01', value: 63, year: 2021}, {month: '2021-02', value: 68, year: 2021}, {month: '2021-03', value: 68, year: 2021},
+  {month: '2021-04', value: 72, year: 2021}, {month: '2021-05', value: 72, year: 2021}, {month: '2021-06', value: 74, year: 2021},
+  {month: '2021-07', value: 70, year: 2021}, {month: '2021-08', value: 65, year: 2021}, {month: '2021-09', value: 63, year: 2021},
+  {month: '2021-10', value: 60, year: 2021}, {month: '2021-11', value: 60, year: 2021}, {month: '2021-12', value: 60, year: 2021},
+  {month: '2022-01', value: 70, year: 2022}, {month: '2022-02', value: 69, year: 2022}, {month: '2022-03', value: 71, year: 2022},
+  {month: '2022-04', value: 77, year: 2022}, {month: '2022-05', value: 72, year: 2022}, {month: '2022-06', value: 74, year: 2022},
+  {month: '2022-07', value: 70, year: 2022}, {month: '2022-08', value: 68, year: 2022}, {month: '2022-09', value: 59, year: 2022},
+  {month: '2022-10', value: 56, year: 2022}, {month: '2022-11', value: 52, year: 2022}, {month: '2022-12', value: 55, year: 2022},
+  {month: '2023-01', value: 67, year: 2023}, {month: '2023-02', value: 66, year: 2023}, {month: '2023-03', value: 68, year: 2023},
+  {month: '2023-04', value: 74, year: 2023}, {month: '2023-05', value: 77, year: 2023}, {month: '2023-06', value: 71, year: 2023},
+  {month: '2023-07', value: 74, year: 2023}, {month: '2023-08', value: 67, year: 2023}, {month: '2023-09', value: 63, year: 2023},
+  {month: '2023-10', value: 65, year: 2023}, {month: '2023-11', value: 59, year: 2023}, {month: '2023-12', value: 59, year: 2023},
+  {month: '2024-01', value: 69, year: 2024}, {month: '2024-02', value: 71, year: 2024}, {month: '2024-03', value: 74, year: 2024},
+  {month: '2024-04', value: 76, year: 2024}, {month: '2024-05', value: 85, year: 2024}, {month: '2024-06', value: 89, year: 2024},
+  {month: '2024-07', value: 80, year: 2024}, {month: '2024-08', value: 73, year: 2024}, {month: '2024-09', value: 72, year: 2024},
+  {month: '2024-10', value: 71, year: 2024}, {month: '2024-11', value: 67, year: 2024}, {month: '2024-12', value: 64, year: 2024},
+  {month: '2025-01', value: 74, year: 2025}, {month: '2025-02', value: 74, year: 2025}, {month: '2025-03', value: 81, year: 2025},
+  {month: '2025-04', value: 81, year: 2025}, {month: '2025-05', value: 84, year: 2025}, {month: '2025-06', value: 88, year: 2025},
+  {month: '2025-07', value: 100, year: 2025}, {month: '2025-08', value: 88, year: 2025}, {month: '2025-09', value: 82, year: 2025},
+  {month: '2025-10', value: 82, year: 2025}, {month: '2025-11', value: 82, year: 2025}, {month: '2025-12', value: 75, year: 2025}
+];
+
+// Annual averages
+const annualData = [
+  {year: '2004', avg: 16, growth: null},
+  {year: '2005', avg: 19, growth: 19},
+  {year: '2006', avg: 22, growth: 16},
+  {year: '2007', avg: 27, growth: 23},
+  {year: '2008', avg: 29, growth: 7},
+  {year: '2009', avg: 35, growth: 21},
+  {year: '2010', avg: 50, growth: 43},
+  {year: '2011', avg: 45, growth: -10},
+  {year: '2012', avg: 51, growth: 13},
+  {year: '2013', avg: 54, growth: 6},
+  {year: '2014', avg: 64, growth: 19},
+  {year: '2015', avg: 61, growth: -5},
+  {year: '2016', avg: 58, growth: -5},
+  {year: '2017', avg: 58, growth: 0},
+  {year: '2018', avg: 59, growth: 2},
+  {year: '2019', avg: 61, growth: 3},
+  {year: '2020', avg: 66, growth: 8},
+  {year: '2021', avg: 66, growth: 0},
+  {year: '2022', avg: 66, growth: 0},
+  {year: '2023', avg: 68, growth: 3},
+  {year: '2024', avg: 74, growth: 9},
+  {year: '2025', avg: 83, growth: 12}
+];
+
+const events = [
+  { date: '2008-09', label: 'FBI Las Vegas Raids', value: 29 },
+  { date: '2010-10', label: 'Las Vegas Guilty Pleas Begin', value: 61 },
+  { date: '2013-01', label: 'Benzer Indictment', value: 54 },
+  { date: '2015-08', label: 'Benzer Sentenced', value: 59 },
+  { date: '2020-06', label: 'COVID HOA Disputes Surge', value: 81 },
+  { date: '2022-11', label: 'Hammocks Arrests', value: 52 },
+  { date: '2024-03', label: 'FL Legislature HOA Reform', value: 74 },
+];
+
+export default function HOATrendsAnalysis() {
+  const [view, setView] = useState('full');
+
+  const getPhaseColor = (value) => {
+    if (value < 30) return '#94a3b8';
+    if (value < 50) return '#60a5fa';
+    if (value < 70) return '#fbbf24';
+    if (value < 85) return '#f97316';
+    return '#ef4444';
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            "HOA" Search Interest: 20-Year Trend Analysis
+          </h1>
+          <p className="text-slate-400">Google Trends data, Jan 2004 – Dec 2025 (Index: 100 = peak interest)</p>
+        </div>
+
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-slate-800 rounded-lg p-4">
+            <div className="text-3xl font-bold text-emerald-400">567%</div>
+            <div className="text-sm text-slate-400">Total Growth</div>
+            <div className="text-xs text-slate-500">2004 → 2025</div>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-4">
+            <div className="text-3xl font-bold text-amber-400">100</div>
+            <div className="text-sm text-slate-400">Peak Interest</div>
+            <div className="text-xs text-slate-500">July 2025</div>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-4">
+            <div className="text-3xl font-bold text-blue-400">15</div>
+            <div className="text-sm text-slate-400">Starting Index</div>
+            <div className="text-xs text-slate-500">Jan 2004</div>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-4">
+            <div className="text-3xl font-bold text-rose-400">4.3x</div>
+            <div className="text-sm text-slate-400">2020s vs 2000s</div>
+            <div className="text-xs text-slate-500">Avg. Interest</div>
+          </div>
+        </div>
+
+        {/* Main Chart */}
+        <div className="bg-slate-800 rounded-lg p-6 mb-8">
+          <div className="flex gap-2 mb-4">
+            <button 
+              onClick={() => setView('full')}
+              className={`px-3 py-1 rounded text-sm ${view === 'full' ? 'bg-blue-600' : 'bg-slate-700'}`}
+            >
+              Full Timeline
+            </button>
+            <button 
+              onClick={() => setView('annual')}
+              className={`px-3 py-1 rounded text-sm ${view === 'annual' ? 'bg-blue-600' : 'bg-slate-700'}`}
+            >
+              Annual Averages
+            </button>
+          </div>
+          
+          <ResponsiveContainer width="100%" height={400}>
+            {view === 'full' ? (
+              <AreaChart data={fullData}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#64748b" 
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(v) => v.substring(0,4)}
+                  interval={23}
+                />
+                <YAxis stroke="#64748b" domain={[0, 105]} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  stroke="#3b82f6" 
+                  fill="url(#colorValue)"
+                  strokeWidth={2}
+                />
+                <ReferenceLine x="2008-09" stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'FBI Raids', fill: '#ef4444', fontSize: 10 }} />
+                <ReferenceLine x="2010-10" stroke="#f97316" strokeDasharray="3 3" />
+                <ReferenceLine x="2020-06" stroke="#22c55e" strokeDasharray="3 3" label={{ value: 'COVID', fill: '#22c55e', fontSize: 10 }} />
+                <ReferenceLine x="2022-11" stroke="#a855f7" strokeDasharray="3 3" label={{ value: 'Hammocks', fill: '#a855f7', fontSize: 10 }} />
+              </AreaChart>
+            ) : (
+              <AreaChart data={annualData}>
+                <defs>
+                  <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="year" stroke="#64748b" />
+                <YAxis stroke="#64748b" domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px' }}
+                  labelStyle={{ color: '#94a3b8' }}
+                />
+                <Area type="monotone" dataKey="avg" stroke="#22c55e" fill="url(#colorAvg)" strokeWidth={2} />
+              </AreaChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+
+        {/* Phase Analysis */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-blue-400">Phase Analysis</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">2004-2007: Baseline Era</div>
+                  <div className="text-xs text-slate-400">Avg: 21 | HOAs emerging, low awareness</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">2008-2010: Las Vegas Scandal</div>
+                  <div className="text-xs text-slate-400">Avg: 38 | FBI raids → guilty pleas, +81% spike</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">2011-2019: Elevated Plateau</div>
+                  <div className="text-xs text-slate-400">Avg: 57 | Sustained awareness, steady growth</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-orange-400"></div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">2020-2023: COVID Acceleration</div>
+                  <div className="text-xs text-slate-400">Avg: 67 | WFH disputes, Hammocks case</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">2024-2025: Peak Interest</div>
+                  <div className="text-xs text-slate-400">Avg: 79 | Legislative reform, all-time highs</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-emerald-400">Key Inflection Points</h3>
+            <div className="space-y-3 text-sm">
+              <div className="border-l-2 border-red-500 pl-3">
+                <div className="font-medium">Sep 2008: FBI Las Vegas Raids</div>
+                <div className="text-slate-400">$58M fraud scheme exposed</div>
+              </div>
+              <div className="border-l-2 border-orange-500 pl-3">
+                <div className="font-medium">Oct 2010: First Peak (61)</div>
+                <div className="text-slate-400">Guilty pleas begin, national coverage</div>
+              </div>
+              <div className="border-l-2 border-green-500 pl-3">
+                <div className="font-medium">Jun-Jul 2020: COVID Surge (82)</div>
+                <div className="text-slate-400">WFH disputes, HOA enforcement tensions</div>
+              </div>
+              <div className="border-l-2 border-purple-500 pl-3">
+                <div className="font-medium">Nov 2022: Hammocks Arrests</div>
+                <div className="text-slate-400">FL's largest HOA fraud case</div>
+              </div>
+              <div className="border-l-2 border-blue-500 pl-3">
+                <div className="font-medium">Jun 2024: New Peak (89)</div>
+                <div className="text-slate-400">FL HOA reform legislation passes</div>
+              </div>
+              <div className="border-l-2 border-yellow-500 pl-3">
+                <div className="font-medium">Jul 2025: All-Time High (100)</div>
+                <div className="text-slate-400">Maximum recorded interest</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seasonality */}
+        <div className="bg-slate-800 rounded-lg p-6 mb-8">
+          <h3 className="text-lg font-semibold mb-4 text-amber-400">Seasonal Pattern</h3>
+          <p className="text-slate-400 text-sm mb-4">
+            Consistent annual cycle: interest peaks in May-July (summer when homeowners engage more with yards/exteriors), 
+            troughs in Nov-Dec (holiday distraction). This pattern holds across all 20 years.
+          </p>
+          <div className="flex gap-1 items-end h-16">
+            {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => {
+              const heights = [60, 60, 65, 70, 75, 80, 75, 65, 55, 55, 48, 50];
+              return (
+                <div key={m} className="flex-1 flex flex-col items-center">
+                  <div 
+                    className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t"
+                    style={{ height: `${heights[i]}%` }}
+                  ></div>
+                  <div className="text-xs text-slate-500 mt-1">{m}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Implications */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-white">Strategic Implications</h3>
+          <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="font-medium text-emerald-400 mb-2">Market Signal</div>
+              <p className="text-slate-300">
+                Sustained 20-year growth in HOA interest (567%) reflects both market expansion 
+                (77M+ residents) and escalating pain. Interest has never declined to prior baselines.
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-amber-400 mb-2">Problem Awareness</div>
+              <p className="text-slate-300">
+                Major scandals create step-function increases in baseline interest. Post-Las Vegas 
+                baseline 3x pre-scandal. Post-COVID baseline approaching all-time highs.
+              </p>
+            </div>
+            <div>
+              <div className="font-medium text-blue-400 mb-2">Timing Opportunity</div>
+              <p className="text-slate-300">
+                2025's all-time peak suggests maximum market receptivity. Legislative reform 
+                creates buyer urgency for transparency solutions. Summer peaks ideal for outreach.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+const COLORS = {
+  bg: "#0a0b0d",
+  surface: "#12141a",
+  surfaceHover: "#1a1d26",
+  border: "#1e2230",
+  borderActive: "#2a3050",
+  text: "#c8cdd8",
+  textMuted: "#6b7394",
+  textDim: "#3d4463",
+  accent: "#4f7cff",
+  accentGlow: "rgba(79, 124, 255, 0.15)",
+  accentSoft: "rgba(79, 124, 255, 0.08)",
+  green: "#34d399",
+  greenBg: "rgba(52, 211, 153, 0.08)",
+  greenBorder: "rgba(52, 211, 153, 0.2)",
+  red: "#f87171",
+  redBg: "rgba(248, 113, 113, 0.08)",
+  redBorder: "rgba(248, 113, 113, 0.2)",
+  amber: "#fbbf24",
+  amberBg: "rgba(251, 191, 36, 0.08)",
+  purple: "#a78bfa",
+  purpleBg: "rgba(167, 139, 250, 0.08)",
+};
+
+const FONTS = {
+  mono: "'JetBrains Mono', 'Fira Code', monospace",
+  sans: "'DM Sans', sans-serif",
+  display: "'Space Mono', monospace",
+};
+
+// ─── Global Invariants ───
+const GLOBAL_INVARIANTS = [
+  { id: "G1", label: "Append-only events", desc: "No mutation of past events; corrections are new events referencing prior ones." },
+  { id: "G2", label: "Server time", desc: "Event timestamps are server-issued; clients cannot set authoritative time." },
+  { id: "G3", label: "As-known-then", desc: "Every decision stores a decision_snapshot_hash sufficient to replay the same result later." },
+  { id: "G4", label: "Policy immutability", desc: "Policy versions are immutable; changes require new versions." },
+  { id: "G5", label: "No settlement without obligation", desc: "No settlement instruction can exist without a valid bound Obligation." },
+];
+
+// ─── Object Definitions ───
+const OBJECTS = [
+  {
+    id: "actor",
+    name: "Actor",
+    purpose: "Identity + role context for authority and non-repudiation.",
+    fields: [
+      { name: "actor_id", type: "UUID", required: true },
+      { name: "org_id", type: "UUID", required: true },
+      { name: "display_name", type: "string", required: true },
+      { name: "status", type: "enum", required: true, values: ["active", "suspended", "terminated"] },
+      { name: "roles[]", type: "enum[]", required: true, values: ["board_member", "ceo", "treasurer", "ap_manager"] },
+      { name: "auth_credentials[]", type: "passkey[]", required: true },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["active", "suspended", "terminated"],
+    transitions: [
+      { from: "active", to: "suspended" },
+      { from: "suspended", to: "terminated" },
+    ],
+    stateNote: "Monotonic; no reactivation without explicit ActorReinstated event",
+    mustBeTrue: ["Every approval/explanation references an actor_id that was active at that timestamp."],
+    canNeverBeTrue: ["Anonymous approvals.", "A terminated actor producing valid approvals post-termination."],
+    color: COLORS.accent,
+  },
+  {
+    id: "policy",
+    name: "PolicyVersion",
+    purpose: "Deterministic ruleset used for binding and eligibility.",
+    fields: [
+      { name: "policy_version_hash", type: "content_hash", required: true },
+      { name: "policy_name", type: "string", required: true },
+      { name: "effective_from", type: "timestamp", required: true },
+      { name: "effective_to", type: "timestamp?", required: false },
+      { name: "authoring_actor_id", type: "UUID", required: true },
+      { name: "approved_by[]", type: "UUID[]", required: true },
+      { name: "policy_bundle", type: "serialized", required: true },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["draft", "published", "retired"],
+    transitions: [
+      { from: "draft", to: "published" },
+      { from: "published", to: "retired" },
+    ],
+    stateNote: "Only published is evaluable",
+    mustBeTrue: ["Every binding/eligibility decision references a published policy_version_hash."],
+    canNeverBeTrue: ["Editing policy content in place.", "Evaluating against 'latest' without storing version hash."],
+    color: COLORS.purple,
+  },
+  {
+    id: "grant",
+    name: "AuthorityGrant",
+    purpose: "Explicit, bounded authority for binding/overrides.",
+    fields: [
+      { name: "grant_id", type: "UUID", required: true },
+      { name: "grantor_actor_id", type: "UUID", required: true },
+      { name: "grantee_actor_id", type: "UUID", required: true },
+      { name: "scope.project_ids[]", type: "UUID[]", required: true },
+      { name: "scope.vendor_ids[]", type: "UUID[]", required: false },
+      { name: "scope.categories[]", type: "enum[]", required: true },
+      { name: "limits.per_obligation_max", type: "currency", required: true },
+      { name: "limits.cumulative_max", type: "currency?", required: false },
+      { name: "limits.time_window", type: "enum", required: true },
+      { name: "expiry_at", type: "timestamp", required: true },
+      { name: "revoked_at", type: "timestamp?", required: false },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["active", "revoked", "expired"],
+    transitions: [
+      { from: "active", to: "revoked" },
+      { from: "active", to: "expired" },
+    ],
+    stateNote: "No path from revoked/expired back to active",
+    mustBeTrue: ["Binding requires at least one active AuthorityGrant whose scope covers the obligation."],
+    canNeverBeTrue: ["'Implied' authority.", "Using a revoked/expired grant."],
+    color: COLORS.amber,
+  },
+  {
+    id: "intent",
+    name: "Intent",
+    purpose: "Structured proposal of spend before it becomes a binding obligation.",
+    fields: [
+      { name: "intent_id", type: "UUID", required: true },
+      { name: "originator_actor_id", type: "UUID", required: true },
+      { name: "intent_type", type: "enum", required: true, values: ["requisition", "po_request", "invoice_intake", "contract_request"] },
+      { name: "vendor_id", type: "UUID?", required: false },
+      { name: "amount_estimate", type: "currency?", required: false },
+      { name: "currency", type: "ISO4217", required: true },
+      { name: "project_id", type: "UUID", required: true },
+      { name: "category_code", type: "string", required: true },
+      { name: "attachments_merkle_root", type: "hash?", required: false },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["draft", "submitted", "accepted", "rejected", "expired"],
+    transitions: [
+      { from: "draft", to: "submitted" },
+      { from: "submitted", to: "accepted" },
+      { from: "submitted", to: "rejected" },
+      { from: "submitted", to: "expired" },
+    ],
+    stateNote: "Accepted = eligible to bind, not yet an obligation",
+    mustBeTrue: ["Every obligation references one originating intent or explicitly states intentless_exception=true."],
+    canNeverBeTrue: ["Binding from a draft intent.", "Changing vendor/category silently after submission."],
+    color: COLORS.green,
+  },
+  {
+    id: "obligation",
+    name: "Obligation",
+    purpose: "The control point artifact: intent becomes enforceable commitment under policy.",
+    fields: [
+      { name: "obligation_id", type: "UUID", required: true },
+      { name: "intent_id", type: "UUID", required: true },
+      { name: "bound_by_actor_id", type: "UUID", required: true },
+      { name: "vendor_id", type: "UUID", required: true },
+      { name: "payee_destination_token", type: "token", required: true },
+      { name: "amount_ceiling", type: "currency", required: true },
+      { name: "currency", type: "ISO4217", required: true },
+      { name: "purpose.project_id", type: "UUID", required: true },
+      { name: "purpose.category_code", type: "string", required: true },
+      { name: "purpose.gl_hint", type: "string?", required: false },
+      { name: "policy_version_hash", type: "hash", required: true },
+      { name: "decision_snapshot_hash", type: "hash", required: true },
+      { name: "approval_requirements", type: "structured", required: true },
+      { name: "approvals[]", type: "approval[]", required: true },
+      { name: "release_conditions[]", type: "condition[]", required: true },
+      { name: "expires_at", type: "timestamp", required: true },
+      { name: "status", type: "enum", required: true },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["draft", "bound", "eligible", "blocked", "cancelled", "settled", "reconciled"],
+    transitions: [
+      { from: "draft", to: "bound" },
+      { from: "bound", to: "eligible" },
+      { from: "bound", to: "blocked" },
+      { from: "bound", to: "cancelled" },
+      { from: "eligible", to: "settled" },
+      { from: "eligible", to: "blocked" },
+      { from: "settled", to: "reconciled" },
+      { from: "settled", to: "blocked", label: "recon exception" },
+      { from: "blocked", to: "eligible", label: "resolution" },
+      { from: "blocked", to: "cancelled", label: "resolution" },
+    ],
+    stateNote: "Central state machine — the control point of the entire system",
+    mustBeTrue: [
+      "bound → policy evaluated true under referenced policy_version_hash",
+      "bound → at least one active AuthorityGrant covered the scope at bind time",
+      "bound → required approvals satisfied or pending (cannot become eligible without satisfaction)",
+      "eligible → all release conditions satisfied as of eligibility timestamp",
+      "settled → a SettlementReceipt exists referencing this obligation",
+    ],
+    canNeverBeTrue: [
+      "An obligation becoming eligible without required approvals.",
+      "Editing payee destination without re-approval and new decision snapshot.",
+      "Settlement against a blocked/cancelled obligation.",
+    ],
+    color: "#ff6b6b",
+  },
+  {
+    id: "receipt",
+    name: "SettlementReceipt",
+    purpose: "Authoritative proof that money moved.",
+    fields: [
+      { name: "receipt_id", type: "UUID", required: true },
+      { name: "rail_type", type: "enum", required: true, values: ["ach", "wire", "rtp", "check", "stablecoin"] },
+      { name: "external_tx_id", type: "string", required: true },
+      { name: "obligation_id", type: "UUID", required: true },
+      { name: "amount", type: "currency", required: true },
+      { name: "currency", type: "ISO4217", required: true },
+      { name: "settled_at", type: "timestamp", required: true },
+      { name: "counterparty_destination_fingerprint", type: "hash", required: true },
+      { name: "raw_payload_hash", type: "hash", required: true },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["observed", "confirmed"],
+    transitions: [
+      { from: "observed", to: "confirmed" },
+    ],
+    stateNote: "Immutable once created",
+    mustBeTrue: [
+      "Receipt amount ≤ obligation eligible amount at time of execution.",
+      "Destination fingerprint matches obligation destination token fingerprint.",
+    ],
+    canNeverBeTrue: ["Receipt without obligation linkage.", "Silent mismatch resolution (must open exception)."],
+    color: "#4ade80",
+  },
+  {
+    id: "exception",
+    name: "ExceptionCase",
+    purpose: "The system fails closed with explicit remediation paths.",
+    fields: [
+      { name: "case_id", type: "UUID", required: true },
+      { name: "case_type", type: "enum", required: true, values: ["unmatched_bank_tx", "destination_mismatch", "amount_mismatch", "duplicate_invoice", "override_requested", "policy_bypass_attempt"] },
+      { name: "related_ids", type: "structured", required: true },
+      { name: "opened_at", type: "timestamp", required: true },
+      { name: "owner_actor_id", type: "UUID", required: true },
+      { name: "sla_due_at", type: "timestamp", required: true },
+      { name: "status", type: "enum", required: true },
+      { name: "resolution_events[]", type: "event[]", required: true },
+      { name: "created_at", type: "timestamp", required: true },
+    ],
+    states: ["open", "investigating", "resolved", "waived"],
+    transitions: [
+      { from: "open", to: "investigating" },
+      { from: "investigating", to: "resolved" },
+      { from: "investigating", to: "waived" },
+    ],
+    stateNote: "Waive requires higher authority + reason code",
+    mustBeTrue: ["Any mismatch produces an ExceptionCase within the same processing cycle."],
+    canNeverBeTrue: ["Reconciliation posting that 'forces match' without an ExceptionCase + resolution trail."],
+    color: COLORS.red,
+  },
+];
+
+// ─── API Endpoints ───
+const API_INBOUND = [
+  { method: "POST", path: "/intents", desc: "Create/submit intent" },
+  { method: "POST", path: "/obligations/bind", desc: "Bind from intent; returns obligation + decision evidence" },
+  { method: "POST", path: "/obligations/{id}/approve", desc: "Passkey-signed approval; nonce enforced" },
+  { method: "POST", path: "/obligations/{id}/evaluate-eligibility", desc: "Compute eligible/blocked with reasons" },
+  { method: "POST", path: "/settlement/execute", desc: "Requires eligible obligation; emits instruction + receipt placeholder" },
+  { method: "POST", path: "/settlement/receipts", desc: "Bank/rail receipt ingestion" },
+  { method: "POST", path: "/exceptions/{id}/resolve", desc: "Signed resolution + explanation" },
+  { method: "POST", path: "/policies/publish", desc: "New PolicyVersion" },
+  { method: "POST", path: "/authority/grants", desc: "Create authority grant" },
+  { method: "POST", path: "/authority/revoke", desc: "Revoke authority grant" },
+];
+
+const API_OUTBOUND = [
+  { method: "GET", path: "/audit/trace", desc: "FS → journals → obligations → events → receipts", params: "fs_line_item_id" },
+  { method: "GET", path: "/close/readiness", desc: "Unresolved cases, unmatched receipts, blocked obligations" },
+  { method: "GET", path: "/disclosure/view", desc: "Tokenized view + proofs", params: "role" },
+];
+
+const AUDIT_CLAIMS = [
+  { label: "Non-repudiation", desc: "Approvals are passkey-signed; nonces prevent replay." },
+  { label: "Prevention over detection", desc: "No settlement execution without eligible obligation." },
+  { label: "Traceability", desc: "Every settlement receipt maps to a bound obligation or an open exception." },
+  { label: "Replay", desc: "Decisions reproducible using stored policy version + decision snapshot hash." },
+];
+
+// ─── State Machine Visualization ───
+function StateMachine({ states, transitions, color, isObligation }) {
+  const statePositions = {};
+  
+  if (isObligation) {
+    // Special layout for obligation - the complex one
+    const positions = {
+      draft: { x: 60, y: 30 },
+      bound: { x: 200, y: 30 },
+      eligible: { x: 360, y: 30 },
+      settled: { x: 520, y: 30 },
+      reconciled: { x: 660, y: 30 },
+      blocked: { x: 360, y: 120 },
+      cancelled: { x: 200, y: 120 },
+    };
+    Object.assign(statePositions, positions);
+  } else {
+    const totalWidth = 700;
+    const spacing = totalWidth / (states.length + 1);
+    states.forEach((s, i) => {
+      statePositions[s] = { x: spacing * (i + 1), y: 40 };
+    });
+  }
+  
+  return (
+    <svg width="100%" viewBox="0 0 740 ${isObligation ? 160 : 80}" style={{ maxHeight: isObligation ? 160 : 80, overflow: "visible" }}>
+      {/* Transitions */}
+      {transitions.map((t, i) => {
+        const from = statePositions[t.from];
+        const to = statePositions[t.to];
+        if (!from || !to) return null;
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        const nx = dx / len;
+        const ny = dy / len;
+        const startX = from.x + nx * 38;
+        const startY = from.y + ny * 14;
+        const endX = to.x - nx * 38;
+        const endY = to.y - ny * 14;
+        
+        // Curved path for blocked transitions
+        const isCurved = (t.from === "blocked" && t.to === "eligible") || (t.from === "settled" && t.to === "blocked");
+        const path = isCurved
+          ? `M ${startX} ${startY} Q ${(startX + endX) / 2} ${Math.min(startY, endY) + (t.from === "blocked" ? -30 : 40)} ${endX} ${endY}`
+          : `M ${startX} ${startY} L ${endX} ${endY}`;
+        
+        return (
+          <g key={i}>
+            <defs>
+              <marker id={`arrow-${i}-${color.replace('#','')}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={color + "80"} />
+              </marker>
+            </defs>
+            <path d={path} fill="none" stroke={color + "40"} strokeWidth="1.5" markerEnd={`url(#arrow-${i}-${color.replace('#','')})`} />
+            {t.label && (
+              <text x={(startX + endX) / 2} y={(startY + endY) / 2 - 6} fill={COLORS.textMuted} fontSize="8" textAnchor="middle" fontFamily={FONTS.mono}>{t.label}</text>
+            )}
+          </g>
+        );
+      })}
+      
+      {/* States */}
+      {states.map((s) => {
+        const pos = statePositions[s];
+        if (!pos) return null;
+        return (
+          <g key={s}>
+            <rect x={pos.x - 36} y={pos.y - 12} width="72" height="24" rx="4" fill={color + "10"} stroke={color + "30"} strokeWidth="1" />
+            <text x={pos.x} y={pos.y + 4} fill={color} fontSize="9" textAnchor="middle" fontFamily={FONTS.mono} fontWeight="500">{s}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+// ─── Object Detail Card ───
+function ObjectCard({ obj, isExpanded, onToggle }) {
+  const [activeTab, setActiveTab] = useState("fields");
+  
+  return (
+    <div
+      style={{
+        background: COLORS.surface,
+        border: `1px solid ${isExpanded ? obj.color + "30" : COLORS.border}`,
+        borderRadius: 8,
+        overflow: "hidden",
+        transition: "all 0.3s ease",
+        boxShadow: isExpanded ? `0 0 30px ${obj.color}08` : "none",
+      }}
+    >
+      {/* Header */}
+      <button
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "14px 18px",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: obj.color, flexShrink: 0, boxShadow: `0 0 8px ${obj.color}60` }} />
+        <span style={{ fontFamily: FONTS.mono, fontSize: 14, color: "#e2e8f0", fontWeight: 600, letterSpacing: "0.02em" }}>{obj.name}</span>
+        <span style={{ fontFamily: FONTS.sans, fontSize: 12, color: COLORS.textMuted, flex: 1 }}>{obj.purpose}</span>
+        <span style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.textDim, transform: isExpanded ? "rotate(90deg)" : "none", transition: "transform 0.2s" }}>▶</span>
+      </button>
+      
+      {isExpanded && (
+        <div style={{ borderTop: `1px solid ${COLORS.border}` }}>
+          {/* Tabs */}
+          <div style={{ display: "flex", borderBottom: `1px solid ${COLORS.border}`, padding: "0 18px" }}>
+            {["fields", "states", "invariants"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  padding: "10px 16px",
+                  background: "none",
+                  border: "none",
+                  borderBottom: activeTab === tab ? `2px solid ${obj.color}` : "2px solid transparent",
+                  color: activeTab === tab ? "#e2e8f0" : COLORS.textMuted,
+                  fontFamily: FONTS.mono,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  transition: "all 0.2s",
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          
+          {/* Tab Content */}
+          <div style={{ padding: "16px 18px" }}>
+            {activeTab === "fields" && (
+              <div style={{ display: "grid", gap: 2 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 60px", gap: 8, padding: "4px 8px", marginBottom: 4 }}>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em" }}>Field</span>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em" }}>Type</span>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: "0.1em" }}>Req</span>
+                </div>
+                {obj.fields.map((f, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "2fr 1fr 60px",
+                      gap: 8,
+                      padding: "6px 8px",
+                      borderRadius: 4,
+                      background: i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent",
+                    }}
+                  >
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: "#e2e8f0" }}>{f.name}</span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 11, color: COLORS.textMuted }}>
+                      {f.type}
+                      {f.values && <span style={{ color: COLORS.textDim, fontSize: 9 }}> [{f.values.join("|")}]</span>}
+                    </span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 11, color: f.required ? obj.color : COLORS.textDim }}>
+                      {f.required ? "●" : "○"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {activeTab === "states" && (
+              <div>
+                <StateMachine states={obj.states} transitions={obj.transitions} color={obj.color} isObligation={obj.id === "obligation"} />
+                <p style={{ fontFamily: FONTS.sans, fontSize: 11, color: COLORS.textMuted, marginTop: 12, padding: "8px 12px", background: obj.color + "06", borderRadius: 4, borderLeft: `2px solid ${obj.color}30` }}>
+                  {obj.stateNote}
+                </p>
+              </div>
+            )}
+            
+            {activeTab === "invariants" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.green, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>✓ Must be true</div>
+                  {obj.mustBeTrue.map((item, i) => (
+                    <div key={i} style={{ padding: "8px 12px", background: COLORS.greenBg, border: `1px solid ${COLORS.greenBorder}`, borderRadius: 4, marginBottom: 4, fontFamily: FONTS.sans, fontSize: 12, color: COLORS.text, lineHeight: 1.5 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.red, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>✗ Can never be true</div>
+                  {obj.canNeverBeTrue.map((item, i) => (
+                    <div key={i} style={{ padding: "8px 12px", background: COLORS.redBg, border: `1px solid ${COLORS.redBorder}`, borderRadius: 4, marginBottom: 4, fontFamily: FONTS.sans, fontSize: 12, color: COLORS.text, lineHeight: 1.5 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Flow Diagram ───
+function FlowDiagram() {
+  const nodes = [
+    { id: "actor", label: "Actor", x: 70, y: 40, color: COLORS.accent },
+    { id: "policy", label: "PolicyVersion", x: 70, y: 120, color: COLORS.purple },
+    { id: "grant", label: "AuthorityGrant", x: 70, y: 200, color: COLORS.amber },
+    { id: "intent", label: "Intent", x: 300, y: 40, color: COLORS.green },
+    { id: "obligation", label: "Obligation", x: 300, y: 120, color: "#ff6b6b" },
+    { id: "receipt", label: "SettlementReceipt", x: 530, y: 120, color: "#4ade80" },
+    { id: "exception", label: "ExceptionCase", x: 530, y: 200, color: COLORS.red },
+  ];
+  
+  const edges = [
+    { from: "actor", to: "intent", label: "originates" },
+    { from: "actor", to: "obligation", label: "binds/approves" },
+    { from: "policy", to: "obligation", label: "governs" },
+    { from: "grant", to: "obligation", label: "authorizes" },
+    { from: "intent", to: "obligation", label: "becomes" },
+    { from: "obligation", to: "receipt", label: "settles" },
+    { from: "receipt", to: "exception", label: "mismatch" },
+    { from: "obligation", to: "exception", label: "blocked" },
+  ];
+  
+  const getNode = (id) => nodes.find(n => n.id === id);
+  
+  return (
+    <svg width="100%" viewBox="0 0 700 260" style={{ maxHeight: 260 }}>
+      {/* Edges */}
+      {edges.map((e, i) => {
+        const from = getNode(e.from);
+        const to = getNode(e.to);
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        return (
+          <g key={i}>
+            <line x1={from.x + 60} y1={from.y + 14} x2={to.x - 6} y2={to.y + 14} stroke={COLORS.border} strokeWidth="1" strokeDasharray="4 3" />
+            <text x={midX + 28} y={midY + 8} fill={COLORS.textDim} fontSize="8" textAnchor="middle" fontFamily={FONTS.mono}>{e.label}</text>
+          </g>
+        );
+      })}
+      {/* Nodes */}
+      {nodes.map((n) => (
+        <g key={n.id}>
+          <rect x={n.x} y={n.y} width="120" height="28" rx="6" fill={n.color + "12"} stroke={n.color + "40"} strokeWidth="1" />
+          <text x={n.x + 60} y={n.y + 18} fill={n.color} fontSize="10" textAnchor="middle" fontFamily={FONTS.mono} fontWeight="500">{n.label}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ─── Main App ───
+function App() {
+  const [expandedObj, setExpandedObj] = useState("obligation");
+  const [activeSection, setActiveSection] = useState("objects");
+  const [animateIn, setAnimateIn] = useState(false);
+  
+  useEffect(() => {
+    requestAnimationFrame(() => setAnimateIn(true));
+  }, []);
+  
+  const sections = [
+    { id: "invariants", label: "G0–G5" },
+    { id: "flow", label: "Flow" },
+    { id: "objects", label: "Objects" },
+    { id: "api", label: "API" },
+    { id: "audit", label: "Audit" },
+  ];
+  
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: COLORS.bg,
+      color: COLORS.text,
+      fontFamily: FONTS.sans,
+      overflow: "hidden",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      
+      {/* Header */}
+      <header style={{
+        borderBottom: `1px solid ${COLORS.border}`,
+        padding: "16px 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        position: "sticky",
+        top: 0,
+        background: COLORS.bg + "f0",
+        backdropFilter: "blur(12px)",
+        zIndex: 100,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: `linear-gradient(135deg, ${COLORS.accent}20, ${COLORS.accent}05)`,
+            border: `1px solid ${COLORS.accent}30`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: FONTS.display,
+            fontSize: 12,
+            fontWeight: 700,
+            color: COLORS.accent,
+          }}>C</div>
+          <div>
+            <span style={{ fontFamily: FONTS.display, fontSize: 14, fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.04em" }}>CAST</span>
+            <span style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.textDim, marginLeft: 8 }}>interface spec v1</span>
+          </div>
+        </div>
+        
+        <div style={{ display: "flex", gap: 2, background: COLORS.surface, borderRadius: 6, padding: 2, border: `1px solid ${COLORS.border}` }}>
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 4,
+                border: "none",
+                background: activeSection === s.id ? COLORS.accent + "18" : "transparent",
+                color: activeSection === s.id ? COLORS.accent : COLORS.textMuted,
+                fontFamily: FONTS.mono,
+                fontSize: 11,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                fontWeight: activeSection === s.id ? 600 : 400,
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </header>
+      
+      {/* Content */}
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: "24px 24px 80px" }}>
+        
+        {/* Global Invariants */}
+        {activeSection === "invariants" && (
+          <div style={{ opacity: animateIn ? 1 : 0, transform: animateIn ? "translateY(0)" : "translateY(8px)", transition: "all 0.4s ease" }}>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: 18, color: "#e2e8f0", fontWeight: 700, marginBottom: 4 }}>Global Invariants</h2>
+              <p style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.textMuted }}>Apply everywhere. Violations are system-level bugs.</p>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {GLOBAL_INVARIANTS.map((inv, i) => (
+                <div
+                  key={inv.id}
+                  style={{
+                    display: "flex",
+                    gap: 16,
+                    padding: "16px 20px",
+                    background: COLORS.surface,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: 8,
+                    alignItems: "flex-start",
+                    opacity: animateIn ? 1 : 0,
+                    transform: animateIn ? "translateY(0)" : "translateY(12px)",
+                    transition: `all 0.4s ease ${i * 0.06}s`,
+                  }}
+                >
+                  <span style={{
+                    fontFamily: FONTS.mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: COLORS.accent,
+                    background: COLORS.accentSoft,
+                    padding: "3px 8px",
+                    borderRadius: 4,
+                    flexShrink: 0,
+                    border: `1px solid ${COLORS.accent}20`,
+                  }}>{inv.id}</span>
+                  <div>
+                    <div style={{ fontFamily: FONTS.mono, fontSize: 13, color: "#e2e8f0", fontWeight: 600, marginBottom: 4 }}>{inv.label}</div>
+                    <div style={{ fontFamily: FONTS.sans, fontSize: 12, color: COLORS.textMuted, lineHeight: 1.6 }}>{inv.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Flow Diagram */}
+        {activeSection === "flow" && (
+          <div style={{ opacity: animateIn ? 1 : 0, transition: "all 0.4s ease" }}>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: 18, color: "#e2e8f0", fontWeight: 700, marginBottom: 4 }}>Object Relationship Flow</h2>
+              <p style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.textMuted }}>How the 7 core objects connect. Intent → Obligation is the critical control boundary.</p>
+            </div>
+            <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 24 }}>
+              <FlowDiagram />
+            </div>
+            
+            {/* Legend */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+              {OBJECTS.map((o) => (
+                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: o.color }} />
+                  <span style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.textMuted }}>{o.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Objects */}
+        {activeSection === "objects" && (
+          <div style={{ opacity: animateIn ? 1 : 0, transition: "all 0.4s ease" }}>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: 18, color: "#e2e8f0", fontWeight: 700, marginBottom: 4 }}>Core Objects</h2>
+              <p style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.textMuted }}>7 objects. Required fields, state machines, and invariants for each.</p>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {OBJECTS.map((obj, i) => (
+                <div
+                  key={obj.id}
+                  style={{
+                    opacity: animateIn ? 1 : 0,
+                    transform: animateIn ? "translateY(0)" : "translateY(8px)",
+                    transition: `all 0.3s ease ${i * 0.04}s`,
+                  }}
+                >
+                  <ObjectCard
+                    obj={obj}
+                    isExpanded={expandedObj === obj.id}
+                    onToggle={() => setExpandedObj(expandedObj === obj.id ? null : obj.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* API Surface */}
+        {activeSection === "api" && (
+          <div style={{ opacity: animateIn ? 1 : 0, transition: "all 0.4s ease" }}>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: 18, color: "#e2e8f0", fontWeight: 700, marginBottom: 4 }}>External Interfaces</h2>
+              <p style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.textMuted }}>Minimal API surface. 10 inbound commands, 3 outbound queries.</p>
+            </div>
+            
+            {/* Inbound */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.amber, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>Inbound (Commands)</div>
+              <div style={{ display: "grid", gap: 4 }}>
+                {API_INBOUND.map((ep, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 16px",
+                      background: COLORS.surface,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 6,
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: FONTS.mono,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: COLORS.amber,
+                      background: COLORS.amberBg,
+                      padding: "2px 8px",
+                      borderRadius: 3,
+                      letterSpacing: "0.05em",
+                    }}>POST</span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: "#e2e8f0", fontWeight: 500 }}>{ep.path}</span>
+                    <span style={{ fontFamily: FONTS.sans, fontSize: 11, color: COLORS.textMuted, flex: 1, textAlign: "right" }}>{ep.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Outbound */}
+            <div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.green, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>Outbound (Queries)</div>
+              <div style={{ display: "grid", gap: 4 }}>
+                {API_OUTBOUND.map((ep, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 16px",
+                      background: COLORS.surface,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: 6,
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: FONTS.mono,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      color: COLORS.green,
+                      background: COLORS.greenBg,
+                      padding: "2px 8px",
+                      borderRadius: 3,
+                      letterSpacing: "0.05em",
+                    }}>GET</span>
+                    <span style={{ fontFamily: FONTS.mono, fontSize: 12, color: "#e2e8f0", fontWeight: 500 }}>{ep.path}</span>
+                    <span style={{ fontFamily: FONTS.sans, fontSize: 11, color: COLORS.textMuted, flex: 1, textAlign: "right" }}>{ep.desc}</span>
+                    {ep.params && <span style={{ fontFamily: FONTS.mono, fontSize: 9, color: COLORS.textDim, background: "rgba(255,255,255,0.03)", padding: "2px 6px", borderRadius: 3 }}>?{ep.params}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Audit Claims */}
+        {activeSection === "audit" && (
+          <div style={{ opacity: animateIn ? 1 : 0, transition: "all 0.4s ease" }}>
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: 18, color: "#e2e8f0", fontWeight: 700, marginBottom: 4 }}>Audit Claims</h2>
+              <p style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.textMuted }}>Legitimately claimable only if all above invariants are enforced.</p>
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {AUDIT_CLAIMS.map((claim, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "20px 24px",
+                    background: COLORS.surface,
+                    border: `1px solid ${COLORS.greenBorder}`,
+                    borderRadius: 8,
+                    borderLeft: `3px solid ${COLORS.green}`,
+                  }}
+                >
+                  <div style={{ fontFamily: FONTS.mono, fontSize: 13, color: COLORS.green, fontWeight: 600, marginBottom: 6 }}>{claim.label}</div>
+                  <div style={{ fontFamily: FONTS.sans, fontSize: 13, color: COLORS.text, lineHeight: 1.6 }}>{claim.desc}</div>
+                </div>
+              ))}
+            </div>
+            
+            <div style={{
+              marginTop: 24,
+              padding: "16px 20px",
+              background: COLORS.accentSoft,
+              border: `1px solid ${COLORS.accent}20`,
+              borderRadius: 8,
+            }}>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: COLORS.accent, fontWeight: 600, marginBottom: 6 }}>Next step available</div>
+              <div style={{ fontFamily: FONTS.sans, fontSize: 12, color: COLORS.textMuted, lineHeight: 1.6 }}>
+                Obligation state machine + invariants → minimal TLA+ spec skeleton (states, actions, invariants) matching this interface spec.
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(App));
+</script>
+</body>
+</html>

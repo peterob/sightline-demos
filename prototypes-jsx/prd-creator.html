@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRDCreator</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+const API_KEY_PLACEHOLDER = ''; // Handled by environment
+
+function PRDCreator() {
+  const [step, setStep] = useState('input'); // 'input' | 'loading' | 'result'
+  const [formData, setFormData] = useState({
+    featureName: '',
+    problemStatement: '',
+    targetUser: ''
+  });
+  const [prd, setPrd] = useState('');
+  const [error, setError] = useState('');
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const generatePRD = async () => {
+    if (!formData.featureName || !formData.problemStatement || !formData.targetUser) {
+      setError('Please fill in all fields');
+      return;
+    }
+    
+    setError('');
+    setStep('loading');
+
+    const systemPrompt = `You are a senior product manager at Sightline, a financial coordination platform using event sourcing and shared ledger architecture to solve multi-party reconciliation problems in GPU compute financing and other verticals.
+
+Your task is to write comprehensive, well-structured PRDs that align with Sightline's technical architecture (event sourcing, CAST methodology, shared truth) and business goals (eliminating reconciliation, creating mathematical guarantees).
+
+Write PRDs that are specific, actionable, and grounded in the context of cash application and payment coordination.`;
+
+    const userPrompt = `Write a one-pager PRD based on these inputs:
+
+**Feature Name:** ${formData.featureName}
+
+**Problem Statement:** ${formData.problemStatement}
+
+**Target User:** ${formData.targetUser}
+
+---
+
+Follow this exact template structure:
+
+# One-pager: ${formData.featureName}
+
+## 1. TL;DR
+A short summary—what is this, who's it for, and why does it matter?
+
+## 2. Goals
+**Business Goals:**
+- [List 2-3 business objectives]
+
+**User Goals:**
+- [List 2-3 user objectives]
+
+**Non-Goals:**
+- [List 2-3 things explicitly out of scope]
+
+## 3. User Stories
+[Define 2-3 personas with their jobs-to-be-done in format: "As a [persona], I want to [action] so that [outcome]"]
+
+## 4. Functional Requirements
+**P0 (Must Have):**
+- [Critical features]
+
+**P1 (Should Have):**
+- [Important features]
+
+**P2 (Nice to Have):**
+- [Future considerations]
+
+## 5. User Experience
+[Bullet-pointed user journeys showing the flow from start to finish]
+
+## 6. Narrative
+[A day-in-the-life story showing the feature in context - 2-3 paragraphs]
+
+## 7. Success Metrics
+- [List 3-5 measurable KPIs with targets where possible]
+
+## 8. Milestones & Sequencing
+**Phase 1:** [Name] - [Scope] - [Timeline estimate]
+**Phase 2:** [Name] - [Scope] - [Timeline estimate]
+**Phase 3:** [Name] - [Scope] - [Timeline estimate]
+
+---
+
+Make it specific to Sightline's context: event-sourced ledgers, shared truth between parties, eliminating reconciliation, GPU compute financing use cases, and financial coordination challenges.`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [
+            { role: 'user', content: userPrompt }
+          ],
+          system: systemPrompt
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.content && data.content[0] && data.content[0].text) {
+        setPrd(data.content[0].text);
+        setStep('result');
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (err) {
+      setError('Failed to generate PRD. Please try again.');
+      setStep('input');
+      console.error(err);
+    }
+  };
+
+  const reset = () => {
+    setStep('input');
+    setFormData({ featureName: '', problemStatement: '', targetUser: '' });
+    setPrd('');
+    setError('');
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(prd);
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(165deg, #0a0f1a 0%, #0d1526 50%, #111b2e 100%)',
+      fontFamily: "'Söhne', 'Helvetica Neue', sans-serif",
+      color: '#e8edf5',
+      padding: '40px 20px',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Subtle grid overlay */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: `
+          linear-gradient(rgba(56, 189, 248, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(56, 189, 248, 0.02) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+        pointerEvents: 'none'
+      }} />
+
+      {/* Ambient glow */}
+      <div style={{
+        position: 'fixed',
+        top: '-20%',
+        right: '-10%',
+        width: '600px',
+        height: '600px',
+        background: 'radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%)',
+        pointerEvents: 'none'
+      }} />
+
+      <div style={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {/* Header */}
+        <header style={{ marginBottom: '48px', textAlign: 'center' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '16px'
+          }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 20px rgba(56, 189, 248, 0.3)'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a0f1a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+            </div>
+            <span style={{
+              fontSize: '13px',
+              fontWeight: '600',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              color: '#38bdf8'
+            }}>Sightline</span>
+          </div>
+          <h1 style={{
+            fontSize: '42px',
+            fontWeight: '300',
+            letterSpacing: '-0.02em',
+            margin: '0 0 12px 0',
+            background: 'linear-gradient(135deg, #ffffff 0%, #94a3b8 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>PRD Creator</h1>
+          <p style={{
+            fontSize: '16px',
+            color: '#64748b',
+            margin: 0,
+            fontWeight: '400'
+          }}>Generate structured product requirements in seconds</p>
+        </header>
+
+        {/* Input Form */}
+        {step === 'input' && (
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)',
+            borderRadius: '20px',
+            border: '1px solid rgba(148, 163, 184, 0.1)',
+            padding: '40px',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '600',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                marginBottom: '12px'
+              }}>
+                Feature Name
+              </label>
+              <input
+                type="text"
+                value={formData.featureName}
+                onChange={(e) => handleInputChange('featureName', e.target.value)}
+                placeholder="e.g., Automated Cash Application Engine"
+                style={{
+                  width: '100%',
+                  padding: '16px 20px',
+                  fontSize: '16px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(148, 163, 184, 0.15)',
+                  borderRadius: '12px',
+                  color: '#e8edf5',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(56, 189, 248, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(148, 163, 184, 0.15)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '600',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                marginBottom: '12px'
+              }}>
+                Problem Statement
+              </label>
+              <textarea
+                value={formData.problemStatement}
+                onChange={(e) => handleInputChange('problemStatement', e.target.value)}
+                placeholder="What problem are we solving? Why does it matter now?"
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '16px 20px',
+                  fontSize: '16px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(148, 163, 184, 0.15)',
+                  borderRadius: '12px',
+                  color: '#e8edf5',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.6',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(56, 189, 248, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(148, 163, 184, 0.15)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '36px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: '600',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                marginBottom: '12px'
+              }}>
+                Target User
+              </label>
+              <textarea
+                value={formData.targetUser}
+                onChange={(e) => handleInputChange('targetUser', e.target.value)}
+                placeholder="Who is this for? Describe their role, context, and pain points."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '16px 20px',
+                  fontSize: '16px',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '1px solid rgba(148, 163, 184, 0.15)',
+                  borderRadius: '12px',
+                  color: '#e8edf5',
+                  outline: 'none',
+                  transition: 'all 0.2s ease',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.6',
+                  boxSizing: 'border-box'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(56, 189, 248, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(148, 163, 184, 0.15)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                padding: '14px 18px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '10px',
+                color: '#fca5a5',
+                fontSize: '14px',
+                marginBottom: '24px'
+              }}>
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={generatePRD}
+              style={{
+                width: '100%',
+                padding: '18px 32px',
+                fontSize: '15px',
+                fontWeight: '600',
+                letterSpacing: '0.02em',
+                background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)',
+                border: 'none',
+                borderRadius: '12px',
+                color: '#0a0f1a',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 20px rgba(56, 189, 248, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 30px rgba(56, 189, 248, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 20px rgba(56, 189, 248, 0.3)';
+              }}
+            >
+              Generate PRD
+            </button>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {step === 'loading' && (
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)',
+            borderRadius: '20px',
+            border: '1px solid rgba(148, 163, 184, 0.1)',
+            padding: '80px 40px',
+            backdropFilter: 'blur(20px)',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              border: '3px solid rgba(56, 189, 248, 0.2)',
+              borderTopColor: '#38bdf8',
+              borderRadius: '50%',
+              margin: '0 auto 24px',
+              animation: 'spin 1s linear infinite'
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{
+              fontSize: '18px',
+              color: '#94a3b8',
+              margin: 0
+            }}>Generating your PRD...</p>
+          </div>
+        )}
+
+        {/* Result */}
+        {step === 'result' && (
+          <div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px'
+            }}>
+              <button
+                onClick={reset}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'transparent',
+                  border: '1px solid rgba(148, 163, 184, 0.2)',
+                  borderRadius: '8px',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = 'rgba(56, 189, 248, 0.5)';
+                  e.target.style.color = '#38bdf8';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+                  e.target.style.color = '#94a3b8';
+                }}
+              >
+                ← New PRD
+              </button>
+              <button
+                onClick={copyToClipboard}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'rgba(56, 189, 248, 0.1)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  borderRadius: '8px',
+                  color: '#38bdf8',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(56, 189, 248, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy
+              </button>
+            </div>
+
+            <div style={{
+              background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%)',
+              borderRadius: '20px',
+              border: '1px solid rgba(148, 163, 184, 0.1)',
+              padding: '48px',
+              backdropFilter: 'blur(20px)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}>
+              <div style={{
+                fontSize: '15px',
+                lineHeight: '1.8',
+                color: '#cbd5e1',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {prd.split('\n').map((line, i) => {
+                  // H1
+                  if (line.startsWith('# ')) {
+                    return (
+                      <h1 key={i} style={{
+                        fontSize: '28px',
+                        fontWeight: '600',
+                        color: '#f1f5f9',
+                        margin: '0 0 24px 0',
+                        paddingBottom: '16px',
+                        borderBottom: '1px solid rgba(148, 163, 184, 0.1)'
+                      }}>
+                        {line.slice(2)}
+                      </h1>
+                    );
+                  }
+                  // H2
+                  if (line.startsWith('## ')) {
+                    return (
+                      <h2 key={i} style={{
+                        fontSize: '18px',
+                        fontWeight: '600',
+                        color: '#38bdf8',
+                        margin: '32px 0 16px 0',
+                        letterSpacing: '0.02em'
+                      }}>
+                        {line.slice(3)}
+                      </h2>
+                    );
+                  }
+                  // Bold headers
+                  if (line.startsWith('**') && line.endsWith('**')) {
+                    return (
+                      <p key={i} style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#e2e8f0',
+                        margin: '20px 0 8px 0',
+                        letterSpacing: '0.02em'
+                      }}>
+                        {line.slice(2, -2)}
+                      </p>
+                    );
+                  }
+                  // List items
+                  if (line.startsWith('- ')) {
+                    return (
+                      <div key={i} style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        margin: '8px 0',
+                        paddingLeft: '8px'
+                      }}>
+                        <span style={{
+                          color: '#38bdf8',
+                          marginTop: '8px',
+                          fontSize: '8px'
+                        }}>●</span>
+                        <span>{line.slice(2)}</span>
+                      </div>
+                    );
+                  }
+                  // Empty lines
+                  if (line.trim() === '') {
+                    return <div key={i} style={{ height: '12px' }} />;
+                  }
+                  // Horizontal rules
+                  if (line === '---') {
+                    return (
+                      <hr key={i} style={{
+                        border: 'none',
+                        borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+                        margin: '32px 0'
+                      }} />
+                    );
+                  }
+                  // Regular text
+                  return (
+                    <p key={i} style={{
+                      margin: '12px 0'
+                    }}>
+                      {line}
+                    </p>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <footer style={{
+          textAlign: 'center',
+          marginTop: '48px',
+          color: '#475569',
+          fontSize: '13px'
+        }}>
+          Powered by Sightline · Cash Application
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(PRDCreator));
+</script>
+</body>
+</html>

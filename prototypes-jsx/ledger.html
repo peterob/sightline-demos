@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+/* ============================================================
+   LEDGER — double-entry financial reporting
+   Classic core · event-ready seam · 12-month spread · actuals import
+   ============================================================ */
+
+const ACCOUNT_TYPES = ["Asset", "Liability", "Equity", "Revenue", "Expense"];
+const NORMAL_DEBIT = { Asset: true, Expense: true, Liability: false, Equity: false, Revenue: false };
+
+const SEED_ACCOUNTS = [
+  { code: "1000", name: "Cash", type: "Asset" },
+  { code: "1100", name: "Accounts Receivable", type: "Asset" },
+  { code: "1500", name: "Equipment", type: "Asset" },
+  { code: "2000", name: "Accounts Payable", type: "Liability" },
+  { code: "2100", name: "Accrued Liabilities", type: "Liability" },
+  { code: "3000", name: "Owner's Equity", type: "Equity" },
+  { code: "3900", name: "Retained Earnings", type: "Equity" },
+  { code: "4000", name: "Service Revenue", type: "Revenue" },
+  { code: "4100", name: "Product Revenue", type: "Revenue" },
+  { code: "5000", name: "Salaries Expense", type: "Expense" },
+  { code: "5100", name: "Rent Expense", type: "Expense" },
+  { code: "5200", name: "Software & Tools", type: "Expense" },
+  { code: "5300", name: "Travel Expense", type: "Expense" },
+];
+
+/* ---- 12 months of seeded history (2025-06 .. 2026-05) ---- */
+function buildSeedHistory() {
+  const out = [];
+  const months = [];
+  for (let m = 5; m < 12; m++) months.push(`2025-${String(m + 1).padStart(2, "0")}`);
+  for (let m = 0; m < 5; m++) months.push(`2026-${String(m + 1).padStart(2, "0")}`);
+  let id = 1;
+  const e = (date, memo, lines) => out.push({ id: `seed-${id++}`, date, memo, sourceEvent: null, lines });
+  // opening capital in first month
+  e(`${months[0]}-02`, "Owner capital contribution", [
+    { code: "1000", debit: 75000, credit: 0 }, { code: "3000", debit: 0, credit: 75000 }]);
+  e(`${months[0]}-03`, "Purchase equipment", [
+    { code: "1500", debit: 12000, credit: 0 }, { code: "1000", debit: 0, credit: 12000 }]);
+  // recurring monthly activity, gently growing revenue
+  months.forEach((mo, i) => {
+    const rev = 16000 + i * 900;
+    const prod = 4000 + i * 250;
+    e(`${mo}-08`, "Service revenue billed", [
+      { code: "1100", debit: rev, credit: 0 }, { code: "4000", debit: 0, credit: rev }]);
+    e(`${mo}-09`, "Product revenue", [
+      { code: "1000", debit: prod, credit: 0 }, { code: "4100", debit: 0, credit: prod }]);
+    e(`${mo}-20`, "AR collection", [
+      { code: "1000", debit: rev * 0.85, credit: 0 }, { code: "1100", debit: 0, credit: rev * 0.85 }]);
+    e(`${mo}-25`, "Payroll", [
+      { code: "5000", debit: 9000, credit: 0 }, { code: "1000", debit: 0, credit: 9000 }]);
+    e(`${mo}-26`, "Rent", [
+      { code: "5100", debit: 4500, credit: 0 }, { code: "1000", debit: 0, credit: 4500 }]);
+    e(`${mo}-27`, "Software & tools", [
+      { code: "5200", debit: 1200, credit: 0 }, { code: "2000", debit: 0, credit: 1200 }]);
+    if (i % 3 === 0)
+      e(`${mo}-15`, "Travel", [
+        { code: "5300", debit: 2200, credit: 0 }, { code: "1000", debit: 0, credit: 2200 }]);
+  });
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+const SEED_ENTRIES = buildSeedHistory();
+
+/* ---------- storage ---------- */
+const K_ACCOUNTS = "ledger:accounts";
+const K_ENTRIES = "ledger:entries";
+async function loadKey(key, fallback) {
+  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : fallback; }
+  catch { return fallback; }
+}
+async function saveKey(key, value) {
+  try { await window.storage.set(key, JSON.stringify(value)); } catch (e) { console.error(e); }
+}
+
+/* ---------- helpers ---------- */
+const fmt = (n) => {
+  if (Math.abs(n) < 0.005) return "—";
+  return (n < 0 ? "(" : "") +
+    Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 }) +
+    (n < 0 ? ")" : "");
+};
+const fmt2 = (n) =>
+  (n < 0 ? "(" : "") +
+  Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
+  (n < 0 ? ")" : "");
+const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+const periodOf = (d) => d.slice(0, 7);
+const monthLabel = (p) => {
+  const [y, m] = p.split("-");
+  return new Date(y, m - 1, 1).toLocaleString("en-US", { month: "short" }) + " " + y.slice(2);
+};
+function makeEntry({ date, memo, lines, sourceEvent = null }) {
+  return { id: "je-" + Date.now() + "-" + Math.floor(Math.random() * 1e6), date, memo, lines, sourceEvent };
+}
+
+/* balances: filter by onlyPeriod (period activity) or upToPeriod (cumulative) */
+function computeBalances(accounts, entries, { upToPeriod = null, onlyPeriod = null } = {}) {
+  const bal = {};
+  for (const e of entries) {
+    const p = periodOf(e.date);
+    if (onlyPeriod && p !== onlyPeriod) continue;
+    if (upToPeriod && p > upToPeriod) continue;
+    for (const l of e.lines) {
+      if (!bal[l.code]) bal[l.code] = { debit: 0, credit: 0 };
+      bal[l.code].debit += l.debit; bal[l.code].credit += l.credit;
+    }
+  }
+  return bal;
+}
+const accountNet = (type, b) => (NORMAL_DEBIT[type] ? b.debit - b.credit : b.credit - b.debit);
+
+/* the trailing 12 months present in data (or up to last 12) */
+function trailing12(periods) {
+  if (!periods.length) return [];
+  return periods.slice(-12);
+}
+
+const T = {
+  bg: "#13161b", panel: "#1b1f27", line: "#2b3140", text: "#e6e9ef", dim: "#8b94a7",
+  accent: "#d4a843", green: "#5fb98a", red: "#d97b6c", head: "#0e1116",
+};
+
+function App() {
+  const [accounts, setAccounts] = useState(SEED_ACCOUNTS);
+  const [entries, setEntries] = useState(SEED_ENTRIES);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState("is");
+
+  useEffect(() => {
+    (async () => {
+      setAccounts(await loadKey(K_ACCOUNTS, SEED_ACCOUNTS));
+      setEntries(await loadKey(K_ENTRIES, SEED_ENTRIES));
+      setLoaded(true);
+    })();
+  }, []);
+  useEffect(() => { if (loaded) saveKey(K_ACCOUNTS, accounts); }, [accounts, loaded]);
+  useEffect(() => { if (loaded) saveKey(K_ENTRIES, entries); }, [entries, loaded]);
+
+  const acctByCode = useMemo(() => Object.fromEntries(accounts.map((a) => [a.code, a])), [accounts]);
+  const periods = useMemo(() => {
+    const s = new Set(entries.map((e) => periodOf(e.date)));
+    return Array.from(s).sort();
+  }, [entries]);
+  const cols = useMemo(() => trailing12(periods), [periods]);
+
+  return (
+    <div style={{ minHeight: "100vh", background: T.bg, color: T.text,
+      fontFamily: "'IBM Plex Sans', ui-sans-serif, system-ui", fontSize: 14 }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap');
+        * { box-sizing: border-box; }
+        .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+        .num { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+        button { font-family: inherit; cursor: pointer; }
+        input, select, textarea { font-family: inherit; }
+        table { border-collapse: collapse; }
+        ::selection { background: ${T.accent}44; }
+        .scroll::-webkit-scrollbar { height: 9px; }
+        .scroll::-webkit-scrollbar-thumb { background: ${T.line}; border-radius: 5px; }
+      `}</style>
+
+      <header style={{ borderBottom: `1px solid ${T.line}`, padding: "18px 28px",
+        display: "flex", alignItems: "baseline", gap: 16, background: T.head }}>
+        <span style={{ fontFamily: "Fraunces, serif", fontSize: 24, fontWeight: 600, letterSpacing: -0.5 }}>Ledger</span>
+        <span style={{ color: T.dim, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase" }}>
+          {entries.length} entries · {periods.length} periods · showing trailing {cols.length}
+        </span>
+      </header>
+
+      <nav className="scroll" style={{ display: "flex", gap: 2, padding: "0 28px", borderBottom: `1px solid ${T.line}`,
+        background: T.head, overflowX: "auto" }}>
+        {[["is", "Income Statement"], ["bs", "Balance Sheet"], ["cf", "Cash Flow"], ["tb", "Trial Balance"],
+          ["journal", "Journal"], ["coa", "Accounts"], ["import", "Import"]].map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)} style={{
+            background: "none", border: "none", color: tab === k ? T.accent : T.dim,
+            padding: "14px 16px", fontSize: 13, fontWeight: tab === k ? 600 : 400, whiteSpace: "nowrap",
+            borderBottom: tab === k ? `2px solid ${T.accent}` : "2px solid transparent", marginBottom: -1 }}>
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <main style={{ padding: "28px" }}>
+        {tab === "is" && <IncomeStatement {...{ accounts, entries, cols }} />}
+        {tab === "bs" && <BalanceSheet {...{ accounts, entries, cols }} />}
+        {tab === "cf" && <CashFlow {...{ accounts, entries, cols }} />}
+        {tab === "tb" && <TrialBalance {...{ accounts, entries, cols }} />}
+        {tab === "journal" && <Journal {...{ accounts, acctByCode, entries, setEntries }} />}
+        {tab === "coa" && <ChartOfAccounts {...{ accounts, setAccounts, entries }} />}
+        {tab === "import" && <ImportPanel {...{ accounts, setAccounts, entries, setEntries }} />}
+      </main>
+    </div>
+  );
+}
+
+/* ============================================================ SPREAD TABLE (shared 12-col grid) */
+function SpreadTable({ title, subtitle, cols, sections, check }) {
+  const labelW = 230, colW = 78;
+  return (
+    <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 10, padding: 24 }}>
+      <h2 style={{ margin: "0 0 2px", fontFamily: "Fraunces, serif", fontWeight: 600, fontSize: 22 }}>{title}</h2>
+      {subtitle && <div style={{ color: T.dim, fontSize: 12, marginBottom: 16 }}>{subtitle}</div>}
+      <div className="scroll" style={{ overflowX: "auto" }}>
+        <table style={{ minWidth: labelW + cols.length * colW }}>
+          <thead>
+            <tr style={{ color: T.dim, fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.6 }}>
+              <th style={{ textAlign: "left", padding: "6px 10px", position: "sticky", left: 0, background: T.panel, minWidth: labelW }}></th>
+              {cols.map((p) => <th key={p} className="num" style={{ padding: "6px 8px", minWidth: colW }}>{monthLabel(p)}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {sections.map((sec, si) => (
+              <React.Fragment key={si}>
+                {sec.label && (
+                  <tr><td colSpan={cols.length + 1} style={{ color: T.accent, fontSize: 11,
+                    textTransform: "uppercase", letterSpacing: 1.2, padding: "14px 10px 4px",
+                    position: "sticky", left: 0, background: T.panel }}>{sec.label}</td></tr>
+                )}
+                {sec.rows.map((r, ri) => (
+                  <tr key={ri} style={{ borderTop: r.total ? `1px solid ${T.line}` : "none" }}>
+                    <td style={{ padding: "5px 10px", fontWeight: r.bold ? 600 : 400,
+                      color: r.muted ? T.dim : (r.accent ? T.accent : T.text), fontSize: 13,
+                      position: "sticky", left: 0, background: T.panel, paddingLeft: r.indent ? 24 : 10 }}>
+                      {r.code && <span className="mono" style={{ color: T.dim, fontSize: 11, marginRight: 6 }}>{r.code}</span>}
+                      {r.label}
+                    </td>
+                    {r.values.map((v, ci) => (
+                      <td key={ci} className="num mono" style={{ padding: "5px 8px", fontSize: 12.5,
+                        fontWeight: r.bold ? 600 : 400, color: r.accent ? T.accent : (v < 0 ? T.red : T.text) }}>
+                        {fmt(v)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {check && <Check ok={check.ok} label={check.label} />}
+    </div>
+  );
+}
+
+/* ============================================================ INCOME STATEMENT */
+function IncomeStatement({ accounts, entries, cols }) {
+  const periodBal = useMemo(() =>
+    Object.fromEntries(cols.map((p) => [p, computeBalances(accounts, entries, { onlyPeriod: p })])), [accounts, entries, cols]);
+  const rowFor = (a) => ({ code: a.code, label: a.name,
+    values: cols.map((p) => accountNet(a.type, periodBal[p][a.code] || { debit: 0, credit: 0 })) });
+  const rev = accounts.filter((a) => a.type === "Revenue").map(rowFor).filter((r) => r.values.some((v) => v));
+  const exp = accounts.filter((a) => a.type === "Expense").map(rowFor).filter((r) => r.values.some((v) => v));
+  const totRev = cols.map((_, i) => sum(rev, (r) => r.values[i]));
+  const totExp = cols.map((_, i) => sum(exp, (r) => r.values[i]));
+  const ni = cols.map((_, i) => totRev[i] - totExp[i]);
+  return <SpreadTable title="Income Statement" subtitle="monthly · trailing 12" cols={cols} sections={[
+    { label: "Revenue", rows: [...rev, { label: "Total Revenue", values: totRev, total: true, bold: true }] },
+    { label: "Expenses", rows: [...exp, { label: "Total Expenses", values: totExp, total: true, bold: true }] },
+    { label: null, rows: [{ label: "Net Income", values: ni, total: true, bold: true, accent: true }] },
+  ]} />;
+}
+
+/* ============================================================ BALANCE SHEET */
+function BalanceSheet({ accounts, entries, cols }) {
+  const cum = useMemo(() =>
+    Object.fromEntries(cols.map((p) => [p, computeBalances(accounts, entries, { upToPeriod: p })])), [accounts, entries, cols]);
+  const net = (a, p) => accountNet(a.type, cum[p][a.code] || { debit: 0, credit: 0 });
+  const rowFor = (a) => ({ code: a.code, label: a.name, values: cols.map((p) => net(a, p)) });
+  const assets = accounts.filter((a) => a.type === "Asset").map(rowFor).filter((r) => r.values.some((v) => v));
+  const liab = accounts.filter((a) => a.type === "Liability").map(rowFor).filter((r) => r.values.some((v) => v));
+  const eq = accounts.filter((a) => a.type === "Equity").map(rowFor).filter((r) => r.values.some((v) => v));
+  const re = cols.map((p) =>
+    sum(accounts.filter((a) => a.type === "Revenue"), (a) => net(a, p)) -
+    sum(accounts.filter((a) => a.type === "Expense"), (a) => net(a, p)));
+  const eqRows = [...eq, { label: "Retained Earnings (cumulative NI)", values: re, muted: true }];
+  const totA = cols.map((_, i) => sum(assets, (r) => r.values[i]));
+  const totL = cols.map((_, i) => sum(liab, (r) => r.values[i]));
+  const totE = cols.map((_, i) => sum(eqRows, (r) => r.values[i]));
+  const le = cols.map((_, i) => totL[i] + totE[i]);
+  const ok = cols.every((_, i) => Math.abs(totA[i] - le[i]) < 0.5);
+  return <SpreadTable title="Balance Sheet" subtitle="cumulative · as of each month-end" cols={cols} sections={[
+    { label: "Assets", rows: [...assets, { label: "Total Assets", values: totA, total: true, bold: true }] },
+    { label: "Liabilities", rows: [...liab, { label: "Total Liabilities", values: totL, total: true, bold: true }] },
+    { label: "Equity", rows: [...eqRows, { label: "Total Equity", values: totE, total: true, bold: true }] },
+    { label: null, rows: [{ label: "Liabilities + Equity", values: le, total: true, bold: true, accent: true }] },
+  ]} check={{ ok, label: ok ? "Balances every month" : "Out of balance in one or more months — check entries" }} />;
+}
+
+/* ============================================================ CASH FLOW (indirect) */
+function CashFlow({ accounts, entries, cols }) {
+  const cashCodes = accounts.filter((a) => a.name.toLowerCase().includes("cash")).map((a) => a.code);
+  const periodBal = useMemo(() =>
+    Object.fromEntries(cols.map((p) => [p, computeBalances(accounts, entries, { onlyPeriod: p })])), [accounts, entries, cols]);
+  const cumAt = useMemo(() => {
+    const all = {}; const allP = Array.from(new Set(entries.map((e) => periodOf(e.date)))).sort();
+    return (p) => computeBalances(accounts, entries, { upToPeriod: p });
+  }, [accounts, entries]);
+
+  const ni = cols.map((p) =>
+    sum(accounts.filter((a) => a.type === "Revenue"), (a) => accountNet("Revenue", periodBal[p][a.code] || { debit: 0, credit: 0 })) -
+    sum(accounts.filter((a) => a.type === "Expense"), (a) => accountNet("Expense", periodBal[p][a.code] || { debit: 0, credit: 0 })));
+
+  const allPeriods = Array.from(new Set(entries.map((e) => periodOf(e.date)))).sort();
+  const priorOf = (p) => { const i = allPeriods.indexOf(p); return i > 0 ? allPeriods[i - 1] : null; };
+  const cumNet = (a, p) => p ? accountNet(a.type, computeBalances(accounts, entries, { upToPeriod: p })[a.code] || { debit: 0, credit: 0 }) : 0;
+  const movement = (a, p) => cumNet(a, p) - cumNet(a, priorOf(p));
+
+  const wcAccts = accounts.filter((a) => (a.type === "Asset" || a.type === "Liability") && !cashCodes.includes(a.code));
+  const wcRows = wcAccts.map((a) => ({ code: a.code, label: `Δ ${a.name}`, indent: true, muted: true,
+    values: cols.map((p) => (a.type === "Asset" ? -movement(a, p) : movement(a, p))) })).filter((r) => r.values.some((v) => Math.abs(v) > 0.5));
+  const eqAccts = accounts.filter((a) => a.type === "Equity");
+  const finRows = eqAccts.map((a) => ({ code: a.code, label: `Δ ${a.name}`, indent: true, muted: true,
+    values: cols.map((p) => movement(a, p)) })).filter((r) => r.values.some((v) => Math.abs(v) > 0.5));
+
+  const opCash = cols.map((_, i) => ni[i] + sum(wcRows, (r) => r.values[i]));
+  const finCash = cols.map((_, i) => sum(finRows, (r) => r.values[i]));
+  const netChange = cols.map((_, i) => opCash[i] + finCash[i]);
+  const cashEnd = cols.map((p) => sum(accounts.filter((a) => cashCodes.includes(a.code)), (a) => cumNet(a, p)));
+  const cashBeg = cols.map((p) => sum(accounts.filter((a) => cashCodes.includes(a.code)), (a) => cumNet(a, priorOf(p))));
+  const ok = cols.every((_, i) => Math.abs(cashBeg[i] + netChange[i] - cashEnd[i]) < 0.5);
+
+  return <SpreadTable title="Statement of Cash Flows" subtitle="indirect method · monthly" cols={cols} sections={[
+    { label: "Operating", rows: [
+      { label: "Net income", values: ni },
+      ...wcRows,
+      { label: "Cash from operations", values: opCash, total: true, bold: true }] },
+    { label: "Financing", rows: [
+      ...finRows,
+      { label: "Cash from financing", values: finCash, total: true, bold: true }] },
+    { label: null, rows: [
+      { label: "Net change in cash", values: netChange, total: true, bold: true },
+      { label: "Cash, beginning", values: cashBeg, muted: true },
+      { label: "Cash, ending", values: cashEnd, bold: true, accent: true }] },
+  ]} check={{ ok, label: ok ? "Reconciles to cash every month" : "Does not reconcile in one or more months" }} />;
+}
+
+/* ============================================================ TRIAL BALANCE */
+function TrialBalance({ accounts, entries, cols }) {
+  const cum = useMemo(() =>
+    Object.fromEntries(cols.map((p) => [p, computeBalances(accounts, entries, { upToPeriod: p })])), [accounts, entries, cols]);
+  // show signed net balance per account per month (debit +, credit −)
+  const rows = accounts.map((a) => ({ code: a.code, label: a.name,
+    values: cols.map((p) => { const b = cum[p][a.code] || { debit: 0, credit: 0 }; return b.debit - b.credit; }) }))
+    .filter((r) => r.values.some((v) => v));
+  const totals = cols.map((_, i) => sum(rows, (r) => r.values[i]));
+  const ok = totals.every((t) => Math.abs(t) < 0.5);
+  return <SpreadTable title="Trial Balance" subtitle="cumulative net (debit +, credit −) · as of each month-end" cols={cols} sections={[
+    { label: null, rows: [...rows, { label: "Net (should be zero)", values: totals, total: true, bold: true, accent: true }] },
+  ]} check={{ ok, label: ok ? "Balanced every month" : "Out of balance — check entries" }} />;
+}
+
+/* ============================================================ JOURNAL */
+function Journal({ accounts, acctByCode, entries, setEntries }) {
+  const blank = () => ({ code: accounts[0]?.code || "", debit: "", credit: "" });
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [memo, setMemo] = useState("");
+  const [lines, setLines] = useState([blank(), blank()]);
+  const [err, setErr] = useState("");
+  const totals = useMemo(() => ({ d: sum(lines, (l) => parseFloat(l.debit) || 0), c: sum(lines, (l) => parseFloat(l.credit) || 0) }), [lines]);
+  const balanced = Math.abs(totals.d - totals.c) < 0.005 && totals.d > 0;
+  const post = () => {
+    if (!balanced) { setErr("Debits must equal credits and exceed zero."); return; }
+    const cl = lines.filter((l) => (parseFloat(l.debit) || 0) || (parseFloat(l.credit) || 0))
+      .map((l) => ({ code: l.code, debit: parseFloat(l.debit) || 0, credit: parseFloat(l.credit) || 0 }));
+    setEntries((p) => [...p, makeEntry({ date, memo: memo || "(no memo)", lines: cl })].sort((a, b) => a.date.localeCompare(b.date)));
+    setMemo(""); setLines([blank(), blank()]); setErr("");
+  };
+  const upd = (i, k, v) => setLines((p) => p.map((l, j) => (j === i ? { ...l, [k]: v } : l)));
+  const card = { background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: 20, maxWidth: 720 };
+  const inp = { background: T.bg, border: `1px solid ${T.line}`, color: T.text, padding: "7px 9px", borderRadius: 5, fontSize: 13 };
+  return (
+    <div style={{ display: "grid", gap: 24 }}>
+      <section style={card}>
+        <h3 style={{ margin: "0 0 16px", fontFamily: "Fraunces, serif", fontWeight: 600 }}>New journal entry</h3>
+        <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inp} />
+          <input placeholder="Memo / description" value={memo} onChange={(e) => setMemo(e.target.value)} style={{ ...inp, flex: 1, minWidth: 200 }} />
+        </div>
+        <table style={{ width: "100%" }}>
+          <thead><tr style={{ color: T.dim, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+            <th style={{ textAlign: "left", padding: "6px 8px" }}>Account</th>
+            <th style={{ textAlign: "right", padding: "6px 8px", width: 120 }}>Debit</th>
+            <th style={{ textAlign: "right", padding: "6px 8px", width: 120 }}>Credit</th><th style={{ width: 30 }}></th>
+          </tr></thead>
+          <tbody>{lines.map((l, i) => (
+            <tr key={i}>
+              <td style={{ padding: "4px 8px" }}>
+                <select value={l.code} onChange={(e) => upd(i, "code", e.target.value)} style={{ ...inp, width: "100%" }}>
+                  {accounts.map((a) => <option key={a.code} value={a.code}>{a.code} · {a.name}</option>)}
+                </select></td>
+              <td style={{ padding: "4px 8px" }}><input className="num" value={l.debit} onChange={(e) => upd(i, "debit", e.target.value)} placeholder="0.00" style={{ ...inp, width: "100%" }} /></td>
+              <td style={{ padding: "4px 8px" }}><input className="num" value={l.credit} onChange={(e) => upd(i, "credit", e.target.value)} placeholder="0.00" style={{ ...inp, width: "100%" }} /></td>
+              <td style={{ textAlign: "center" }}>{lines.length > 2 && <button onClick={() => setLines((p) => p.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: T.dim, fontSize: 16 }}>×</button>}</td>
+            </tr>))}</tbody>
+          <tfoot><tr style={{ borderTop: `1px solid ${T.line}` }}>
+            <td style={{ padding: "8px" }}><button onClick={() => setLines((p) => [...p, blank()])} style={{ background: "none", border: `1px solid ${T.line}`, color: T.dim, padding: "4px 10px", borderRadius: 5, fontSize: 12 }}>+ line</button></td>
+            <td className="num mono" style={{ padding: "8px", fontWeight: 600 }}>{fmt2(totals.d)}</td>
+            <td className="num mono" style={{ padding: "8px", fontWeight: 600 }}>{fmt2(totals.c)}</td><td></td>
+          </tr></tfoot>
+        </table>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 14 }}>
+          <button onClick={post} disabled={!balanced} style={{ background: balanced ? T.accent : T.line, color: balanced ? "#1a1206" : T.dim, border: "none", padding: "9px 20px", borderRadius: 6, fontWeight: 600, fontSize: 13 }}>Post entry</button>
+          <span className="mono" style={{ fontSize: 12, color: balanced ? T.green : T.dim }}>{balanced ? "✓ balanced" : `out of balance ${fmt2(totals.d - totals.c)}`}</span>
+          {err && <span style={{ color: T.red, fontSize: 12 }}>{err}</span>}
+        </div>
+      </section>
+      <section style={card}>
+        <h3 style={{ margin: "0 0 14px", fontFamily: "Fraunces, serif", fontWeight: 600 }}>Posted entries <span style={{ color: T.dim, fontWeight: 400, fontSize: 13 }}>({entries.length})</span></h3>
+        <div style={{ display: "grid", gap: 8, maxHeight: 460, overflowY: "auto" }}>
+          {[...entries].reverse().slice(0, 60).map((e) => (
+            <div key={e.id} style={{ border: `1px solid ${T.line}`, borderRadius: 6, padding: "9px 13px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div><span className="mono" style={{ color: T.accent, fontSize: 12 }}>{e.date}</span>
+                  <span style={{ marginLeft: 12 }}>{e.memo}</span>
+                  {e.sourceEvent && <span style={{ marginLeft: 10, fontSize: 11, color: T.dim }}>⟂ {e.sourceEvent}</span>}</div>
+                <button onClick={() => setEntries((p) => p.filter((x) => x.id !== e.id))} style={{ background: "none", border: "none", color: T.dim, fontSize: 12 }}>delete</button>
+              </div>
+              <table style={{ marginTop: 5, width: "100%" }}><tbody>{e.lines.map((l, i) => (
+                <tr key={i} style={{ color: T.dim, fontSize: 12.5 }}>
+                  <td style={{ padding: "2px 0", paddingLeft: l.debit ? 0 : 24 }}>{l.code} · {acctByCode[l.code]?.name || "?"}</td>
+                  <td className="num mono" style={{ width: 110 }}>{l.debit ? fmt2(l.debit) : ""}</td>
+                  <td className="num mono" style={{ width: 110 }}>{l.credit ? fmt2(l.credit) : ""}</td>
+                </tr>))}</tbody></table>
+            </div>))}
+          {entries.length > 60 && <div style={{ color: T.dim, fontSize: 12, textAlign: "center" }}>…showing latest 60 of {entries.length}</div>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ============================================================ CHART OF ACCOUNTS */
+function ChartOfAccounts({ accounts, setAccounts, entries }) {
+  const [code, setCode] = useState(""); const [name, setName] = useState(""); const [type, setType] = useState("Asset"); const [err, setErr] = useState("");
+  const used = useMemo(() => new Set(entries.flatMap((e) => e.lines.map((l) => l.code))), [entries]);
+  const add = () => {
+    if (!code || !name) { setErr("Code and name required."); return; }
+    if (accounts.some((a) => a.code === code)) { setErr("Code already exists."); return; }
+    setAccounts((p) => [...p, { code, name, type }].sort((a, b) => a.code.localeCompare(b.code)));
+    setCode(""); setName(""); setErr("");
+  };
+  const inp = { background: T.bg, border: `1px solid ${T.line}`, color: T.text, padding: "7px 9px", borderRadius: 5, fontSize: 13 };
+  return (
+    <div style={{ display: "grid", gap: 20, maxWidth: 620 }}>
+      <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: 18, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <input placeholder="Code" value={code} onChange={(e) => setCode(e.target.value)} style={{ ...inp, width: 90 }} />
+        <input placeholder="Account name" value={name} onChange={(e) => setName(e.target.value)} style={{ ...inp, flex: 1, minWidth: 160 }} />
+        <select value={type} onChange={(e) => setType(e.target.value)} style={inp}>{ACCOUNT_TYPES.map((t) => <option key={t}>{t}</option>)}</select>
+        <button onClick={add} style={{ background: T.accent, color: "#1a1206", border: "none", padding: "8px 16px", borderRadius: 6, fontWeight: 600 }}>Add</button>
+        {err && <span style={{ color: T.red, fontSize: 12 }}>{err}</span>}
+      </div>
+      {ACCOUNT_TYPES.map((t) => {
+        const rows = accounts.filter((a) => a.type === t); if (!rows.length) return null;
+        return (
+          <div key={t}>
+            <div style={{ color: T.accent, fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>{t} <span style={{ color: T.dim }}>· {NORMAL_DEBIT[t] ? "debit-normal" : "credit-normal"}</span></div>
+            <table style={{ width: "100%", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, overflow: "hidden" }}><tbody>
+              {rows.map((a) => (
+                <tr key={a.code} style={{ borderBottom: `1px solid ${T.line}` }}>
+                  <td className="mono" style={{ padding: "9px 14px", color: T.accent, width: 80 }}>{a.code}</td>
+                  <td style={{ padding: "9px 14px" }}>{a.name}</td>
+                  <td style={{ padding: "9px 14px", textAlign: "right" }}>{used.has(a.code) ? <span style={{ color: T.dim, fontSize: 11 }}>in use</span> : <button onClick={() => setAccounts((p) => p.filter((x) => x.code !== a.code))} style={{ background: "none", border: "none", color: T.dim, fontSize: 12 }}>remove</button>}</td>
+                </tr>))}
+            </tbody></table>
+          </div>);
+      })}
+    </div>
+  );
+}
+
+/* ============================================================ IMPORT */
+function ImportPanel({ accounts, setAccounts, entries, setEntries }) {
+  const [mode, setMode] = useState("journal");
+  const [text, setText] = useState("");
+  const [autoCreate, setAutoCreate] = useState(true);
+  const [result, setResult] = useState(null);
+
+  const card = { background: T.panel, border: `1px solid ${T.line}`, borderRadius: 8, padding: 20, maxWidth: 760 };
+  const inp = { background: T.bg, border: `1px solid ${T.line}`, color: T.text, padding: "7px 9px", borderRadius: 5, fontSize: 13 };
+
+  const parseCSV = (raw) => raw.trim().split(/\r?\n/).map((ln) => ln.split(",").map((c) => c.trim()));
+
+  // JOURNAL CSV: date, account_code, debit, credit, memo
+  const importJournal = () => {
+    try {
+      const rows = parseCSV(text);
+      let start = 0;
+      if (rows[0] && /date/i.test(rows[0][0])) start = 1;
+      const knownCodes = new Set(accounts.map((a) => a.code));
+      const newAccts = [];
+      const byEntry = {}; // group by date+memo
+      for (let i = start; i < rows.length; i++) {
+        const [date, code, debit, credit, memo = ""] = rows[i];
+        if (!date || !code) continue;
+        if (!knownCodes.has(code)) {
+          if (autoCreate) { newAccts.push({ code, name: `Imported ${code}`, type: "Asset" }); knownCodes.add(code); }
+          else throw new Error(`Unknown account code ${code} (row ${i + 1})`);
+        }
+        const key = date + "||" + memo;
+        if (!byEntry[key]) byEntry[key] = { date, memo: memo || "(imported)", lines: [] };
+        byEntry[key].lines.push({ code, debit: parseFloat(debit) || 0, credit: parseFloat(credit) || 0 });
+      }
+      const newEntries = []; const unbalanced = [];
+      Object.values(byEntry).forEach((e) => {
+        const d = sum(e.lines, (l) => l.debit), c = sum(e.lines, (l) => l.credit);
+        if (Math.abs(d - c) > 0.01) unbalanced.push(`${e.date} ${e.memo} (Δ ${fmt2(d - c)})`);
+        else newEntries.push(makeEntry({ ...e, sourceEvent: "csv-journal" }));
+      });
+      if (newAccts.length) setAccounts((p) => [...p, ...newAccts].sort((a, b) => a.code.localeCompare(b.code)));
+      setEntries((p) => [...p, ...newEntries].sort((a, b) => a.date.localeCompare(b.date)));
+      setResult({ ok: true, msg: `Imported ${newEntries.length} balanced entries${newAccts.length ? `, created ${newAccts.length} accounts` : ""}.${unbalanced.length ? ` Skipped ${unbalanced.length} unbalanced: ${unbalanced.slice(0, 3).join("; ")}${unbalanced.length > 3 ? "…" : ""}` : ""}` });
+      if (!unbalanced.length) setText("");
+    } catch (e) { setResult({ ok: false, msg: e.message }); }
+  };
+
+  // TB SNAPSHOT: period(YYYY-MM), account_code, balance  → posts the DELTA vs prior cumulative as one balanced entry
+  const importTB = () => {
+    try {
+      const rows = parseCSV(text);
+      let start = 0;
+      if (rows[0] && /(period|month|account)/i.test(rows[0].join(","))) start = 1;
+      const knownCodes = new Set(accounts.map((a) => a.code));
+      const newAccts = [];
+      const byPeriod = {};
+      for (let i = start; i < rows.length; i++) {
+        const [period, code, balance] = rows[i];
+        if (!period || !code) continue;
+        if (!/^\d{4}-\d{2}$/.test(period)) throw new Error(`Bad period "${period}" (row ${i + 1}) — use YYYY-MM`);
+        if (!knownCodes.has(code)) {
+          if (autoCreate) { newAccts.push({ code, name: `Imported ${code}`, type: "Asset" }); knownCodes.add(code); }
+          else throw new Error(`Unknown account code ${code} (row ${i + 1})`);
+        }
+        if (!byPeriod[period]) byPeriod[period] = {};
+        byPeriod[period][code] = parseFloat(balance) || 0;
+      }
+      // for each period (sorted), compute delta vs prior cumulative ledger balance and post one entry
+      const allAccts = [...accounts, ...newAccts];
+      const typeOf = Object.fromEntries(allAccts.map((a) => [a.code, a.type]));
+      const newEntries = [];
+      let workingEntries = [...entries];
+      const skipped = [];
+      Object.keys(byPeriod).sort().forEach((period) => {
+        const targetSigned = {}; // desired debit-positive net per account
+        Object.entries(byPeriod[period]).forEach(([code, bal]) => {
+          // input balance is in the account's normal sign; convert to signed debit-positive
+          targetSigned[code] = NORMAL_DEBIT[typeOf[code]] ? bal : -bal;
+        });
+        const prior = computeBalances(allAccts, workingEntries, { upToPeriod: prevPeriod(period) });
+        const lines = [];
+        const codes = new Set([...Object.keys(targetSigned), ...Object.keys(prior)]);
+        codes.forEach((code) => {
+          if (!(code in targetSigned)) return; // only adjust accounts present in snapshot
+          const priorSigned = (prior[code]?.debit || 0) - (prior[code]?.credit || 0);
+          const delta = targetSigned[code] - priorSigned;
+          if (Math.abs(delta) < 0.005) return;
+          lines.push(delta > 0 ? { code, debit: delta, credit: 0 } : { code, debit: 0, credit: -delta });
+        });
+        const d = sum(lines, (l) => l.debit), c = sum(lines, (l) => l.credit);
+        if (Math.abs(d - c) > 0.01) { skipped.push(`${period} (Δ ${fmt2(d - c)} — snapshot not self-balancing)`); return; }
+        if (!lines.length) return;
+        const en = makeEntry({ date: `${period}-28`, memo: `TB import ${period}`, lines, sourceEvent: "csv-tb" });
+        newEntries.push(en); workingEntries.push(en);
+      });
+      if (newAccts.length) setAccounts((p) => [...p, ...newAccts].sort((a, b) => a.code.localeCompare(b.code)));
+      setEntries((p) => [...p, ...newEntries].sort((a, b) => a.date.localeCompare(b.date)));
+      setResult({ ok: skipped.length === 0, msg: `Posted ${newEntries.length} period-adjustment entries${newAccts.length ? `, created ${newAccts.length} accounts` : ""}.${skipped.length ? ` Skipped: ${skipped.join("; ")}. A TB snapshot must net to zero across all accounts.` : ""}` });
+      if (!skipped.length) setText("");
+    } catch (e) { setResult({ ok: false, msg: e.message }); }
+  };
+
+  const reset = async () => {
+    setAccounts(SEED_ACCOUNTS); setEntries(SEED_ENTRIES);
+    setResult({ ok: true, msg: "Reset to seeded sample data." });
+  };
+
+  const ex = mode === "journal"
+    ? "date,account_code,debit,credit,memo\n2026-06-08,1100,17000,0,June billing\n2026-06-08,4000,0,17000,June billing\n2026-06-25,5000,9000,0,Payroll\n2026-06-25,1000,0,9000,Payroll"
+    : "period,account_code,balance\n2026-06,1000,82000\n2026-06,1100,17000\n2026-06,2000,3600\n2026-06,3000,75000\n2026-06,4000,21000\n2026-06,5000,9000\n2026-06,5100,4500";
+
+  return (
+    <div style={{ display: "grid", gap: 20, maxWidth: 760 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        {[["journal", "Journal CSV (transactions)"], ["tb", "Trial Balance snapshot (ending balances)"]].map(([k, l]) => (
+          <button key={k} onClick={() => { setMode(k); setResult(null); }} style={{
+            background: mode === k ? T.accent : T.panel, color: mode === k ? "#1a1206" : T.dim,
+            border: `1px solid ${mode === k ? T.accent : T.line}`, padding: "8px 14px", borderRadius: 6, fontWeight: 600, fontSize: 12.5 }}>{l}</button>
+        ))}
+      </div>
+
+      <div style={card}>
+        <div style={{ color: T.dim, fontSize: 12.5, lineHeight: 1.6, marginBottom: 12 }}>
+          {mode === "journal"
+            ? <>Paste journal lines. Columns: <span className="mono" style={{ color: T.text }}>date, account_code, debit, credit, memo</span>. Lines sharing a date+memo group into one entry; each entry must balance. Header row optional.</>
+            : <>Paste each month's <b>ending</b> trial balance. Columns: <span className="mono" style={{ color: T.text }}>period (YYYY-MM), account_code, balance</span>. Balance is in the account's natural sign (assets/expenses positive as debits; liabilities/equity/revenue positive as credits). The app computes the change vs. the prior month and posts one balancing entry — so the whole snapshot must net to zero.</>}
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: T.dim, marginBottom: 10 }}>
+          <input type="checkbox" checked={autoCreate} onChange={(e) => setAutoCreate(e.target.checked)} />
+          Auto-create unknown account codes (as Asset — fix the type afterward in Accounts)
+        </label>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder={ex} spellCheck={false}
+          style={{ ...inp, width: "100%", minHeight: 200, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, lineHeight: 1.5, resize: "vertical" }} />
+        <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
+          <button onClick={mode === "journal" ? importJournal : importTB} style={{ background: T.accent, color: "#1a1206", border: "none", padding: "9px 20px", borderRadius: 6, fontWeight: 600 }}>Import</button>
+          <button onClick={() => setText(ex)} style={{ background: "none", border: `1px solid ${T.line}`, color: T.dim, padding: "9px 14px", borderRadius: 6, fontSize: 12.5 }}>Load example</button>
+        </div>
+        {result && <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 6, fontSize: 12.5,
+          background: result.ok ? `${T.green}1a` : `${T.red}1a`, color: result.ok ? T.green : T.red,
+          border: `1px solid ${(result.ok ? T.green : T.red)}44` }}>{result.ok ? "✓ " : "⚠ "}{result.msg}</div>}
+      </div>
+
+      <div style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 12.5, color: T.dim }}>Restore the seeded 12-month sample (clears your data).</span>
+        <button onClick={reset} style={{ background: "none", border: `1px solid ${T.red}66`, color: T.red, padding: "8px 14px", borderRadius: 6, fontSize: 12.5 }}>Reset to sample</button>
+      </div>
+    </div>
+  );
+}
+function prevPeriod(p) {
+  const [y, m] = p.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function Check({ ok, label }) {
+  return (
+    <div style={{ marginTop: 16, padding: "9px 12px", borderRadius: 6, fontSize: 12.5,
+      background: ok ? `${T.green}1a` : `${T.red}1a`, color: ok ? T.green : T.red,
+      border: `1px solid ${(ok ? T.green : T.red)}44` }}>
+      {ok ? "✓ " : "⚠ "}{label}
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(App));
+</script>
+</body>
+</html>

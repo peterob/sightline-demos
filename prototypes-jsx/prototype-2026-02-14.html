@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASTPrototype</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+// ═══════════════════════════════════════════════════════════════════
+// CAST — Shared Ledger for GPU Compute Financing
+// End-to-end prototype: Contract → Utilization → Invoice → Settlement
+// Adversarial design: every event is provable, every dollar traceable
+// ═══════════════════════════════════════════════════════════════════
+
+// --- Data Layer: Event-Sourced Shared Ledger ---
+const EVENTS = [
+  { id: "E001", ts: "2026-01-15T09:00:00Z", type: "CONTRACT_CREATED", party: "both", data: { contractId: "CTR-4401", provider: "Axion Compute", customer: "Helios AI Labs", financier: "Norwest Capital Fund III", gpuType: "H100-SXM5", quantity: 256, ratePerGpuHr: 2.85, term: "90 days", minCommitment: 0.85, startDate: "2026-02-01" }, hash: "a7c3f1", prevHash: "000000", signatures: ["axion.sig", "helios.sig", "norwest.sig"] },
+  { id: "E002", ts: "2026-02-01T00:00:01Z", type: "CLUSTER_PROVISIONED", party: "provider", data: { contractId: "CTR-4401", clusterId: "AX-NV-2261", gpusOnline: 256, healthCheck: "PASS", telemetryEndpoint: "wss://telemetry.axion.io/2261" }, hash: "b8d4e2", prevHash: "a7c3f1", signatures: ["axion.sig", "cluster.auto.sig"] },
+  { id: "E003", ts: "2026-02-01T00:05:00Z", type: "PROVISIONING_CONFIRMED", party: "customer", data: { contractId: "CTR-4401", clusterId: "AX-NV-2261", benchmarkResult: "PASS", latencyMs: 0.42, confirmedBy: "helios-infra-bot" }, hash: "c9e5f3", prevHash: "b8d4e2", signatures: ["helios.sig"] },
+  { id: "E004", ts: "2026-02-07T23:59:59Z", type: "UTILIZATION_PERIOD", party: "machine", data: { contractId: "CTR-4401", clusterId: "AX-NV-2261", periodStart: "2026-02-01T00:00:00Z", periodEnd: "2026-02-07T23:59:59Z", totalGpuHours: 42547.2, avgUtilization: 0.946, peakUtilization: 0.99, downtimeMinutes: 14, telemetryRecords: 604800, hashOfTelemetry: "f4a8b2c1d3e5" }, hash: "d0f6a4", prevHash: "c9e5f3", signatures: ["cluster.auto.sig", "helios-monitor.sig"] },
+  { id: "E005", ts: "2026-02-08T06:00:00Z", type: "INVOICE_GENERATED", party: "system", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W01", period: "Week 1", gpuHours: 42547.2, rate: 2.85, grossAmount: 121259.52, downtimeCredit: -9.31, netAmount: 121250.21, derivedFrom: ["E004"], proofChain: ["E001→E002→E003→E004→E005"] }, hash: "e1a7b5", prevHash: "d0f6a4", signatures: ["system.auto.sig"] },
+  { id: "E006", ts: "2026-02-08T09:15:00Z", type: "INVOICE_ACKNOWLEDGED", party: "customer", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W01", status: "ACCEPTED", verifiedBy: "Maria Chen, VP Finance", note: "Telemetry hash verified against our monitoring" }, hash: "f2b8c6", prevHash: "e1a7b5", signatures: ["helios.sig"] },
+  { id: "E007", ts: "2026-02-08T09:15:01Z", type: "PAYMENT_INSTRUCTION", party: "system", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W01", amount: 121250.21, splitProvider: 97000.17, splitFinancier: 24250.04, rail: "USDC", escrowContract: "0x7a3b...c4d1" }, hash: "a3c9d7", prevHash: "f2b8c6", signatures: ["system.auto.sig"] },
+  { id: "E008", ts: "2026-02-08T09:30:00Z", type: "SETTLEMENT_COMPLETE", party: "ledger", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W01", txHashProvider: "0xabc...123", txHashFinancier: "0xdef...456", settledAt: "2026-02-08T09:30:00Z", totalLatencyMs: 4200 }, hash: "b4d0e8", prevHash: "a3c9d7", signatures: ["escrow.auto.sig", "axion.sig", "norwest.sig"] },
+  // Week 2 — with a dispute
+  { id: "E009", ts: "2026-02-14T23:59:59Z", type: "UTILIZATION_PERIOD", party: "machine", data: { contractId: "CTR-4401", clusterId: "AX-NV-2261", periodStart: "2026-02-08T00:00:00Z", periodEnd: "2026-02-14T23:59:59Z", totalGpuHours: 38912.0, avgUtilization: 0.865, peakUtilization: 0.97, downtimeMinutes: 847, telemetryRecords: 604800, hashOfTelemetry: "g5b9c2d4e6f7" }, hash: "c5e1f9", prevHash: "b4d0e8", signatures: ["cluster.auto.sig", "helios-monitor.sig"] },
+  { id: "E010", ts: "2026-02-15T06:00:00Z", type: "INVOICE_GENERATED", party: "system", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W02", period: "Week 2", gpuHours: 38912.0, rate: 2.85, grossAmount: 110899.20, downtimeCredit: -706.12, netAmount: 110193.08, derivedFrom: ["E009"], proofChain: ["E001→E002→E003→E009→E010"] }, hash: "d6f2a0", prevHash: "c5e1f9", signatures: ["system.auto.sig"] },
+  { id: "E011", ts: "2026-02-15T10:30:00Z", type: "INVOICE_DISPUTED", party: "customer", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W02", disputeType: "DOWNTIME_UNDERCOUNT", claimedDowntimeMinutes: 1203, evidenceHash: "h6c0d5e7f8a9", disputedBy: "Maria Chen, VP Finance", note: "Our monitoring shows 1203 min downtime vs reported 847. Requesting telemetry reconciliation." }, hash: "e7a3b1", prevHash: "d6f2a0", signatures: ["helios.sig"] },
+  { id: "E012", ts: "2026-02-15T11:00:00Z", type: "DISPUTE_RESOLUTION", party: "system", data: { contractId: "CTR-4401", invoiceId: "INV-4401-W02", method: "TELEMETRY_COMPARISON", providerDowntime: 847, customerDowntime: 1203, reconciledDowntime: 1087, discrepancySource: "Network partition 02/11 14:22-14:58 caused monitoring gap", adjustedCredit: -907.64, revisedNetAmount: 109991.56, resolution: "ADJUSTED" }, hash: "f8b4c2", prevHash: "e7a3b1", signatures: ["system.auto.sig", "axion.sig", "helios.sig"] },
+];
+
+const PARTIES = {
+  provider: { name: "Axion Compute", role: "GPU Provider", color: "#E8553A" },
+  customer: { name: "Helios AI Labs", role: "Compute Buyer", color: "#2D7FF9" },
+  financier: { name: "Norwest Capital", role: "Capital Provider", color: "#18A86B" },
+  machine: { name: "Cluster Telemetry", role: "Machine-Generated", color: "#9B6FE8" },
+  system: { name: "CAST Protocol", role: "Shared Ledger", color: "#F5A623" },
+  ledger: { name: "Settlement Layer", role: "Execution", color: "#F5A623" },
+  both: { name: "All Parties", role: "Multi-Sig", color: "#8B95A5" },
+};
+
+const EVENT_LABELS = {
+  CONTRACT_CREATED: "Contract Executed",
+  CLUSTER_PROVISIONED: "Cluster Online",
+  PROVISIONING_CONFIRMED: "Provisioning Verified",
+  UTILIZATION_PERIOD: "Usage Period Closed",
+  INVOICE_GENERATED: "Invoice Derived",
+  INVOICE_ACKNOWLEDGED: "Invoice Accepted",
+  INVOICE_DISPUTED: "Invoice Disputed",
+  DISPUTE_RESOLUTION: "Dispute Resolved",
+  PAYMENT_INSTRUCTION: "Payment Routed",
+  SETTLEMENT_COMPLETE: "Settlement Final",
+};
+
+const formatCurrency = (n) => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatDate = (iso) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+};
+const formatPct = (n) => (n * 100).toFixed(1) + "%";
+
+// ═══════════════════════════════════════════════════════════════════
+// Components
+// ═══════════════════════════════════════════════════════════════════
+
+const HashChip = ({ hash, label }) => (
+  <span style={{
+    display: "inline-flex", alignItems: "center", gap: 4,
+    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 4, padding: "2px 8px", fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: 11, color: "rgba(255,255,255,0.45)", letterSpacing: 0.5
+  }}>
+    {label && <span style={{ color: "rgba(255,255,255,0.25)", marginRight: 2 }}>{label}</span>}
+    <span>{hash}</span>
+  </span>
+);
+
+const SignatureBadge = ({ sig }) => {
+  const isAuto = sig.includes("auto") || sig.includes("bot") || sig.includes("monitor");
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 3,
+      background: isAuto ? "rgba(155,111,232,0.1)" : "rgba(45,127,249,0.1)",
+      border: `1px solid ${isAuto ? "rgba(155,111,232,0.25)" : "rgba(45,127,249,0.25)"}`,
+      borderRadius: 3, padding: "1px 6px", fontSize: 10,
+      color: isAuto ? "#B89AEF" : "#6BA3F9", fontFamily: "'IBM Plex Mono', monospace"
+    }}>
+      <span style={{ fontSize: 8 }}>{isAuto ? "⚙" : "✍"}</span> {sig}
+    </span>
+  );
+};
+
+const PartyDot = ({ party, size = 8 }) => (
+  <span style={{
+    display: "inline-block", width: size, height: size, borderRadius: "50%",
+    background: PARTIES[party]?.color || "#666", flexShrink: 0
+  }} />
+);
+
+const EventCard = ({ event, isSelected, onClick, index }) => {
+  const party = PARTIES[event.party];
+  const isDispute = event.type.includes("DISPUTE");
+  const isSettlement = event.type === "SETTLEMENT_COMPLETE";
+  
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "14px 16px", cursor: "pointer", position: "relative",
+        background: isSelected ? "rgba(255,255,255,0.05)" : "transparent",
+        borderLeft: `2px solid ${isDispute ? "#E8553A" : isSettlement ? "#18A86B" : "rgba(255,255,255,0.08)"}`,
+        transition: "all 0.2s ease",
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}
+    >
+      {/* Timeline connector */}
+      <div style={{
+        position: "absolute", left: -5, top: 18, width: 8, height: 8,
+        borderRadius: "50%", background: party?.color || "#666",
+        border: isSelected ? "2px solid #fff" : "2px solid #131820",
+        zIndex: 2, transition: "all 0.2s"
+      }} />
+      
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <span style={{
+              fontSize: 9, fontFamily: "'IBM Plex Mono', monospace",
+              color: "rgba(255,255,255,0.25)", letterSpacing: 1, textTransform: "uppercase"
+            }}>{event.id}</span>
+            <span style={{
+              fontSize: 9, color: party?.color, fontWeight: 600,
+              letterSpacing: 0.5, textTransform: "uppercase"
+            }}>{party?.name}</span>
+          </div>
+          <div style={{
+            fontSize: 13, fontWeight: 600, color: isDispute ? "#E8553A" : "#E8E8ED",
+            marginBottom: 3, letterSpacing: -0.2
+          }}>
+            {isDispute && "⚠ "}{EVENT_LABELS[event.type] || event.type}
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>
+            {formatDate(event.ts)}
+          </div>
+        </div>
+        {event.data.netAmount && (
+          <div style={{
+            fontSize: 13, fontWeight: 700, color: "#E8E8ED",
+            fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "nowrap"
+          }}>
+            {formatCurrency(event.data.netAmount)}
+          </div>
+        )}
+        {event.data.revisedNetAmount && (
+          <div style={{
+            fontSize: 13, fontWeight: 700, color: "#F5A623",
+            fontFamily: "'IBM Plex Mono', monospace", whiteSpace: "nowrap"
+          }}>
+            {formatCurrency(event.data.revisedNetAmount)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const EventDetail = ({ event }) => {
+  if (!event) return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      height: "100%", color: "rgba(255,255,255,0.2)", fontSize: 13,
+      fontStyle: "italic", padding: 40, textAlign: "center", lineHeight: 1.6
+    }}>
+      Select an event to inspect its provenance chain, signatures, and data
+    </div>
+  );
+
+  const party = PARTIES[event.party];
+
+  return (
+    <div style={{ padding: "20px 24px", overflowY: "auto", height: "100%" }}>
+      {/* Header */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <PartyDot party={event.party} size={10} />
+          <span style={{ fontSize: 11, color: party?.color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            {party?.name} — {party?.role}
+          </span>
+        </div>
+        <h2 style={{
+          fontSize: 20, fontWeight: 700, color: "#E8E8ED", margin: 0, marginBottom: 8,
+          fontFamily: "'Instrument Serif', Georgia, serif", letterSpacing: -0.5
+        }}>
+          {EVENT_LABELS[event.type] || event.type}
+        </h2>
+        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)" }}>{formatDate(event.ts)}</div>
+      </div>
+
+      {/* Hash Chain */}
+      <div style={{
+        background: "rgba(255,255,255,0.02)", borderRadius: 8,
+        border: "1px solid rgba(255,255,255,0.06)", padding: 14, marginBottom: 16
+      }}>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, fontWeight: 600 }}>
+          Hash Chain
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <HashChip hash={event.prevHash} label="prev" />
+          <span style={{ color: "rgba(255,255,255,0.15)", fontSize: 14 }}>→</span>
+          <HashChip hash={event.hash} label="this" />
+        </div>
+      </div>
+
+      {/* Signatures */}
+      <div style={{
+        background: "rgba(255,255,255,0.02)", borderRadius: 8,
+        border: "1px solid rgba(255,255,255,0.06)", padding: 14, marginBottom: 16
+      }}>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, fontWeight: 600 }}>
+          Signatures ({event.signatures.length})
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {event.signatures.map((sig, i) => <SignatureBadge key={i} sig={sig} />)}
+        </div>
+      </div>
+
+      {/* Proof Chain (if present) */}
+      {event.data.proofChain && (
+        <div style={{
+          background: "rgba(245,166,35,0.05)", borderRadius: 8,
+          border: "1px solid rgba(245,166,35,0.15)", padding: 14, marginBottom: 16
+        }}>
+          <div style={{ fontSize: 10, color: "#F5A623", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8, fontWeight: 600 }}>
+            Provenance Chain
+          </div>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace", fontSize: 12,
+            color: "rgba(255,255,255,0.6)", letterSpacing: 0.5, lineHeight: 1.8
+          }}>
+            {event.data.proofChain.map((chain, i) => (
+              <div key={i}>{chain}</div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 8, fontStyle: "italic" }}>
+            Every dollar on this invoice traces back to a machine-generated utilization event, a verified provisioning, and a multi-sig contract.
+          </div>
+        </div>
+      )}
+
+      {/* Event Data */}
+      <div style={{
+        background: "rgba(255,255,255,0.02)", borderRadius: 8,
+        border: "1px solid rgba(255,255,255,0.06)", padding: 14
+      }}>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 600 }}>
+          Event Data
+        </div>
+        {Object.entries(event.data).filter(([k]) => k !== "proofChain").map(([key, value]) => (
+          <div key={key} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+            padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.03)",
+            gap: 12
+          }}>
+            <span style={{
+              fontSize: 11, color: "rgba(255,255,255,0.35)",
+              fontFamily: "'IBM Plex Mono', monospace", flexShrink: 0
+            }}>
+              {key}
+            </span>
+            <span style={{
+              fontSize: 12, color: key.includes("Amount") || key.includes("Credit") || key === "rate" || key === "ratePerGpuHr"
+                ? "#F5A623" : key.includes("hash") || key.includes("Hash") || key.includes("tx")
+                ? "#9B6FE8" : "#E8E8ED",
+              fontFamily: typeof value === "number" || key.includes("hash") || key.includes("Hash") || key.includes("tx")
+                ? "'IBM Plex Mono', monospace" : "inherit",
+              textAlign: "right", wordBreak: "break-all", maxWidth: "65%"
+            }}>
+              {typeof value === "number" && key.includes("mount") ? formatCurrency(value)
+                : typeof value === "number" && key.includes("tilization") ? formatPct(value)
+                : typeof value === "number" && key.includes("Credit") ? formatCurrency(value)
+                : Array.isArray(value) ? value.join(", ")
+                : String(value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- Adversarial Health Panel ---
+const AdversarialPanel = () => {
+  const checks = [
+    { label: "Hash Chain Integrity", status: "pass", detail: "All 12 events chain correctly" },
+    { label: "Signature Coverage", status: "pass", detail: "Every event has ≥1 valid signature" },
+    { label: "Multi-Sig on Contract", status: "pass", detail: "3/3 parties signed E001" },
+    { label: "Telemetry Hash Match", status: "pass", detail: "Provider + customer hashes align" },
+    { label: "Invoice Derivation", status: "pass", detail: "INV amounts derive from utilization events" },
+    { label: "Dispute Resolution", status: "warn", detail: "1 dispute resolved — 356 min discrepancy found" },
+    { label: "Settlement Finality", status: "pass", detail: "Week 1 settled in 4.2s via USDC escrow" },
+    { label: "Ghost Invoice Check", status: "pass", detail: "No invoice without upstream utilization" },
+  ];
+
+  return (
+    <div style={{ padding: "16px 20px" }}>
+      <div style={{
+        fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+        letterSpacing: 1.5, marginBottom: 12, fontWeight: 700
+      }}>
+        Adversarial Integrity Checks
+      </div>
+      {checks.map((c, i) => (
+        <div key={i} style={{
+          display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0",
+          borderBottom: "1px solid rgba(255,255,255,0.03)"
+        }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, flexShrink: 0, marginTop: 1,
+            color: c.status === "pass" ? "#18A86B" : c.status === "warn" ? "#F5A623" : "#E8553A"
+          }}>
+            {c.status === "pass" ? "✓" : c.status === "warn" ? "!" : "✗"}
+          </span>
+          <div>
+            <div style={{ fontSize: 12, color: "#E8E8ED", fontWeight: 500, marginBottom: 2 }}>{c.label}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{c.detail}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// --- Contract Summary ---
+const ContractSummary = () => {
+  const contract = EVENTS[0].data;
+  return (
+    <div style={{ padding: "16px 20px" }}>
+      <div style={{
+        fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+        letterSpacing: 1.5, marginBottom: 14, fontWeight: 700
+      }}>
+        Contract Overview
+      </div>
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12
+      }}>
+        {[
+          { label: "Contract", value: contract.contractId },
+          { label: "GPU Type", value: contract.gpuType },
+          { label: "Quantity", value: contract.quantity + " GPUs" },
+          { label: "Rate", value: "$" + contract.ratePerGpuHr + "/GPU-hr" },
+          { label: "Term", value: contract.term },
+          { label: "Min Commit", value: formatPct(contract.minCommitment) },
+        ].map((item, i) => (
+          <div key={i} style={{
+            background: "rgba(255,255,255,0.02)", borderRadius: 6,
+            border: "1px solid rgba(255,255,255,0.05)", padding: "10px 12px"
+          }}>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+              {item.label}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#E8E8ED", fontFamily: "'IBM Plex Mono', monospace" }}>
+              {item.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Three-party visualization */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{
+          fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+          letterSpacing: 1.5, marginBottom: 12, fontWeight: 700
+        }}>
+          Shared Ledger Parties
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { key: "provider", name: contract.provider, icon: "◆" },
+            { key: "customer", name: contract.customer, icon: "▲" },
+            { key: "financier", name: contract.financier, icon: "●" },
+          ].map((p, i) => (
+            <div key={i} style={{
+              flex: 1, background: `${PARTIES[p.key]?.color}10`,
+              border: `1px solid ${PARTIES[p.key]?.color}30`,
+              borderRadius: 6, padding: "10px 12px", textAlign: "center"
+            }}>
+              <div style={{ fontSize: 18, marginBottom: 4, color: PARTIES[p.key]?.color }}>{p.icon}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "#E8E8ED", marginBottom: 2 }}>{p.name}</div>
+              <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>{PARTIES[p.key]?.role}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Financial Summary */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{
+          fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase",
+          letterSpacing: 1.5, marginBottom: 12, fontWeight: 700
+        }}>
+          Settlement Status
+        </div>
+        <div style={{
+          background: "rgba(24,168,107,0.06)", border: "1px solid rgba(24,168,107,0.2)",
+          borderRadius: 8, padding: 14
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Week 1 — Settled</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#18A86B", fontFamily: "'IBM Plex Mono', monospace" }}>
+              {formatCurrency(121250.21)}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>Week 2 — Dispute Resolved</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#F5A623", fontFamily: "'IBM Plex Mono', monospace" }}>
+              {formatCurrency(109991.56)}
+            </span>
+          </div>
+          <div style={{
+            borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 10, paddingTop: 10,
+            display: "flex", justifyContent: "space-between"
+          }}>
+            <span style={{ fontSize: 13, color: "#E8E8ED", fontWeight: 600 }}>Total</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#E8E8ED", fontFamily: "'IBM Plex Mono', monospace" }}>
+              {formatCurrency(121250.21 + 109991.56)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// Main App
+// ═══════════════════════════════════════════════════════════════════
+
+const VIEWS = { LEDGER: "ledger", CONTRACT: "contract", INTEGRITY: "integrity" };
+
+function CASTPrototype() {
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activeView, setActiveView] = useState(VIEWS.LEDGER);
+  const [filterParty, setFilterParty] = useState("all");
+
+  const filteredEvents = filterParty === "all"
+    ? EVENTS
+    : EVENTS.filter(e => e.party === filterParty);
+
+  return (
+    <div style={{
+      fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      background: "#0D1117", color: "#E8E8ED",
+      height: "100vh", display: "flex", flexDirection: "column",
+      overflow: "hidden"
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet" />
+
+      {/* ── Header ── */}
+      <div style={{
+        padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(255,255,255,0.01)", flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{
+              fontSize: 18, fontWeight: 700, letterSpacing: 3,
+              color: "#F5A623", fontFamily: "'IBM Plex Mono', monospace"
+            }}>CAST</span>
+            <span style={{
+              fontSize: 11, color: "rgba(255,255,255,0.25)", fontWeight: 500, letterSpacing: 0.5
+            }}>Shared Ledger</span>
+          </div>
+          <div style={{
+            height: 16, width: 1, background: "rgba(255,255,255,0.08)"
+          }} />
+          <span style={{
+            fontSize: 12, color: "rgba(255,255,255,0.4)", fontWeight: 500
+          }}>
+            GPU Compute Financing — CTR-4401
+          </span>
+        </div>
+
+        {/* View Tabs */}
+        <div style={{ display: "flex", gap: 2, background: "rgba(255,255,255,0.04)", borderRadius: 6, padding: 2 }}>
+          {[
+            { key: VIEWS.LEDGER, label: "Event Ledger" },
+            { key: VIEWS.CONTRACT, label: "Contract" },
+            { key: VIEWS.INTEGRITY, label: "Integrity" },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveView(tab.key)}
+              style={{
+                padding: "5px 14px", borderRadius: 4, border: "none", cursor: "pointer",
+                fontSize: 11, fontWeight: 600, letterSpacing: 0.3, transition: "all 0.15s",
+                background: activeView === tab.key ? "rgba(255,255,255,0.1)" : "transparent",
+                color: activeView === tab.key ? "#E8E8ED" : "rgba(255,255,255,0.35)"
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Body ── */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* Left Panel */}
+        <div style={{
+          width: activeView === VIEWS.LEDGER ? 380 : "100%",
+          borderRight: activeView === VIEWS.LEDGER ? "1px solid rgba(255,255,255,0.06)" : "none",
+          display: "flex", flexDirection: "column", overflow: "hidden",
+          transition: "width 0.2s"
+        }}>
+          {activeView === VIEWS.LEDGER && (
+            <>
+              {/* Party Filter */}
+              <div style={{
+                padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                display: "flex", gap: 4, flexWrap: "wrap", flexShrink: 0
+              }}>
+                {[
+                  { key: "all", label: "All Events" },
+                  { key: "machine", label: "Machine" },
+                  { key: "provider", label: "Provider" },
+                  { key: "customer", label: "Customer" },
+                  { key: "system", label: "Protocol" },
+                ].map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFilterParty(f.key)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4,
+                      padding: "3px 10px", borderRadius: 12, border: "none", cursor: "pointer",
+                      fontSize: 10, fontWeight: 600, letterSpacing: 0.3, transition: "all 0.15s",
+                      background: filterParty === f.key ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)",
+                      color: filterParty === f.key ? "#E8E8ED" : "rgba(255,255,255,0.3)"
+                    }}
+                  >
+                    {f.key !== "all" && <PartyDot party={f.key} size={6} />}
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Event List */}
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {filteredEvents.map((event, i) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    index={i}
+                    isSelected={selectedEvent?.id === event.id}
+                    onClick={() => setSelectedEvent(event)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {activeView === VIEWS.CONTRACT && <ContractSummary />}
+          {activeView === VIEWS.INTEGRITY && <AdversarialPanel />}
+        </div>
+
+        {/* Right Panel — Event Detail (Ledger view only) */}
+        {activeView === VIEWS.LEDGER && (
+          <div style={{
+            flex: 1, overflow: "hidden", display: "flex", flexDirection: "column",
+            background: "rgba(255,255,255,0.01)"
+          }}>
+            <div style={{
+              padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+              fontSize: 10, color: "rgba(255,255,255,0.25)", textTransform: "uppercase",
+              letterSpacing: 1.5, fontWeight: 700, flexShrink: 0
+            }}>
+              Event Inspector
+            </div>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              <EventDetail event={selectedEvent} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{
+        padding: "8px 24px", borderTop: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(255,255,255,0.01)", flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{
+            fontSize: 10, color: "rgba(255,255,255,0.2)", fontFamily: "'IBM Plex Mono', monospace"
+          }}>
+            {EVENTS.length} events · {EVENTS.filter(e => e.type.includes("DISPUTE")).length} disputes · chain verified
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%", background: "#18A86B",
+            display: "inline-block", animation: "pulse 2s infinite"
+          }} />
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>
+            Shared ledger active — all parties connected
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        * { box-sizing: border-box; }
+      `}</style>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(CASTPrototype));
+</script>
+</body>
+</html>

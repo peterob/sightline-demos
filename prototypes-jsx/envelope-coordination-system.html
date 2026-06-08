@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>budgetAuthorities</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+// ============================================================================
+// DATA MODEL - Revised with Line Items, Multi-Party Views, Journal Generation
+// ============================================================================
+
+const budgetAuthorities = {
+  'MKT-2025-Q1': {
+    id: 'MKT-2025-Q1',
+    name: 'Q1 Marketing',
+    authorized: 150000,
+    department: 'Marketing',
+    owner: 'M. Chen',
+    ownerEmail: 'm.chen@company.com',
+    period: '2025-Q1',
+    glAccount: '6100-100'
+  },
+  'PROD-2025-Q1': {
+    id: 'PROD-2025-Q1',
+    name: 'Q1 Product',
+    authorized: 200000,
+    department: 'Product',
+    owner: 'L. Park',
+    ownerEmail: 'l.park@company.com',
+    period: '2025-Q1',
+    glAccount: '6100-200'
+  },
+  'ENG-2025-Q1': {
+    id: 'ENG-2025-Q1',
+    name: 'Q1 Engineering',
+    authorized: 280000,
+    department: 'Engineering',
+    owner: 'S. Patel',
+    ownerEmail: 's.patel@company.com',
+    period: '2025-Q1',
+    glAccount: '6100-300'
+  }
+};
+
+// Forecasts - soft allocations that don't create envelopes
+const forecasts = [
+  {
+    id: 'FCST-001',
+    budgetId: 'MKT-2025-Q1',
+    description: 'Q2 Campaign Planning - Agency',
+    amount: 50000,
+    expectedDate: '2025-04-01',
+    status: 'PLANNED',
+    createdBy: 'M. Chen'
+  },
+  {
+    id: 'FCST-002',
+    budgetId: 'MKT-2025-Q1',
+    description: 'Trade Show - Fall',
+    amount: 35000,
+    expectedDate: '2025-09-15',
+    status: 'TENTATIVE',
+    createdBy: 'M. Chen'
+  },
+  {
+    id: 'FCST-003',
+    budgetId: 'ENG-2025-Q1',
+    description: 'Additional cloud capacity',
+    amount: 60000,
+    expectedDate: '2025-04-01',
+    status: 'PLANNED',
+    createdBy: 'S. Patel'
+  }
+];
+
+// Vendors (external parties)
+const vendors = {
+  'V-001': {
+    id: 'V-001',
+    name: 'Brandworks Creative LLC',
+    contact: 'Sarah Mitchell',
+    email: 'sarah@brandworks.co',
+    paymentTerms: 'Net 30'
+  },
+  'V-002': {
+    id: 'V-002',
+    name: 'MediaCorp Digital',
+    contact: 'James Wong',
+    email: 'jwong@mediacorp.io',
+    paymentTerms: 'Net 45'
+  },
+  'V-003': {
+    id: 'V-003',
+    name: 'SecureCheck Partners',
+    contact: 'Diana Ross',
+    email: 'd.ross@securecheck.com',
+    paymentTerms: 'Net 30'
+  }
+};
+
+// Envelopes with line items
+const envelopes = [
+  {
+    id: 'ENV-001',
+    poNumber: 'PO-4521',
+    title: 'Agency Retainer - Brandworks Q1',
+    vendorId: 'V-001',
+    status: 'IN_PROGRESS',
+    risk: 'LOW',
+    createdAt: '2025-01-14T09:32:00Z',
+    requestedBy: 'J. Smith',
+    requestedByEmail: 'j.smith@company.com',
+    
+    // Line items - each can have different budget attribution
+    lineItems: [
+      {
+        id: 'ENV-001-L1',
+        description: 'Monthly retainer - Creative services',
+        budgetId: 'MKT-2025-Q1',
+        amount: 36000,
+        fulfillmentType: 'RECURRING',
+        fulfillmentSchedule: 'Monthly',
+        expectedUnits: 3,
+        completedUnits: 2,
+        glCode: '6100-100-5010',
+        glDescription: 'Marketing - Agency Fees'
+      },
+      {
+        id: 'ENV-001-L2',
+        description: 'Brand refresh project',
+        budgetId: 'PROD-2025-Q1',
+        amount: 4000,
+        fulfillmentType: 'MILESTONE',
+        fulfillmentSchedule: 'On delivery',
+        expectedUnits: 1,
+        completedUnits: 0,
+        glCode: '6100-200-5010',
+        glDescription: 'Product - Design Services'
+      }
+    ],
+    
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-14T14:15:00Z', proof: '0x8f3a2b1c' },
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'L. Park', at: '2025-01-14T14:45:00Z', proof: '0x9c4d3e2f', note: 'For PROD-2025-Q1 line item' },
+      { type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-14T16:30:00Z', proof: '0x2b1c8f3a' },
+      { type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Total amount < $50,000' }
+    ],
+    
+    events: [
+      { 
+        id: 'E001', 
+        timestamp: '2025-01-14T09:32:00Z', 
+        type: 'INITIATED', 
+        actor: 'J. Smith',
+        actorType: 'INTERNAL',
+        detail: 'Envelope created from request',
+        data: { totalAmount: 40000 }
+      },
+      { 
+        id: 'E002', 
+        timestamp: '2025-01-14T14:15:00Z', 
+        type: 'BUDGET_APPROVED', 
+        actor: 'M. Chen',
+        actorType: 'INTERNAL',
+        detail: 'Budget holder approval for MKT-2025-Q1 allocation',
+        data: { budgetId: 'MKT-2025-Q1', amount: 36000 }
+      },
+      { 
+        id: 'E003', 
+        timestamp: '2025-01-14T14:45:00Z', 
+        type: 'BUDGET_APPROVED', 
+        actor: 'L. Park',
+        actorType: 'INTERNAL',
+        detail: 'Budget holder approval for PROD-2025-Q1 allocation',
+        data: { budgetId: 'PROD-2025-Q1', amount: 4000 }
+      },
+      { 
+        id: 'E004', 
+        timestamp: '2025-01-14T16:30:00Z', 
+        type: 'PROCUREMENT_APPROVED', 
+        actor: 'J. Torres',
+        actorType: 'INTERNAL',
+        detail: 'Procurement review complete'
+      },
+      { 
+        id: 'E005', 
+        timestamp: '2025-01-15T10:00:00Z', 
+        type: 'PO_ISSUED', 
+        actor: 'System',
+        actorType: 'SYSTEM',
+        detail: 'PO-4521 issued to vendor',
+        data: { poNumber: 'PO-4521' },
+        // This event generates encumbrance journal entries
+        journalEntries: [
+          { dr: 'Encumbrance', drCode: '1800-100', cr: 'Budgetary Fund Balance', crCode: '3900-100', amount: 36000, budgetId: 'MKT-2025-Q1' },
+          { dr: 'Encumbrance', drCode: '1800-200', cr: 'Budgetary Fund Balance', crCode: '3900-200', amount: 4000, budgetId: 'PROD-2025-Q1' }
+        ],
+        vendorVisible: true,
+        vendorDetail: 'Purchase order issued'
+      },
+      { 
+        id: 'E006', 
+        timestamp: '2025-02-01T08:45:00Z', 
+        type: 'INVOICE_SUBMITTED', 
+        actor: 'Brandworks Creative LLC',
+        actorType: 'VENDOR',
+        detail: 'Invoice INV-BW-2201 submitted',
+        data: { 
+          invoiceNumber: 'INV-BW-2201', 
+          amount: 12000,
+          lineItemId: 'ENV-001-L1',
+          periodCovered: 'January 2025'
+        },
+        vendorVisible: true
+      },
+      { 
+        id: 'E007', 
+        timestamp: '2025-02-01T09:00:00Z', 
+        type: 'INVOICE_MATCHED', 
+        actor: 'System',
+        actorType: 'SYSTEM',
+        detail: 'Three-way match verified',
+        data: { invoiceNumber: 'INV-BW-2201', matchResult: 'PASS' },
+        vendorVisible: true,
+        vendorDetail: 'Invoice approved for payment'
+      },
+      { 
+        id: 'E008', 
+        timestamp: '2025-02-03T00:00:00Z', 
+        type: 'DISBURSED', 
+        actor: 'Treasury',
+        actorType: 'INTERNAL',
+        detail: 'ACH-88432 executed',
+        data: { 
+          paymentRef: 'ACH-88432', 
+          amount: 12000,
+          invoiceNumber: 'INV-BW-2201',
+          lineItemId: 'ENV-001-L1'
+        },
+        journalEntries: [
+          { dr: 'Marketing - Agency Fees', drCode: '6100-100-5010', cr: 'Cash', crCode: '1000-100', amount: 12000 },
+          { dr: 'Budgetary Fund Balance', drCode: '3900-100', cr: 'Encumbrance', crCode: '1800-100', amount: 12000 }
+        ],
+        vendorVisible: true,
+        vendorDetail: 'Payment sent via ACH'
+      },
+      { 
+        id: 'E009', 
+        timestamp: '2025-03-01T08:30:00Z', 
+        type: 'INVOICE_SUBMITTED', 
+        actor: 'Brandworks Creative LLC',
+        actorType: 'VENDOR',
+        detail: 'Invoice INV-BW-2301 submitted',
+        data: { 
+          invoiceNumber: 'INV-BW-2301', 
+          amount: 12000,
+          lineItemId: 'ENV-001-L1',
+          periodCovered: 'February 2025'
+        },
+        vendorVisible: true
+      },
+      { 
+        id: 'E010', 
+        timestamp: '2025-03-01T09:15:00Z', 
+        type: 'INVOICE_MATCHED', 
+        actor: 'System',
+        actorType: 'SYSTEM',
+        detail: 'Three-way match verified',
+        data: { invoiceNumber: 'INV-BW-2301', matchResult: 'PASS' },
+        vendorVisible: true,
+        vendorDetail: 'Invoice approved for payment'
+      },
+      { 
+        id: 'E011', 
+        timestamp: '2025-03-03T00:00:00Z', 
+        type: 'DISBURSED', 
+        actor: 'Treasury',
+        actorType: 'INTERNAL',
+        detail: 'ACH-91205 executed',
+        data: { 
+          paymentRef: 'ACH-91205', 
+          amount: 12000,
+          invoiceNumber: 'INV-BW-2301',
+          lineItemId: 'ENV-001-L1'
+        },
+        journalEntries: [
+          { dr: 'Marketing - Agency Fees', drCode: '6100-100-5010', cr: 'Cash', crCode: '1000-100', amount: 12000 },
+          { dr: 'Budgetary Fund Balance', drCode: '3900-100', cr: 'Encumbrance', crCode: '1800-100', amount: 12000 }
+        ],
+        vendorVisible: true,
+        vendorDetail: 'Payment sent via ACH'
+      }
+    ]
+  },
+  {
+    id: 'ENV-002',
+    poNumber: 'PO-4522',
+    title: 'Q1 Digital Media Campaign',
+    vendorId: 'V-002',
+    status: 'IN_PROGRESS',
+    risk: 'MEDIUM',
+    riskNote: 'Spend pacing above forecast - may need reallocation',
+    createdAt: '2025-01-17T09:00:00Z',
+    requestedBy: 'A. Wong',
+    requestedByEmail: 'a.wong@company.com',
+    
+    lineItems: [
+      {
+        id: 'ENV-002-L1',
+        description: 'Paid social media - Q1',
+        budgetId: 'MKT-2025-Q1',
+        amount: 40000,
+        fulfillmentType: 'RECURRING',
+        fulfillmentSchedule: 'Monthly',
+        expectedUnits: 3,
+        completedUnits: 2,
+        glCode: '6100-100-5020',
+        glDescription: 'Marketing - Digital Advertising'
+      },
+      {
+        id: 'ENV-002-L2',
+        description: 'Programmatic display',
+        budgetId: 'MKT-2025-Q1',
+        amount: 25000,
+        fulfillmentType: 'RECURRING',
+        fulfillmentSchedule: 'Monthly',
+        expectedUnits: 3,
+        completedUnits: 2,
+        glCode: '6100-100-5020',
+        glDescription: 'Marketing - Digital Advertising'
+      }
+    ],
+    
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-17T11:00:00Z', proof: '0x4e2f1a3b' },
+      { type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-17T15:45:00Z', proof: '0x9a3d5c2e' },
+      { type: 'THRESHOLD_50K', status: 'SATISFIED', by: 'VP Finance', at: '2025-01-18T09:00:00Z', proof: '0x1f8b4d2a' }
+    ],
+    
+    events: [
+      { id: 'E001', timestamp: '2025-01-17T09:00:00Z', type: 'INITIATED', actor: 'A. Wong', actorType: 'INTERNAL', detail: 'Envelope created from request', data: { totalAmount: 65000 } },
+      { id: 'E002', timestamp: '2025-01-17T11:00:00Z', type: 'BUDGET_APPROVED', actor: 'M. Chen', actorType: 'INTERNAL', detail: 'Budget holder approval', data: { budgetId: 'MKT-2025-Q1', amount: 65000 } },
+      { id: 'E003', timestamp: '2025-01-17T15:45:00Z', type: 'PROCUREMENT_APPROVED', actor: 'J. Torres', actorType: 'INTERNAL', detail: 'Procurement review complete' },
+      { id: 'E004', timestamp: '2025-01-18T09:00:00Z', type: 'THRESHOLD_APPROVED', actor: 'VP Finance', actorType: 'INTERNAL', detail: '>$50K threshold approval granted' },
+      { 
+        id: 'E005', 
+        timestamp: '2025-01-18T10:30:00Z', 
+        type: 'PO_ISSUED', 
+        actor: 'System', 
+        actorType: 'SYSTEM',
+        detail: 'PO-4522 issued to vendor',
+        journalEntries: [
+          { dr: 'Encumbrance', drCode: '1800-100', cr: 'Budgetary Fund Balance', crCode: '3900-100', amount: 65000, budgetId: 'MKT-2025-Q1' }
+        ],
+        vendorVisible: true 
+      },
+      { id: 'E006', timestamp: '2025-02-10T08:00:00Z', type: 'INVOICE_SUBMITTED', actor: 'MediaCorp Digital', actorType: 'VENDOR', detail: 'Invoice INV-MC-2215 submitted', data: { invoiceNumber: 'INV-MC-2215', amount: 22000 }, vendorVisible: true },
+      { id: 'E007', timestamp: '2025-02-10T08:30:00Z', type: 'INVOICE_MATCHED', actor: 'System', actorType: 'SYSTEM', detail: 'Three-way match verified', vendorVisible: true },
+      { 
+        id: 'E008', 
+        timestamp: '2025-02-12T00:00:00Z', 
+        type: 'DISBURSED', 
+        actor: 'Treasury', 
+        actorType: 'INTERNAL',
+        detail: 'ACH-89102 executed',
+        data: { paymentRef: 'ACH-89102', amount: 22000 },
+        journalEntries: [
+          { dr: 'Marketing - Digital Advertising', drCode: '6100-100-5020', cr: 'Cash', crCode: '1000-100', amount: 22000 },
+          { dr: 'Budgetary Fund Balance', drCode: '3900-100', cr: 'Encumbrance', crCode: '1800-100', amount: 22000 }
+        ],
+        vendorVisible: true,
+        vendorDetail: 'Payment sent via ACH'
+      },
+      { id: 'E009', timestamp: '2025-03-05T08:00:00Z', type: 'INVOICE_SUBMITTED', actor: 'MediaCorp Digital', actorType: 'VENDOR', detail: 'Invoice INV-MC-2318 submitted', data: { invoiceNumber: 'INV-MC-2318', amount: 24500 }, vendorVisible: true },
+      { id: 'E010', timestamp: '2025-03-05T08:45:00Z', type: 'INVOICE_MATCHED', actor: 'System', actorType: 'SYSTEM', detail: 'Three-way match verified', vendorVisible: true },
+      { 
+        id: 'E011', 
+        timestamp: '2025-03-07T00:00:00Z', 
+        type: 'DISBURSED', 
+        actor: 'Treasury',
+        actorType: 'INTERNAL', 
+        detail: 'ACH-92341 executed',
+        data: { paymentRef: 'ACH-92341', amount: 24500 },
+        journalEntries: [
+          { dr: 'Marketing - Digital Advertising', drCode: '6100-100-5020', cr: 'Cash', crCode: '1000-100', amount: 24500 },
+          { dr: 'Budgetary Fund Balance', drCode: '3900-100', cr: 'Encumbrance', crCode: '1800-100', amount: 24500 }
+        ],
+        vendorVisible: true,
+        vendorDetail: 'Payment sent via ACH'
+      }
+    ]
+  },
+  {
+    id: 'ENV-003',
+    poNumber: null,
+    title: 'Security Audit - Annual',
+    vendorId: 'V-003',
+    status: 'PENDING_APPROVAL',
+    risk: 'HIGH',
+    riskNote: 'Awaiting threshold approval - blocking PO issuance',
+    createdAt: '2025-03-10T11:00:00Z',
+    requestedBy: 'K. Lee',
+    requestedByEmail: 'k.lee@company.com',
+    
+    lineItems: [
+      {
+        id: 'ENV-003-L1',
+        description: 'Penetration testing',
+        budgetId: 'ENG-2025-Q1',
+        amount: 45000,
+        fulfillmentType: 'MILESTONE',
+        fulfillmentSchedule: 'On completion',
+        expectedUnits: 1,
+        completedUnits: 0,
+        glCode: '6100-300-5030',
+        glDescription: 'Engineering - Security Services'
+      },
+      {
+        id: 'ENV-003-L2',
+        description: 'Compliance documentation',
+        budgetId: 'ENG-2025-Q1',
+        amount: 30000,
+        fulfillmentType: 'MILESTONE',
+        fulfillmentSchedule: 'On delivery',
+        expectedUnits: 1,
+        completedUnits: 0,
+        glCode: '6100-300-5030',
+        glDescription: 'Engineering - Security Services'
+      }
+    ],
+    
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'S. Patel', at: '2025-03-10T14:00:00Z', proof: '0x8e2c4f1a' },
+      { type: 'PROCUREMENT_REVIEW', status: 'PENDING', assignedTo: 'J. Torres', dueBy: '2025-03-12T17:00:00Z' },
+      { type: 'THRESHOLD_50K', status: 'PENDING', assignedTo: 'VP Finance', dueBy: '2025-03-13T17:00:00Z' }
+    ],
+    
+    events: [
+      { id: 'E001', timestamp: '2025-03-10T11:00:00Z', type: 'INITIATED', actor: 'K. Lee', actorType: 'INTERNAL', detail: 'Envelope created - urgent security review needed', data: { totalAmount: 75000 } },
+      { id: 'E002', timestamp: '2025-03-10T14:00:00Z', type: 'BUDGET_APPROVED', actor: 'S. Patel', actorType: 'INTERNAL', detail: 'Budget holder approval', data: { budgetId: 'ENG-2025-Q1', amount: 75000 } },
+      { id: 'E003', timestamp: '2025-03-10T14:05:00Z', type: 'PENDING_REVIEW', actor: 'System', actorType: 'SYSTEM', detail: 'Routed to Procurement for review' }
+    ]
+  }
+];
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+const formatDate = (isoString) => {
+  return new Date(isoString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDateTime = (isoString) => {
+  return new Date(isoString).toLocaleString('en-US', { 
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false 
+  });
+};
+
+const calculateEnvelopeTotals = (envelope) => {
+  const committed = envelope.lineItems.reduce((sum, li) => sum + li.amount, 0);
+  const disbursed = envelope.events
+    .filter(e => e.type === 'DISBURSED')
+    .reduce((sum, e) => sum + (e.data?.amount || 0), 0);
+  return { committed, disbursed, remaining: committed - disbursed };
+};
+
+const calculateBudgetPosition = (budgetId, allEnvelopes) => {
+  const budget = budgetAuthorities[budgetId];
+  let committed = 0;
+  let disbursed = 0;
+  
+  allEnvelopes.forEach(env => {
+    env.lineItems.forEach(li => {
+      if (li.budgetId === budgetId) {
+        committed += li.amount;
+      }
+    });
+    env.events.filter(e => e.type === 'DISBURSED').forEach(e => {
+      const lineItem = env.lineItems.find(li => li.id === e.data?.lineItemId);
+      if (lineItem?.budgetId === budgetId) {
+        disbursed += e.data?.amount || 0;
+      }
+    });
+  });
+  
+  // Rough calculation for demo - in real system would track by line item
+  disbursed = allEnvelopes.reduce((sum, env) => {
+    const envDisbursed = env.events.filter(e => e.type === 'DISBURSED').reduce((s, e) => s + (e.data?.amount || 0), 0);
+    const envBudgetShare = env.lineItems.filter(li => li.budgetId === budgetId).reduce((s, li) => s + li.amount, 0);
+    const envTotal = env.lineItems.reduce((s, li) => s + li.amount, 0);
+    return sum + (envTotal > 0 ? (envDisbursed * envBudgetShare / envTotal) : 0);
+  }, 0);
+  
+  const forecasted = forecasts
+    .filter(f => f.budgetId === budgetId)
+    .reduce((sum, f) => sum + f.amount, 0);
+  
+  return {
+    authorized: budget.authorized,
+    committed,
+    disbursed: Math.round(disbursed),
+    forecasted,
+    available: budget.authorized - committed,
+    availableAfterForecast: budget.authorized - committed - forecasted
+  };
+};
+
+// Filter events for vendor view
+const getVendorVisibleEvents = (events) => {
+  return events.filter(e => e.vendorVisible).map(e => ({
+    ...e,
+    detail: e.vendorDetail || e.detail,
+    // Remove internal-only data
+    journalEntries: undefined
+  }));
+};
+
+// Generate journal entries from all events
+const generateJournalEntries = (envelope) => {
+  const entries = [];
+  envelope.events.forEach(event => {
+    if (event.journalEntries) {
+      event.journalEntries.forEach(je => {
+        entries.push({
+          date: event.timestamp,
+          eventId: event.id,
+          eventType: event.type,
+          ...je
+        });
+      });
+    }
+  });
+  return entries;
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+const ViewModeSelector = ({ viewMode, setViewMode }) => {
+  const modes = [
+    { id: 'OPERATIONS', label: 'Operations', icon: '⚙' },
+    { id: 'BUDGET_HOLDER', label: 'Budget Holder', icon: '◈' },
+    { id: 'VENDOR', label: 'Vendor View', icon: '◇' },
+    { id: 'JOURNAL', label: 'Journal', icon: '▤' }
+  ];
+  
+  return (
+    <div style={{ 
+      display: 'flex', 
+      gap: '4px', 
+      padding: '4px',
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: '8px'
+    }}>
+      {modes.map(mode => (
+        <button
+          key={mode.id}
+          onClick={() => setViewMode(mode.id)}
+          style={{
+            padding: '8px 16px',
+            fontSize: '11px',
+            fontWeight: '500',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: viewMode === mode.id ? 'rgba(59, 130, 246, 0.3)' : 'transparent',
+            color: viewMode === mode.id ? '#93c5fd' : '#6b7280',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>{mode.icon}</span>
+          {mode.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const StatusBadge = ({ status, small }) => {
+  const config = {
+    'INITIATED': { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: 'Initiated' },
+    'PENDING_APPROVAL': { bg: '#2e1e2e', border: '#9333ea', color: '#c4b5fd', label: 'Pending Approval' },
+    'APPROVED': { bg: '#1e2e1e', border: '#059669', color: '#6ee7b7', label: 'Approved' },
+    'COMMITTED': { bg: '#2e2a1a', border: '#d97706', color: '#fcd34d', label: 'Committed' },
+    'IN_PROGRESS': { bg: '#1a2a2e', border: '#0891b2', color: '#67e8f9', label: 'In Progress' },
+    'COMPLETE': { bg: '#1e2e1e', border: '#059669', color: '#6ee7b7', label: 'Complete' },
+    'PLANNED': { bg: '#1e1e2e', border: '#6366f1', color: '#a5b4fc', label: 'Planned' },
+    'TENTATIVE': { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: 'Tentative' }
+  }[status] || { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: status };
+
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: small ? '2px 8px' : '4px 12px',
+      fontSize: small ? '9px' : '10px',
+      fontWeight: '600',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      backgroundColor: config.bg,
+      border: `1px solid ${config.border}`,
+      borderRadius: '4px',
+      color: config.color
+    }}>
+      {config.label}
+    </span>
+  );
+};
+
+const RiskBadge = ({ risk }) => {
+  const config = {
+    'NONE': { color: '#059669', bg: 'rgba(5,150,105,0.1)' },
+    'LOW': { color: '#0891b2', bg: 'rgba(8,145,178,0.1)' },
+    'MEDIUM': { color: '#d97706', bg: 'rgba(217,119,6,0.1)' },
+    'HIGH': { color: '#dc2626', bg: 'rgba(220,38,38,0.1)' }
+  }[risk];
+
+  return (
+    <span style={{ 
+      fontSize: '9px', 
+      fontWeight: '600',
+      padding: '2px 8px',
+      borderRadius: '4px',
+      backgroundColor: config.bg,
+      color: config.color,
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px'
+    }}>
+      {risk} RISK
+    </span>
+  );
+};
+
+const BudgetPositionCard = ({ budgetId, allEnvelopes }) => {
+  const budget = budgetAuthorities[budgetId];
+  const position = calculateBudgetPosition(budgetId, allEnvelopes);
+  
+  const segments = [
+    { label: 'Disbursed', value: position.disbursed, color: '#3b82f6' },
+    { label: 'Committed', value: position.committed - position.disbursed, color: '#d97706' },
+    { label: 'Forecasted', value: position.forecasted, color: '#6366f1', pattern: true },
+    { label: 'Available', value: position.availableAfterForecast, color: '#059669' }
+  ];
+  
+  return (
+    <div style={{
+      padding: '16px',
+      backgroundColor: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: '8px',
+      marginBottom: '12px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e2e8' }}>{budget.name}</div>
+          <div style={{ fontSize: '10px', color: '#6b7280' }}>{budget.owner} · {budget.id}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '18px', fontWeight: '500', color: '#10b981', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(position.authorized)}
+          </div>
+          <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Authorized</div>
+        </div>
+      </div>
+      
+      {/* Stacked bar */}
+      <div style={{ 
+        height: '20px', 
+        backgroundColor: 'rgba(255,255,255,0.05)', 
+        borderRadius: '4px',
+        display: 'flex',
+        overflow: 'hidden',
+        marginBottom: '12px'
+      }}>
+        {segments.map((seg, i) => (
+          <div key={i} style={{ 
+            width: `${(seg.value / position.authorized) * 100}%`,
+            backgroundColor: seg.color,
+            opacity: seg.pattern ? 0.5 : 1,
+            backgroundImage: seg.pattern ? 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px)' : 'none'
+          }} />
+        ))}
+      </div>
+      
+      {/* Legend */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+        {segments.map((seg, i) => (
+          <div key={i}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: seg.color, opacity: seg.pattern ? 0.5 : 1 }} />
+              <span style={{ fontSize: '9px', color: '#6b7280' }}>{seg.label}</span>
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: '600', color: seg.color, fontFeatureSettings: '"tnum"' }}>
+              {formatCurrency(seg.value)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ForecastCard = ({ forecast }) => {
+  const budget = budgetAuthorities[forecast.budgetId];
+  
+  return (
+    <div style={{
+      padding: '12px 16px',
+      backgroundColor: 'rgba(99, 102, 241, 0.05)',
+      border: '1px solid rgba(99, 102, 241, 0.2)',
+      borderRadius: '6px',
+      marginBottom: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: '12px', color: '#e2e2e8', marginBottom: '4px' }}>{forecast.description}</div>
+          <div style={{ fontSize: '10px', color: '#6b7280' }}>
+            {budget.name} · Expected {formatDate(forecast.expectedDate)}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '14px', fontWeight: '600', color: '#a5b4fc', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(forecast.amount)}
+          </div>
+          <StatusBadge status={forecast.status} small />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LineItemRow = ({ lineItem, showBudget }) => {
+  const budget = budgetAuthorities[lineItem.budgetId];
+  const progress = lineItem.expectedUnits > 0 
+    ? (lineItem.completedUnits / lineItem.expectedUnits) * 100 
+    : 0;
+  
+  return (
+    <div style={{
+      padding: '12px 16px',
+      backgroundColor: 'rgba(255,255,255,0.02)',
+      border: '1px solid rgba(255,255,255,0.04)',
+      borderRadius: '6px',
+      marginBottom: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '12px', color: '#e2e2e8', marginBottom: '2px' }}>{lineItem.description}</div>
+          <div style={{ fontSize: '10px', color: '#6b7280' }}>
+            {lineItem.fulfillmentType} · {lineItem.fulfillmentSchedule}
+            {showBudget && <span style={{ marginLeft: '8px', color: '#6366f1' }}>→ {budget.name}</span>}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '14px', fontWeight: '600', color: '#d97706', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(lineItem.amount)}
+          </div>
+          <div style={{ fontSize: '9px', color: '#6b7280' }}>
+            {lineItem.completedUnits}/{lineItem.expectedUnits} complete
+          </div>
+        </div>
+      </div>
+      
+      {/* Progress bar */}
+      <div style={{ 
+        height: '4px', 
+        backgroundColor: 'rgba(255,255,255,0.1)', 
+        borderRadius: '2px',
+        overflow: 'hidden'
+      }}>
+        <div style={{ 
+          width: `${progress}%`, 
+          height: '100%', 
+          backgroundColor: '#3b82f6',
+          borderRadius: '2px'
+        }} />
+      </div>
+      
+      {showBudget && (
+        <div style={{ marginTop: '8px', fontSize: '9px', color: '#4b5563', fontFamily: 'monospace' }}>
+          GL: {lineItem.glCode} · {lineItem.glDescription}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EventTimeline = ({ events, viewMode }) => {
+  const displayEvents = viewMode === 'VENDOR' ? getVendorVisibleEvents(events) : events;
+  
+  const getEventStyle = (type) => {
+    const styles = {
+      'INITIATED': { color: '#9ca3af', symbol: '○' },
+      'BUDGET_APPROVED': { color: '#10b981', symbol: '◆' },
+      'PROCUREMENT_APPROVED': { color: '#0891b2', symbol: '◇' },
+      'THRESHOLD_APPROVED': { color: '#8b5cf6', symbol: '◈' },
+      'PENDING_REVIEW': { color: '#d97706', symbol: '◌' },
+      'PO_ISSUED': { color: '#fcd34d', symbol: '●' },
+      'INVOICE_SUBMITTED': { color: '#93c5fd', symbol: '▣' },
+      'INVOICE_MATCHED': { color: '#6ee7b7', symbol: '⬡' },
+      'DISBURSED': { color: '#3b82f6', symbol: '●' },
+      'CLOSED': { color: '#10b981', symbol: '◉' }
+    };
+    return styles[type] || { color: '#6b7280', symbol: '•' };
+  };
+
+  return (
+    <div>
+      {displayEvents.map((event, index) => {
+        const style = getEventStyle(event.type);
+        const isLast = index === displayEvents.length - 1;
+        
+        return (
+          <div key={event.id} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+            {/* Timeline connector */}
+            {!isLast && (
+              <div style={{
+                position: 'absolute',
+                left: '9px',
+                top: '20px',
+                bottom: '-8px',
+                width: '1px',
+                backgroundColor: 'rgba(75, 85, 99, 0.3)'
+              }} />
+            )}
+            
+            {/* Marker */}
+            <div style={{
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: style.color,
+              fontSize: '12px',
+              flexShrink: 0,
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {style.symbol}
+            </div>
+            
+            {/* Content */}
+            <div style={{ flex: 1, paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
+                <span style={{ 
+                  fontSize: '10px', 
+                  fontWeight: '600', 
+                  color: style.color,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  {event.type.replace(/_/g, ' ')}
+                </span>
+                <span style={{ fontSize: '10px', color: '#4b5563' }}>
+                  {formatDateTime(event.timestamp)}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#9ca3af' }}>{event.detail}</div>
+              {viewMode !== 'VENDOR' && event.actorType && (
+                <div style={{ fontSize: '10px', color: '#4b5563', marginTop: '2px' }}>
+                  {event.actorType === 'VENDOR' ? '↗ External' : event.actorType === 'SYSTEM' ? '⚙ System' : `↳ ${event.actor}`}
+                </div>
+              )}
+              
+              {/* Journal entries (only in journal view) */}
+              {viewMode === 'JOURNAL' && event.journalEntries && (
+                <div style={{ 
+                  marginTop: '8px', 
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(0,0,0,0.2)',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  fontFamily: 'monospace'
+                }}>
+                  {event.journalEntries.map((je, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '16px', marginBottom: i < event.journalEntries.length - 1 ? '4px' : 0 }}>
+                      <span style={{ color: '#6ee7b7' }}>Dr: {je.drCode}</span>
+                      <span style={{ color: '#fca5a5' }}>Cr: {je.crCode}</span>
+                      <span style={{ color: '#93c5fd', marginLeft: 'auto' }}>{formatCurrency(je.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const ControlsList = ({ controls }) => {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {controls.map((control, i) => {
+        const statusConfig = {
+          'SATISFIED': { bg: 'rgba(5,150,105,0.1)', border: 'rgba(5,150,105,0.3)', color: '#6ee7b7', symbol: '✓' },
+          'PENDING': { bg: 'rgba(217,119,6,0.1)', border: 'rgba(217,119,6,0.3)', color: '#fcd34d', symbol: '○' },
+          'NOT_REQUIRED': { bg: 'rgba(75,85,99,0.1)', border: 'rgba(75,85,99,0.3)', color: '#9ca3af', symbol: '—' }
+        }[control.status];
+        
+        const typeLabels = {
+          'BUDGET_HOLDER': 'Budget Holder Approval',
+          'PROCUREMENT_REVIEW': 'Procurement Review',
+          'THRESHOLD_50K': '>$50K Threshold'
+        };
+        
+        return (
+          <div key={i} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px 14px',
+            backgroundColor: statusConfig.bg,
+            border: `1px solid ${statusConfig.border}`,
+            borderRadius: '6px'
+          }}>
+            <span style={{ color: statusConfig.color, fontSize: '12px', fontWeight: '600' }}>{statusConfig.symbol}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '11px', color: '#e2e2e8', fontWeight: '500' }}>
+                {typeLabels[control.type]}
+                {control.note && <span style={{ fontWeight: '400', color: '#6b7280' }}> — {control.note}</span>}
+              </div>
+              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                {control.status === 'SATISFIED' && `${control.by} · ${formatDateTime(control.at)}`}
+                {control.status === 'PENDING' && `Assigned: ${control.assignedTo} · Due: ${formatDateTime(control.dueBy)}`}
+                {control.status === 'NOT_REQUIRED' && control.rule}
+              </div>
+            </div>
+            {control.proof && (
+              <span style={{ 
+                fontSize: '9px', 
+                color: '#4b5563', 
+                fontFamily: 'monospace',
+                padding: '2px 6px',
+                backgroundColor: 'rgba(0,0,0,0.2)',
+                borderRadius: '3px'
+              }}>
+                {control.proof}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const VendorHeader = ({ vendor, envelope }) => {
+  const totals = calculateEnvelopeTotals(envelope);
+  
+  return (
+    <div style={{
+      padding: '24px',
+      background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(59,130,246,0.05) 100%)',
+      borderBottom: '1px solid rgba(255,255,255,0.06)'
+    }}>
+      <div style={{ fontSize: '10px', color: '#6b7280', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '8px' }}>
+        Purchase Order
+      </div>
+      <div style={{ fontSize: '24px', fontWeight: '500', color: '#f8f8fc', marginBottom: '4px' }}>
+        {envelope.poNumber || 'Pending'}
+      </div>
+      <div style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '20px' }}>
+        {envelope.title}
+      </div>
+      
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div>
+          <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>PO Amount</div>
+          <div style={{ fontSize: '18px', fontWeight: '600', color: '#d97706' }}>{formatCurrency(totals.committed)}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Paid to Date</div>
+          <div style={{ fontSize: '18px', fontWeight: '600', color: '#3b82f6' }}>{formatCurrency(totals.disbursed)}</div>
+        </div>
+        <div>
+          <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Remaining</div>
+          <div style={{ fontSize: '18px', fontWeight: '600', color: '#9ca3af' }}>{formatCurrency(totals.remaining)}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const JournalView = ({ envelope }) => {
+  const entries = generateJournalEntries(envelope);
+  
+  if (entries.length === 0) {
+    return (
+      <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>
+        No journal entries yet — PO not issued
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ padding: '24px' }}>
+      <div style={{ fontSize: '10px', color: '#6b7280', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '16px' }}>
+        Generated Journal Entries
+      </div>
+      
+      <div style={{ 
+        backgroundColor: 'rgba(0,0,0,0.2)', 
+        borderRadius: '8px', 
+        overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.06)'
+      }}>
+        {/* Header */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '100px 1fr 1fr 100px',
+          gap: '12px',
+          padding: '10px 16px',
+          backgroundColor: 'rgba(255,255,255,0.03)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          fontSize: '9px',
+          fontWeight: '600',
+          color: '#6b7280',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px'
+        }}>
+          <div>Date</div>
+          <div>Debit</div>
+          <div>Credit</div>
+          <div style={{ textAlign: 'right' }}>Amount</div>
+        </div>
+        
+        {/* Entries */}
+        {entries.map((entry, i) => (
+          <div key={i} style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '100px 1fr 1fr 100px',
+            gap: '12px',
+            padding: '12px 16px',
+            borderBottom: i < entries.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+            fontSize: '11px'
+          }}>
+            <div style={{ color: '#6b7280', fontFeatureSettings: '"tnum"' }}>
+              {formatDate(entry.date)}
+            </div>
+            <div>
+              <div style={{ color: '#6ee7b7' }}>{entry.drCode}</div>
+              <div style={{ color: '#4b5563', fontSize: '10px' }}>{entry.dr}</div>
+            </div>
+            <div>
+              <div style={{ color: '#fca5a5' }}>{entry.crCode}</div>
+              <div style={{ color: '#4b5563', fontSize: '10px' }}>{entry.cr}</div>
+            </div>
+            <div style={{ textAlign: 'right', color: '#e2e2e8', fontWeight: '500', fontFeatureSettings: '"tnum"' }}>
+              {formatCurrency(entry.amount)}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Totals */}
+      <div style={{ 
+        marginTop: '16px', 
+        padding: '12px 16px', 
+        backgroundColor: 'rgba(59,130,246,0.1)',
+        border: '1px solid rgba(59,130,246,0.2)',
+        borderRadius: '6px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span style={{ fontSize: '11px', color: '#93c5fd' }}>
+          {entries.length} journal entries from {envelope.events.filter(e => e.journalEntries).length} events
+        </span>
+        <span style={{ fontSize: '13px', fontWeight: '600', color: '#93c5fd', fontFeatureSettings: '"tnum"' }}>
+          Total: {formatCurrency(entries.reduce((sum, e) => sum + e.amount, 0))}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+const EnvelopeCoordinationSystem = () => {
+  const [viewMode, setViewMode] = useState('OPERATIONS');
+  const [selectedEnvelope, setSelectedEnvelope] = useState(envelopes[0]);
+  const [selectedBudgetId, setSelectedBudgetId] = useState('MKT-2025-Q1');
+  const [showForecasts, setShowForecasts] = useState(true);
+
+  const totals = calculateEnvelopeTotals(selectedEnvelope);
+  const vendor = vendors[selectedEnvelope.vendorId];
+
+  // Budget holder view shows only their envelopes
+  const budgetHolderEnvelopes = useMemo(() => {
+    return envelopes.filter(env => 
+      env.lineItems.some(li => li.budgetId === selectedBudgetId)
+    );
+  }, [selectedBudgetId]);
+
+  const budgetForecasts = useMemo(() => {
+    return forecasts.filter(f => f.budgetId === selectedBudgetId);
+  }, [selectedBudgetId]);
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#06060a',
+      color: '#e2e2e8',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      fontSize: '12px'
+    }}>
+      {/* Header */}
+      <header style={{
+        padding: '16px 24px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.01)'
+      }}>
+        <div>
+          <div style={{ fontSize: '9px', letterSpacing: '2px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '2px' }}>
+            Sightline
+          </div>
+          <h1 style={{ fontSize: '18px', fontWeight: '400', margin: 0, color: '#f8f8fc' }}>
+            Envelope Coordination System
+          </h1>
+        </div>
+        
+        <ViewModeSelector viewMode={viewMode} setViewMode={setViewMode} />
+      </header>
+
+      {/* OPERATIONS VIEW */}
+      {viewMode === 'OPERATIONS' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 'calc(100vh - 65px)' }}>
+          {/* Envelope List */}
+          <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Active Envelopes
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: '300', color: '#e2e2e8' }}>
+                {envelopes.filter(e => !['COMPLETE', 'CANCELLED'].includes(e.status)).length}
+                <span style={{ fontSize: '12px', color: '#6b7280', marginLeft: '8px' }}>
+                  / {envelopes.length} total
+                </span>
+              </div>
+            </div>
+            
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {envelopes.map(envelope => {
+                const envTotals = calculateEnvelopeTotals(envelope);
+                const isSelected = selectedEnvelope.id === envelope.id;
+                
+                return (
+                  <div
+                    key={envelope.id}
+                    onClick={() => setSelectedEnvelope(envelope)}
+                    style={{
+                      padding: '16px',
+                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      cursor: 'pointer',
+                      backgroundColor: isSelected ? 'rgba(59,130,246,0.08)' : 'transparent',
+                      borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div style={{ flex: 1, marginRight: '12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '500', color: '#e2e2e8', marginBottom: '2px' }}>
+                          {envelope.title}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                          {envelope.poNumber || 'PO Pending'} · {vendors[envelope.vendorId].name}
+                        </div>
+                      </div>
+                      <RiskBadge risk={envelope.risk} />
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <StatusBadge status={envelope.status} small />
+                      <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                        {envelope.lineItems.length} line items
+                      </span>
+                    </div>
+                    
+                    {/* Progress */}
+                    <div style={{ height: '4px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden', marginBottom: '6px' }}>
+                      <div style={{ 
+                        width: `${(envTotals.disbursed / envTotals.committed) * 100}%`, 
+                        height: '100%', 
+                        backgroundColor: '#3b82f6' 
+                      }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
+                      <span style={{ color: '#3b82f6' }}>{formatCurrency(envTotals.disbursed)} disbursed</span>
+                      <span style={{ color: '#d97706' }}>{formatCurrency(envTotals.committed)} committed</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Envelope Detail */}
+          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#6b7280', letterSpacing: '1px', marginBottom: '4px' }}>
+                    {selectedEnvelope.id} · {selectedEnvelope.poNumber || 'PO PENDING'}
+                  </div>
+                  <h2 style={{ fontSize: '18px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>
+                    {selectedEnvelope.title}
+                  </h2>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                    {vendor.name} · Requested by {selectedEnvelope.requestedBy}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <StatusBadge status={selectedEnvelope.status} />
+                  <RiskBadge risk={selectedEnvelope.risk} />
+                </div>
+              </div>
+              
+              {/* Summary cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                {[
+                  { label: 'Committed', value: totals.committed, color: '#d97706' },
+                  { label: 'Disbursed', value: totals.disbursed, color: '#3b82f6' },
+                  { label: 'Remaining', value: totals.remaining, color: '#9ca3af' },
+                  { label: 'Budget Lines', value: [...new Set(selectedEnvelope.lineItems.map(li => li.budgetId))].length, isCount: true, color: '#6366f1' }
+                ].map((card, i) => (
+                  <div key={i} style={{
+                    padding: '12px',
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{ fontSize: '9px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+                      {card.label}
+                    </div>
+                    <div style={{ fontSize: '16px', fontWeight: '500', color: card.color, fontFeatureSettings: '"tnum"' }}>
+                      {card.isCount ? card.value : formatCurrency(card.value)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {selectedEnvelope.riskNote && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  backgroundColor: 'rgba(220,38,38,0.1)',
+                  border: '1px solid rgba(220,38,38,0.3)',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  color: '#fca5a5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>⚠</span> {selectedEnvelope.riskNote}
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 320px', overflow: 'hidden' }}>
+              {/* Left - Line Items + Events */}
+              <div style={{ overflowY: 'auto', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                {/* Line Items */}
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '12px' }}>
+                    Line Items · Budget Attribution
+                  </div>
+                  {selectedEnvelope.lineItems.map(li => (
+                    <LineItemRow key={li.id} lineItem={li} showBudget={true} />
+                  ))}
+                </div>
+                
+                {/* Event Timeline */}
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '16px' }}>
+                    Event Chain · {selectedEnvelope.events.length} Events
+                  </div>
+                  <EventTimeline events={selectedEnvelope.events} viewMode={viewMode} />
+                </div>
+              </div>
+              
+              {/* Right - Controls */}
+              <div style={{ overflowY: 'auto', padding: '20px', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '12px' }}>
+                  Control Attestations
+                </div>
+                <ControlsList controls={selectedEnvelope.controls} />
+                
+                {/* Invariant */}
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  backgroundColor: selectedEnvelope.controls.some(c => c.status === 'PENDING')
+                    ? 'rgba(217,119,6,0.1)' : 'rgba(5,150,105,0.1)',
+                  border: `1px solid ${selectedEnvelope.controls.some(c => c.status === 'PENDING') 
+                    ? 'rgba(217,119,6,0.3)' : 'rgba(5,150,105,0.3)'}`,
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    fontSize: '11px',
+                    color: selectedEnvelope.controls.some(c => c.status === 'PENDING') ? '#fcd34d' : '#6ee7b7'
+                  }}>
+                    <span>{selectedEnvelope.controls.some(c => c.status === 'PENDING') ? '○' : '✓'}</span>
+                    <span style={{ fontWeight: '600' }}>
+                      {selectedEnvelope.controls.some(c => c.status === 'PENDING') ? 'Controls Pending' : 'All Controls Satisfied'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BUDGET HOLDER VIEW */}
+      {viewMode === 'BUDGET_HOLDER' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', minHeight: 'calc(100vh - 65px)' }}>
+          {/* Left - Budget Selection + Forecasts */}
+          <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto', padding: '20px' }}>
+            <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '12px' }}>
+              My Budget Authorities
+            </div>
+            
+            {Object.values(budgetAuthorities).map(budget => (
+              <div
+                key={budget.id}
+                onClick={() => setSelectedBudgetId(budget.id)}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  backgroundColor: selectedBudgetId === budget.id ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${selectedBudgetId === budget.id ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.04)'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ fontSize: '12px', fontWeight: '500', color: '#e2e2e8' }}>{budget.name}</div>
+                <div style={{ fontSize: '10px', color: '#6b7280' }}>{budget.id}</div>
+              </div>
+            ))}
+            
+            {/* Forecasts */}
+            <div style={{ marginTop: '24px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '12px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase' }}>
+                  Forecasts
+                </div>
+                <button
+                  onClick={() => setShowForecasts(!showForecasts)}
+                  style={{
+                    fontSize: '10px',
+                    color: '#6366f1',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  {showForecasts ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              
+              {showForecasts && budgetForecasts.map(forecast => (
+                <ForecastCard key={forecast.id} forecast={forecast} />
+              ))}
+              
+              {showForecasts && budgetForecasts.length === 0 && (
+                <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center', padding: '16px' }}>
+                  No forecasts for this budget
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right - Budget Position + Envelopes */}
+          <div style={{ overflowY: 'auto', padding: '20px 24px' }}>
+            <BudgetPositionCard budgetId={selectedBudgetId} allEnvelopes={envelopes} />
+            
+            <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', margin: '24px 0 12px' }}>
+              Envelopes Drawing From This Budget
+            </div>
+            
+            {budgetHolderEnvelopes.map(envelope => {
+              const envTotals = calculateEnvelopeTotals(envelope);
+              const relevantLineItems = envelope.lineItems.filter(li => li.budgetId === selectedBudgetId);
+              const lineItemTotal = relevantLineItems.reduce((sum, li) => sum + li.amount, 0);
+              
+              return (
+                <div key={envelope.id} style={{
+                  padding: '16px',
+                  backgroundColor: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '500', color: '#e2e2e8' }}>{envelope.title}</div>
+                      <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                        {envelope.poNumber || 'PO Pending'} · {vendors[envelope.vendorId].name}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#d97706' }}>{formatCurrency(lineItemTotal)}</div>
+                      <div style={{ fontSize: '9px', color: '#6b7280' }}>from this budget</div>
+                    </div>
+                  </div>
+                  
+                  {/* Relevant line items */}
+                  {relevantLineItems.map(li => (
+                    <LineItemRow key={li.id} lineItem={li} showBudget={false} />
+                  ))}
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                    <StatusBadge status={envelope.status} small />
+                    <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                      Created {formatDate(envelope.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* VENDOR VIEW */}
+      {viewMode === 'VENDOR' && (
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <VendorHeader vendor={vendor} envelope={selectedEnvelope} />
+          
+          <div style={{ padding: '24px' }}>
+            {/* Vendor sees their line items (without internal budget info) */}
+            <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '12px' }}>
+              Order Lines
+            </div>
+            
+            {selectedEnvelope.lineItems.map(li => (
+              <div key={li.id} style={{
+                padding: '12px 16px',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.04)',
+                borderRadius: '6px',
+                marginBottom: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontSize: '12px', color: '#e2e2e8' }}>{li.description}</div>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                    {li.fulfillmentType} · {li.completedUnits}/{li.expectedUnits} delivered
+                  </div>
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#e2e2e8' }}>
+                  {formatCurrency(li.amount)}
+                </div>
+              </div>
+            ))}
+            
+            {/* Vendor event timeline (filtered) */}
+            <div style={{ marginTop: '32px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '16px' }}>
+                Activity
+              </div>
+              <EventTimeline events={selectedEnvelope.events} viewMode="VENDOR" />
+            </div>
+            
+            {/* Submit invoice CTA */}
+            {selectedEnvelope.poNumber && (
+              <div style={{
+                marginTop: '24px',
+                padding: '20px',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.3)',
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '13px', color: '#93c5fd', marginBottom: '12px' }}>
+                  Ready to submit an invoice?
+                </div>
+                <button style={{
+                  padding: '10px 24px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  backgroundColor: '#3b82f6',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit'
+                }}>
+                  Submit Invoice
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* JOURNAL VIEW */}
+      {viewMode === 'JOURNAL' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', minHeight: 'calc(100vh - 65px)' }}>
+          {/* Envelope selector */}
+          <div style={{ borderRight: '1px solid rgba(255,255,255,0.06)', overflowY: 'auto' }}>
+            {envelopes.map(envelope => {
+              const isSelected = selectedEnvelope.id === envelope.id;
+              const journalCount = envelope.events.filter(e => e.journalEntries).length;
+              
+              return (
+                <div
+                  key={envelope.id}
+                  onClick={() => setSelectedEnvelope(envelope)}
+                  style={{
+                    padding: '14px 16px',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? 'rgba(59,130,246,0.08)' : 'transparent',
+                    borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent'
+                  }}
+                >
+                  <div style={{ fontSize: '12px', fontWeight: '500', color: '#e2e2e8', marginBottom: '2px' }}>
+                    {envelope.title}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                    {journalCount} events with journal entries
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Journal detail */}
+          <div style={{ overflowY: 'auto' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+              <div style={{ fontSize: '10px', color: '#6b7280', letterSpacing: '1px', marginBottom: '4px' }}>
+                {selectedEnvelope.id}
+              </div>
+              <h2 style={{ fontSize: '16px', fontWeight: '500', margin: 0, color: '#f8f8fc' }}>
+                {selectedEnvelope.title}
+              </h2>
+            </div>
+            
+            <JournalView envelope={selectedEnvelope} />
+            
+            {/* Event timeline with journal entries inline */}
+            <div style={{ padding: '0 24px 24px' }}>
+              <div style={{ fontSize: '10px', letterSpacing: '1.5px', color: '#6b7280', textTransform: 'uppercase', marginBottom: '16px' }}>
+                Full Event Chain with Journal Entries
+              </div>
+              <EventTimeline events={selectedEnvelope.events} viewMode="JOURNAL" />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// export default EnvelopeCoordinationSystem;
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(budgetAuthorities));
+</script>
+</body>
+</html>

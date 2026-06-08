@@ -1,0 +1,701 @@
+import React, { useState } from 'react';
+
+const API_KEY_PLACEHOLDER = ''; // User provides their own key
+
+export default function PRDGenerator() {
+  const [step, setStep] = useState('input'); // input, loading, result
+  const [inputs, setInputs] = useState({
+    featureName: '',
+    problemContext: '',
+    targetUser: ''
+  });
+  const [generatedPRD, setGeneratedPRD] = useState('');
+  const [error, setError] = useState('');
+
+  const generatePRD = async () => {
+    setStep('loading');
+    setError('');
+
+    const prompt = `You are a senior product manager at Sightline, a financial coordination platform using event sourcing and shared ledger architecture to solve multi-party reconciliation problems. Our core thesis: eliminate reconciliation by creating shared truth through event-sourced ledgers rather than separate systems requiring reconciliation.
+
+Write a comprehensive one-pager PRD based on these inputs:
+
+**Feature Name:** ${inputs.featureName}
+
+**Problem & Context:** ${inputs.problemContext}
+
+**Target User:** ${inputs.targetUser}
+
+---
+
+Generate the PRD following this EXACT structure. Be specific, actionable, and tie everything back to Sightline's core value proposition of shared truth and eliminating reconciliation:
+
+# One-pager: ${inputs.featureName}
+
+## 1. TL;DR
+A short summary—what is this, who's it for, and why does it matter? (2-3 sentences max)
+
+## 2. Goals
+
+**Business Goals:**
+- [List 2-3 measurable business outcomes]
+
+**User Goals:**
+- [List 2-3 things users will be able to accomplish]
+
+**Non-Goals:**
+- [List 2-3 things explicitly out of scope]
+
+## 3. User Stories
+
+[Define 2-3 personas with their jobs-to-be-done in this format:]
+- **[Persona Name]** ([Role]): [Job to be done statement]
+
+## 4. Functional Requirements
+
+**P0 - Must Have:**
+- [Critical features]
+
+**P1 - Should Have:**
+- [Important but not blocking]
+
+**P2 - Nice to Have:**
+- [Future considerations]
+
+## 5. User Experience
+
+[Bullet-pointed user journey - the key steps/screens/interactions]
+
+## 6. Narrative
+
+[Write a vivid "day in the life" story - 2-3 paragraphs showing a specific user experiencing this feature. Make it concrete with names, times, and specific actions.]
+
+## 7. Success Metrics
+
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| [Metric 1] | [Target] | [How measured] |
+| [Metric 2] | [Target] | [How measured] |
+| [Metric 3] | [Target] | [How measured] |
+
+## 8. Milestones & Sequencing
+
+**Phase 1: [Name]** (Week 1-2)
+- [Deliverables]
+
+**Phase 2: [Name]** (Week 3-4)
+- [Deliverables]
+
+**Phase 3: [Name]** (Week 5-6)
+- [Deliverables]
+
+---
+
+Be specific to Sightline's domain: GPU compute financing, event-sourced ledgers, multi-party coordination, eliminating reconciliation, shared truth between counterparties.`;
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          messages: [
+            { role: 'user', content: prompt }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.content && data.content[0] && data.content[0].text) {
+        setGeneratedPRD(data.content[0].text);
+        setStep('result');
+      } else if (data.error) {
+        setError(data.error.message || 'API error occurred');
+        setStep('input');
+      } else {
+        setError('Unexpected response format');
+        setStep('input');
+      }
+    } catch (err) {
+      setError('Failed to connect to API: ' + err.message);
+      setStep('input');
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (inputs.featureName && inputs.problemContext && inputs.targetUser) {
+      generatePRD();
+    }
+  };
+
+  const reset = () => {
+    setStep('input');
+    setInputs({ featureName: '', problemContext: '', targetUser: '' });
+    setGeneratedPRD('');
+    setError('');
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedPRD);
+  };
+
+  // Input Form
+  if (step === 'input') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0b 0%, #1a1a2e 50%, #0a0a0b 100%)',
+        padding: '48px 24px',
+        fontFamily: '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif'
+      }}>
+        <div style={{
+          maxWidth: '720px',
+          margin: '0 auto'
+        }}>
+          {/* Header */}
+          <div style={{ marginBottom: '48px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '8px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <span style={{
+                color: '#6b7280',
+                fontSize: '13px',
+                fontWeight: '500',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase'
+              }}>Sightline</span>
+            </div>
+            <h1 style={{
+              fontSize: '42px',
+              fontWeight: '300',
+              color: '#ffffff',
+              margin: '0 0 12px 0',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.1'
+            }}>
+              PRD Generator
+            </h1>
+            <p style={{
+              fontSize: '17px',
+              color: '#9ca3af',
+              margin: 0,
+              lineHeight: '1.5'
+            }}>
+              Three inputs. One structured product requirement document.
+            </p>
+          </div>
+
+          {error && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '24px',
+              color: '#fca5a5',
+              fontSize: '14px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '16px',
+              padding: '32px',
+              backdropFilter: 'blur(20px)'
+            }}>
+              {/* Feature Name */}
+              <div style={{ marginBottom: '28px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#e5e7eb',
+                  marginBottom: '10px',
+                  letterSpacing: '0.02em'
+                }}>
+                  1. Feature Name
+                </label>
+                <input
+                  type="text"
+                  value={inputs.featureName}
+                  onChange={(e) => setInputs({...inputs, featureName: e.target.value})}
+                  placeholder="e.g., Real-time Settlement Dashboard"
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    fontSize: '16px',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Problem & Context */}
+              <div style={{ marginBottom: '28px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#e5e7eb',
+                  marginBottom: '10px',
+                  letterSpacing: '0.02em'
+                }}>
+                  2. Problem & Context
+                </label>
+                <textarea
+                  value={inputs.problemContext}
+                  onChange={(e) => setInputs({...inputs, problemContext: e.target.value})}
+                  placeholder="What problem are we solving? What's the current pain point? Include any relevant context about the market, competitors, or technical constraints..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    fontSize: '16px',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    outline: 'none',
+                    resize: 'vertical',
+                    minHeight: '120px',
+                    lineHeight: '1.5',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Target User */}
+              <div style={{ marginBottom: '32px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#e5e7eb',
+                  marginBottom: '10px',
+                  letterSpacing: '0.02em'
+                }}>
+                  3. Target User
+                </label>
+                <textarea
+                  value={inputs.targetUser}
+                  onChange={(e) => setInputs({...inputs, targetUser: e.target.value})}
+                  placeholder="Who is the primary user? What's their role, their daily workflow, their main frustrations..."
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    fontSize: '16px',
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '10px',
+                    color: '#ffffff',
+                    outline: 'none',
+                    resize: 'vertical',
+                    minHeight: '90px',
+                    lineHeight: '1.5',
+                    fontFamily: 'inherit',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={!inputs.featureName || !inputs.problemContext || !inputs.targetUser}
+                style={{
+                  width: '100%',
+                  padding: '16px 24px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  background: (!inputs.featureName || !inputs.problemContext || !inputs.targetUser)
+                    ? 'rgba(59, 130, 246, 0.3)'
+                    : 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#ffffff',
+                  cursor: (!inputs.featureName || !inputs.problemContext || !inputs.targetUser) 
+                    ? 'not-allowed' 
+                    : 'pointer',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  letterSpacing: '0.02em'
+                }}
+                onMouseOver={(e) => {
+                  if (inputs.featureName && inputs.problemContext && inputs.targetUser) {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                Generate PRD →
+              </button>
+            </div>
+          </form>
+
+          {/* Footer hint */}
+          <p style={{
+            textAlign: 'center',
+            fontSize: '13px',
+            color: '#6b7280',
+            marginTop: '24px'
+          }}>
+            PRDs are generated using Sightline's product context and terminology
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading State
+  if (step === 'loading') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0b 0%, #1a1a2e 50%, #0a0a0b 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            border: '3px solid rgba(59, 130, 246, 0.2)',
+            borderTopColor: '#3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 24px'
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '400',
+            color: '#ffffff',
+            margin: '0 0 8px 0'
+          }}>
+            Generating your PRD...
+          </h2>
+          <p style={{
+            fontSize: '14px',
+            color: '#9ca3af',
+            margin: 0
+          }}>
+            This typically takes 15-30 seconds
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Result State
+  if (step === 'result') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0a0a0b 0%, #1a1a2e 50%, #0a0a0b 100%)',
+        padding: '48px 24px',
+        fontFamily: '"Source Sans 3", "Source Sans Pro", system-ui, sans-serif'
+      }}>
+        <div style={{
+          maxWidth: '900px',
+          margin: '0 auto'
+        }}>
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '32px',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div>
+              <h1 style={{
+                fontSize: '28px',
+                fontWeight: '300',
+                color: '#ffffff',
+                margin: '0 0 4px 0'
+              }}>
+                {inputs.featureName}
+              </h1>
+              <p style={{
+                fontSize: '14px',
+                color: '#9ca3af',
+                margin: 0
+              }}>
+                Product Requirements Document
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={copyToClipboard}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.15)'}
+                onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
+              >
+                Copy to Clipboard
+              </button>
+              <button
+                onClick={reset}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.transform = 'translateY(-1px)'}
+                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
+              >
+                New PRD
+              </button>
+            </div>
+          </div>
+
+          {/* PRD Content */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '16px',
+            padding: '40px',
+            backdropFilter: 'blur(20px)'
+          }}>
+            <div style={{
+              color: '#e5e7eb',
+              fontSize: '15px',
+              lineHeight: '1.7',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {generatedPRD.split('\n').map((line, i) => {
+                // H1
+                if (line.startsWith('# ')) {
+                  return (
+                    <h1 key={i} style={{
+                      fontSize: '28px',
+                      fontWeight: '400',
+                      color: '#ffffff',
+                      margin: '0 0 24px 0',
+                      paddingBottom: '16px',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}>
+                      {line.replace('# ', '')}
+                    </h1>
+                  );
+                }
+                // H2
+                if (line.startsWith('## ')) {
+                  return (
+                    <h2 key={i} style={{
+                      fontSize: '18px',
+                      fontWeight: '600',
+                      color: '#ffffff',
+                      margin: '32px 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}>
+                      <span style={{
+                        width: '4px',
+                        height: '20px',
+                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                        borderRadius: '2px'
+                      }} />
+                      {line.replace('## ', '')}
+                    </h2>
+                  );
+                }
+                // Bold headers
+                if (line.startsWith('**') && line.endsWith('**')) {
+                  return (
+                    <h3 key={i} style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#d1d5db',
+                      margin: '20px 0 8px 0',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {line.replace(/\*\*/g, '')}
+                    </h3>
+                  );
+                }
+                // Table header
+                if (line.startsWith('| Metric')) {
+                  return (
+                    <div key={i} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: '1px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '8px 8px 0 0',
+                      overflow: 'hidden',
+                      marginTop: '16px'
+                    }}>
+                      {line.split('|').filter(c => c.trim()).map((cell, j) => (
+                        <div key={j} style={{
+                          padding: '12px 16px',
+                          background: 'rgba(59, 130, 246, 0.2)',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          color: '#ffffff'
+                        }}>
+                          {cell.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Table separator
+                if (line.startsWith('|--')) {
+                  return null;
+                }
+                // Table row
+                if (line.startsWith('| [') || line.match(/^\|[^-]/)) {
+                  return (
+                    <div key={i} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr 1fr',
+                      gap: '1px',
+                      background: 'rgba(255, 255, 255, 0.05)'
+                    }}>
+                      {line.split('|').filter(c => c.trim()).map((cell, j) => (
+                        <div key={j} style={{
+                          padding: '12px 16px',
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          fontSize: '14px',
+                          color: '#d1d5db'
+                        }}>
+                          {cell.trim()}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                // Bullet points
+                if (line.startsWith('- ')) {
+                  return (
+                    <div key={i} style={{
+                      display: 'flex',
+                      gap: '12px',
+                      marginBottom: '8px',
+                      paddingLeft: '4px'
+                    }}>
+                      <span style={{
+                        color: '#3b82f6',
+                        flexShrink: 0
+                      }}>•</span>
+                      <span>{line.replace('- ', '').replace(/\*\*/g, '')}</span>
+                    </div>
+                  );
+                }
+                // Empty line
+                if (line.trim() === '') {
+                  return <div key={i} style={{ height: '12px' }} />;
+                }
+                // Horizontal rule
+                if (line === '---') {
+                  return (
+                    <hr key={i} style={{
+                      border: 'none',
+                      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                      margin: '32px 0'
+                    }} />
+                  );
+                }
+                // Regular paragraph
+                return (
+                  <p key={i} style={{ margin: '0 0 12px 0' }}>
+                    {line}
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}

@@ -1,0 +1,1014 @@
+import React, { useState, useMemo } from 'react';
+
+// ============================================================================
+// DATA MODEL
+// ============================================================================
+
+const budgetAuthorities = {
+  'MKT-2025-Q1': {
+    id: 'MKT-2025-Q1',
+    name: 'Q1 Marketing',
+    authorized: 150000,
+    department: 'Marketing',
+    owner: 'M. Chen',
+    period: '2025-Q1'
+  },
+  'ENG-2025-Q1': {
+    id: 'ENG-2025-Q1',
+    name: 'Q1 Engineering',
+    authorized: 280000,
+    department: 'Engineering',
+    owner: 'S. Patel',
+    period: '2025-Q1'
+  },
+  'OPS-2025-Q1': {
+    id: 'OPS-2025-Q1',
+    name: 'Q1 Operations',
+    authorized: 95000,
+    department: 'Operations',
+    owner: 'R. Kim',
+    period: '2025-Q1'
+  }
+};
+
+const envelopes = [
+  {
+    id: 'ENV-001',
+    title: 'Agency Retainer - Brandworks',
+    budgetId: 'MKT-2025-Q1',
+    vendor: 'Brandworks Creative LLC',
+    committed: 40000,
+    disbursed: 27000,
+    status: 'IN_PROGRESS',
+    risk: 'LOW',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-14T14:15:00Z', proof: '0x8f3a...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-14T16:30:00Z', proof: '0x2b1c...' },
+      { type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Amount < $50,000' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-01-14T09:32:00Z', type: 'INITIATED', actor: 'J. Smith', detail: 'Request created' },
+      { id: 2, timestamp: '2025-01-14T14:15:00Z', type: 'APPROVED', actor: 'M. Chen', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-01-14T16:30:00Z', type: 'REVIEWED', actor: 'J. Torres', detail: 'Procurement review complete' },
+      { id: 4, timestamp: '2025-01-15T10:00:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4521 issued to vendor' },
+      { id: 5, timestamp: '2025-02-01T08:45:00Z', type: 'INVOICE_RECEIVED', actor: 'AP Team', detail: 'INV-2201 received, $13,500' },
+      { id: 6, timestamp: '2025-02-01T09:00:00Z', type: 'MATCHED', actor: 'System', detail: 'Three-way match verified' },
+      { id: 7, timestamp: '2025-02-03T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-88432 executed, $13,500' },
+      { id: 8, timestamp: '2025-03-01T08:30:00Z', type: 'INVOICE_RECEIVED', actor: 'AP Team', detail: 'INV-2301 received, $13,500' },
+      { id: 9, timestamp: '2025-03-01T09:15:00Z', type: 'MATCHED', actor: 'System', detail: 'Three-way match verified' },
+      { id: 10, timestamp: '2025-03-03T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-91205 executed, $13,500' }
+    ],
+    expectedComplete: '2025-03-31',
+    invoicesExpected: 3,
+    invoicesReceived: 2
+  },
+  {
+    id: 'ENV-002',
+    title: 'Q1 Digital Media Buy',
+    budgetId: 'MKT-2025-Q1',
+    vendor: 'MediaCorp Digital',
+    committed: 65000,
+    disbursed: 46500,
+    status: 'IN_PROGRESS',
+    risk: 'MEDIUM',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'M. Chen', at: '2025-01-17T11:00:00Z', proof: '0x4e2f...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-01-17T15:45:00Z', proof: '0x9a3d...' },
+      { type: 'THRESHOLD_50K', status: 'SATISFIED', by: 'VP Finance', at: '2025-01-18T09:00:00Z', proof: '0x1f8b...' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-01-17T09:00:00Z', type: 'INITIATED', actor: 'A. Wong', detail: 'Request created' },
+      { id: 2, timestamp: '2025-01-17T11:00:00Z', type: 'APPROVED', actor: 'M. Chen', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-01-17T15:45:00Z', type: 'REVIEWED', actor: 'J. Torres', detail: 'Procurement review complete' },
+      { id: 4, timestamp: '2025-01-18T09:00:00Z', type: 'THRESHOLD_APPROVED', actor: 'VP Finance', detail: '>$50K threshold approval' },
+      { id: 5, timestamp: '2025-01-18T10:30:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4522 issued to vendor' },
+      { id: 6, timestamp: '2025-02-10T08:00:00Z', type: 'INVOICE_RECEIVED', actor: 'AP Team', detail: 'INV-2215 received, $22,000' },
+      { id: 7, timestamp: '2025-02-10T08:30:00Z', type: 'MATCHED', actor: 'System', detail: 'Three-way match verified' },
+      { id: 8, timestamp: '2025-02-12T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-89102 executed, $22,000' },
+      { id: 9, timestamp: '2025-03-05T08:00:00Z', type: 'INVOICE_RECEIVED', actor: 'AP Team', detail: 'INV-2318 received, $24,500' },
+      { id: 10, timestamp: '2025-03-05T08:45:00Z', type: 'MATCHED', actor: 'System', detail: 'Three-way match verified' },
+      { id: 11, timestamp: '2025-03-07T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-92341 executed, $24,500' }
+    ],
+    expectedComplete: '2025-03-31',
+    invoicesExpected: 3,
+    invoicesReceived: 2,
+    riskNote: 'Spend rate above forecast - may exceed commitment'
+  },
+  {
+    id: 'ENV-003',
+    title: 'Conference Sponsorship - TechSummit',
+    budgetId: 'MKT-2025-Q1',
+    vendor: 'TechSummit Events Inc',
+    committed: 28000,
+    disbursed: 0,
+    status: 'COMMITTED',
+    risk: 'LOW',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'M. Chen', at: '2025-02-14T10:00:00Z', proof: '0x7c4e...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'SATISFIED', by: 'J. Torres', at: '2025-02-14T14:00:00Z', proof: '0x3f2a...' },
+      { type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Amount < $50,000' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-02-13T11:00:00Z', type: 'INITIATED', actor: 'J. Smith', detail: 'Request created' },
+      { id: 2, timestamp: '2025-02-14T10:00:00Z', type: 'APPROVED', actor: 'M. Chen', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-02-14T14:00:00Z', type: 'REVIEWED', actor: 'J. Torres', detail: 'Procurement review complete' },
+      { id: 4, timestamp: '2025-02-15T09:00:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4538 issued to vendor' }
+    ],
+    expectedComplete: '2025-04-15',
+    invoicesExpected: 1,
+    invoicesReceived: 0
+  },
+  {
+    id: 'ENV-004',
+    title: 'Cloud Infrastructure - March',
+    budgetId: 'ENG-2025-Q1',
+    vendor: 'AWS',
+    committed: 45000,
+    disbursed: 45000,
+    status: 'COMPLETE',
+    risk: 'NONE',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'S. Patel', at: '2025-02-25T09:00:00Z', proof: '0x5d1f...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'NOT_REQUIRED', rule: 'Existing MSA' },
+      { type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Amount < $50,000' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-02-25T08:00:00Z', type: 'INITIATED', actor: 'DevOps', detail: 'Monthly infrastructure request' },
+      { id: 2, timestamp: '2025-02-25T09:00:00Z', type: 'APPROVED', actor: 'S. Patel', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-02-25T09:30:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4601 issued' },
+      { id: 4, timestamp: '2025-03-01T00:00:00Z', type: 'INVOICE_RECEIVED', actor: 'System', detail: 'Auto-invoice AWS-MAR-2025, $45,000' },
+      { id: 5, timestamp: '2025-03-01T00:01:00Z', type: 'MATCHED', actor: 'System', detail: 'Auto-matched to PO' },
+      { id: 6, timestamp: '2025-03-01T06:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-92001 executed, $45,000' },
+      { id: 7, timestamp: '2025-03-01T06:01:00Z', type: 'CLOSED', actor: 'System', detail: 'Envelope complete' }
+    ],
+    expectedComplete: '2025-03-01',
+    invoicesExpected: 1,
+    invoicesReceived: 1
+  },
+  {
+    id: 'ENV-005',
+    title: 'Security Audit - External',
+    budgetId: 'ENG-2025-Q1',
+    vendor: 'SecureCheck Partners',
+    committed: 75000,
+    disbursed: 0,
+    status: 'PENDING_APPROVAL',
+    risk: 'HIGH',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'S. Patel', at: '2025-03-10T14:00:00Z', proof: '0x8e2c...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'PENDING', assignedTo: 'J. Torres', dueBy: '2025-03-12T17:00:00Z' },
+      { type: 'THRESHOLD_50K', status: 'PENDING', assignedTo: 'VP Finance', dueBy: '2025-03-13T17:00:00Z' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-03-10T11:00:00Z', type: 'INITIATED', actor: 'K. Lee', detail: 'Request created - urgent security review' },
+      { id: 2, timestamp: '2025-03-10T14:00:00Z', type: 'APPROVED', actor: 'S. Patel', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-03-10T14:05:00Z', type: 'AWAITING_REVIEW', actor: 'System', detail: 'Routed to Procurement' }
+    ],
+    expectedComplete: '2025-04-30',
+    invoicesExpected: 2,
+    invoicesReceived: 0,
+    riskNote: 'Pending approvals blocking PO issuance'
+  },
+  {
+    id: 'ENV-006',
+    title: 'Office Supplies - Q1',
+    budgetId: 'OPS-2025-Q1',
+    vendor: 'Staples Business',
+    committed: 3500,
+    disbursed: 3500,
+    status: 'COMPLETE',
+    risk: 'NONE',
+    controls: [
+      { type: 'BUDGET_HOLDER', status: 'SATISFIED', by: 'R. Kim', at: '2025-01-08T10:00:00Z', proof: '0x2a4f...' },
+      { type: 'PROCUREMENT_REVIEW', status: 'NOT_REQUIRED', rule: 'Amount < $5,000' },
+      { type: 'THRESHOLD_50K', status: 'NOT_REQUIRED', rule: 'Amount < $50,000' }
+    ],
+    events: [
+      { id: 1, timestamp: '2025-01-08T09:00:00Z', type: 'INITIATED', actor: 'Office Admin', detail: 'Quarterly supplies order' },
+      { id: 2, timestamp: '2025-01-08T10:00:00Z', type: 'APPROVED', actor: 'R. Kim', detail: 'Budget holder approval' },
+      { id: 3, timestamp: '2025-01-08T10:15:00Z', type: 'PO_ISSUED', actor: 'System', detail: 'PO-4412 issued' },
+      { id: 4, timestamp: '2025-01-15T14:00:00Z', type: 'GOODS_RECEIVED', actor: 'Office Admin', detail: 'Delivery confirmed' },
+      { id: 5, timestamp: '2025-01-16T08:00:00Z', type: 'INVOICE_RECEIVED', actor: 'AP Team', detail: 'INV-ST-2025-0891, $3,500' },
+      { id: 6, timestamp: '2025-01-16T08:30:00Z', type: 'MATCHED', actor: 'System', detail: 'Three-way match verified' },
+      { id: 7, timestamp: '2025-01-20T00:00:00Z', type: 'DISBURSED', actor: 'Treasury', detail: 'ACH-87102 executed, $3,500' },
+      { id: 8, timestamp: '2025-01-20T00:01:00Z', type: 'CLOSED', actor: 'System', detail: 'Envelope complete' }
+    ],
+    expectedComplete: '2025-01-20',
+    invoicesExpected: 1,
+    invoicesReceived: 1
+  }
+];
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+};
+
+const formatDate = (isoString) => {
+  return new Date(isoString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+const formatTime = (isoString) => {
+  return new Date(isoString).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+const formatDateTime = (isoString) => {
+  return `${formatDate(isoString)} ${formatTime(isoString)}`;
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+const StatusBadge = ({ status }) => {
+  const config = {
+    'INITIATED': { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: 'Initiated' },
+    'PENDING_APPROVAL': { bg: '#1e1a2e', border: '#7c3aed', color: '#a78bfa', label: 'Pending Approval' },
+    'APPROVED': { bg: '#1a2e1e', border: '#059669', color: '#6ee7b7', label: 'Approved' },
+    'COMMITTED': { bg: '#2e2a1a', border: '#d97706', color: '#fcd34d', label: 'Committed' },
+    'IN_PROGRESS': { bg: '#1a2a2e', border: '#0891b2', color: '#67e8f9', label: 'In Progress' },
+    'COMPLETE': { bg: '#1a2e1e', border: '#059669', color: '#6ee7b7', label: 'Complete' },
+    'CANCELLED': { bg: '#2e1a1a', border: '#dc2626', color: '#fca5a5', label: 'Cancelled' }
+  }[status] || { bg: '#1e1e2e', border: '#4b5563', color: '#9ca3af', label: status };
+
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '3px 10px',
+      fontSize: '10px',
+      fontWeight: '600',
+      letterSpacing: '0.5px',
+      textTransform: 'uppercase',
+      backgroundColor: config.bg,
+      border: `1px solid ${config.border}`,
+      borderRadius: '4px',
+      color: config.color
+    }}>
+      {config.label}
+    </span>
+  );
+};
+
+const RiskIndicator = ({ risk }) => {
+  const config = {
+    'NONE': { color: '#059669', symbol: '●', label: 'None' },
+    'LOW': { color: '#0891b2', symbol: '●', label: 'Low' },
+    'MEDIUM': { color: '#d97706', symbol: '◆', label: 'Medium' },
+    'HIGH': { color: '#dc2626', symbol: '▲', label: 'High' }
+  }[risk];
+
+  return (
+    <span style={{ color: config.color, fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <span style={{ fontSize: '8px' }}>{config.symbol}</span>
+      {config.label}
+    </span>
+  );
+};
+
+const ControlBadge = ({ control }) => {
+  const config = {
+    'SATISFIED': { bg: 'rgba(5, 150, 105, 0.15)', border: 'rgba(5, 150, 105, 0.4)', color: '#6ee7b7', symbol: '✓' },
+    'PENDING': { bg: 'rgba(217, 119, 6, 0.15)', border: 'rgba(217, 119, 6, 0.4)', color: '#fcd34d', symbol: '○' },
+    'NOT_REQUIRED': { bg: 'rgba(75, 85, 99, 0.15)', border: 'rgba(75, 85, 99, 0.4)', color: '#9ca3af', symbol: '—' },
+    'BYPASSED': { bg: 'rgba(220, 38, 38, 0.15)', border: 'rgba(220, 38, 38, 0.4)', color: '#fca5a5', symbol: '!' }
+  }[control.status];
+
+  const typeLabels = {
+    'BUDGET_HOLDER': 'Budget Holder',
+    'PROCUREMENT_REVIEW': 'Procurement',
+    'THRESHOLD_50K': '>$50K Threshold'
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '8px 12px',
+      backgroundColor: config.bg,
+      border: `1px solid ${config.border}`,
+      borderRadius: '6px'
+    }}>
+      <span style={{ color: config.color, fontSize: '12px', fontWeight: '600' }}>{config.symbol}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: '11px', color: '#e2e2e8', fontWeight: '500' }}>
+          {typeLabels[control.type]}
+        </div>
+        <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+          {control.status === 'SATISFIED' && `${control.by} · ${formatDateTime(control.at)}`}
+          {control.status === 'PENDING' && `Assigned: ${control.assignedTo}`}
+          {control.status === 'NOT_REQUIRED' && control.rule}
+        </div>
+      </div>
+      {control.proof && (
+        <span style={{ 
+          fontSize: '9px', 
+          color: '#4b5563', 
+          fontFamily: 'monospace',
+          padding: '2px 6px',
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          borderRadius: '3px'
+        }}>
+          {control.proof}
+        </span>
+      )}
+    </div>
+  );
+};
+
+const EventRow = ({ event, isLast }) => {
+  const typeConfig = {
+    'INITIATED': { color: '#9ca3af', symbol: '○' },
+    'APPROVED': { color: '#6ee7b7', symbol: '◆' },
+    'REVIEWED': { color: '#67e8f9', symbol: '◇' },
+    'THRESHOLD_APPROVED': { color: '#a78bfa', symbol: '◈' },
+    'PO_ISSUED': { color: '#fcd34d', symbol: '●' },
+    'INVOICE_RECEIVED': { color: '#93c5fd', symbol: '▣' },
+    'GOODS_RECEIVED': { color: '#86efac', symbol: '▢' },
+    'MATCHED': { color: '#6ee7b7', symbol: '⬡' },
+    'DISBURSED': { color: '#3b82f6', symbol: '●' },
+    'CLOSED': { color: '#059669', symbol: '◉' },
+    'AWAITING_REVIEW': { color: '#d97706', symbol: '◌' }
+  }[event.type] || { color: '#6b7280', symbol: '•' };
+
+  return (
+    <div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '20px 1fr',
+      gap: '12px',
+      position: 'relative'
+    }}>
+      {/* Timeline connector */}
+      {!isLast && (
+        <div style={{
+          position: 'absolute',
+          left: '9px',
+          top: '20px',
+          bottom: '-12px',
+          width: '1px',
+          backgroundColor: 'rgba(75, 85, 99, 0.3)'
+        }} />
+      )}
+      
+      {/* Event marker */}
+      <div style={{
+        width: '20px',
+        height: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: typeConfig.color,
+        fontSize: '12px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {typeConfig.symbol}
+      </div>
+      
+      {/* Event content */}
+      <div style={{ paddingBottom: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'baseline', 
+          gap: '8px',
+          marginBottom: '2px'
+        }}>
+          <span style={{ 
+            fontSize: '11px', 
+            fontWeight: '600', 
+            color: typeConfig.color,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            {event.type.replace(/_/g, ' ')}
+          </span>
+          <span style={{ fontSize: '10px', color: '#4b5563' }}>
+            {formatDateTime(event.timestamp)}
+          </span>
+        </div>
+        <div style={{ fontSize: '12px', color: '#9ca3af' }}>
+          {event.detail}
+        </div>
+        <div style={{ fontSize: '10px', color: '#4b5563', marginTop: '2px' }}>
+          Actor: {event.actor}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ProgressBar = ({ committed, disbursed, budget }) => {
+  const committedPct = (committed / budget) * 100;
+  const disbursedPct = (disbursed / budget) * 100;
+  
+  return (
+    <div style={{ position: 'relative', height: '6px', backgroundColor: 'rgba(75, 85, 99, 0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+      {/* Committed (background) */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: `${committedPct}%`,
+        backgroundColor: 'rgba(217, 119, 6, 0.4)',
+        borderRadius: '3px'
+      }} />
+      {/* Disbursed (foreground) */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: `${disbursedPct}%`,
+        backgroundColor: '#3b82f6',
+        borderRadius: '3px'
+      }} />
+    </div>
+  );
+};
+
+const BudgetMeter = ({ budget, envelopes }) => {
+  const totals = envelopes.reduce((acc, env) => ({
+    committed: acc.committed + env.committed,
+    disbursed: acc.disbursed + env.disbursed
+  }), { committed: 0, disbursed: 0 });
+  
+  const available = budget.authorized - totals.committed;
+  const remainingCommitment = totals.committed - totals.disbursed;
+  
+  return (
+    <div style={{
+      padding: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid rgba(255, 255, 255, 0.06)',
+      borderRadius: '8px'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '12px'
+      }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#e2e2e8' }}>
+            {budget.name}
+          </div>
+          <div style={{ fontSize: '10px', color: '#6b7280' }}>
+            {budget.id} · {budget.owner}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '16px', fontWeight: '600', color: '#10b981', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(budget.authorized)}
+          </div>
+          <div style={{ fontSize: '10px', color: '#6b7280' }}>authorized</div>
+        </div>
+      </div>
+      
+      {/* Stacked bar */}
+      <div style={{ 
+        height: '24px', 
+        backgroundColor: 'rgba(16, 185, 129, 0.15)', 
+        borderRadius: '4px',
+        display: 'flex',
+        overflow: 'hidden',
+        marginBottom: '12px'
+      }}>
+        <div style={{ 
+          width: `${(totals.disbursed / budget.authorized) * 100}%`,
+          backgroundColor: '#3b82f6',
+          transition: 'width 0.3s ease'
+        }} />
+        <div style={{ 
+          width: `${(remainingCommitment / budget.authorized) * 100}%`,
+          backgroundColor: '#d97706',
+          transition: 'width 0.3s ease'
+        }} />
+      </div>
+      
+      {/* Legend */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', fontSize: '10px' }}>
+        <div>
+          <div style={{ color: '#3b82f6', fontWeight: '600', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(totals.disbursed)}
+          </div>
+          <div style={{ color: '#6b7280' }}>Disbursed</div>
+        </div>
+        <div>
+          <div style={{ color: '#d97706', fontWeight: '600', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(remainingCommitment)}
+          </div>
+          <div style={{ color: '#6b7280' }}>Committed</div>
+        </div>
+        <div>
+          <div style={{ color: '#10b981', fontWeight: '600', fontFeatureSettings: '"tnum"' }}>
+            {formatCurrency(available)}
+          </div>
+          <div style={{ color: '#6b7280' }}>Available</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+const EnvelopeDashboard = () => {
+  const [selectedEnvelope, setSelectedEnvelope] = useState(envelopes[0]);
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [budgetFilter, setBudgetFilter] = useState('ALL');
+
+  const filteredEnvelopes = useMemo(() => {
+    return envelopes.filter(env => {
+      if (statusFilter !== 'ALL' && env.status !== statusFilter) return false;
+      if (budgetFilter !== 'ALL' && env.budgetId !== budgetFilter) return false;
+      return true;
+    });
+  }, [statusFilter, budgetFilter]);
+
+  const statusCounts = useMemo(() => {
+    return envelopes.reduce((acc, env) => {
+      acc[env.status] = (acc[env.status] || 0) + 1;
+      acc.ALL = (acc.ALL || 0) + 1;
+      return acc;
+    }, {});
+  }, []);
+
+  const selectedBudget = budgetAuthorities[selectedEnvelope.budgetId];
+  const budgetEnvelopes = envelopes.filter(e => e.budgetId === selectedEnvelope.budgetId);
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#08080c',
+      color: '#e2e2e8',
+      fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace",
+      fontSize: '12px',
+      lineHeight: '1.5'
+    }}>
+      {/* Header */}
+      <header style={{
+        padding: '20px 32px',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.01)'
+      }}>
+        <div>
+          <div style={{ 
+            fontSize: '9px', 
+            letterSpacing: '3px', 
+            color: '#6b7280',
+            textTransform: 'uppercase',
+            marginBottom: '4px'
+          }}>
+            Transaction Coordination System
+          </div>
+          <h1 style={{ 
+            fontSize: '20px', 
+            fontWeight: '400', 
+            margin: 0,
+            color: '#f8f8fc',
+            letterSpacing: '-0.3px'
+          }}>
+            Envelope Dashboard
+          </h1>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Active Envelopes
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '300', color: '#e2e2e8', fontFeatureSettings: '"tnum"' }}>
+              {envelopes.filter(e => !['COMPLETE', 'CANCELLED'].includes(e.status)).length}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Pending Approval
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '300', color: '#d97706', fontFeatureSettings: '"tnum"' }}>
+              {envelopes.filter(e => e.status === 'PENDING_APPROVAL').length}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              At Risk
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '300', color: '#dc2626', fontFeatureSettings: '"tnum"' }}>
+              {envelopes.filter(e => ['HIGH', 'MEDIUM'].includes(e.risk)).length}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', minHeight: 'calc(100vh - 81px)' }}>
+        {/* Left Panel - Envelope List */}
+        <div style={{
+          borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Filters */}
+          <div style={{ 
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)'
+          }}>
+            {/* Status filter pills */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '6px', 
+              flexWrap: 'wrap',
+              marginBottom: '12px'
+            }}>
+              {['ALL', 'PENDING_APPROVAL', 'COMMITTED', 'IN_PROGRESS', 'COMPLETE'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '9px',
+                    fontWeight: '600',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    border: '1px solid',
+                    borderColor: statusFilter === status ? 'rgba(59, 130, 246, 0.5)' : 'rgba(75, 85, 99, 0.3)',
+                    borderRadius: '4px',
+                    backgroundColor: statusFilter === status ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                    color: statusFilter === status ? '#93c5fd' : '#6b7280',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {status === 'ALL' ? 'All' : status.replace(/_/g, ' ')} ({statusCounts[status] || 0})
+                </button>
+              ))}
+            </div>
+            
+            {/* Budget filter */}
+            <select
+              value={budgetFilter}
+              onChange={(e) => setBudgetFilter(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '11px',
+                backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(75, 85, 99, 0.3)',
+                borderRadius: '4px',
+                color: '#e2e2e8',
+                fontFamily: 'inherit',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Budget Lines</option>
+              {Object.values(budgetAuthorities).map(b => (
+                <option key={b.id} value={b.id}>{b.name} ({b.id})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Envelope list */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {filteredEnvelopes.map(envelope => {
+              const isSelected = selectedEnvelope.id === envelope.id;
+              const budget = budgetAuthorities[envelope.budgetId];
+              
+              return (
+                <div
+                  key={envelope.id}
+                  onClick={() => setSelectedEnvelope(envelope)}
+                  style={{
+                    padding: '16px 20px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+                    borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
+                    transition: 'all 0.1s ease'
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    marginBottom: '8px'
+                  }}>
+                    <div style={{ flex: 1, marginRight: '12px' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        fontWeight: '500', 
+                        color: '#e2e2e8',
+                        marginBottom: '4px'
+                      }}>
+                        {envelope.title}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                        {envelope.id} · {envelope.vendor}
+                      </div>
+                    </div>
+                    <RiskIndicator risk={envelope.risk} />
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <StatusBadge status={envelope.status} />
+                    <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                      {budget.id}
+                    </div>
+                  </div>
+                  
+                  <ProgressBar 
+                    committed={envelope.committed} 
+                    disbursed={envelope.disbursed} 
+                    budget={budget.authorized}
+                  />
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    marginTop: '8px',
+                    fontSize: '10px'
+                  }}>
+                    <span style={{ color: '#3b82f6' }}>
+                      {formatCurrency(envelope.disbursed)} disbursed
+                    </span>
+                    <span style={{ color: '#d97706' }}>
+                      {formatCurrency(envelope.committed)} committed
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Panel - Envelope Detail */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateRows: 'auto 1fr',
+          overflow: 'hidden'
+        }}>
+          {/* Envelope Header */}
+          <div style={{
+            padding: '24px 32px',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'flex-start',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <div style={{ 
+                  fontSize: '10px', 
+                  color: '#6b7280',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px'
+                }}>
+                  {selectedEnvelope.id}
+                </div>
+                <h2 style={{ 
+                  fontSize: '18px', 
+                  fontWeight: '500', 
+                  margin: 0,
+                  color: '#f8f8fc'
+                }}>
+                  {selectedEnvelope.title}
+                </h2>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                  {selectedEnvelope.vendor}
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <StatusBadge status={selectedEnvelope.status} />
+                <RiskIndicator risk={selectedEnvelope.risk} />
+              </div>
+            </div>
+            
+            {/* Amount summary */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '16px'
+            }}>
+              {[
+                { label: 'Committed', value: selectedEnvelope.committed, color: '#d97706' },
+                { label: 'Disbursed', value: selectedEnvelope.disbursed, color: '#3b82f6' },
+                { label: 'Remaining', value: selectedEnvelope.committed - selectedEnvelope.disbursed, color: '#9ca3af' },
+                { label: 'Invoices', value: `${selectedEnvelope.invoicesReceived}/${selectedEnvelope.invoicesExpected}`, color: '#6b7280', isText: true }
+              ].map((item, i) => (
+                <div key={i} style={{
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ 
+                    fontSize: '9px', 
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    marginBottom: '4px'
+                  }}>
+                    {item.label}
+                  </div>
+                  <div style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '500', 
+                    color: item.color,
+                    fontFeatureSettings: '"tnum"'
+                  }}>
+                    {item.isText ? item.value : formatCurrency(item.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {selectedEnvelope.riskNote && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                border: '1px solid rgba(220, 38, 38, 0.3)',
+                borderRadius: '6px',
+                fontSize: '11px',
+                color: '#fca5a5',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '14px' }}>⚠</span>
+                {selectedEnvelope.riskNote}
+              </div>
+            )}
+          </div>
+
+          {/* Content area */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 320px',
+            overflow: 'hidden'
+          }}>
+            {/* Event Chain */}
+            <div style={{ 
+              padding: '24px 32px',
+              overflowY: 'auto',
+              borderRight: '1px solid rgba(255, 255, 255, 0.06)'
+            }}>
+              <div style={{ 
+                fontSize: '10px', 
+                letterSpacing: '2px', 
+                color: '#6b7280',
+                textTransform: 'uppercase',
+                marginBottom: '20px'
+              }}>
+                Event Chain · {selectedEnvelope.events.length} Events
+              </div>
+              
+              {selectedEnvelope.events.map((event, index) => (
+                <EventRow 
+                  key={event.id} 
+                  event={event} 
+                  isLast={index === selectedEnvelope.events.length - 1}
+                />
+              ))}
+            </div>
+
+            {/* Right sidebar - Controls + Budget */}
+            <div style={{ 
+              padding: '24px',
+              overflowY: 'auto',
+              backgroundColor: 'rgba(255, 255, 255, 0.01)'
+            }}>
+              {/* Control Attestations */}
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{ 
+                  fontSize: '10px', 
+                  letterSpacing: '2px', 
+                  color: '#6b7280',
+                  textTransform: 'uppercase',
+                  marginBottom: '16px'
+                }}>
+                  Control Attestations
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedEnvelope.controls.map((control, i) => (
+                    <ControlBadge key={i} control={control} />
+                  ))}
+                </div>
+                
+                {/* Invariant check */}
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  backgroundColor: selectedEnvelope.controls.some(c => c.status === 'PENDING')
+                    ? 'rgba(217, 119, 6, 0.1)'
+                    : 'rgba(5, 150, 105, 0.1)',
+                  border: `1px solid ${
+                    selectedEnvelope.controls.some(c => c.status === 'PENDING')
+                      ? 'rgba(217, 119, 6, 0.3)'
+                      : 'rgba(5, 150, 105, 0.3)'
+                  }`,
+                  borderRadius: '6px',
+                  fontSize: '10px'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px',
+                    color: selectedEnvelope.controls.some(c => c.status === 'PENDING')
+                      ? '#fcd34d'
+                      : '#6ee7b7'
+                  }}>
+                    <span>{selectedEnvelope.controls.some(c => c.status === 'PENDING') ? '○' : '✓'}</span>
+                    <span style={{ fontWeight: '600' }}>
+                      {selectedEnvelope.controls.some(c => c.status === 'PENDING')
+                        ? 'Controls Pending'
+                        : 'All Controls Satisfied'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Budget Context */}
+              <div>
+                <div style={{ 
+                  fontSize: '10px', 
+                  letterSpacing: '2px', 
+                  color: '#6b7280',
+                  textTransform: 'uppercase',
+                  marginBottom: '16px'
+                }}>
+                  Budget Context
+                </div>
+                
+                <BudgetMeter budget={selectedBudget} envelopes={budgetEnvelopes} />
+                
+                {/* This envelope's share */}
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '6px'
+                }}>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>
+                    This envelope's allocation
+                  </div>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#93c5fd',
+                    fontFeatureSettings: '"tnum"'
+                  }}>
+                    {formatCurrency(selectedEnvelope.committed)}
+                    <span style={{ 
+                      fontSize: '10px', 
+                      color: '#6b7280',
+                      fontWeight: '400',
+                      marginLeft: '8px'
+                    }}>
+                      ({((selectedEnvelope.committed / selectedBudget.authorized) * 100).toFixed(1)}% of budget)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EnvelopeDashboard;

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASTWalkthrough</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// CAST — Investor Walkthrough Prototype
+// 
+// A guided narrative through the GPU compute financing use case.
+// Each step shows: status quo pain → CAST resolution → live proof.
+// The working ledger is the evidence layer underneath every claim.
+// ═══════════════════════════════════════════════════════════════════════
+
+const ACCESS_GRANTS = {
+  axion: { name: "Axion Compute", role: "GPU Provider", keyFp: "ax:9f:c2:41:b8", color: "#E8553A" },
+  helios: { name: "Helios AI Labs", role: "Compute Buyer", keyFp: "he:3d:a7:e5:12", color: "#2D7FF9" },
+  norwest: { name: "Norwest Capital", role: "Capital Provider", keyFp: "nw:7b:f1:d8:63", color: "#18A86B" },
+  sightline: { name: "Sightline (Operator)", role: "Managed Service", keyFp: "sl:00:00:00:00", color: "#F5A623" },
+};
+
+const EVENTS = [
+  { id:"E001", ts:"2026-01-15T09:00:00Z", type:"CONTRACT_CREATED", party:"both", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",provider:"Axion Compute",customer:"Helios AI Labs",financier:"Norwest Capital Fund III",gpuType:"H100-SXM5",quantity:256,ratePerGpuHr:2.85,term:"90 days",minCommitment:0.85,startDate:"2026-02-01"}, hash:"a7c3f1",prevHash:"000000",signatures:["axion.sig","helios.sig","norwest.sig"] },
+  { id:"E002", ts:"2026-02-01T00:00:01Z", type:"CLUSTER_PROVISIONED", party:"provider", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",clusterId:"AX-NV-2261",gpusOnline:256,healthCheck:"PASS",telemetryEndpoint:"wss://telemetry.axion.io/2261"}, hash:"b8d4e2",prevHash:"a7c3f1",signatures:["axion.sig","cluster.auto.sig"] },
+  { id:"E003", ts:"2026-02-01T00:05:00Z", type:"PROVISIONING_CONFIRMED", party:"customer", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",clusterId:"AX-NV-2261",benchmarkResult:"PASS",latencyMs:0.42,confirmedBy:"helios-infra-bot"}, hash:"c9e5f3",prevHash:"b8d4e2",signatures:["helios.sig"] },
+  { id:"E004", ts:"2026-02-07T23:59:59Z", type:"UTILIZATION_PERIOD", party:"machine", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",clusterId:"AX-NV-2261",periodStart:"2026-02-01T00:00:00Z",periodEnd:"2026-02-07T23:59:59Z",totalGpuHours:42547.2,avgUtilization:0.946,peakUtilization:0.99,downtimeMinutes:14,telemetryRecords:604800,hashOfTelemetry:"f4a8b2c1d3e5"}, hash:"d0f6a4",prevHash:"c9e5f3",signatures:["cluster.auto.sig","helios-monitor.sig"] },
+  { id:"E005", ts:"2026-02-08T06:00:00Z", type:"INVOICE_GENERATED", party:"system", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:true,redactedFields:{splitProvider:["axion","norwest"],splitFinancier:["norwest"]}}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W01",period:"Week 1",gpuHours:42547.2,rate:2.85,grossAmount:121259.52,downtimeCredit:-9.31,netAmount:121250.21,derivedFrom:["E004"],proofChain:["E001→E002→E003→E004→E005"]}, hash:"e1a7b5",prevHash:"d0f6a4",signatures:["system.auto.sig"] },
+  { id:"E006", ts:"2026-02-08T09:15:00Z", type:"INVOICE_ACKNOWLEDGED", party:"customer", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W01",status:"ACCEPTED",verifiedBy:"Maria Chen, VP Finance",note:"Telemetry hash verified against our monitoring"}, hash:"f2b8c6",prevHash:"e1a7b5",signatures:["helios.sig"] },
+  { id:"E007", ts:"2026-02-08T09:15:01Z", type:"PAYMENT_INSTRUCTION", party:"system", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:true,redactedFields:{splitProvider:["axion","norwest"],splitFinancier:["norwest"]}}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W01",amount:121250.21,splitProvider:97000.17,splitFinancier:24250.04,rail:"USDC",escrowContract:"0x7a3b...c4d1"}, hash:"a3c9d7",prevHash:"f2b8c6",signatures:["system.auto.sig"] },
+  { id:"E008", ts:"2026-02-08T09:30:00Z", type:"SETTLEMENT_COMPLETE", party:"ledger", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W01",txHashProvider:"0xabc...123",txHashFinancier:"0xdef...456",settledAt:"2026-02-08T09:30:00Z",totalLatencyMs:4200}, hash:"b4d0e8",prevHash:"a3c9d7",signatures:["escrow.auto.sig","axion.sig","norwest.sig"] },
+  { id:"E-AC1", ts:"2026-02-10T14:00:00Z", type:"VIEW_ACCESS_GRANTED", party:"customer", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{grantedTo:"Sightline (Operator)",grantedBy:"Helios AI Labs",scope:"All events, CTR-4401",purpose:"Dispute analytics & advisory",expiry:"2026-05-01T00:00:00Z",revocable:true}, hash:"ac01f1",prevHash:"b4d0e8",signatures:["helios.sig"] },
+  { id:"E-AC2", ts:"2026-02-10T14:05:00Z", type:"VIEW_ACCESS_GRANTED", party:"provider", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{grantedTo:"Sightline (Operator)",grantedBy:"Axion Compute",scope:"All events, CTR-4401",purpose:"Dispute analytics & advisory",expiry:"2026-05-01T00:00:00Z",revocable:true}, hash:"ac02f2",prevHash:"ac01f1",signatures:["axion.sig"] },
+  { id:"E009", ts:"2026-02-14T23:59:59Z", type:"UTILIZATION_PERIOD", party:"machine", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",clusterId:"AX-NV-2261",periodStart:"2026-02-08T00:00:00Z",periodEnd:"2026-02-14T23:59:59Z",totalGpuHours:38912.0,avgUtilization:0.865,peakUtilization:0.97,downtimeMinutes:847,telemetryRecords:604800,hashOfTelemetry:"g5b9c2d4e6f7"}, hash:"c5e1f9",prevHash:"ac02f2",signatures:["cluster.auto.sig","helios-monitor.sig"] },
+  { id:"E010", ts:"2026-02-15T06:00:00Z", type:"INVOICE_GENERATED", party:"system", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:true,redactedFields:{splitProvider:["axion","norwest","sightline"],splitFinancier:["norwest","sightline"]}}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W02",period:"Week 2",gpuHours:38912.0,rate:2.85,grossAmount:110899.20,downtimeCredit:-706.12,netAmount:110193.08,derivedFrom:["E009"],proofChain:["E001→E002→E003→E009→E010"]}, hash:"d6f2a0",prevHash:"c5e1f9",signatures:["system.auto.sig"] },
+  { id:"E011", ts:"2026-02-15T10:30:00Z", type:"INVOICE_DISPUTED", party:"customer", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W02",disputeType:"DOWNTIME_UNDERCOUNT",claimedDowntimeMinutes:1203,evidenceHash:"h6c0d5e7f8a9",disputedBy:"Maria Chen, VP Finance",note:"Our monitoring shows 1203 min downtime vs reported 847. Requesting telemetry reconciliation."}, hash:"e7a3b1",prevHash:"d6f2a0",signatures:["helios.sig"] },
+  { id:"E012", ts:"2026-02-15T11:00:00Z", type:"DISPUTE_RESOLUTION", party:"system", visibility:["axion","helios","norwest","sightline"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{contractId:"CTR-4401",invoiceId:"INV-4401-W02",method:"TELEMETRY_COMPARISON",providerDowntime:847,customerDowntime:1203,reconciledDowntime:1087,discrepancySource:"Network partition 02/11 14:22-14:58 caused monitoring gap",adjustedCredit:-907.64,revisedNetAmount:109991.56,resolution:"ADJUSTED"}, hash:"f8b4c2",prevHash:"e7a3b1",signatures:["system.auto.sig","axion.sig","helios.sig"] },
+  { id:"E-AC3", ts:"2026-02-16T09:00:00Z", type:"VIEW_ACCESS_REVOKED", party:"customer", visibility:["axion","helios","norwest"], encryption:{algo:"AES-256-GCM",envelope:"per-party-key-wrap",fieldLevel:false}, data:{revokedFrom:"Sightline (Operator)",revokedBy:"Helios AI Labs",reason:"Advisory engagement complete",effectiveImmediately:true,note:"Sightline read key for Helios-authored events destroyed. Hash chain remains verifiable."}, hash:"ac03f3",prevHash:"f8b4c2",signatures:["helios.sig"] },
+];
+
+const PARTIES = {
+  provider:{name:"Axion Compute",role:"GPU Provider",color:"#E8553A"},
+  customer:{name:"Helios AI Labs",role:"Compute Buyer",color:"#2D7FF9"},
+  financier:{name:"Norwest Capital",role:"Capital Provider",color:"#18A86B"},
+  machine:{name:"Cluster Telemetry",role:"Machine-Generated",color:"#9B6FE8"},
+  system:{name:"CAST Protocol",role:"Shared Ledger",color:"#F5A623"},
+  ledger:{name:"Settlement Layer",role:"Execution",color:"#F5A623"},
+  both:{name:"All Parties",role:"Multi-Sig",color:"#8B95A5"},
+};
+
+const LABELS = {
+  CONTRACT_CREATED:"Contract Executed",CLUSTER_PROVISIONED:"Cluster Online",PROVISIONING_CONFIRMED:"Provisioning Verified",
+  UTILIZATION_PERIOD:"Usage Period Closed",INVOICE_GENERATED:"Invoice Derived",INVOICE_ACKNOWLEDGED:"Invoice Accepted",
+  INVOICE_DISPUTED:"Invoice Disputed",DISPUTE_RESOLUTION:"Dispute Resolved",PAYMENT_INSTRUCTION:"Payment Routed",
+  SETTLEMENT_COMPLETE:"Settlement Final",VIEW_ACCESS_GRANTED:"View Access Granted",VIEW_ACCESS_REVOKED:"View Access Revoked",
+};
+
+const fmt$ = n => "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD = iso => { const d=new Date(iso); return d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+" "+d.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false}); };
+const fmtP = n => (n*100).toFixed(1)+"%";
+
+// ═══════════════════════════════════════════════════════════════════════
+// WALKTHROUGH STEPS
+// Each step: narrative (what to tell the investor), statusQuo (the pain),
+// withCast (the resolution), highlightEvents (which events to show),
+// focusEvent (which to auto-select), viewAs (perspective)
+// ═══════════════════════════════════════════════════════════════════════
+
+const STEPS = [
+  {
+    id: 0, phase: "context", title: "The Setup",
+    subtitle: "A $2.8M GPU compute financing deal with three parties",
+    narrative: "Axion Compute operates GPU clusters. Helios AI Labs needs 256 H100 GPUs for 90 days. Norwest Capital provides the financing. This is a real and growing market — every major AI company is buying compute, and the financing structures are being invented right now.",
+    statusQuo: null,
+    withCast: null,
+    highlightEvents: [],
+    focusEvent: null, viewAs: "helios"
+  },
+  {
+    id: 1, phase: "contract", title: "The Contract",
+    subtitle: "Three parties, one agreement — but whose version is authoritative?",
+    narrative: "The deal is struck: 256 H100 GPUs at $2.85/GPU-hour for 90 days, with an 85% minimum commitment.",
+    statusQuo: {
+      icon: "◆", color: "#E8553A", party: "All Parties",
+      title: "Today: Three separate records of one agreement",
+      items: [
+        "Axion's legal team stores the contract in their CLM system",
+        "Helios files it in their procurement folder with their own annotations",
+        "Norwest's fund admin enters the terms into a portfolio tracking spreadsheet",
+        "When a dispute arises in month 2, each party produces a different PDF. Legal fees begin."
+      ]
+    },
+    withCast: {
+      title: "With CAST: One contract, three signatures, zero ambiguity",
+      detail: "The contract is a single event in the shared ledger, cryptographically signed by all three parties. There's no 'your version' and 'our version.' There's the contract. Click E001 — notice three signatures."
+    },
+    highlightEvents: ["E001"],
+    focusEvent: "E001", viewAs: "norwest"
+  },
+  {
+    id: 2, phase: "provisioning", title: "Provisioning",
+    subtitle: "The provider says the cluster is online. But is it?",
+    narrative: "Axion brings 256 GPUs online. Helios needs to confirm they're actually getting what was promised before the billing clock starts.",
+    statusQuo: {
+      icon: "▲", color: "#2D7FF9", party: "Helios AI Labs",
+      title: "Today: Trust-based verification",
+      items: [
+        "Axion emails: 'Your cluster is ready, here are the access credentials'",
+        "Helios runs benchmarks internally but has no shared record of the results",
+        "If Axion bills from Jan 31 but Helios says access wasn't working until Feb 2, there's no shared source of truth",
+        "The financier has no visibility into whether the asset they're financing is actually deployed"
+      ]
+    },
+    withCast: {
+      title: "With CAST: Provider attests, customer confirms, both sign",
+      detail: "E002 is Axion's attestation — 256 GPUs online, health check passed. E003 is Helios confirming — benchmark passed, 0.42ms latency. Both events are signed and chained. The billing start is provable. The financier can see the asset is live."
+    },
+    highlightEvents: ["E002", "E003"],
+    focusEvent: "E002", viewAs: "norwest"
+  },
+  {
+    id: 3, phase: "utilization", title: "Utilization",
+    subtitle: "The machines generate the truth — not the humans",
+    narrative: "Week 1 closes. The cluster ran 42,547 GPU-hours at 94.6% average utilization with only 14 minutes of downtime. But who's counting?",
+    statusQuo: {
+      icon: "◆", color: "#E8553A", party: "Axion Compute",
+      title: "Today: Two monitoring systems, two different numbers",
+      items: [
+        "Axion's internal monitoring says 42,547 GPU-hours, 14 min downtime",
+        "Helios's monitoring says 42,312 GPU-hours, 28 min downtime",
+        "The 235-hour discrepancy represents ~$670 — not enough to litigate, too much to ignore",
+        "Multiply this by 52 weeks and dozens of customers: Axion's finance team spends 30% of their time reconciling usage data",
+        "The financier gets a monthly report that's already 3 weeks old and based on unverified numbers"
+      ]
+    },
+    withCast: {
+      title: "With CAST: Machine-generated, co-signed telemetry",
+      detail: "E004 is generated by the cluster itself — 604,800 telemetry records compressed into a period summary. Both Axion's cluster and Helios's monitoring agent sign it. The telemetry hash lets either party verify the raw data. Neither party 'created' this event. The machines did."
+    },
+    highlightEvents: ["E004"],
+    focusEvent: "E004", viewAs: "helios"
+  },
+  {
+    id: 4, phase: "invoice", title: "The Invoice",
+    subtitle: "Not created. Derived. Every dollar traceable to a machine event.",
+    narrative: "This is the core architectural move. The invoice is a mathematical consequence of the utilization data — not a document someone typed up.",
+    statusQuo: {
+      icon: "▲", color: "#2D7FF9", party: "Helios AI Labs",
+      title: "Today: Invoices arrive as assertions, not proofs",
+      items: [
+        "Axion's billing system generates a PDF: '$121,259.52 for Week 1 GPU services'",
+        "Helios's AP team receives it via email. They open a spreadsheet to check the math against their own usage logs",
+        "The invoice references a contract rate, but Helios has to manually verify the rate hasn't changed",
+        "If the numbers don't match, it's a phone call, then an email thread, then a revised invoice — adding 2-3 weeks to the payment cycle",
+        "The financier doesn't see the invoice at all until the monthly reporting package, which arrives as a PDF attachment"
+      ]
+    },
+    withCast: {
+      title: "With CAST: The invoice is a function, not a document",
+      detail: "Click E005 and look at the provenance chain: E001→E002→E003→E004→E005. The invoice derives from the utilization event. The rate comes from the contract event. The downtime credit is calculated from the telemetry. No human typed this invoice. It was computed. A fake invoice is logically impossible — you can't fabricate the upstream chain."
+    },
+    highlightEvents: ["E005", "E006"],
+    focusEvent: "E005", viewAs: "helios"
+  },
+  {
+    id: 5, phase: "settlement", title: "Settlement",
+    subtitle: "Payment splits automatically between provider and financier — in 4.2 seconds",
+    narrative: "Helios accepts the invoice. Payment routes instantly, splitting between Axion (the provider) and Norwest (the financier) according to the financing terms.",
+    statusQuo: {
+      icon: "●", color: "#18A86B", party: "Norwest Capital",
+      title: "Today: A three-party settlement nightmare",
+      items: [
+        "Helios pays Axion via wire transfer. 2-3 business days to settle",
+        "Axion then separately wires Norwest their financing portion. Another 2-3 days",
+        "Norwest's fund admin manually reconciles the incoming payment against the expected amount",
+        "If Helios paid late, or Axion held the financier's portion for a few extra days, there's no visibility into why",
+        "Across a portfolio of 50 compute deals, Norwest employs 3 people just to track who's paid what, when, and whether the amounts are correct"
+      ]
+    },
+    withCast: {
+      title: "With CAST: Atomic split settlement in seconds",
+      detail: "E007 routes the payment instruction — $97,000.17 to provider, $24,250.04 to financier. E008 confirms settlement in 4.2 seconds. Notice the field-level encryption on E007: the payment split is visible only to Axion and Norwest, not to Helios. The financier's return is private."
+    },
+    highlightEvents: ["E007", "E008"],
+    focusEvent: "E007", viewAs: "norwest"
+  },
+  {
+    id: 6, phase: "dispute", title: "The Dispute",
+    subtitle: "Week 2 goes wrong — and the system handles it structurally",
+    narrative: "Week 2 has significant downtime. Helios's monitoring shows 1,203 minutes; Axion's shows 847. In any other system, this becomes a relationship-damaging argument. Here, it becomes data.",
+    statusQuo: {
+      icon: "▲", color: "#2D7FF9", party: "Helios AI Labs",
+      title: "Today: The spreadsheet war",
+      items: [
+        "Helios emails Axion: 'Your invoice is wrong. We tracked 1,203 minutes of downtime, not 847'",
+        "Axion responds: 'Our monitoring shows 847 minutes. Please share your logs'",
+        "Helios sends a 40MB CSV export. Axion's team spends 3 days trying to align timestamps between two monitoring systems",
+        "Meanwhile, payment is held. The financier is getting nervous because the cash flow is disrupted",
+        "After 2 weeks of back-and-forth, they split the difference. Neither party trusts the number. The relationship is strained",
+        "The auditor later asks both parties to prove the resolution was fair. Neither can."
+      ]
+    },
+    withCast: {
+      title: "With CAST: Both telemetry hashes on the ledger. Resolution in 30 minutes.",
+      detail: "E011 is Helios's dispute — their evidence hash is on-chain. E012 is the resolution: a telemetry comparison found a network partition caused a monitoring gap. The reconciled downtime (1,087 min) is computed, not negotiated. Both parties sign the resolution. The financier sees it in real-time."
+    },
+    highlightEvents: ["E009", "E010", "E011", "E012"],
+    focusEvent: "E011", viewAs: "helios"
+  },
+  {
+    id: 7, phase: "sovereignty", title: "Data Sovereignty",
+    subtitle: "Your data. Your keys. We can't read it unless you let us.",
+    narrative: "This is the trust architecture. CAST is encrypted end-to-end. The operator — Sightline — holds no decryption keys by default. View access is an explicit, revocable grant recorded in the same ledger as every financial event.",
+    statusQuo: {
+      icon: "●", color: "#18A86B", party: "All Parties",
+      title: "Today: Your financial data lives in someone else's system",
+      items: [
+        "Every SaaS platform you use — your ERP, your AP/AR tool, your bank — can see your data",
+        "They promise not to misuse it. That's a policy, not a guarantee",
+        "A breach at your vendor exposes your transaction data. You find out weeks later",
+        "You can't audit who at the vendor has accessed your data, or when, or why",
+        "When you leave the platform, your data portability depends on their export tools, not your rights"
+      ]
+    },
+    withCast: {
+      title: "With CAST: Architecture guarantees privacy. Not policy.",
+      detail: "Look at E-AC1: Helios explicitly grants Sightline view access for 'Dispute analytics & advisory.' Now look at E-AC3: Helios revokes it. Both are signed, timestamped, immutable events in the chain. Toggle 'Viewing As' to Sightline — you can see that early events (before the grant) have no Sightline in the visibility manifest. We literally cannot decrypt them."
+    },
+    highlightEvents: ["E-AC1", "E-AC2", "E-AC3"],
+    focusEvent: "E-AC1", viewAs: "sightline"
+  },
+  {
+    id: 8, phase: "network", title: "Network Effects",
+    subtitle: "Every transaction builds a portable, cryptographic track record",
+    narrative: "After 90 days on CAST, both Axion and Helios have something no financial system has ever produced: a verified transaction history that the counterparty co-signed. This history is portable.",
+    statusQuo: {
+      icon: "◆", color: "#E8553A", party: "All Parties",
+      title: "Today: Every new relationship starts from zero",
+      items: [
+        "When Axion signs a new customer, the credit check starts over. References, bank statements, D&B reports — none of it is verified by the counterparty",
+        "When Helios wants better financing terms, they produce financial statements that Norwest must independently audit",
+        "When Norwest evaluates a new compute deal, they have no standardized way to assess the provider's operational quality",
+        "Trust is rebuilt from scratch for every new relationship. The cost of this rebuilding is priced into every deal as higher rates, longer terms, larger deposits"
+      ]
+    },
+    withCast: {
+      title: "With CAST: Your history travels with you",
+      detail: "Axion's CAST ledger across 20 customers proves: 94.6% avg utilization, disputes resolved in <1 hour, 100% on-time settlement. A 21st customer doesn't need references — the proof is in the chain. Norwest's cost to underwrite the 21st deal drops to near zero. Capital gets cheaper because verification gets cheaper."
+    },
+    highlightEvents: ["E001", "E004", "E008", "E012"],
+    focusEvent: "E008", viewAs: "norwest"
+  },
+  {
+    id: 9, phase: "thesis", title: "The Thesis",
+    subtitle: "Coordination infrastructure for an adversarial world",
+    narrative: "CAST doesn't compete with better reconciliation tools. It makes reconciliation obsolete. The shared ledger creates truth at the boundary between parties, so there's nothing to reconcile afterward. Every event is either machine-generated or multi-party signed. Every invoice is derived, not created. Every dollar is traceable to its origin. Every access grant is auditable and revocable. The beachhead is GPU compute financing — a market growing faster than the back-office infrastructure can handle. The end state is every B2B transaction boundary.",
+    statusQuo: null,
+    withCast: null,
+    highlightEvents: [],
+    focusEvent: null, viewAs: "norwest"
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════════════
+// UI Components
+// ═══════════════════════════════════════════════════════════════════════
+
+const mono = "'IBM Plex Mono', monospace";
+const serif = "'Instrument Serif', Georgia, serif";
+const sans = "'DM Sans', 'Helvetica Neue', sans-serif";
+
+const HashChip = ({hash,label}) => (
+  <span style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:4,padding:"2px 8px",fontFamily:mono,fontSize:11,color:"rgba(255,255,255,0.45)",letterSpacing:0.5}}>
+    {label&&<span style={{color:"rgba(255,255,255,0.25)",marginRight:2}}>{label}</span>}<span>{hash}</span>
+  </span>
+);
+
+const SigBadge = ({sig}) => {
+  const auto = sig.includes("auto")||sig.includes("bot")||sig.includes("monitor");
+  return <span style={{display:"inline-flex",alignItems:"center",gap:3,background:auto?"rgba(155,111,232,0.1)":"rgba(45,127,249,0.1)",border:`1px solid ${auto?"rgba(155,111,232,0.25)":"rgba(45,127,249,0.25)"}`,borderRadius:3,padding:"1px 6px",fontSize:10,color:auto?"#B89AEF":"#6BA3F9",fontFamily:mono}}>
+    <span style={{fontSize:8}}>{auto?"⚙":"✍"}</span> {sig}
+  </span>;
+};
+
+const Lbl = ({children}) => <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,marginBottom:8,fontWeight:600}}>{children}</div>;
+
+const Crd = ({children,accent,style={}}) => <div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:`1px solid ${accent||"rgba(255,255,255,0.06)"}`,padding:14,marginBottom:14,...style}}>{children}</div>;
+
+// Event card for the timeline
+const EvtCard = ({event,isSelected,onClick,isHighlighted}) => {
+  const p = PARTIES[event.party];
+  const disp = event.type.includes("DISPUTE");
+  const settl = event.type==="SETTLEMENT_COMPLETE";
+  const acc = event.type.includes("VIEW_ACCESS");
+  const bc = acc?"#F5A623":disp?"#E8553A":settl?"#18A86B":"rgba(255,255,255,0.08)";
+  const dc = acc?"#F5A623":(p?.color||"#666");
+
+  return (
+    <div onClick={onClick} style={{
+      padding:"12px 14px",cursor:"pointer",position:"relative",
+      background: isSelected ? "rgba(255,255,255,0.06)" : isHighlighted ? "rgba(245,166,35,0.04)" : "transparent",
+      borderLeft:`2px solid ${isHighlighted ? "#F5A623" : bc}`,
+      transition:"all 0.15s",borderBottom:"1px solid rgba(255,255,255,0.04)",
+    }}>
+      <div style={{position:"absolute",left:-5,top:16,width:8,height:8,borderRadius:"50%",background:dc,border:isSelected?"2px solid #fff":"2px solid #0D1117",zIndex:2}}/>
+      <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+            <span style={{fontSize:9,fontFamily:mono,color:"rgba(255,255,255,0.25)",letterSpacing:1}}>{event.id}</span>
+            <span style={{fontSize:9,color:acc?"#F5A623":p?.color,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase"}}>{acc?"ACCESS":p?.name}</span>
+          </div>
+          <div style={{fontSize:12,fontWeight:600,color:acc?"#F5A623":disp?"#E8553A":"#E8E8ED",letterSpacing:-0.2}}>
+            {acc&&(event.type==="VIEW_ACCESS_GRANTED"?"🔓 ":"🔒 ")}{disp&&"⚠ "}{LABELS[event.type]}
+          </div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:2}}>{fmtD(event.ts)}</div>
+          <div style={{display:"flex",gap:2,marginTop:5}}>
+            {event.visibility.map(pk=><span key={pk} style={{width:4,height:4,borderRadius:"50%",background:ACCESS_GRANTS[pk]?.color||"#666",opacity:pk==="sightline"?1:0.5}}/>)}
+          </div>
+        </div>
+        {event.data.netAmount&&<div style={{fontSize:12,fontWeight:700,color:"#E8E8ED",fontFamily:mono,whiteSpace:"nowrap"}}>{fmt$(event.data.netAmount)}</div>}
+        {event.data.revisedNetAmount&&<div style={{fontSize:12,fontWeight:700,color:"#F5A623",fontFamily:mono,whiteSpace:"nowrap"}}>{fmt$(event.data.revisedNetAmount)}</div>}
+      </div>
+    </div>
+  );
+};
+
+// Event detail inspector
+const EvtDetail = ({event,viewAs}) => {
+  if(!event) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",color:"rgba(255,255,255,0.15)",fontSize:13,padding:40,textAlign:"center",lineHeight:1.8}}>
+    <div><div style={{fontSize:24,marginBottom:8,opacity:0.3}}>◉</div>Select an event to inspect<br/>provenance, visibility & encryption</div>
+  </div>;
+
+  const p = PARTIES[event.party];
+  const acc = event.type.includes("VIEW_ACCESS");
+  const hasSL = event.visibility.includes("sightline");
+
+  return (
+    <div style={{padding:"18px 22px",overflowY:"auto",height:"100%"}}>
+      <div style={{marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+          <span style={{width:10,height:10,borderRadius:"50%",background:p?.color,display:"inline-block"}}/>
+          <span style={{fontSize:11,color:p?.color,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>{p?.name} — {p?.role}</span>
+        </div>
+        <h2 style={{fontSize:18,fontWeight:700,margin:0,marginBottom:6,fontFamily:serif,letterSpacing:-0.5,color:acc?"#F5A623":"#E8E8ED"}}>{LABELS[event.type]}</h2>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>{fmtD(event.ts)}</div>
+      </div>
+
+      {/* Visibility */}
+      <Crd accent={acc?"rgba(245,166,35,0.25)":undefined}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <Lbl>Visibility Manifest</Lbl>
+          <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:hasSL?"rgba(245,166,35,0.12)":"rgba(24,168,107,0.12)",color:hasSL?"#F5A623":"#18A86B",fontWeight:600}}>{hasSL?"OPERATOR HAS VIEW":"COUNTERPARTIES ONLY"}</span>
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+          {event.visibility.map(pk=>{const g=ACCESS_GRANTS[pk];if(!g)return null;const op=pk==="sightline";const me=pk===viewAs;return(
+            <div key={pk} style={{display:"flex",alignItems:"center",gap:5,background:op?"rgba(245,166,35,0.08)":me?"rgba(255,255,255,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${op?"rgba(245,166,35,0.2)":me?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.06)"}`,borderRadius:5,padding:"5px 8px"}}>
+              <span style={{width:6,height:6,borderRadius:"50%",background:g.color}}/>
+              <div><div style={{fontSize:10,fontWeight:600,color:"#E8E8ED"}}>{g.name}</div><div style={{fontSize:8,fontFamily:mono,color:"rgba(255,255,255,0.25)"}}>{g.keyFp}</div></div>
+              {op&&<span style={{fontSize:7,background:"rgba(245,166,35,0.15)",color:"#F5A623",padding:"1px 4px",borderRadius:2,fontWeight:700}}>GRANTED</span>}
+              {me&&<span style={{fontSize:7,background:"rgba(255,255,255,0.1)",color:"#E8E8ED",padding:"1px 4px",borderRadius:2,fontWeight:700}}>YOU</span>}
+            </div>
+          );})}
+        </div>
+        <div style={{display:"flex",gap:10,fontSize:9,color:"rgba(255,255,255,0.25)",fontFamily:mono,flexWrap:"wrap"}}>
+          <span>enc: {event.encryption.algo}</span><span>wrap: {event.encryption.envelope}</span>
+          {event.encryption.fieldLevel&&<span style={{color:"#F5A623"}}>field-level active</span>}
+        </div>
+        {event.encryption.fieldLevel&&event.encryption.redactedFields&&(
+          <div style={{marginTop:8,padding:"6px 8px",background:"rgba(255,255,255,0.02)",borderRadius:5}}>
+            <div style={{fontSize:8,color:"rgba(255,255,255,0.2)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>Field-Level Access</div>
+            {Object.entries(event.encryption.redactedFields).map(([f,ap])=>(
+              <div key={f} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"2px 0"}}>
+                <span style={{fontSize:10,fontFamily:mono,color:"rgba(255,255,255,0.4)"}}>{f}</span>
+                <div style={{display:"flex",gap:2}}>{ap.map(pk=><span key={pk} style={{width:5,height:5,borderRadius:"50%",background:ACCESS_GRANTS[pk]?.color||"#666"}}/>)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Crd>
+
+      {/* Hash */}
+      <Crd><Lbl>Hash Chain</Lbl><div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><HashChip hash={event.prevHash} label="prev"/><span style={{color:"rgba(255,255,255,0.12)",fontSize:13}}>→</span><HashChip hash={event.hash} label="this"/></div></Crd>
+
+      {/* Sigs */}
+      <Crd><Lbl>Signatures ({event.signatures.length})</Lbl><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{event.signatures.map((s,i)=><SigBadge key={i} sig={s}/>)}</div></Crd>
+
+      {/* Proof chain */}
+      {event.data.proofChain&&(
+        <Crd accent="rgba(245,166,35,0.15)"><Lbl>Provenance Chain</Lbl>
+          <div style={{fontFamily:mono,fontSize:11,color:"rgba(255,255,255,0.55)",letterSpacing:0.5,lineHeight:1.8}}>{event.data.proofChain.map((c,i)=><div key={i}>{c}</div>)}</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:6,fontStyle:"italic"}}>Every dollar traces to a machine-generated event co-signed by both parties.</div>
+        </Crd>
+      )}
+
+      {/* Data */}
+      <Crd><Lbl>Event Data</Lbl>
+        {Object.entries(event.data).filter(([k])=>k!=="proofChain").map(([k,v])=>(
+          <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",gap:10}}>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",fontFamily:mono,flexShrink:0}}>{k}</span>
+            <span style={{fontSize:11,textAlign:"right",wordBreak:"break-all",maxWidth:"65%",fontFamily:typeof v==="number"||k.includes("hash")||k.includes("Hash")||k.includes("tx")||k.includes("Fingerprint")?mono:"inherit",color:k.includes("mount")||k.includes("Credit")||k==="rate"||k==="ratePerGpuHr"?"#F5A623":k.includes("hash")||k.includes("Hash")||k.includes("tx")?"#9B6FE8":"#E8E8ED"}}>
+              {typeof v==="number"&&k.includes("mount")?fmt$(v):typeof v==="number"&&k.includes("tilization")?fmtP(v):typeof v==="number"&&k.includes("Credit")?fmt$(v):Array.isArray(v)?v.join(", "):typeof v==="boolean"?(v?"Yes":"No"):String(v)}
+            </span>
+          </div>
+        ))}
+      </Crd>
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// Walkthrough Narrative Panel
+// ═══════════════════════════════════════════════════════════════════════
+
+const NarrativePanel = ({step}) => {
+  const s = STEPS[step];
+  const isBookend = s.phase === "context" || s.phase === "thesis";
+
+  return (
+    <div style={{padding:"24px 28px",overflowY:"auto",height:"100%"}}>
+      {/* Step counter */}
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+        <span style={{fontSize:10,fontFamily:mono,color:"rgba(255,255,255,0.2)",letterSpacing:1}}>{String(step+1).padStart(2,"0")} / {STEPS.length}</span>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.15)"}}>·</span>
+        <span style={{fontSize:10,color:"#F5A623",fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>{s.phase}</span>
+      </div>
+
+      {/* Title */}
+      <h1 style={{fontSize:28,fontWeight:700,color:"#E8E8ED",margin:0,marginBottom:6,fontFamily:serif,letterSpacing:-0.5,lineHeight:1.2}}>{s.title}</h1>
+      <p style={{fontSize:14,color:"rgba(255,255,255,0.4)",margin:0,marginBottom:20,lineHeight:1.5,fontWeight:500}}>{s.subtitle}</p>
+
+      {/* Narrative */}
+      <p style={{fontSize:13,color:"rgba(255,255,255,0.6)",margin:0,marginBottom:24,lineHeight:1.8}}>{s.narrative}</p>
+
+      {/* Status Quo */}
+      {s.statusQuo && (
+        <div style={{
+          background:"rgba(255,80,80,0.04)",border:"1px solid rgba(255,80,80,0.12)",
+          borderRadius:10,padding:"18px 20px",marginBottom:20
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <span style={{fontSize:16,color:s.statusQuo.color}}>{s.statusQuo.icon}</span>
+            <span style={{fontSize:10,color:"rgba(255,80,80,0.6)",fontWeight:700,textTransform:"uppercase",letterSpacing:1.5}}>Without CAST</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:600,color:"#E8E8ED",marginBottom:12,lineHeight:1.4}}>{s.statusQuo.title}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {s.statusQuo.items.map((item,i) => (
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                <span style={{fontSize:11,color:"rgba(255,80,80,0.35)",fontFamily:mono,flexShrink:0,marginTop:2,width:14,textAlign:"right"}}>{i+1}.</span>
+                <span style={{fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.6}}>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* With CAST */}
+      {s.withCast && (
+        <div style={{
+          background:"rgba(24,168,107,0.04)",border:"1px solid rgba(24,168,107,0.15)",
+          borderRadius:10,padding:"18px 20px"
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+            <span style={{fontSize:14,color:"#F5A623"}}>◈</span>
+            <span style={{fontSize:10,color:"#18A86B",fontWeight:700,textTransform:"uppercase",letterSpacing:1.5}}>With CAST</span>
+          </div>
+          <div style={{fontSize:13,fontWeight:600,color:"#E8E8ED",marginBottom:10,lineHeight:1.4}}>{s.withCast.title}</div>
+          <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.8}}>{s.withCast.detail}</div>
+
+          {s.highlightEvents.length > 0 && (
+            <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(24,168,107,0.1)"}}>
+              <span style={{fontSize:9,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1,fontWeight:600}}>Proof events → </span>
+              {s.highlightEvents.map((eid,i) => (
+                <span key={eid} style={{fontSize:11,fontFamily:mono,color:"#F5A623",marginLeft:i?6:4}}>{eid}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Thesis bookend */}
+      {s.phase === "thesis" && (
+        <div style={{
+          marginTop:8,padding:"20px 24px",
+          background:"linear-gradient(135deg, rgba(245,166,35,0.08) 0%, rgba(245,166,35,0.02) 100%)",
+          border:"1px solid rgba(245,166,35,0.2)",borderRadius:10
+        }}>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {["Event-sourced","Adversarial by design","Derived invoices","Machine-generated telemetry","End-to-end encrypted","Data sovereignty","Portable trust history","Zero reconciliation"].map((t,i)=>(
+              <span key={i} style={{fontSize:10,padding:"4px 10px",borderRadius:4,background:"rgba(245,166,35,0.08)",border:"1px solid rgba(245,166,35,0.15)",color:"#F5A623",fontWeight:500}}>{t}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// Main Application
+// ═══════════════════════════════════════════════════════════════════════
+
+function CASTWalkthrough() {
+  const [step, setStep] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [viewAs, setViewAs] = useState("helios");
+  const listRef = useRef(null);
+
+  const s = STEPS[step];
+  const showLedger = s.highlightEvents.length > 0 || s.phase === "thesis";
+
+  // Auto-select focus event and viewAs when step changes
+  useEffect(() => {
+    if (s.focusEvent) {
+      const ev = EVENTS.find(e => e.id === s.focusEvent);
+      if (ev) setSelectedEvent(ev);
+    } else {
+      setSelectedEvent(null);
+    }
+    if (s.viewAs) setViewAs(s.viewAs);
+  }, [step]);
+
+  // Scroll highlighted event into view
+  useEffect(() => {
+    if (listRef.current && s.focusEvent) {
+      const el = listRef.current.querySelector(`[data-eid="${s.focusEvent}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [step]);
+
+  const prev = () => setStep(p => Math.max(0, p - 1));
+  const next = () => setStep(p => Math.min(STEPS.length - 1, p + 1));
+
+  // Keyboard nav
+  useEffect(() => {
+    const h = (e) => { if(e.key==="ArrowRight"||e.key==="ArrowDown")next(); if(e.key==="ArrowLeft"||e.key==="ArrowUp")prev(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  return (
+    <div style={{fontFamily:sans,background:"#0D1117",color:"#E8E8ED",height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+
+      {/* ── Header ── */}
+      <div style={{padding:"10px 20px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,0.01)",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <span style={{fontSize:17,fontWeight:700,letterSpacing:3,color:"#F5A623",fontFamily:mono}}>CAST</span>
+          <div style={{height:14,width:1,background:"rgba(255,255,255,0.08)"}}/>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.3)",fontWeight:500}}>Investor Walkthrough</span>
+          <div style={{height:14,width:1,background:"rgba(255,255,255,0.08)"}}/>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.2)"}}>GPU Compute Financing — CTR-4401</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:9,color:"rgba(255,255,255,0.2)",letterSpacing:0.5}}>VIEWING AS</span>
+          <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",borderRadius:6,padding:2}}>
+            {[{k:"axion",l:"Axion",c:"#E8553A"},{k:"helios",l:"Helios",c:"#2D7FF9"},{k:"norwest",l:"Norwest",c:"#18A86B"},{k:"sightline",l:"Sightline",c:"#F5A623"}].map(p=>(
+              <button key={p.k} onClick={()=>setViewAs(p.k)} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:4,border:"none",cursor:"pointer",fontSize:10,fontWeight:600,transition:"all 0.15s",background:viewAs===p.k?"rgba(255,255,255,0.1)":"transparent",color:viewAs===p.k?p.c:"rgba(255,255,255,0.25)"}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:viewAs===p.k?p.c:"rgba(255,255,255,0.12)"}}/>
+                {p.l}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Progress bar ── */}
+      <div style={{height:2,background:"rgba(255,255,255,0.04)",flexShrink:0}}>
+        <div style={{height:"100%",background:"#F5A623",width:`${((step+1)/STEPS.length)*100}%`,transition:"width 0.4s ease"}}/>
+      </div>
+
+      {/* ── Body: 3-column layout ── */}
+      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+
+        {/* Left: Narrative */}
+        <div style={{width:showLedger?420:600,flexShrink:0,borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",overflow:"hidden",transition:"width 0.3s"}}>
+          <div style={{flex:1,overflowY:"auto"}}>
+            <NarrativePanel step={step}/>
+          </div>
+
+          {/* Nav buttons */}
+          <div style={{padding:"12px 24px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <button onClick={prev} disabled={step===0} style={{padding:"8px 20px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:step===0?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.5)",cursor:step===0?"default":"pointer",fontSize:12,fontWeight:600,transition:"all 0.15s"}}>
+              ← Previous
+            </button>
+            <div style={{display:"flex",gap:4}}>
+              {STEPS.map((_,i) => (
+                <button key={i} onClick={()=>setStep(i)} style={{width:i===step?20:6,height:6,borderRadius:3,border:"none",cursor:"pointer",background:i===step?"#F5A623":i<step?"rgba(245,166,35,0.3)":"rgba(255,255,255,0.1)",transition:"all 0.3s"}}/>
+              ))}
+            </div>
+            <button onClick={next} disabled={step===STEPS.length-1} style={{padding:"8px 20px",borderRadius:6,border:"none",background:step===STEPS.length-1?"rgba(255,255,255,0.05)":"#F5A623",color:step===STEPS.length-1?"rgba(255,255,255,0.15)":"#0D1117",cursor:step===STEPS.length-1?"default":"pointer",fontSize:12,fontWeight:700,transition:"all 0.15s"}}>
+              Next →
+            </button>
+          </div>
+        </div>
+
+        {/* Center: Event ledger */}
+        {showLedger && (
+          <div style={{width:300,flexShrink:0,borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)",fontSize:10,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1.5,fontWeight:700,flexShrink:0}}>
+              Event Ledger
+            </div>
+            <div ref={listRef} style={{flex:1,overflowY:"auto"}}>
+              {EVENTS.map(ev => (
+                <div key={ev.id} data-eid={ev.id}>
+                  <EvtCard
+                    event={ev}
+                    isSelected={selectedEvent?.id===ev.id}
+                    isHighlighted={s.highlightEvents.includes(ev.id)}
+                    onClick={()=>setSelectedEvent(ev)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Right: Event detail */}
+        {showLedger && (
+          <div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",background:"rgba(255,255,255,0.01)"}}>
+            <div style={{padding:"8px 18px",borderBottom:"1px solid rgba(255,255,255,0.04)",fontSize:10,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1.5,fontWeight:700,flexShrink:0}}>
+              Event Inspector
+            </div>
+            <div style={{flex:1,overflowY:"auto"}}>
+              <EvtDetail event={selectedEvent} viewAs={viewAs}/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{padding:"6px 20px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,0.01)",flexShrink:0}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.15)",fontFamily:mono}}>
+          {EVENTS.length} events · {EVENTS.filter(e=>e.type.includes("VIEW_ACCESS")).length} access · {EVENTS.filter(e=>e.type.includes("DISPUTE")).length} disputes · chain verified
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{width:5,height:5,borderRadius:"50%",background:"#18A86B",display:"inline-block",animation:"pulse 2s infinite"}}/>
+          <span style={{fontSize:10,color:"rgba(255,255,255,0.2)"}}>enc: AES-256-GCM · Use ← → arrow keys to navigate</span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
+        *{box-sizing:border-box}
+        button:hover{filter:brightness(1.1)}
+      `}</style>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(CASTWalkthrough));
+</script>
+</body>
+</html>

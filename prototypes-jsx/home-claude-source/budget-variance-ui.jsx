@@ -1,0 +1,529 @@
+import React, { useState, useEffect } from 'react';
+
+const BudgetVarianceUI = () => {
+  // Example: Q1 Marketing Campaign Budget
+  const [events, setEvents] = useState([
+    { id: 1, date: '2025-01-02', type: 'BUDGET_AUTHORIZED', description: 'Q1 Marketing Budget Approved', budgetAmount: 150000, actualAmount: 0, budgetLine: 'MKT-2025-Q1' },
+    { id: 2, date: '2025-01-15', type: 'COMMITMENT_MADE', description: 'PO #4521 - Agency Retainer', budgetAmount: -40000, actualAmount: 0, budgetLine: 'MKT-2025-Q1', commitment: 40000 },
+    { id: 3, date: '2025-01-18', type: 'COMMITMENT_MADE', description: 'PO #4522 - Media Buy Q1', budgetAmount: -65000, actualAmount: 0, budgetLine: 'MKT-2025-Q1', commitment: 65000 },
+    { id: 4, date: '2025-02-01', type: 'DISBURSEMENT', description: 'Invoice #INV-2201 - Agency Jan', budgetAmount: 0, actualAmount: 13500, budgetLine: 'MKT-2025-Q1', clears: 'PO #4521' },
+    { id: 5, date: '2025-02-10', type: 'DISBURSEMENT', description: 'Invoice #INV-2215 - Media Jan', budgetAmount: 0, actualAmount: 22000, budgetLine: 'MKT-2025-Q1', clears: 'PO #4522' },
+    { id: 6, date: '2025-02-15', type: 'COMMITMENT_MADE', description: 'PO #4538 - Event Sponsorship', budgetAmount: -28000, actualAmount: 0, budgetLine: 'MKT-2025-Q1', commitment: 28000 },
+    { id: 7, date: '2025-03-01', type: 'DISBURSEMENT', description: 'Invoice #INV-2301 - Agency Feb', budgetAmount: 0, actualAmount: 13500, budgetLine: 'MKT-2025-Q1', clears: 'PO #4521' },
+    { id: 8, date: '2025-03-05', type: 'DISBURSEMENT', description: 'Invoice #INV-2318 - Media Feb', budgetAmount: 0, actualAmount: 24500, budgetLine: 'MKT-2025-Q1', clears: 'PO #4522' },
+  ]);
+
+  const [selectedEventIndex, setSelectedEventIndex] = useState(events.length - 1);
+  const [hoveredEvent, setHoveredEvent] = useState(null);
+
+  // Calculate running state at each event
+  const calculateStateAtEvent = (upToIndex) => {
+    let totalBudget = 0;
+    let totalActual = 0;
+    let totalCommitted = 0;
+    
+    const commitmentBalances = {};
+    
+    for (let i = 0; i <= upToIndex; i++) {
+      const event = events[i];
+      
+      if (event.type === 'BUDGET_AUTHORIZED') {
+        totalBudget += event.budgetAmount;
+      } else if (event.type === 'COMMITMENT_MADE') {
+        totalCommitted += event.commitment;
+        commitmentBalances[event.description.split(' - ')[0]] = event.commitment;
+      } else if (event.type === 'DISBURSEMENT') {
+        totalActual += event.actualAmount;
+      } else if (event.type === 'BUDGET_RELEASED') {
+        totalBudget += event.budgetAmount;
+      }
+    }
+    
+    const availableBudget = totalBudget - totalCommitted;
+    const uncommittedDisbursements = 0; // Track spending outside commitments
+    
+    return {
+      totalBudget,
+      totalActual,
+      totalCommitted,
+      availableBudget,
+      remainingCommitment: totalCommitted - totalActual,
+      variance: totalBudget - totalActual - (totalCommitted - totalActual) - availableBudget,
+      utilizationPct: ((totalActual + (totalCommitted - totalActual)) / totalBudget) * 100,
+      spentPct: (totalActual / totalBudget) * 100
+    };
+  };
+
+  const currentState = calculateStateAtEvent(selectedEventIndex);
+  
+  // Complex plane visualization coordinates
+  const planeSize = 280;
+  const planeCenter = planeSize / 2;
+  const scale = planeSize / (currentState.totalBudget * 2.4);
+  
+  // Position on complex plane: Real = Actual, Imaginary = Remaining Budget Authority
+  const actualX = planeCenter + (currentState.totalActual * scale);
+  const budgetY = planeCenter - ((currentState.totalBudget - currentState.totalActual) * scale);
+  
+  // Calculate positions for the budget breakdown
+  const committedY = planeCenter - (currentState.remainingCommitment * scale);
+  const availableY = planeCenter - ((currentState.availableBudget + currentState.remainingCommitment) * scale);
+
+  const getEventIcon = (type) => {
+    switch(type) {
+      case 'BUDGET_AUTHORIZED': return '◈';
+      case 'COMMITMENT_MADE': return '◇';
+      case 'DISBURSEMENT': return '●';
+      case 'BUDGET_RELEASED': return '○';
+      default: return '•';
+    }
+  };
+
+  const getEventColor = (type) => {
+    switch(type) {
+      case 'BUDGET_AUTHORIZED': return '#10b981';
+      case 'COMMITMENT_MADE': return '#f59e0b';
+      case 'DISBURSEMENT': return '#3b82f6';
+      case 'BUDGET_RELEASED': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0a0a0f',
+      color: '#e2e2e8',
+      fontFamily: "'IBM Plex Mono', 'SF Mono', monospace",
+      padding: '32px',
+      backgroundImage: `
+        radial-gradient(ellipse at 20% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)
+      `
+    }}>
+      {/* Header */}
+      <div style={{ marginBottom: '40px' }}>
+        <div style={{ 
+          fontSize: '10px', 
+          letterSpacing: '3px', 
+          color: '#6b7280',
+          marginBottom: '8px',
+          textTransform: 'uppercase'
+        }}>
+          Budget Coordination System
+        </div>
+        <h1 style={{ 
+          fontSize: '28px', 
+          fontWeight: '300',
+          margin: 0,
+          letterSpacing: '-0.5px',
+          color: '#f8f8fc'
+        }}>
+          Q1 Marketing Campaign
+        </h1>
+        <div style={{ 
+          fontSize: '13px', 
+          color: '#6b7280',
+          marginTop: '4px'
+        }}>
+          MKT-2025-Q1 · State as of {events[selectedEventIndex].date}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '48px' }}>
+        
+        {/* Left Column - State Summary + Event Log */}
+        <div>
+          {/* Current State Cards */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(4, 1fr)', 
+            gap: '16px',
+            marginBottom: '40px'
+          }}>
+            {[
+              { label: 'Authorized', value: currentState.totalBudget, color: '#10b981', sub: 'Total Budget' },
+              { label: 'Disbursed', value: currentState.totalActual, color: '#3b82f6', sub: `${currentState.spentPct.toFixed(1)}% of budget` },
+              { label: 'Committed', value: currentState.remainingCommitment, color: '#f59e0b', sub: 'Pending spend' },
+              { label: 'Available', value: currentState.availableBudget, color: '#8b5cf6', sub: 'Uncommitted' },
+            ].map((card, i) => (
+              <div key={i} style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '8px',
+                padding: '20px',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '2px',
+                  background: card.color,
+                  opacity: 0.8
+                }} />
+                <div style={{ 
+                  fontSize: '10px', 
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.5px',
+                  color: '#6b7280',
+                  marginBottom: '8px'
+                }}>
+                  {card.label}
+                </div>
+                <div style={{ 
+                  fontSize: '22px', 
+                  fontWeight: '500',
+                  color: card.color,
+                  marginBottom: '4px',
+                  fontFeatureSettings: '"tnum"'
+                }}>
+                  {formatCurrency(card.value)}
+                </div>
+                <div style={{ fontSize: '11px', color: '#4b5563' }}>
+                  {card.sub}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Event Log */}
+          <div>
+            <div style={{ 
+              fontSize: '10px', 
+              letterSpacing: '2px', 
+              color: '#6b7280',
+              marginBottom: '16px',
+              textTransform: 'uppercase'
+            }}>
+              Event Log · Causal Chain
+            </div>
+            
+            <div style={{ position: 'relative' }}>
+              {/* Timeline line */}
+              <div style={{
+                position: 'absolute',
+                left: '7px',
+                top: '20px',
+                bottom: '20px',
+                width: '1px',
+                background: 'linear-gradient(to bottom, rgba(107,114,128,0.3), rgba(107,114,128,0.1))'
+              }} />
+              
+              {events.map((event, index) => {
+                const isSelected = index === selectedEventIndex;
+                const isPast = index <= selectedEventIndex;
+                
+                return (
+                  <div
+                    key={event.id}
+                    onClick={() => setSelectedEventIndex(index)}
+                    onMouseEnter={() => setHoveredEvent(index)}
+                    onMouseLeave={() => setHoveredEvent(null)}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '14px 90px 1fr auto',
+                      gap: '16px',
+                      alignItems: 'center',
+                      padding: '12px 16px 12px 0',
+                      marginLeft: '0',
+                      cursor: 'pointer',
+                      borderRadius: '6px',
+                      background: isSelected 
+                        ? 'linear-gradient(90deg, rgba(59,130,246,0.1) 0%, transparent 100%)'
+                        : hoveredEvent === index 
+                          ? 'rgba(255,255,255,0.02)'
+                          : 'transparent',
+                      opacity: isPast ? 1 : 0.4,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {/* Event icon */}
+                    <div style={{
+                      fontSize: '14px',
+                      color: getEventColor(event.type),
+                      textAlign: 'center',
+                      position: 'relative',
+                      zIndex: 1
+                    }}>
+                      {getEventIcon(event.type)}
+                    </div>
+                    
+                    {/* Date */}
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#6b7280',
+                      fontFeatureSettings: '"tnum"'
+                    }}>
+                      {event.date}
+                    </div>
+                    
+                    {/* Description */}
+                    <div>
+                      <div style={{
+                        fontSize: '13px',
+                        color: isPast ? '#e2e2e8' : '#6b7280',
+                        marginBottom: '2px'
+                      }}>
+                        {event.description}
+                      </div>
+                      {event.clears && (
+                        <div style={{
+                          fontSize: '10px',
+                          color: '#4b5563'
+                        }}>
+                          Clears commitment: {event.clears}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Amount */}
+                    <div style={{
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: getEventColor(event.type),
+                      textAlign: 'right',
+                      fontFeatureSettings: '"tnum"'
+                    }}>
+                      {event.budgetAmount !== 0 && (
+                        <span>{event.budgetAmount > 0 ? '+' : ''}{formatCurrency(event.budgetAmount)}</span>
+                      )}
+                      {event.commitment && (
+                        <span style={{ color: '#f59e0b' }}>⟨{formatCurrency(event.commitment)}⟩</span>
+                      )}
+                      {event.actualAmount !== 0 && (
+                        <span>{formatCurrency(event.actualAmount)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Complex Plane Visualization */}
+        <div>
+          <div style={{ 
+            fontSize: '10px', 
+            letterSpacing: '2px', 
+            color: '#6b7280',
+            marginBottom: '16px',
+            textTransform: 'uppercase'
+          }}>
+            Algebraic State · Complex Plane
+          </div>
+          
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px'
+          }}>
+            <svg width={planeSize} height={planeSize} style={{ display: 'block', margin: '0 auto' }}>
+              {/* Grid */}
+              <defs>
+                <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>
+                </pattern>
+                <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                  <rect width="60" height="60" fill="url(#smallGrid)"/>
+                  <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>
+                </pattern>
+              </defs>
+              <rect width={planeSize} height={planeSize} fill="url(#grid)" rx="8"/>
+              
+              {/* Axes */}
+              <line x1="0" y1={planeCenter} x2={planeSize} y2={planeCenter} stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+              <line x1={planeCenter} y1="0" x2={planeCenter} y2={planeSize} stroke="rgba(255,255,255,0.15)" strokeWidth="1"/>
+              
+              {/* Axis labels */}
+              <text x={planeSize - 8} y={planeCenter - 8} fill="#6b7280" fontSize="9" textAnchor="end">Actual →</text>
+              <text x={planeCenter + 8} y="14" fill="#6b7280" fontSize="9">↑ Budget</text>
+              
+              {/* Origin marker */}
+              <circle cx={planeCenter} cy={planeCenter} r="3" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
+              
+              {/* Budget authority zone (full budget on imaginary axis) */}
+              <circle 
+                cx={planeCenter} 
+                cy={planeCenter} 
+                r={currentState.totalBudget * scale} 
+                fill="none" 
+                stroke="rgba(16,185,129,0.2)" 
+                strokeWidth="1"
+                strokeDasharray="4 4"
+              />
+              
+              {/* Current state position */}
+              <g>
+                {/* Line from origin to current state */}
+                <line 
+                  x1={planeCenter} 
+                  y1={planeCenter} 
+                  x2={actualX} 
+                  y2={planeCenter - ((currentState.totalBudget - currentState.totalActual) * scale)}
+                  stroke="rgba(59,130,246,0.4)"
+                  strokeWidth="1"
+                  strokeDasharray="4 2"
+                />
+                
+                {/* Actual (real axis projection) */}
+                <line 
+                  x1={planeCenter} 
+                  y1={planeCenter} 
+                  x2={actualX} 
+                  y2={planeCenter}
+                  stroke="#3b82f6"
+                  strokeWidth="2"
+                />
+                <circle cx={actualX} cy={planeCenter} r="4" fill="#3b82f6"/>
+                
+                {/* Remaining budget breakdown on imaginary axis */}
+                {/* Available */}
+                <line 
+                  x1={planeCenter} 
+                  y1={planeCenter} 
+                  x2={planeCenter} 
+                  y2={planeCenter - (currentState.availableBudget * scale)}
+                  stroke="#8b5cf6"
+                  strokeWidth="3"
+                />
+                
+                {/* Committed (stacked above available) */}
+                <line 
+                  x1={planeCenter} 
+                  y1={planeCenter - (currentState.availableBudget * scale)} 
+                  x2={planeCenter} 
+                  y2={planeCenter - ((currentState.availableBudget + currentState.remainingCommitment) * scale)}
+                  stroke="#f59e0b"
+                  strokeWidth="3"
+                />
+                
+                {/* Current state point */}
+                <circle 
+                  cx={actualX} 
+                  cy={planeCenter - ((currentState.totalBudget - currentState.totalActual) * scale)} 
+                  r="6" 
+                  fill="#0a0a0f"
+                  stroke="#3b82f6"
+                  strokeWidth="2"
+                />
+              </g>
+              
+              {/* Legend */}
+              <g transform="translate(12, 240)">
+                <rect x="0" y="0" width="8" height="8" fill="#3b82f6" rx="1"/>
+                <text x="14" y="7" fill="#6b7280" fontSize="9">Disbursed</text>
+                
+                <rect x="0" y="14" width="8" height="8" fill="#f59e0b" rx="1"/>
+                <text x="14" y="21" fill="#6b7280" fontSize="9">Committed</text>
+                
+                <rect x="0" y="28" width="8" height="8" fill="#8b5cf6" rx="1"/>
+                <text x="14" y="35" fill="#6b7280" fontSize="9">Available</text>
+              </g>
+            </svg>
+          </div>
+          
+          {/* Algebraic representation */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '12px',
+            padding: '20px',
+            fontFamily: "'IBM Plex Mono', monospace"
+          }}>
+            <div style={{ 
+              fontSize: '10px', 
+              letterSpacing: '1.5px', 
+              color: '#6b7280',
+              marginBottom: '16px',
+              textTransform: 'uppercase'
+            }}>
+              State Vector
+            </div>
+            
+            <div style={{ 
+              fontSize: '14px',
+              lineHeight: '2',
+              color: '#e2e2e8'
+            }}>
+              <div>
+                <span style={{ color: '#6b7280' }}>Z</span> = 
+                <span style={{ color: '#3b82f6', marginLeft: '8px' }}>{formatCurrency(currentState.totalActual)}</span>
+                <span style={{ color: '#6b7280', margin: '0 4px' }}>+</span>
+                <span style={{ color: '#10b981' }}>{formatCurrency(currentState.totalBudget - currentState.totalActual)}</span>
+                <span style={{ color: '#10b981', fontStyle: 'italic' }}>i</span>
+              </div>
+              
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#4b5563',
+                marginTop: '8px',
+                paddingTop: '12px',
+                borderTop: '1px solid rgba(255,255,255,0.06)'
+              }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{ color: '#6b7280', width: '100px', display: 'inline-block' }}>Real:</span>
+                  <span style={{ color: '#3b82f6' }}>Cash disbursed</span>
+                </div>
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{ color: '#6b7280', width: '100px', display: 'inline-block' }}>Imaginary:</span>
+                  <span style={{ color: '#10b981' }}>Remaining authority</span>
+                </div>
+                <div>
+                  <span style={{ color: '#6b7280', width: '100px', display: 'inline-block' }}>|Z|:</span>
+                  <span style={{ color: '#e2e2e8' }}>{formatCurrency(currentState.totalBudget)}</span>
+                  <span style={{ color: '#4b5563', marginLeft: '8px' }}>(magnitude = budget)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Invariant check */}
+          <div style={{
+            marginTop: '16px',
+            padding: '16px',
+            background: 'rgba(16,185,129,0.05)',
+            border: '1px solid rgba(16,185,129,0.2)',
+            borderRadius: '8px'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              fontSize: '11px'
+            }}>
+              <span style={{ color: '#10b981', fontSize: '14px' }}>✓</span>
+              <span style={{ color: '#10b981' }}>Invariant holds</span>
+              <span style={{ color: '#4b5563', marginLeft: 'auto' }}>
+                Σ = 0
+              </span>
+            </div>
+            <div style={{ 
+              fontSize: '10px', 
+              color: '#4b5563',
+              marginTop: '8px'
+            }}>
+              Budget authorized − Committed − Disbursed − Available = 0
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BudgetVarianceUI;

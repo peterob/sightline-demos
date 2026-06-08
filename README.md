@@ -4,7 +4,7 @@ Private prototype gallery for customer demos, sales conversations, and CFO advis
 
 ## What's Inside
 
-- **137 prototypes** — 22 curated + 38 HTML + 8 JSX (past 90 days) + 25 HTML + 44 JSX (past year, Dec 2025–Mar 2026)
+- **167 prototypes** — 22 curated + 62 HTML + 83 JSX (React wrapped) — from chat exports spanning Dec 2025 – Jun 2026
 - **Master lead-sheet** as the new homepage (`index.html`) — dense vertical list, sorted newest first, search/filter by category, status, and type
 - **Curated gallery view** preserved at `gallery.html` (the original card-style grid)
 - **6 strategy documents** in `docs/` (catalog, feature matrix, demo paths, design insights, settlement architecture, proof-based settlement)
@@ -27,12 +27,13 @@ sightline-demos/
 │   └── …
 ├── prototypes-2025/        # 25 HTML prototypes from Claude Chat (Dec 2025–Feb 2026)
 │   └── …
-├── prototypes-2026/        # 38 HTML prototypes from Claude Chat (Mar–Jun 2026)
+├── prototypes-2026/        # 37 HTML prototypes from Claude Chat (Mar–Jun 2026)
 │   └── …
-└── prototypes-jsx/         # 52 React/JSX prototypes wrapped to render in-browser
-    ├── *.html              # Self-contained wrappers (Babel standalone + CDN React)
+└── prototypes-jsx/         # 83 React/JSX prototypes wrapped to render in-browser
+    ├── *.html              # 81 self-contained wrappers (Babel standalone + CDN React)
     ├── source/             # Original .jsx files from past 90 days (8 files)
-    └── 2025-source/        # Original .jsx files from past year (44 files)
+    ├── 2025-source/        # Original .jsx files from past year (44 files)
+    └── home-claude-source/ # Original .jsx files from /home/claude/ scratch dir (31 files)
 ```
 
 ## How to Use the Lead Sheet
@@ -93,4 +94,4 @@ For password protection, switch to Netlify, Cloudflare Pages Access, or Vercel �
 
 ---
 
-Generated: June 2026 · 137 prototypes total · 22 curated + 63 HTML + 52 JSX from Claude Chat data exports (past year + past 90 days)
+Generated: June 2026 · 167 prototypes total · 22 curated + 62 HTML + 83 JSX from Claude Chat data exports (past year + past 90 days + /home/claude/ scratch dir)
