@@ -1,0 +1,1138 @@
+import React, { useState } from 'react';
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from 'recharts';
+
+/*
+ * SIGHTLINE - Complete Clickable Prototype v3
+ * ============================================
+ * Enhanced with:
+ * - Monthly Income Statement view
+ * - YTD Income Statement with drill-down
+ * - Budget vs Actuals comparison
+ * - Vendor and invoice detail views
+ */
+
+// ============================================
+// MONTHLY FINANCIAL DATA
+// ============================================
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const monthlyData = {
+  Jan: {
+    revenue: { budget: 680000, actual: 695000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 516000, actual: 528000 },
+      { code: '4200', name: 'F&B Revenue', budget: 105000, actual: 112000 },
+      { code: '4300', name: 'Golf Operations', budget: 42000, actual: 38000 },
+      { code: '4400', name: 'Other Income', budget: 17000, actual: 17000 },
+    ]},
+    expenses: { budget: 505000, actual: 492000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 198000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 145000, actual: 142000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 75000, actual: 72000 },
+      { code: '5400', name: 'Utilities', budget: 32000, actual: 28000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 21000 },
+    ]},
+  },
+  Feb: {
+    revenue: { budget: 680000, actual: 672000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 516000, actual: 512000 },
+      { code: '4200', name: 'F&B Revenue', budget: 105000, actual: 98000 },
+      { code: '4300', name: 'Golf Operations', budget: 42000, actual: 45000 },
+      { code: '4400', name: 'Other Income', budget: 17000, actual: 17000 },
+    ]},
+    expenses: { budget: 505000, actual: 518000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 205000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 145000, actual: 152000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 75000, actual: 78000 },
+      { code: '5400', name: 'Utilities', budget: 32000, actual: 31000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 21000 },
+    ]},
+  },
+  Mar: {
+    revenue: { budget: 695000, actual: 718000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 516000, actual: 530000 },
+      { code: '4200', name: 'F&B Revenue', budget: 115000, actual: 125000 },
+      { code: '4300', name: 'Golf Operations', budget: 45000, actual: 48000 },
+      { code: '4400', name: 'Other Income', budget: 19000, actual: 15000 },
+    ]},
+    expenses: { budget: 515000, actual: 528000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 202000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 150000, actual: 158000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 78000, actual: 82000 },
+      { code: '5400', name: 'Utilities', budget: 34000, actual: 35000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 20000 },
+    ]},
+  },
+  Apr: {
+    revenue: { budget: 720000, actual: 745000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 520000, actual: 535000 },
+      { code: '4200', name: 'F&B Revenue', budget: 125000, actual: 138000 },
+      { code: '4300', name: 'Golf Operations', budget: 55000, actual: 52000 },
+      { code: '4400', name: 'Other Income', budget: 20000, actual: 20000 },
+    ]},
+    expenses: { budget: 525000, actual: 542000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 198000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 155000, actual: 168000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 82000, actual: 88000 },
+      { code: '5400', name: 'Utilities', budget: 35000, actual: 38000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 19000 },
+    ]},
+  },
+  May: {
+    revenue: { budget: 745000, actual: 762000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 525000, actual: 538000 },
+      { code: '4200', name: 'F&B Revenue', budget: 135000, actual: 142000 },
+      { code: '4300', name: 'Golf Operations', budget: 62000, actual: 58000 },
+      { code: '4400', name: 'Other Income', budget: 23000, actual: 24000 },
+    ]},
+    expenses: { budget: 535000, actual: 548000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 195000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 160000, actual: 172000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 85000, actual: 92000 },
+      { code: '5400', name: 'Utilities', budget: 36000, actual: 38000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 20000 },
+    ]},
+  },
+  Jun: {
+    revenue: { budget: 765000, actual: 778000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 530000, actual: 540000 },
+      { code: '4200', name: 'F&B Revenue', budget: 145000, actual: 152000 },
+      { code: '4300', name: 'Golf Operations', budget: 65000, actual: 62000 },
+      { code: '4400', name: 'Other Income', budget: 25000, actual: 24000 },
+    ]},
+    expenses: { budget: 545000, actual: 562000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 198000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 165000, actual: 178000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 88000, actual: 95000 },
+      { code: '5400', name: 'Utilities', budget: 38000, actual: 42000 },
+      { code: '5500', name: 'Insurance', budget: 31000, actual: 31000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 18000 },
+    ]},
+  },
+  Jul: {
+    revenue: { budget: 780000, actual: 795000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 535000, actual: 548000 },
+      { code: '4200', name: 'F&B Revenue', budget: 150000, actual: 158000 },
+      { code: '4300', name: 'Golf Operations', budget: 68000, actual: 62000 },
+      { code: '4400', name: 'Other Income', budget: 27000, actual: 27000 },
+    ]},
+    expenses: { budget: 555000, actual: 572000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 202000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 170000, actual: 182000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 90000, actual: 98000 },
+      { code: '5400', name: 'Utilities', budget: 40000, actual: 45000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 32000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 13000 },
+    ]},
+  },
+  Aug: {
+    revenue: { budget: 775000, actual: 788000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 532000, actual: 545000 },
+      { code: '4200', name: 'F&B Revenue', budget: 148000, actual: 155000 },
+      { code: '4300', name: 'Golf Operations', budget: 68000, actual: 61000 },
+      { code: '4400', name: 'Other Income', budget: 27000, actual: 27000 },
+    ]},
+    expenses: { budget: 550000, actual: 568000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 198000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 168000, actual: 178000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 88000, actual: 102000 },
+      { code: '5400', name: 'Utilities', budget: 40000, actual: 46000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 32000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 12000 },
+    ]},
+  },
+  Sep: {
+    revenue: { budget: 755000, actual: 742000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 528000, actual: 520000 },
+      { code: '4200', name: 'F&B Revenue', budget: 138000, actual: 135000 },
+      { code: '4300', name: 'Golf Operations', budget: 62000, actual: 58000 },
+      { code: '4400', name: 'Other Income', budget: 27000, actual: 29000 },
+    ]},
+    expenses: { budget: 540000, actual: 558000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 198000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 162000, actual: 175000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 85000, actual: 95000 },
+      { code: '5400', name: 'Utilities', budget: 38000, actual: 42000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 32000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 16000 },
+    ]},
+  },
+  Oct: {
+    revenue: { budget: 735000, actual: 752000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 522000, actual: 535000 },
+      { code: '4200', name: 'F&B Revenue', budget: 130000, actual: 138000 },
+      { code: '4300', name: 'Golf Operations', budget: 58000, actual: 52000 },
+      { code: '4400', name: 'Other Income', budget: 25000, actual: 27000 },
+    ]},
+    expenses: { budget: 530000, actual: 552000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 196000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 158000, actual: 172000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 82000, actual: 92000 },
+      { code: '5400', name: 'Utilities', budget: 36000, actual: 42000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 32000 },
+      { code: '5600', name: 'Admin & Professional', budget: 22000, actual: 18000 },
+    ]},
+  },
+  Nov: {
+    revenue: { budget: 710000, actual: 698000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 518000, actual: 508000 },
+      { code: '4200', name: 'F&B Revenue', budget: 118000, actual: 115000 },
+      { code: '4300', name: 'Golf Operations', budget: 52000, actual: 48000 },
+      { code: '4400', name: 'Other Income', budget: 22000, actual: 27000 },
+    ]},
+    expenses: { budget: 520000, actual: 545000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 195000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 152000, actual: 168000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 78000, actual: 88000 },
+      { code: '5400', name: 'Utilities', budget: 35000, actual: 42000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 32000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 20000 },
+    ]},
+  },
+  Dec: {
+    revenue: { budget: 760000, actual: 775000, accounts: [
+      { code: '4100', name: 'Membership Dues', budget: 527000, actual: 541000 },
+      { code: '4200', name: 'F&B Revenue', budget: 148000, actual: 152000 },
+      { code: '4300', name: 'Golf Operations', budget: 56000, actual: 52000 },
+      { code: '4400', name: 'Other Income', budget: 29000, actual: 30000 },
+    ]},
+    expenses: { budget: 535000, actual: 565000, accounts: [
+      { code: '5100', name: 'Payroll & Benefits', budget: 200000, actual: 195000 },
+      { code: '5200', name: 'Food & Beverage Cost', budget: 158000, actual: 175000 },
+      { code: '5300', name: 'Golf Course Maintenance', budget: 84000, actual: 98000 },
+      { code: '5400', name: 'Utilities', budget: 38000, actual: 46000 },
+      { code: '5500', name: 'Insurance', budget: 32000, actual: 38000 },
+      { code: '5600', name: 'Admin & Professional', budget: 23000, actual: 13000 },
+    ]},
+    // December has detailed vendor/invoice data
+    vendorDetail: {
+      '5100': [
+        { name: 'ADP Payroll Services', invoices: [
+          { id: 'ADP-2024-23', date: 'Dec 1', amount: 97500, status: 'paid', desc: 'Bi-weekly payroll' },
+          { id: 'ADP-2024-24', date: 'Dec 15', amount: 97500, status: 'pending', desc: 'Bi-weekly payroll' },
+        ]},
+      ],
+      '5200': [
+        { name: 'Sysco Foods', invoices: [
+          { id: 'SYS-847291', date: 'Dec 8', amount: 34200, status: 'paid', desc: 'Weekly food order' },
+          { id: 'SYS-847456', date: 'Dec 15', amount: 31800, status: 'pending', desc: 'Weekly food order' },
+        ]},
+        { name: 'Southern Wine & Spirits', invoices: [
+          { id: 'SWS-12847', date: 'Dec 5', amount: 18400, status: 'paid', desc: 'Beverage restock' },
+        ]},
+      ],
+      '5300': [
+        { name: 'Toro Equipment Co.', invoices: [
+          { id: 'TORO-2024-1847', date: 'Dec 9', amount: 47500, status: 'paid', desc: 'Mower parts & service' },
+        ]},
+        { name: 'Premium Landscaping LLC', invoices: [
+          { id: 'PL-2024-089', date: 'Dec 8', amount: 28000, status: 'flagged', desc: 'Monthly grounds', flagged: true },
+        ]},
+      ],
+      '5400': [
+        { name: 'Florida Power & Light', invoices: [
+          { id: 'FPL-Dec', date: 'Dec 6', amount: 28750, status: 'paid', desc: 'Monthly electric' },
+        ]},
+        { name: 'Palm Beach Water', invoices: [
+          { id: 'PBWU-Dec', date: 'Dec 10', amount: 12400, status: 'pending', desc: 'Water/sewer' },
+        ]},
+      ],
+      '5500': [
+        { name: 'Hartford Insurance', invoices: [
+          { id: 'HART-Dec', date: 'Dec 1', amount: 38000, status: 'paid', desc: 'Monthly premium' },
+        ]},
+      ],
+      '5600': [
+        { name: 'Smith & Associates CPA', invoices: [
+          { id: 'SA-2024-12', date: 'Dec 1', amount: 8500, status: 'paid', desc: 'Monthly accounting' },
+        ]},
+        { name: 'Microsoft 365', invoices: [
+          { id: 'MS-Dec', date: 'Dec 1', amount: 1200, status: 'paid', desc: 'Subscription' },
+        ]},
+      ],
+    }
+  },
+};
+
+// Calculate YTD totals
+const calculateYTD = () => {
+  let revBudget = 0, revActual = 0, expBudget = 0, expActual = 0;
+  const accountTotals = {};
+  
+  months.forEach(m => {
+    const data = monthlyData[m];
+    if (data) {
+      revBudget += data.revenue.budget;
+      revActual += data.revenue.actual;
+      expBudget += data.expenses.budget;
+      expActual += data.expenses.actual;
+      
+      data.revenue.accounts.forEach(a => {
+        if (!accountTotals[a.code]) accountTotals[a.code] = { ...a, budget: 0, actual: 0 };
+        accountTotals[a.code].budget += a.budget;
+        accountTotals[a.code].actual += a.actual;
+      });
+      data.expenses.accounts.forEach(a => {
+        if (!accountTotals[a.code]) accountTotals[a.code] = { ...a, budget: 0, actual: 0 };
+        accountTotals[a.code].budget += a.budget;
+        accountTotals[a.code].actual += a.actual;
+      });
+    }
+  });
+  
+  return { revBudget, revActual, expBudget, expActual, accountTotals };
+};
+
+const ytd = calculateYTD();
+
+// Build chart data
+const chartData = months.map(m => {
+  const d = monthlyData[m];
+  return {
+    month: m,
+    revBudget: d?.revenue.budget || 0,
+    revActual: d?.revenue.actual || 0,
+    expBudget: d?.expenses.budget || 0,
+    expActual: d?.expenses.actual || 0,
+    netBudget: (d?.revenue.budget || 0) - (d?.expenses.budget || 0),
+    netActual: (d?.revenue.actual || 0) - (d?.expenses.actual || 0),
+  };
+});
+
+const fmt = (v) => {
+  const abs = Math.abs(v);
+  if (abs >= 1e6) return `$${(v/1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `$${(v/1e3).toFixed(0)}K`;
+  return `$${v.toLocaleString()}`;
+};
+
+const fmtFull = (v) => `$${v.toLocaleString()}`;
+
+// ============================================
+// MAIN APP
+// ============================================
+
+export default function SightlinePrototype() {
+  const [screen, setScreen] = useState('overview');
+  const [selectedMonth, setSelectedMonth] = useState('Dec');
+  const [viewMode, setViewMode] = useState('monthly'); // 'monthly' or 'ytd'
+  const [expandedSection, setExpandedSection] = useState(null);
+  const [expandedAccount, setExpandedAccount] = useState(null);
+  const [expandedVendor, setExpandedVendor] = useState(null);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [onboardStep, setOnboardStep] = useState(0);
+  const [notifs, setNotifs] = useState({ anomaly: true, weekly: true, budget: false });
+
+  const nav = (s) => { 
+    setScreen(s); 
+    setExpandedSection(null);
+    setExpandedAccount(null);
+    setExpandedVendor(null);
+    setSelectedInvoice(null);
+  };
+
+  const currentData = monthlyData[selectedMonth];
+  const netIncome = viewMode === 'monthly' 
+    ? (currentData?.revenue.actual || 0) - (currentData?.expenses.actual || 0)
+    : ytd.revActual - ytd.expActual;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        .font-display { font-family: 'Fraunces', serif; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); }
+        .card { background: white; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); }
+        .btn-primary { background: linear-gradient(135deg, #292524, #44403c); color: white; }
+        .btn-secondary { background: white; border: 1px solid #e7e5e4; color: #44403c; }
+        .severity-high { background: #fef2f2; border-left: 3px solid #ef4444; }
+        .severity-medium { background: #fffbeb; border-left: 3px solid #f59e0b; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+        .row-hover:hover { background: #fafaf9; }
+        .month-btn { transition: all 0.2s; }
+        .month-btn:hover { background: #f5f5f4; }
+        .month-btn.active { background: #292524; color: white; }
+        .drill-row { border-left: 3px solid #e7e5e4; }
+        .drill-row-l2 { border-left: 3px solid #d6d3d1; margin-left: 1rem; }
+        .drill-row-l3 { border-left: 3px solid #a8a29e; margin-left: 2rem; }
+      `}</style>
+
+      {/* NAV */}
+      <nav className="glass sticky top-0 z-50 border-b border-stone-200/50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-stone-800 to-stone-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <span className="font-display text-xl font-semibold text-stone-800">Sightline</span>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">PROTOTYPE v3</span>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { id: 'overview', label: 'Dashboard', icon: '💻' },
+              { id: 'monthly', label: 'Monthly View', icon: '📅' },
+              { id: 'income-statement', label: 'Income Statement', icon: '📋' },
+              { id: 'budget-vs-actual', label: 'Budget vs Actual', icon: '📊' },
+              { id: 'anomaly', label: 'Anomaly', icon: '⚠️' },
+              { id: 'settings', label: 'Settings', icon: '⚙️' },
+            ].map(t => (
+              <button key={t.id} onClick={() => nav(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${screen === t.id ? 'bg-stone-800 text-white' : 'bg-white text-stone-600 hover:bg-stone-50 shadow-sm'}`}>
+                <span>{t.icon}</span><span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* ===== DASHBOARD ===== */}
+        {screen === 'overview' && (
+          <div className="fade-in space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-stone-800">Palm Harbor Country Club</h1>
+                <p className="text-stone-500 mt-1">Financial Overview · 2024</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-white font-medium">JW</div>
+            </div>
+
+            {/* Alert */}
+            <div className="card p-4 border-l-4 border-amber-400 bg-gradient-to-r from-amber-50 to-white cursor-pointer" onClick={() => nav('anomaly')}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">⚠️</div>
+                  <div>
+                    <div className="font-medium text-stone-800">1 transaction requires attention</div>
+                    <div className="text-sm text-stone-500">Premium Landscaping LLC - $28,000 flagged</div>
+                  </div>
+                </div>
+                <button className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium">Review</button>
+              </div>
+            </div>
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="card p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('income-statement')}>
+                <div className="text-xs text-stone-400 uppercase tracking-wider">YTD Revenue</div>
+                <div className="font-display text-2xl font-semibold text-stone-800 mt-1">{fmt(ytd.revActual)}</div>
+                <div className={`text-sm mt-1 ${ytd.revActual >= ytd.revBudget ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {ytd.revActual >= ytd.revBudget ? '+' : ''}{fmt(ytd.revActual - ytd.revBudget)} vs budget
+                </div>
+              </div>
+              <div className="card p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('income-statement')}>
+                <div className="text-xs text-stone-400 uppercase tracking-wider">YTD Expenses</div>
+                <div className="font-display text-2xl font-semibold text-stone-800 mt-1">{fmt(ytd.expActual)}</div>
+                <div className={`text-sm mt-1 ${ytd.expActual <= ytd.expBudget ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {ytd.expActual > ytd.expBudget ? '+' : ''}{fmt(ytd.expActual - ytd.expBudget)} vs budget
+                </div>
+              </div>
+              <div className="card p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('budget-vs-actual')}>
+                <div className="text-xs text-stone-400 uppercase tracking-wider">YTD Net Income</div>
+                <div className={`font-display text-2xl font-semibold mt-1 ${ytd.revActual - ytd.expActual >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {fmt(ytd.revActual - ytd.expActual)}
+                </div>
+                <div className="text-sm text-stone-500 mt-1">{(((ytd.revActual - ytd.expActual) / ytd.revActual) * 100).toFixed(1)}% margin</div>
+              </div>
+              <div className="card p-5 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('monthly')}>
+                <div className="text-xs text-stone-400 uppercase tracking-wider">December Net</div>
+                <div className={`font-display text-2xl font-semibold mt-1 ${(monthlyData.Dec.revenue.actual - monthlyData.Dec.expenses.actual) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {fmt(monthlyData.Dec.revenue.actual - monthlyData.Dec.expenses.actual)}
+                </div>
+                <div className="text-sm text-stone-500 mt-1">View monthly →</div>
+              </div>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="card p-6">
+                <h3 className="font-display text-lg font-semibold text-stone-800 mb-4">Monthly Net Income</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData}>
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1000}K`} />
+                    <Tooltip formatter={(v) => [fmtFull(v), '']} />
+                    <Bar dataKey="netActual" radius={[4, 4, 0, 0]} name="Net Income">
+                      {chartData.map((entry, index) => (
+                        <Cell key={index} fill={entry.netActual >= entry.netBudget ? '#10b981' : '#f59e0b'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="card p-6">
+                <h3 className="font-display text-lg font-semibold text-stone-800 mb-4">Revenue vs Expenses Trend</h3>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={chartData}>
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1000}K`} />
+                    <Tooltip formatter={(v) => [fmtFull(v), '']} />
+                    <Line type="monotone" dataKey="revActual" stroke="#10b981" strokeWidth={2} dot={false} name="Revenue" />
+                    <Line type="monotone" dataKey="expActual" stroke="#ef4444" strokeWidth={2} dot={false} name="Expenses" />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="flex justify-center gap-6 mt-2 text-sm">
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Revenue</div>
+                  <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500"></div>Expenses</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Access */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('monthly')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">📅</div>
+                  <div>
+                    <div className="font-medium text-stone-800">Monthly View</div>
+                    <div className="text-sm text-stone-500">Drill into any month</div>
+                  </div>
+                </div>
+              </div>
+              <div className="card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('income-statement')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">📋</div>
+                  <div>
+                    <div className="font-medium text-stone-800">Income Statement</div>
+                    <div className="text-sm text-stone-500">Full P&L with drill-down</div>
+                  </div>
+                </div>
+              </div>
+              <div className="card p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => nav('budget-vs-actual')}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">📊</div>
+                  <div>
+                    <div className="font-medium text-stone-800">Budget Analysis</div>
+                    <div className="text-sm text-stone-500">Variance by account</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== MONTHLY VIEW ===== */}
+        {screen === 'monthly' && (
+          <div className="fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Monthly Financial View</h1>
+                <p className="text-stone-500">Select a month to see detailed income statement</p>
+              </div>
+              <button className="px-4 py-2 btn-primary rounded-xl text-sm font-medium">Export</button>
+            </div>
+
+            {/* Month Selector */}
+            <div className="card p-4 mb-6">
+              <div className="flex gap-1">
+                {months.map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setSelectedMonth(m)}
+                    className={`month-btn flex-1 py-2 rounded-lg text-sm font-medium ${selectedMonth === m ? 'active' : ''}`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Monthly Summary Cards */}
+            {currentData && (
+              <>
+                <div className="grid grid-cols-5 gap-4 mb-6">
+                  <div className="card p-4 bg-emerald-50 border border-emerald-200">
+                    <div className="text-xs text-emerald-600 uppercase">Revenue</div>
+                    <div className="font-display text-xl font-semibold text-emerald-700">{fmt(currentData.revenue.actual)}</div>
+                    <div className="text-sm text-emerald-600">
+                      {currentData.revenue.actual >= currentData.revenue.budget ? '+' : ''}{fmt(currentData.revenue.actual - currentData.revenue.budget)}
+                    </div>
+                  </div>
+                  <div className="card p-4 bg-red-50 border border-red-200">
+                    <div className="text-xs text-red-600 uppercase">Expenses</div>
+                    <div className="font-display text-xl font-semibold text-red-700">{fmt(currentData.expenses.actual)}</div>
+                    <div className="text-sm text-red-600">
+                      {currentData.expenses.actual > currentData.expenses.budget ? '+' : ''}{fmt(currentData.expenses.actual - currentData.expenses.budget)}
+                    </div>
+                  </div>
+                  <div className={`card p-4 ${(currentData.revenue.actual - currentData.expenses.actual) >= 0 ? 'bg-blue-50 border border-blue-200' : 'bg-amber-50 border border-amber-200'}`}>
+                    <div className={`text-xs uppercase ${(currentData.revenue.actual - currentData.expenses.actual) >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>Net Income</div>
+                    <div className={`font-display text-xl font-semibold ${(currentData.revenue.actual - currentData.expenses.actual) >= 0 ? 'text-blue-700' : 'text-amber-700'}`}>
+                      {fmt(currentData.revenue.actual - currentData.expenses.actual)}
+                    </div>
+                  </div>
+                  <div className="card p-4">
+                    <div className="text-xs text-stone-500 uppercase">Budget Variance</div>
+                    <div className={`font-display text-xl font-semibold ${
+                      ((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget)) >= 0 
+                        ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget)) >= 0 ? '+' : ''}
+                      {fmt((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget))}
+                    </div>
+                  </div>
+                  <div className="card p-4">
+                    <div className="text-xs text-stone-500 uppercase">Net Margin</div>
+                    <div className="font-display text-xl font-semibold text-stone-800">
+                      {(((currentData.revenue.actual - currentData.expenses.actual) / currentData.revenue.actual) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Monthly Income Statement */}
+                <div className="card overflow-hidden">
+                  <div className="p-4 bg-stone-50 border-b border-stone-200 flex items-center justify-between">
+                    <h3 className="font-medium text-stone-800">{selectedMonth} 2024 Income Statement</h3>
+                    <span className="text-sm text-stone-500">Click rows to expand</span>
+                  </div>
+
+                  {/* Header */}
+                  <div className="grid grid-cols-12 gap-4 p-4 bg-stone-100 text-xs font-medium text-stone-500 uppercase tracking-wider">
+                    <div className="col-span-5">Account</div>
+                    <div className="col-span-2 text-right">Budget</div>
+                    <div className="col-span-2 text-right">Actual</div>
+                    <div className="col-span-2 text-right">Variance</div>
+                    <div className="col-span-1 text-right">%</div>
+                  </div>
+
+                  {/* Revenue */}
+                  <div 
+                    className="grid grid-cols-12 gap-4 p-4 bg-emerald-50 cursor-pointer row-hover border-b border-stone-100"
+                    onClick={() => setExpandedSection(expandedSection === 'revenue' ? null : 'revenue')}
+                  >
+                    <div className="col-span-5 font-semibold text-emerald-800 flex items-center gap-2">
+                      <span className={`transition-transform ${expandedSection === 'revenue' ? 'rotate-90' : ''}`}>→</span>
+                      Revenue
+                    </div>
+                    <div className="col-span-2 text-right text-stone-600">{fmt(currentData.revenue.budget)}</div>
+                    <div className="col-span-2 text-right font-medium text-emerald-700">{fmt(currentData.revenue.actual)}</div>
+                    <div className={`col-span-2 text-right ${currentData.revenue.actual >= currentData.revenue.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {currentData.revenue.actual >= currentData.revenue.budget ? '+' : ''}{fmt(currentData.revenue.actual - currentData.revenue.budget)}
+                    </div>
+                    <div className={`col-span-1 text-right ${currentData.revenue.actual >= currentData.revenue.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {(((currentData.revenue.actual - currentData.revenue.budget) / currentData.revenue.budget) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+
+                  {expandedSection === 'revenue' && currentData.revenue.accounts.map((acct, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-4 p-4 pl-8 border-b border-stone-100 row-hover drill-row">
+                      <div className="col-span-5 flex items-center gap-2">
+                        <span className="text-stone-400 text-sm">{acct.code}</span>
+                        <span className="text-stone-700">{acct.name}</span>
+                      </div>
+                      <div className="col-span-2 text-right text-stone-500">{fmt(acct.budget)}</div>
+                      <div className="col-span-2 text-right font-medium text-stone-800">{fmt(acct.actual)}</div>
+                      <div className={`col-span-2 text-right ${acct.actual >= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {acct.actual >= acct.budget ? '+' : ''}{fmt(acct.actual - acct.budget)}
+                      </div>
+                      <div className={`col-span-1 text-right ${acct.actual >= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {(((acct.actual - acct.budget) / acct.budget) * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Expenses */}
+                  <div 
+                    className="grid grid-cols-12 gap-4 p-4 bg-red-50 cursor-pointer row-hover border-b border-stone-100"
+                    onClick={() => setExpandedSection(expandedSection === 'expenses' ? null : 'expenses')}
+                  >
+                    <div className="col-span-5 font-semibold text-red-800 flex items-center gap-2">
+                      <span className={`transition-transform ${expandedSection === 'expenses' ? 'rotate-90' : ''}`}>→</span>
+                      Operating Expenses
+                    </div>
+                    <div className="col-span-2 text-right text-stone-600">{fmt(currentData.expenses.budget)}</div>
+                    <div className="col-span-2 text-right font-medium text-red-700">{fmt(currentData.expenses.actual)}</div>
+                    <div className={`col-span-2 text-right ${currentData.expenses.actual <= currentData.expenses.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {currentData.expenses.actual > currentData.expenses.budget ? '+' : ''}{fmt(currentData.expenses.actual - currentData.expenses.budget)}
+                    </div>
+                    <div className={`col-span-1 text-right ${currentData.expenses.actual <= currentData.expenses.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {(((currentData.expenses.actual - currentData.expenses.budget) / currentData.expenses.budget) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+
+                  {expandedSection === 'expenses' && currentData.expenses.accounts.map((acct, ai) => {
+                    const hasVendors = selectedMonth === 'Dec' && currentData.vendorDetail?.[acct.code];
+                    return (
+                      <div key={ai}>
+                        <div 
+                          className={`grid grid-cols-12 gap-4 p-4 pl-8 border-b border-stone-100 row-hover drill-row ${hasVendors ? 'cursor-pointer' : ''}`}
+                          onClick={() => hasVendors && setExpandedAccount(expandedAccount === acct.code ? null : acct.code)}
+                        >
+                          <div className="col-span-5 flex items-center gap-2">
+                            {hasVendors && <span className={`text-stone-400 transition-transform ${expandedAccount === acct.code ? 'rotate-90' : ''}`}>→</span>}
+                            <span className="text-stone-400 text-sm">{acct.code}</span>
+                            <span className="text-stone-700">{acct.name}</span>
+                            {acct.actual > acct.budget * 1.05 && (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Over</span>
+                            )}
+                          </div>
+                          <div className="col-span-2 text-right text-stone-500">{fmt(acct.budget)}</div>
+                          <div className="col-span-2 text-right font-medium text-stone-800">{fmt(acct.actual)}</div>
+                          <div className={`col-span-2 text-right ${acct.actual <= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {acct.actual > acct.budget ? '+' : ''}{fmt(acct.actual - acct.budget)}
+                          </div>
+                          <div className={`col-span-1 text-right ${acct.actual <= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {(((acct.actual - acct.budget) / acct.budget) * 100).toFixed(1)}%
+                          </div>
+                        </div>
+
+                        {/* Vendors */}
+                        {expandedAccount === acct.code && hasVendors && currentData.vendorDetail[acct.code].map((vendor, vi) => (
+                          <div key={vi}>
+                            <div 
+                              className="grid grid-cols-12 gap-4 p-3 pl-12 cursor-pointer row-hover border-b border-stone-50 drill-row-l2"
+                              onClick={() => setExpandedVendor(expandedVendor === `${acct.code}-${vi}` ? null : `${acct.code}-${vi}`)}
+                            >
+                              <div className="col-span-5 flex items-center gap-2 text-sm">
+                                <span className={`text-stone-300 transition-transform ${expandedVendor === `${acct.code}-${vi}` ? 'rotate-90' : ''}`}>→</span>
+                                <span className="text-stone-600">{vendor.name}</span>
+                              </div>
+                              <div className="col-span-2"></div>
+                              <div className="col-span-2 text-right text-sm text-stone-600">
+                                {fmt(vendor.invoices.reduce((sum, inv) => sum + inv.amount, 0))}
+                              </div>
+                              <div className="col-span-3 text-right text-xs text-stone-400">
+                                {vendor.invoices.length} invoice{vendor.invoices.length !== 1 ? 's' : ''}
+                              </div>
+                            </div>
+
+                            {/* Invoices */}
+                            {expandedVendor === `${acct.code}-${vi}` && vendor.invoices.map((inv, ii) => (
+                              <div 
+                                key={ii} 
+                                className={`grid grid-cols-12 gap-4 p-3 pl-16 row-hover border-b border-stone-50 drill-row-l3 cursor-pointer ${inv.flagged ? 'bg-amber-50' : ''}`}
+                                onClick={() => inv.flagged ? nav('anomaly') : setSelectedInvoice(inv)}
+                              >
+                                <div className="col-span-5 flex items-center gap-3 text-sm">
+                                  {inv.flagged && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
+                                  <span className="text-blue-600 font-mono">{inv.id}</span>
+                                  {inv.desc && <span className="text-stone-400">· {inv.desc}</span>}
+                                </div>
+                                <div className="col-span-2 text-right text-xs text-stone-400">{inv.date}</div>
+                                <div className="col-span-2 text-right text-sm font-medium text-stone-700">{fmtFull(inv.amount)}</div>
+                                <div className="col-span-3 text-right">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                    inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                                    inv.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                    inv.status === 'flagged' ? 'bg-red-100 text-red-700' :
+                                    'bg-stone-100 text-stone-700'
+                                  }`}>{inv.status}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+
+                  {/* Net Income */}
+                  <div className="grid grid-cols-12 gap-4 p-4 bg-blue-50 border-t-2 border-blue-200">
+                    <div className="col-span-5 font-semibold text-blue-800">Net Income</div>
+                    <div className="col-span-2 text-right text-stone-600">{fmt(currentData.revenue.budget - currentData.expenses.budget)}</div>
+                    <div className="col-span-2 text-right font-bold text-blue-700">{fmt(currentData.revenue.actual - currentData.expenses.actual)}</div>
+                    <div className={`col-span-2 text-right font-medium ${
+                      ((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget)) >= 0 
+                        ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                      {((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget)) >= 0 ? '+' : ''}
+                      {fmt((currentData.revenue.actual - currentData.revenue.budget) - (currentData.expenses.actual - currentData.expenses.budget))}
+                    </div>
+                    <div className="col-span-1"></div>
+                  </div>
+                </div>
+
+                {/* Monthly Comparison Chart */}
+                <div className="card p-6 mt-6">
+                  <h3 className="font-medium text-stone-800 mb-4">Monthly Comparison</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1000}K`} />
+                      <Tooltip formatter={(v) => [fmtFull(v), '']} />
+                      <Bar dataKey="revActual" fill="#10b981" radius={[4, 4, 0, 0]} name="Revenue" />
+                      <Bar dataKey="expActual" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  <div className="flex justify-center gap-6 mt-2 text-sm">
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-emerald-500"></div>Revenue</div>
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-red-500"></div>Expenses</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ===== INCOME STATEMENT (YTD) ===== */}
+        {screen === 'income-statement' && (
+          <div className="fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Income Statement</h1>
+                <p className="text-stone-500">Year-to-Date 2024</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => nav('monthly')} className="px-4 py-2 btn-secondary rounded-xl text-sm font-medium">Monthly View</button>
+                <button className="px-4 py-2 btn-primary rounded-xl text-sm font-medium">Export</button>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="card p-4 bg-emerald-50 border border-emerald-200">
+                <div className="text-xs text-emerald-600 uppercase">Total Revenue</div>
+                <div className="font-display text-2xl font-semibold text-emerald-700">{fmt(ytd.revActual)}</div>
+                <div className="text-sm text-emerald-600">+{fmt(ytd.revActual - ytd.revBudget)} vs budget</div>
+              </div>
+              <div className="card p-4 bg-red-50 border border-red-200">
+                <div className="text-xs text-red-600 uppercase">Total Expenses</div>
+                <div className="font-display text-2xl font-semibold text-red-700">{fmt(ytd.expActual)}</div>
+                <div className="text-sm text-red-600">+{fmt(ytd.expActual - ytd.expBudget)} vs budget</div>
+              </div>
+              <div className="card p-4 bg-blue-50 border border-blue-200">
+                <div className="text-xs text-blue-600 uppercase">Net Income</div>
+                <div className="font-display text-2xl font-semibold text-blue-700">{fmt(ytd.revActual - ytd.expActual)}</div>
+              </div>
+              <div className="card p-4">
+                <div className="text-xs text-stone-500 uppercase">Net Margin</div>
+                <div className="font-display text-2xl font-semibold text-stone-800">
+                  {(((ytd.revActual - ytd.expActual) / ytd.revActual) * 100).toFixed(1)}%
+                </div>
+              </div>
+            </div>
+
+            {/* YTD Income Statement Table */}
+            <div className="card overflow-hidden">
+              <div className="grid grid-cols-12 gap-4 p-4 bg-stone-100 text-xs font-medium text-stone-500 uppercase tracking-wider">
+                <div className="col-span-5">Account</div>
+                <div className="col-span-2 text-right">Budget</div>
+                <div className="col-span-2 text-right">Actual</div>
+                <div className="col-span-2 text-right">Variance</div>
+                <div className="col-span-1 text-right">%</div>
+              </div>
+
+              {/* Revenue */}
+              <div className="grid grid-cols-12 gap-4 p-4 bg-emerald-50 border-b border-stone-100">
+                <div className="col-span-5 font-semibold text-emerald-800">Revenue</div>
+                <div className="col-span-2 text-right text-stone-600">{fmt(ytd.revBudget)}</div>
+                <div className="col-span-2 text-right font-medium text-emerald-700">{fmt(ytd.revActual)}</div>
+                <div className="col-span-2 text-right text-emerald-600">+{fmt(ytd.revActual - ytd.revBudget)}</div>
+                <div className="col-span-1 text-right text-emerald-600">+{(((ytd.revActual - ytd.revBudget) / ytd.revBudget) * 100).toFixed(1)}%</div>
+              </div>
+
+              {['4100', '4200', '4300', '4400'].map(code => {
+                const acct = ytd.accountTotals[code];
+                if (!acct) return null;
+                return (
+                  <div key={code} className="grid grid-cols-12 gap-4 p-4 pl-8 border-b border-stone-100 row-hover">
+                    <div className="col-span-5 flex items-center gap-2">
+                      <span className="text-stone-400 text-sm">{acct.code}</span>
+                      <span className="text-stone-700">{acct.name}</span>
+                    </div>
+                    <div className="col-span-2 text-right text-stone-500">{fmt(acct.budget)}</div>
+                    <div className="col-span-2 text-right font-medium text-stone-800">{fmt(acct.actual)}</div>
+                    <div className={`col-span-2 text-right ${acct.actual >= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {acct.actual >= acct.budget ? '+' : ''}{fmt(acct.actual - acct.budget)}
+                    </div>
+                    <div className={`col-span-1 text-right ${acct.actual >= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {(((acct.actual - acct.budget) / acct.budget) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Expenses */}
+              <div className="grid grid-cols-12 gap-4 p-4 bg-red-50 border-b border-stone-100">
+                <div className="col-span-5 font-semibold text-red-800">Operating Expenses</div>
+                <div className="col-span-2 text-right text-stone-600">{fmt(ytd.expBudget)}</div>
+                <div className="col-span-2 text-right font-medium text-red-700">{fmt(ytd.expActual)}</div>
+                <div className="col-span-2 text-right text-red-600">+{fmt(ytd.expActual - ytd.expBudget)}</div>
+                <div className="col-span-1 text-right text-red-600">+{(((ytd.expActual - ytd.expBudget) / ytd.expBudget) * 100).toFixed(1)}%</div>
+              </div>
+
+              {['5100', '5200', '5300', '5400', '5500', '5600'].map(code => {
+                const acct = ytd.accountTotals[code];
+                if (!acct) return null;
+                return (
+                  <div key={code} className="grid grid-cols-12 gap-4 p-4 pl-8 border-b border-stone-100 row-hover">
+                    <div className="col-span-5 flex items-center gap-2">
+                      <span className="text-stone-400 text-sm">{acct.code}</span>
+                      <span className="text-stone-700">{acct.name}</span>
+                      {acct.actual > acct.budget * 1.05 && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Over</span>
+                      )}
+                    </div>
+                    <div className="col-span-2 text-right text-stone-500">{fmt(acct.budget)}</div>
+                    <div className="col-span-2 text-right font-medium text-stone-800">{fmt(acct.actual)}</div>
+                    <div className={`col-span-2 text-right ${acct.actual <= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {acct.actual > acct.budget ? '+' : ''}{fmt(acct.actual - acct.budget)}
+                    </div>
+                    <div className={`col-span-1 text-right ${acct.actual <= acct.budget ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {(((acct.actual - acct.budget) / acct.budget) * 100).toFixed(1)}%
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Net */}
+              <div className="grid grid-cols-12 gap-4 p-4 bg-blue-50 border-t-2 border-blue-200">
+                <div className="col-span-5 font-semibold text-blue-800">Net Income</div>
+                <div className="col-span-2 text-right text-stone-600">{fmt(ytd.revBudget - ytd.expBudget)}</div>
+                <div className="col-span-2 text-right font-bold text-blue-700">{fmt(ytd.revActual - ytd.expActual)}</div>
+                <div className={`col-span-2 text-right font-medium ${(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? '+' : ''}
+                  {fmt((ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget))}
+                </div>
+                <div className="col-span-1"></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== BUDGET VS ACTUAL ===== */}
+        {screen === 'budget-vs-actual' && (
+          <div className="fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Budget vs Actual</h1>
+                <p className="text-stone-500">Variance analysis · YTD 2024</p>
+              </div>
+              <button className="px-4 py-2 btn-primary rounded-xl text-sm font-medium">Export</button>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="card p-4">
+                <div className="text-xs text-stone-500 uppercase">Revenue Variance</div>
+                <div className="font-display text-xl font-semibold text-emerald-600">+{fmt(ytd.revActual - ytd.revBudget)}</div>
+                <div className="text-sm text-stone-500">+{(((ytd.revActual - ytd.revBudget) / ytd.revBudget) * 100).toFixed(1)}%</div>
+              </div>
+              <div className="card p-4">
+                <div className="text-xs text-stone-500 uppercase">Expense Variance</div>
+                <div className="font-display text-xl font-semibold text-red-600">+{fmt(ytd.expActual - ytd.expBudget)}</div>
+                <div className="text-sm text-stone-500">+{(((ytd.expActual - ytd.expBudget) / ytd.expBudget) * 100).toFixed(1)}%</div>
+              </div>
+              <div className={`card p-4 ${(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+                <div className={`text-xs uppercase ${(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>Net Variance</div>
+                <div className={`font-display text-xl font-semibold ${(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                  {(ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget) >= 0 ? '+' : ''}
+                  {fmt((ytd.revActual - ytd.revBudget) - (ytd.expActual - ytd.expBudget))}
+                </div>
+              </div>
+              <div className="card p-4">
+                <div className="text-xs text-stone-500 uppercase">Budget Used</div>
+                <div className="font-display text-xl font-semibold text-stone-800">{((ytd.expActual / ytd.expBudget) * 100).toFixed(1)}%</div>
+              </div>
+            </div>
+
+            {/* Chart */}
+            <div className="card p-6 mb-6">
+              <h3 className="font-medium text-stone-800 mb-4">Monthly Budget vs Actual (Expenses)</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={chartData} barGap={4}>
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1000}K`} />
+                  <Tooltip formatter={(v) => [fmtFull(v), '']} />
+                  <Bar dataKey="expBudget" fill="#e7e5e4" radius={[4, 4, 0, 0]} name="Budget" />
+                  <Bar dataKey="expActual" radius={[4, 4, 0, 0]} name="Actual">
+                    {chartData.map((entry, index) => (
+                      <Cell key={index} fill={entry.expActual > entry.expBudget ? '#ef4444' : '#10b981'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Account Variance */}
+            <div className="card overflow-hidden">
+              <div className="p-4 bg-stone-50 border-b">
+                <h3 className="font-medium text-stone-800">Account-Level Variance</h3>
+              </div>
+              
+              <div className="p-3 bg-emerald-50 border-b text-sm font-medium text-emerald-800">Revenue Accounts</div>
+              {['4100', '4200', '4300', '4400'].map(code => {
+                const acct = ytd.accountTotals[code];
+                if (!acct) return null;
+                const variance = acct.actual - acct.budget;
+                const pct = ((variance / acct.budget) * 100).toFixed(1);
+                return (
+                  <div key={code} className="p-4 border-b border-stone-100 hover:bg-stone-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-stone-400">{acct.code}</span>
+                        <span className="font-medium text-stone-800">{acct.name}</span>
+                      </div>
+                      <span className={`font-medium ${variance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {variance >= 0 ? '+' : ''}{fmt(variance)} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${variance >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${Math.min((acct.actual / acct.budget) * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="p-3 bg-red-50 border-b text-sm font-medium text-red-800">Expense Accounts</div>
+              {['5100', '5200', '5300', '5400', '5500', '5600'].map(code => {
+                const acct = ytd.accountTotals[code];
+                if (!acct) return null;
+                const variance = acct.actual - acct.budget;
+                const pct = ((variance / acct.budget) * 100).toFixed(1);
+                return (
+                  <div key={code} className="p-4 border-b border-stone-100 hover:bg-stone-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-stone-400">{acct.code}</span>
+                        <span className="font-medium text-stone-800">{acct.name}</span>
+                        {variance > acct.budget * 0.05 && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Attention</span>}
+                      </div>
+                      <span className={`font-medium ${variance <= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {variance > 0 ? '+' : ''}{fmt(variance)} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${variance <= 0 ? 'bg-emerald-500' : 'bg-red-500'}`} style={{ width: `${Math.min((acct.actual / acct.budget) * 100, 120)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ===== ANOMALY ===== */}
+        {screen === 'anomaly' && (
+          <div className="max-w-4xl mx-auto fade-in">
+            <button onClick={() => nav('overview')} className="flex items-center gap-2 text-stone-500 mb-4 hover:text-stone-700">← Back</button>
+            <div className="card overflow-hidden">
+              <div className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+                <div className="flex justify-between">
+                  <div>
+                    <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">MEDIUM RISK</span>
+                    <h1 className="font-display text-2xl font-semibold text-stone-800 mt-2">Premium Landscaping LLC</h1>
+                    <p className="text-stone-600">5300 · Golf Course Maintenance · Dec 8, 2024</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-display text-3xl font-semibold">$28,000</div>
+                    <div className="text-amber-600 text-sm">Pending Review</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-3 gap-6">
+                <div className="col-span-2 space-y-4">
+                  <h3 className="font-medium text-stone-800">Risk Flags</h3>
+                  {[
+                    { sev: 'high', title: 'Missing Documentation', desc: 'No contract or W-9 on file' },
+                    { sev: 'medium', title: 'New Vendor', desc: 'First payment - no history' },
+                    { sev: 'medium', title: 'Above Average', desc: '2.3x higher than similar vendors' },
+                  ].map((f, i) => (
+                    <div key={i} className={`p-4 rounded-xl severity-${f.sev}`}>
+                      <div className="font-medium text-stone-800">{f.title}</div>
+                      <div className="text-sm text-stone-600">{f.desc}</div>
+                    </div>
+                  ))}
+                  <h3 className="font-medium text-stone-800 pt-2">Budget Context</h3>
+                  <div className="p-4 bg-stone-50 rounded-xl">
+                    <div className="flex justify-between mb-2">
+                      <span className="text-stone-600">Account 5300 - Golf Course Maintenance</span>
+                      <span className="text-amber-600 font-medium">+{fmt(ytd.accountTotals['5300'].actual - ytd.accountTotals['5300'].budget)} over budget</span>
+                    </div>
+                    <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500" style={{ width: `${(ytd.accountTotals['5300'].actual / ytd.accountTotals['5300'].budget) * 100}%` }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
+                    <div className="text-xs text-stone-500 uppercase">Risk Score</div>
+                    <div className="font-display text-4xl font-semibold text-amber-600">72</div>
+                  </div>
+                  <button className="w-full py-3 btn-primary rounded-xl font-medium">Approve</button>
+                  <button className="w-full py-3 border border-stone-200 rounded-xl font-medium hover:bg-stone-50">Request Docs</button>
+                  <button className="w-full py-3 border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== SETTINGS ===== */}
+        {screen === 'settings' && (
+          <div className="max-w-3xl mx-auto fade-in">
+            <h1 className="font-display text-2xl font-semibold text-stone-800 mb-6">Settings</h1>
+            <div className="card divide-y divide-stone-100">
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Club Profile</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <input defaultValue="Palm Harbor Country Club" className="px-3 py-2 border border-stone-200 rounded-xl" />
+                  <select className="px-3 py-2 border border-stone-200 rounded-xl bg-white"><option>Country Club</option></select>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Notifications</h3>
+                {[{ k: 'anomaly', l: 'Anomaly Alerts' }, { k: 'weekly', l: 'Weekly Summary' }, { k: 'budget', l: 'Budget Variance' }].map(n => (
+                  <div key={n.k} className="flex justify-between items-center py-2">
+                    <span className="text-stone-700">{n.l}</span>
+                    <button onClick={() => setNotifs(p => ({ ...p, [n.k]: !p[n.k] }))} className={`w-10 h-6 rounded-full relative ${notifs[n.k] ? 'bg-emerald-500' : 'bg-stone-300'}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${notifs[n.k] ? 'left-5' : 'left-1'}`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Connected Banks</h3>
+                <div className="p-3 bg-stone-50 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-blue-700">T</div>
+                    <span className="text-stone-800">Truist ****4521</span>
+                  </div>
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Connected</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Invoice Modal */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedInvoice(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-display text-lg font-semibold">Invoice Detail</h3>
+              <button onClick={() => setSelectedInvoice(null)} className="text-stone-400 hover:text-stone-600">✕</button>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between"><span className="text-stone-500">Invoice #</span><span className="font-mono text-blue-600">{selectedInvoice.id}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Date</span><span>{selectedInvoice.date}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Amount</span><span className="font-semibold">{fmtFull(selectedInvoice.amount)}</span></div>
+              {selectedInvoice.desc && <div className="flex justify-between"><span className="text-stone-500">Description</span><span>{selectedInvoice.desc}</span></div>}
+              <div className="flex justify-between">
+                <span className="text-stone-500">Status</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  selectedInvoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' :
+                  selectedInvoice.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-700'
+                }`}>{selectedInvoice.status}</span>
+              </div>
+            </div>
+            <button onClick={() => setSelectedInvoice(null)} className="w-full mt-6 py-2 btn-primary rounded-xl text-sm font-medium">Close</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

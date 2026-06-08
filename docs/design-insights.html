@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype Design Insights - Feature Prevalence Analysis</title>
+    <style>
+        :root {
+            --bg-primary: #fafafa;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a5568;
+            --accent-blue: #2563eb;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-red: #dc2626;
+            --accent-purple: #7c3aed;
+            --border-color: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 40px 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.75rem; margin-bottom: 8px; color: var(--accent-blue); }
+        h2 { font-size: 1.35rem; margin: 36px 0 16px; color: var(--text-primary); border-bottom: 2px solid var(--accent-blue); padding-bottom: 8px; }
+        h3 { font-size: 1.1rem; margin: 24px 0 12px; color: var(--accent-purple); }
+        p { margin-bottom: 14px; color: var(--text-secondary); }
+        .subtitle { color: var(--text-secondary); margin-bottom: 32px; font-size: 1.05rem; }
+        .insight-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .prevalence-bar {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .bar-label {
+            width: 180px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .bar-container {
+            flex: 1;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 12px;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+        }
+        .bar-fill.high { background: linear-gradient(90deg, #059669, #10b981); }
+        .bar-fill.medium { background: linear-gradient(90deg, #d97706, #f59e0b); }
+        .bar-fill.low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+        .bar-percent {
+            width: 50px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .tier-section {
+            margin: 16px 0;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        .tier-core { background: #ecfdf5; border-left: 4px solid var(--accent-green); }
+        .tier-standard { background: #fef3c7; border-left: 4px solid var(--accent-amber); }
+        .tier-differentiator { background: #ede9fe; border-left: 4px solid var(--accent-purple); }
+        .tier-section h4 { margin-bottom: 8px; }
+        .tier-section ul { margin: 0; padding-left: 20px; font-size: 0.9rem; }
+        .tier-section li { margin: 4px 0; color: var(--text-secondary); }
+        .recommendation {
+            background: #f0f9ff;
+            border-left: 4px solid var(--accent-blue);
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .recommendation h4 { color: var(--accent-blue); margin-bottom: 8px; font-size: 0.95rem; }
+        .gap-alert {
+            background: #fef2f2;
+            border-left: 4px solid var(--accent-red);
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .gap-alert h4 { color: var(--accent-red); margin-bottom: 8px; font-size: 0.95rem; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem; }
+        th, td { border: 1px solid var(--border-color); padding: 10px 12px; text-align: left; }
+        th { background: #f1f5f9; font-weight: 600; }
+        .check { color: var(--accent-green); font-weight: bold; }
+        .missing { color: var(--accent-red); }
+        footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem; text-align: center; }
+        .callout {
+            background: linear-gradient(135deg, #f0f9ff, #ede9fe);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .callout h4 { color: var(--accent-purple); margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Prototype Design Insights</h1>
+    <p class="subtitle">What feature prevalence tells us about product design priorities</p>
+
+    <h2>1. Feature Prevalence Analysis</h2>
+    <p>Based on analysis of 25 prototypes, here's how frequently each feature appears:</p>
+
+    <div class="insight-card">
+        <h3>Core UI Features</h3>
+        <div class="prevalence-bar">
+            <span class="bar-label">KPI Cards</span>
+            <div class="bar-container"><div class="bar-fill high" style="width:88%">22/25</div></div>
+            <span class="bar-percent">88%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Data Tables</span>
+            <div class="bar-container"><div class="bar-fill high" style="width:80%">20/25</div></div>
+            <span class="bar-percent">80%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Tab System</span>
+            <div class="bar-container"><div class="bar-fill high" style="width:76%">19/25</div></div>
+            <span class="bar-percent">76%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Charts/Visualization</span>
+            <div class="bar-container"><div class="bar-fill high" style="width:72%">18/25</div></div>
+            <span class="bar-percent">72%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Event Stream</span>
+            <div class="bar-container"><div class="bar-fill high" style="width:72%">18/25</div></div>
+            <span class="bar-percent">72%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Approval Flows</span>
+            <div class="bar-container"><div class="bar-fill medium" style="width:60%">15/25</div></div>
+            <span class="bar-percent">60%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Policy Engine</span>
+            <div class="bar-container"><div class="bar-fill medium" style="width:56%">14/25</div></div>
+            <span class="bar-percent">56%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Hash Chain/Audit</span>
+            <div class="bar-container"><div class="bar-fill medium" style="width:56%">14/25</div></div>
+            <span class="bar-percent">56%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">AR/AP Management</span>
+            <div class="bar-container"><div class="bar-fill medium" style="width:56%">14/25</div></div>
+            <span class="bar-percent">56%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Sidebar Navigation</span>
+            <div class="bar-container"><div class="bar-fill low" style="width:40%">10/25</div></div>
+            <span class="bar-percent">40%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">AI/Agents</span>
+            <div class="bar-container"><div class="bar-fill low" style="width:32%">8/25</div></div>
+            <span class="bar-percent">32%</span>
+        </div>
+        <div class="prevalence-bar">
+            <span class="bar-label">Forecasting</span>
+            <div class="bar-container"><div class="bar-fill low" style="width:32%">8/25</div></div>
+            <span class="bar-percent">32%</span>
+        </div>
+    </div>
+
+    <h2>2. Feature Tier Classification</h2>
+    <p>Based on prevalence and strategic importance, features should be tiered:</p>
+
+    <div class="tier-section tier-core">
+        <h4>🟢 Tier 1: Core (Must Have in Every Prototype)</h4>
+        <ul>
+            <li><strong>KPI Cards</strong> (88%) — The universal "at-a-glance" pattern. Every stakeholder expects instant metrics.</li>
+            <li><strong>Data Tables</strong> (80%) — The workhorse of detail views. Essential for operational users.</li>
+            <li><strong>Tab System</strong> (76%) — Primary navigation within views. Enables progressive disclosure.</li>
+            <li><strong>Charts/Viz</strong> (72%) — Visual storytelling is expected in modern dashboards.</li>
+        </ul>
+    </div>
+
+    <div class="tier-section tier-standard">
+        <h4>🟡 Tier 2: Standard (Include Unless Scope-Specific)</h4>
+        <ul>
+            <li><strong>Event Stream</strong> (72%) — Your differentiator. Shows real-time activity and builds trust.</li>
+            <li><strong>Approval Flows</strong> (60%) — Critical for operational prototypes. Skip only for read-only dashboards.</li>
+            <li><strong>Policy Engine</strong> (56%) — Demonstrates configurability. Key for enterprise sales.</li>
+            <li><strong>Hash Chain/Audit</strong> (56%) — Your technical moat. Include visual proof of immutability.</li>
+        </ul>
+    </div>
+
+    <div class="tier-section tier-differentiator">
+        <h4>🟣 Tier 3: Differentiator (Strategic Emphasis Needed)</h4>
+        <ul>
+            <li><strong>AI/Agents</strong> (32%) — Underrepresented given market positioning. Needs more prominence.</li>
+            <li><strong>Forecasting</strong> (32%) — Key value prop but only in 8 prototypes. Should be elevated.</li>
+            <li><strong>Sidebar Navigation</strong> (40%) — Inconsistent implementation creates UX fragmentation.</li>
+        </ul>
+    </div>
+
+    <h2>3. Critical Gaps & Design Implications</h2>
+
+    <div class="gap-alert">
+        <h4>⚠️ Gap 1: AI/Agents Are Undersold (32%)</h4>
+        <p>Your narrative emphasizes autonomous agents, but only 8 of 25 prototypes showcase them prominently. This creates a disconnect between marketing promise and demo reality.</p>
+        <p><strong>Design Fix:</strong> Add an "Agent Activity" indicator or panel to every operational prototype. Even a simple "3 items auto-processed by AP Agent" callout reinforces the AI story.</p>
+    </div>
+
+    <div class="gap-alert">
+        <h4>⚠️ Gap 2: Forecasting Is Hidden (32%)</h4>
+        <p>The 13-week forecast is a headline feature, but it only appears fully in 8 prototypes. CFOs expect forecasting; it shouldn't require navigation to a specialized view.</p>
+        <p><strong>Design Fix:</strong> Add a "Forecast Snapshot" widget to every dashboard showing next 4 weeks with confidence indicators. Make forecasting omnipresent, not a destination.</p>
+    </div>
+
+    <div class="gap-alert">
+        <h4>⚠️ Gap 3: Navigation Inconsistency (40% Full Sidebar)</h4>
+        <p>Only 10 prototypes have full sidebar navigation. This creates a fragmented experience when demoing multiple prototypes in sequence—users get lost.</p>
+        <p><strong>Design Fix:</strong> Standardize on a collapsible sidebar pattern with consistent section groups (Overview, Operations, Configuration). Apply to all operational prototypes.</p>
+    </div>
+
+    <h2>4. Strategic Design Recommendations</h2>
+
+    <div class="recommendation">
+        <h4>📐 Recommendation 1: Create a "Core Shell" Template</h4>
+        <p>Build one master HTML template with: fixed sidebar, top header with global KPIs, tab container, and event stream footer. All new prototypes inherit this shell, ensuring consistency and faster development.</p>
+    </div>
+
+    <div class="recommendation">
+        <h4>📐 Recommendation 2: Standardize the "Trust Strip"</h4>
+        <p>Every prototype should include a horizontal strip showing: last sync time, hash verification status, and active policy count. This reinforces your technical differentiation without requiring a dedicated Trust Architecture view.</p>
+    </div>
+
+    <div class="recommendation">
+        <h4>📐 Recommendation 3: Embed Agent Presence Everywhere</h4>
+        <p>Add a persistent "Agent Status" indicator (similar to a notification badge) showing: "AP Agent: 12 items processed today" or "Collections Agent: 2 escalations pending." Agents should feel active, not hidden in configuration.</p>
+    </div>
+
+    <div class="recommendation">
+        <h4>📐 Recommendation 4: Collapse Vertical Variants into Configurable Dashboards</h4>
+        <p>You have 5 CAST dashboards (CFO, HOA, RBF, Dental, SaaS) with 70-85% feature overlap. Consider a single "CAST Dashboard" prototype with a vertical selector dropdown that swaps terminology and sample data. This reduces maintenance and demonstrates platform flexibility.</p>
+    </div>
+
+    <h2>5. Prototype Consolidation Opportunity</h2>
+    <p>Analysis reveals significant redundancy. Here's a proposed consolidation from 25 → 12 prototypes:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Consolidated Prototype</th>
+                <th>Replaces</th>
+                <th>Key Features</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Sightline Core App</strong></td>
+                <td>App v2, Demo, 13-Week Full</td>
+                <td>Full operational dashboard with all modules</td>
+            </tr>
+            <tr>
+                <td><strong>CAST Universal Dashboard</strong></td>
+                <td>CFO, HOA, RBF, Dental, SaaS dashboards</td>
+                <td>Vertical selector swaps context/terminology</td>
+            </tr>
+            <tr>
+                <td><strong>Trust & Compliance Suite</strong></td>
+                <td>Trust Architecture, Monitor v2, Gov Compliance</td>
+                <td>Tabbed view: Trust Scoring | Live Monitor | Compliance</td>
+            </tr>
+            <tr>
+                <td><strong>Policy & Workflow Builder</strong></td>
+                <td>Policy Engine, Workflows, Agent Config</td>
+                <td>Unified configuration experience</td>
+            </tr>
+            <tr>
+                <td><strong>Finance Operations</strong></td>
+                <td>Cashflow Model, Events & Journals, Settlement Gate</td>
+                <td>Combined transaction lifecycle view</td>
+            </tr>
+            <tr>
+                <td><strong>Landing Page</strong></td>
+                <td>(Keep as-is)</td>
+                <td>Marketing entry point</td>
+            </tr>
+            <tr>
+                <td><strong>PO Lending Vertical</strong></td>
+                <td>PO Lending, 13-Week Focused</td>
+                <td>Specialized lending workflow</td>
+            </tr>
+            <tr>
+                <td><strong>E-commerce/Supply Chain</strong></td>
+                <td>E-commerce, Compare</td>
+                <td>Supply chain with period analysis</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout">
+        <h4>💡 The 80/20 Insight</h4>
+        <p>Four features appear in 70%+ of prototypes: <strong>KPI Cards, Data Tables, Tabs, and Charts</strong>. These form the universal grammar of your product. Invest in perfecting these four patterns once, then reuse everywhere.</p>
+        <p>Three features are underrepresented despite strategic importance: <strong>AI Agents, Forecasting, and Consistent Navigation</strong>. These need intentional elevation in your next design iteration.</p>
+    </div>
+
+    <h2>6. Design System Implications</h2>
+
+    <h3>Components to Standardize</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th>Current State</th>
+                <th>Target State</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>KPI Card</td>
+                <td>3+ variants across prototypes</td>
+                <td>1 component with size/color props</td>
+            </tr>
+            <tr>
+                <td>Data Table</td>
+                <td>Inconsistent styling</td>
+                <td>Shared component with sort/filter</td>
+            </tr>
+            <tr>
+                <td>Event Stream Item</td>
+                <td>Different layouts per prototype</td>
+                <td>Unified event card with type icons</td>
+            </tr>
+            <tr>
+                <td>Approval Action</td>
+                <td>Button styles vary</td>
+                <td>Standardized Approve/Reject/Hold trio</td>
+            </tr>
+            <tr>
+                <td>Status Badge</td>
+                <td>5+ color schemes</td>
+                <td>Semantic palette (success/warning/error/info)</td>
+            </tr>
+            <tr>
+                <td>Sidebar Nav</td>
+                <td>40% have it, styles differ</td>
+                <td>Collapsible shell with icon+label</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Recommended Color Semantics</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Meaning</th>
+                <th>Color</th>
+                <th>Usage</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Success / Verified / Inflow</td><td style="color:#059669">Green (#059669)</td><td>Payments received, verified events, positive KPIs</td></tr>
+            <tr><td>Warning / Pending / Attention</td><td style="color:#d97706">Amber (#d97706)</td><td>Pending approvals, approaching thresholds</td></tr>
+            <tr><td>Error / Outflow / Risk</td><td style="color:#dc2626">Red (#dc2626)</td><td>Overdue items, negative variances, disbursements</td></tr>
+            <tr><td>Info / Neutral / System</td><td style="color:#2563eb">Blue (#2563eb)</td><td>System events, informational, navigation</td></tr>
+            <tr><td>AI / Agent / Automated</td><td style="color:#7c3aed">Purple (#7c3aed)</td><td>Agent actions, automated decisions, policies</td></tr>
+        </tbody>
+    </table>
+
+    <h2>7. Summary: What This Means for Your Product</h2>
+
+    <div class="insight-card">
+        <h3>Key Takeaways</h3>
+        <ol style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+            <li style="margin: 8px 0;"><strong>Your prototypes have converged on a pattern</strong> — KPI cards + tables + tabs + charts. This is your product's visual language. Standardize it.</li>
+            <li style="margin: 8px 0;"><strong>Event streams are your signature</strong> — 72% prevalence means users expect it. Make it the hero, not a sidebar feature.</li>
+            <li style="margin: 8px 0;"><strong>AI and forecasting are under-demonstrated</strong> — These are your strategic differentiators but appear in only 32% of prototypes. Elevate them.</li>
+            <li style="margin: 8px 0;"><strong>Vertical variants share 70-85% DNA</strong> — Consolidate into configurable dashboards to reduce maintenance and demonstrate platform flexibility.</li>
+            <li style="margin: 8px 0;"><strong>Navigation inconsistency hurts demos</strong> — A prospect seeing Landing → Demo → CFO Dashboard experiences three different navigation paradigms. Fix this.</li>
+        </ol>
+    </div>
+
+    <footer>
+        Prototype Design Insights • Generated February 2, 2026 • Based on analysis of 25 prototypes
+    </footer>
+</body>
+</html>

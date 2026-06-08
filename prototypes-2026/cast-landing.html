@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — Bilateral coordination for commercial payments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #f6f9fc;
+    --ink: #0a2540;
+    --ink-soft: #425466;
+    --ink-faint: #697386;
+    --line: #e6ebf1;
+    --accent: #635bff;
+    --accent-deep: #0a2540;
+    --green: #15be53;
+    --amber: #f5a623;
+    --code-bg: #0a2540;
+    --code-ink: #cdd5e0;
+    --radius: 10px;
+    --maxw: 1140px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Sora', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- gradient hero canvas ---------- */
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 500px at 88% -10%, rgba(99,91,255,0.16), transparent 60%),
+      radial-gradient(700px 600px at 5% 0%, rgba(21,190,83,0.08), transparent 55%),
+      linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 78%);
+    z-index: -1;
+  }
+  .hero-bg::after {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(10,37,64,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,37,64,0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), transparent 70%);
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: saturate(180%) blur(10px);
+    background: rgba(255,255,255,0.72);
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s;
+  }
+  nav.scrolled { border-color: var(--line); }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 19px; letter-spacing: -0.02em; }
+  .logo .mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), #4b45c6);
+    display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700;
+  }
+  .nav-links { display: flex; align-items: center; gap: 30px; font-size: 14.5px; font-weight: 500; color: var(--ink-soft); }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--accent-deep); color: #fff; padding: 8px 16px;
+    border-radius: 999px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px; transition: transform .15s, background .15s;
+  }
+  .nav-cta:hover { transform: translateY(-1px); background: #15324f; }
+  @media(max-width: 800px){ .nav-links a:not(.nav-cta){ display:none; } }
+
+  /* ---------- hero ---------- */
+  header.hero { position: relative; padding: 96px 0 80px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600; color: var(--accent);
+    background: rgba(99,91,255,0.09); padding: 6px 13px; border-radius: 999px;
+    margin-bottom: 26px; letter-spacing: -0.01em;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-size: clamp(38px, 5.4vw, 66px);
+    line-height: 1.04; letter-spacing: -0.035em; font-weight: 700;
+    max-width: 13ch;
+  }
+  h1 .grad {
+    background: linear-gradient(110deg, var(--accent) 10%, #00c2a8 90%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lede {
+    margin-top: 26px; font-size: clamp(17px, 1.6vw, 20px);
+    color: var(--ink-soft); max-width: 56ch; line-height: 1.6;
+  }
+  .hero-actions { display: flex; gap: 14px; margin-top: 38px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 999px; font-size: 15px; font-weight: 600;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(99,91,255,0.35); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(99,91,255,0.42); }
+  .btn-ghost { color: var(--ink); border: 1px solid var(--line); background: #fff; }
+  .btn-ghost:hover { transform: translateY(-2px); border-color: #c9d2dd; }
+  .btn .arrow { transition: transform .15s; }
+  .btn:hover .arrow { transform: translateX(3px); }
+
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items: center; }
+  @media(max-width: 940px){ .hero-grid { grid-template-columns: 1fr; gap: 44px; } }
+
+  /* ---------- code window ---------- */
+  .code-card {
+    background: var(--code-bg); border-radius: 14px;
+    box-shadow: 0 24px 60px -18px rgba(10,37,64,0.45), 0 0 0 1px rgba(255,255,255,0.04);
+    overflow: hidden; font-size: 13px;
+  }
+  .code-top {
+    display: flex; align-items: center; gap: 7px; padding: 13px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .code-top .c { width: 11px; height: 11px; border-radius: 50%; }
+  .c.r{background:#ff5f57;} .c.y{background:#febc2e;} .c.g{background:#28c840;}
+  .code-top .file { margin-left: 10px; color: #7d8aa3; font-size: 12px; font-family:'IBM Plex Mono',monospace; }
+  pre.code { padding: 20px 22px; overflow-x: auto; line-height: 1.75; font-family: 'IBM Plex Mono', monospace; }
+  pre.code code { color: var(--code-ink); }
+  .t-key{color:#7dd3fc;} .t-str{color:#86efac;} .t-com{color:#5b6b85;} .t-fn{color:#c4b5fd;} .t-num{color:#fbbf24;} .t-punc{color:#8ba0bd;}
+
+  /* ---------- logos / proof strip ---------- */
+  .strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-soft); }
+  .strip-inner { display: flex; align-items: center; justify-content: space-between; padding: 28px 24px; gap: 40px; flex-wrap: wrap; }
+  .strip-label { font-size: 12.5px; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .strip-stats { display: flex; gap: 52px; flex-wrap: wrap; }
+  .stat .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  .stat .l { font-size: 13px; color: var(--ink-faint); margin-top: 2px; }
+
+  /* ---------- section scaffold ---------- */
+  section.block { padding: 96px 0; }
+  .sec-head { max-width: 60ch; margin-bottom: 56px; }
+  .sec-tag { font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: -0.01em; margin-bottom: 14px; }
+  h2 { font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -0.03em; line-height: 1.12; font-weight: 700; }
+  .sec-sub { margin-top: 16px; font-size: 17px; color: var(--ink-soft); line-height: 1.6; }
+
+  /* ---------- the loop ---------- */
+  .loop { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  @media(max-width:880px){ .loop{ grid-template-columns: 1fr 1fr; } }
+  @media(max-width:540px){ .loop{ grid-template-columns: 1fr; } }
+  .step { padding: 28px 26px; border-right: 1px solid var(--line); position: relative; background: #fff; transition: background .2s; }
+  .step:last-child { border-right: none; }
+  .step:hover { background: var(--bg-soft); }
+  .step .idx { font-family:'IBM Plex Mono',monospace; font-size: 12px; color: var(--accent); font-weight: 500; }
+  .step h3 { font-size: 17px; margin: 14px 0 8px; letter-spacing: -0.02em; }
+  .step p { font-size: 14px; color: var(--ink-soft); line-height: 1.55; }
+  .step .writes { margin-top: 16px; font-family:'IBM Plex Mono',monospace; font-size: 11.5px; color: var(--ink-faint); }
+  .step .writes b { color: var(--ink); }
+  .step.pivot { background: linear-gradient(180deg, rgba(99,91,255,0.05), #fff); }
+  .step.pivot .idx { color: var(--accent); }
+  .pivot-tag { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; color:var(--accent); background:rgba(99,91,255,0.1); padding:3px 9px; border-radius:6px; }
+
+  /* ---------- primitives ---------- */
+  .prim-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+  @media(max-width:880px){ .prim-grid{ grid-template-columns:1fr 1fr; } }
+  @media(max-width:600px){ .prim-grid{ grid-template-columns:1fr; } }
+  .prim {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px 24px; background: #fff; transition: transform .18s, box-shadow .18s, border-color .18s;
+  }
+  .prim:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -16px rgba(10,37,64,0.22); border-color: #d6deea; }
+  .prim .pi { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--accent); }
+  .prim h3 { font-size: 19px; margin: 12px 0 8px; letter-spacing: -0.02em; }
+  .prim p { font-size: 14.5px; color: var(--ink-soft); line-height: 1.55; }
+  .prim .rule { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-faint); }
+  .prim .rule b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- split feature ---------- */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+  @media(max-width:880px){ .split{ grid-template-columns:1fr; gap:36px; } }
+  .split h2 { font-size: clamp(26px,3vw,34px); }
+  .split ul { list-style: none; margin-top: 24px; display: flex; flex-direction: column; gap: 14px; }
+  .split li { display: flex; gap: 12px; font-size: 15px; color: var(--ink-soft); }
+  .split li .ck {
+    flex: none; width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(21,190,83,0.12); color: var(--green);
+    display: grid; place-items: center; font-size: 12px; margin-top: 1px;
+  }
+  .split li b { color: var(--ink); font-weight: 600; }
+
+  /* attack table */
+  .atk { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .atk-row { display: grid; grid-template-columns: 1.3fr 1fr 1fr; font-size: 14px; }
+  .atk-row > div { padding: 15px 20px; border-bottom: 1px solid var(--line); }
+  .atk-row.h > div { background: var(--bg-soft); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); }
+  .atk-row:last-child > div { border-bottom: none; }
+  .atk .vec { font-weight: 500; color: var(--ink); }
+  .atk .before { color: #c0392b; }
+  .atk .after { color: var(--green); font-weight: 600; }
+  @media(max-width:640px){ .atk-row{ grid-template-columns:1fr; } .atk-row > div{ border-bottom:none; } .atk-row{ border-bottom:1px solid var(--line); padding:6px 0; } }
+
+  /* ---------- CTA ---------- */
+  .cta-block { background: var(--accent-deep); color: #fff; border-radius: 18px; padding: 64px 56px; position: relative; overflow: hidden; }
+  .cta-block::before {
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(600px 300px at 85% 0%, rgba(99,91,255,0.4), transparent 60%);
+  }
+  .cta-block h2 { font-size: clamp(28px,3.4vw,38px); position: relative; max-width: 18ch; }
+  .cta-block p { position: relative; color: #a9b8cc; margin-top: 14px; font-size: 17px; max-width: 50ch; }
+  .cta-actions { position: relative; display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+  .cta-block .btn-primary { background: #fff; color: var(--accent-deep); box-shadow: none; }
+  .cta-block .btn-primary:hover { box-shadow: 0 8px 22px rgba(0,0,0,0.25); }
+  .cta-block .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.25); }
+  .cta-block .btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--line); padding: 56px 0 64px; }
+  .foot-grid { display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+  .foot-brand { max-width: 30ch; }
+  .foot-brand p { color: var(--ink-faint); font-size: 14px; margin-top: 14px; line-height: 1.6; }
+  .foot-cols { display: flex; gap: 64px; flex-wrap: wrap; }
+  .foot-col h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-faint); margin-bottom: 14px; }
+  .foot-col a { display: block; font-size: 14px; color: var(--ink-soft); margin-bottom: 10px; }
+  .foot-col a:hover { color: var(--ink); }
+  .foot-base { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); flex-wrap: wrap; gap: 12px; }
+
+  /* reveal */
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap nav-inner">
+    <a href="#" class="logo"><span class="mark">C</span>CAST</a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#primitives">Primitives</a>
+      <a href="#security">Security</a>
+      <a href="#docs">Docs</a>
+      <a href="#cta" class="nav-cta">Request access <span>→</span></a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>Commercial Agreement Settlement Technology</div>
+      <h1>Both parties sign the payment <span class="grad">before money moves.</span></h1>
+      <p class="lede">CAST is a bilateral coordination protocol. Before any commercial payment settles, payer and counterparty co-author one cryptographically bound record. That record is the authorization — and it travels through your ERP, audit, lenders, and insurers as tamper-evident proof.</p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn btn-primary">Request access <span class="arrow">→</span></a>
+        <a href="#how" class="btn btn-ghost">Read the architecture</a>
+      </div>
+    </div>
+    <div class="reveal in">
+      <div class="code-card">
+        <div class="code-top">
+          <span class="c r"></span><span class="c y"></span><span class="c g"></span>
+          <span class="file">POST /v1/work-orders/wo_8fa2/confirm</span>
+        </div>
+<pre class="code"><code><span class="t-com"># Vendor confirms via passkey — the bilateral pivot</span>
+<span class="t-punc">{</span>
+  <span class="t-key">"event"</span><span class="t-punc">:</span>        <span class="t-str">"bilateral.confirmed"</span><span class="t-punc">,</span>
+  <span class="t-key">"work_order"</span><span class="t-punc">:</span>   <span class="t-str">"wo_8fa2c1"</span><span class="t-punc">,</span>
+  <span class="t-key">"payload_hash"</span><span class="t-punc">:</span> <span class="t-str">"3a9f…e21b"</span><span class="t-punc">,</span>
+  <span class="t-key">"signature"</span><span class="t-punc">:</span> <span class="t-punc">{</span>
+    <span class="t-key">"method"</span><span class="t-punc">:</span> <span class="t-str">"webauthn-p256"</span><span class="t-punc">,</span>
+    <span class="t-key">"bound_to"</span><span class="t-punc">:</span> <span class="t-str">"payload_hash"</span><span class="t-punc">,</span>
+    <span class="t-key">"signer"</span><span class="t-punc">:</span> <span class="t-str">"agent_riverdale"</span>
+  <span class="t-punc">}</span><span class="t-punc">,</span>
+  <span class="t-key">"policy_version"</span><span class="t-punc">:</span> <span class="t-str">"POL-v4.2"</span><span class="t-punc">,</span>
+  <span class="t-key">"lineage_hash"</span><span class="t-punc">:</span> <span class="t-str">"7c0d…b48a"</span>
+<span class="t-punc">}</span>
+<span class="t-com">→ Posting blocked until signature verifies.</span>
+<span class="t-com">→ Posting carries lineage to this event. Forever.</span></code></pre>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="wrap strip-inner">
+    <span class="strip-label">The unilateral model costs</span>
+    <div class="strip-stats">
+      <div class="stat"><div class="n">$2.9B</div><div class="l">Annual U.S. BEC losses</div></div>
+      <div class="stat"><div class="n">3 days → 30 min</div><div class="l">Reconciliation, post-deployment</div></div>
+      <div class="stat"><div class="n">1 of 2</div><div class="l">Parties confirm terms today</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">Proofs the output is real</div></div>
+    </div>
+  </div>
+</div>
+
+<section class="block" id="problem">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-tag">The root cause</div>
+      <h2>Every commercial payment today is authorized unilaterally.</h2>
+      <p class="sec-sub">The payer approves an invoice internally. The vendor learns of the transaction only when — or if — money arrives. Digital tools removed checks, branches, and paper, but left the trust model untouched. A payment process where only one of two parties confirms terms before value moves is not bilateral authorization. It is a unilateral instruction with hope attached.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how" style="padding-top:0;">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-tag">The bilateral loop</div>
+      <h2>One party proposes. Both parties confirm. Policy governs what happens next.</h2>
+      <p class="sec-sub">The AP instantiation — Confirm &amp; Pay — walks one invoice through the loop. Steps 1–5 are the entire prototype. The cryptographic chain is the product; the screens are its packaging.</p>
+    </div>
+    <div class="loop reveal">
+      <div class="step">
+        <div class="idx">01 · PROPOSE</div>
+        <h3>Invoice arrives</h3>
+        <p>Trigger conditions evaluate. First payment, bank change, threshold breach. A Proposed Event is written with policy version pinned.</p>
+        <div class="writes">writes <b>events</b> · proposed</div>
+      </div>
+      <div class="step">
+        <div class="idx">02 · SEND</div>
+        <h3>Trade Message sent</h3>
+        <p>Counterparty receives a browser link: amount, date, bank last 4, three buttons. No app. No account. State advances to sent → viewed.</p>
+        <div class="writes">appends <b>events</b> · transition</div>
+      </div>
+      <div class="step pivot">
+        <div class="idx">03 · CONFIRM</div>
+        <h3>Counterparty signs</h3>
+        <p>A passkey assertion is verified and bound to the Work Order hash. The Bilateral Event is written. Lineage hash computed from the prior chain.</p>
+        <span class="pivot-tag">The pivot</span>
+        <div class="writes">writes <b>events</b> · bilateral</div>
+      </div>
+      <div class="step">
+        <div class="idx">04 · POST</div>
+        <h3>Policy clears, posting derives</h3>
+        <p>Seven auto-approve conditions evaluate against the pinned policy. The Posting is generated as a derived output — with a non-nullable FK to the bilateral event.</p>
+        <div class="writes">writes <b>postings</b> · lineage-bound</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="primitives" style="background:var(--bg-soft); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-tag">Five primitives</div>
+      <h2>Everything else is a projection of these five objects.</h2>
+      <p class="sec-sub">Append-only by construction. A Posting cannot exist without a bilateral co-authorship. This is enforced at the database layer — not by the UI.</p>
+    </div>
+    <div class="prim-grid">
+      <div class="prim reveal">
+        <div class="pi">primitive.event</div>
+        <h3>Event</h3>
+        <p>An immutable record of something that happened. Proposed events are unilateral; bilateral events are co-authored by both parties.</p>
+        <div class="rule"><b>Constraint:</b> Append-only. No updates. No deletes. Ever.</div>
+      </div>
+      <div class="prim reveal">
+        <div class="pi">primitive.policy</div>
+        <h3>Policy Version</h3>
+        <p>A versioned, immutable rule set. Pinned to every event at processing time. Governs triggers, auto-approve conditions, and escalation.</p>
+        <div class="rule"><b>Constraint:</b> No retroactive modification. Prior events stay pinned.</div>
+      </div>
+      <div class="prim reveal">
+        <div class="pi">primitive.work_order</div>
+        <h3>Work Order</h3>
+        <p>The execution context for human and agent decisions. Three parallel state tracks: Bilateral, Control, Settlement — never collapsed.</p>
+        <div class="rule"><b>Constraint:</b> Every internal decision is an immutable record.</div>
+      </div>
+      <div class="prim reveal">
+        <div class="pi">primitive.posting</div>
+        <h3>Posting</h3>
+        <p>A journal-ready ledger entry, generated as the output of a completed Work Order. Carries full lineage back to the originating event.</p>
+        <div class="rule"><b>Constraint:</b> Non-nullable FK to the bilateral event.</div>
+      </div>
+      <div class="prim reveal">
+        <div class="pi">primitive.case</div>
+        <h3>Case</h3>
+        <p>A governed exception — dispute, non-response, budget breach, policy gap. Appends resolution events; never unwrites prior ones.</p>
+        <div class="rule"><b>Constraint:</b> The record of the exception is permanent.</div>
+      </div>
+      <div class="prim reveal" style="background:linear-gradient(160deg,rgba(99,91,255,0.06),#fff); border-color:rgba(99,91,255,0.25);">
+        <div class="pi" style="color:var(--accent);">lineage()</div>
+        <h3>The proof is the asset</h3>
+        <p>event → work order decisions → policy version → posting. Verification cost drops to near zero because checking a hash is structurally cheaper than reconstructing a decision chain.</p>
+        <div class="rule" style="border-color:rgba(99,91,255,0.2);"><b>The subscription fee is the cost of producing it.</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="security">
+  <div class="wrap split">
+    <div class="reveal">
+      <div class="sec-tag">Attack surface</div>
+      <h2>Unilateral fraud becomes structurally impossible.</h2>
+      <p class="sec-sub" style="margin-top:14px;">CAST eliminates the class of fraud that depends on one party acting without the other's knowledge. Collusion isn't eliminated — but it becomes documented and detectable rather than invisible.</p>
+      <ul>
+        <li><span class="ck">✓</span><span><b>Email is not the confirmation channel.</b> Owning the inbox does not produce a bilateral event — the passkey device does.</span></li>
+        <li><span class="ck">✓</span><span><b>Bank change is a hard-coded trigger.</b> Not policy-configurable. Confirmation required via passkey.</span></li>
+        <li><span class="ck">✓</span><span><b>No verbal instruction has a pathway in.</b> Payment requires a bilateral event. No exceptions.</span></li>
+        <li><span class="ck">✓</span><span><b>Rush payments increase scrutiny.</b> Override needs dual approval and a constrained reason code.</span></li>
+      </ul>
+    </div>
+    <div class="reveal">
+      <div class="atk">
+        <div class="atk-row h"><div>Attack vector</div><div>Before</div><div>After</div></div>
+        <div class="atk-row"><div class="vec">Fake invoice — external</div><div class="before">Undefended</div><div class="after">Eliminated</div></div>
+        <div class="atk-row"><div class="vec">BEC — bank-change fraud</div><div class="before">Undefended</div><div class="after">Eliminated</div></div>
+        <div class="atk-row"><div class="vec">Compromised vendor email</div><div class="before">Undefended</div><div class="after">Eliminated</div></div>
+        <div class="atk-row"><div class="vec">Verbal social engineering</div><div class="before">Fully effective</div><div class="after">Eliminated</div></div>
+        <div class="atk-row"><div class="vec">Duplicate invoice</div><div class="before">Partially caught</div><div class="after">Structural</div></div>
+        <div class="atk-row"><div class="vec">Rush-payment bypass</div><div class="before">Common failure</div><div class="after">No path</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="docs" style="background:var(--bg-soft); border-top:1px solid var(--line);">
+  <div class="wrap split">
+    <div class="reveal">
+      <div class="sec-tag">Vertical-agnostic by design</div>
+      <h2>AP proves the architecture. Every other vertical is configuration.</h2>
+      <p class="sec-sub" style="margin-top:14px;">The four layers don't change between use cases. Only event types, policy rules, and Work Order structures do. CAST sits alongside your ERP — not in place of it — and produces posting-ready exports with the lineage hash in the memo field.</p>
+      <ul>
+        <li><span class="ck">→</span><span><b>GPU compute financing</b> — instrumentation co-authorship</span></li>
+        <li><span class="ck">→</span><span><b>Institutional grants</b> — milestone confirmation as bilateral event</span></li>
+        <li><span class="ck">→</span><span><b>Intercompany transfers</b> — shared event eliminates month-end recon</span></li>
+        <li><span class="ck">→</span><span><b>PO &amp; trade finance</b> — advance rate improves on a verified asset</span></li>
+      </ul>
+    </div>
+    <div class="reveal">
+      <div class="code-card">
+        <div class="code-top">
+          <span class="c r"></span><span class="c y"></span><span class="c g"></span>
+          <span class="file">verify.ts — independent replay</span>
+        </div>
+<pre class="code"><code><span class="t-com">// Any third party, no counterparty contact</span>
+<span class="t-key">const</span> ok <span class="t-punc">=</span> <span class="t-key">await</span> <span class="t-fn">replay</span><span class="t-punc">(</span>eventId<span class="t-punc">)</span><span class="t-punc">;</span>
+
+<span class="t-com">// Standard libs only — no proprietary verifier</span>
+<span class="t-punc">-</span> SHA<span class="t-num">256</span><span class="t-punc">(</span>canonicalize<span class="t-punc">(</span>payload<span class="t-punc">,</span> v1<span class="t-punc">))</span>
+<span class="t-punc">-</span> ECDSA<span class="t-punc">-</span>P256 signature check
+<span class="t-punc">-</span> X.<span class="t-num">509</span> chain validation
+
+<span class="t-key">return</span> <span class="t-punc">{</span>
+  <span class="t-key">valid</span><span class="t-punc">:</span> ok<span class="t-punc">,</span>
+  <span class="t-key">proves</span><span class="t-punc">:</span> <span class="t-str">"both parties confirmed"</span><span class="t-punc">,</span>
+  <span class="t-key">at</span><span class="t-punc">:</span> <span class="t-str">"signed timestamp"</span><span class="t-punc">,</span>
+  <span class="t-key">unmodified_since</span><span class="t-punc">:</span> <span class="t-key">true</span>
+<span class="t-punc">}</span><span class="t-punc">;</span></code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="cta">
+  <div class="wrap">
+    <div class="cta-block reveal">
+      <h2>The proof is produced once, at transaction time.</h2>
+      <p>It travels with the payment through every downstream system. That's what makes a transaction insurable, financeable, and survivable in audit.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn btn-primary">Request access <span class="arrow">→</span></a>
+        <a href="#" class="btn btn-ghost">Read the system design</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#" class="logo"><span class="mark">C</span>CAST</a>
+        <p>Commercial Agreement Settlement Technology. A bilateral coordination protocol for commercial payments and financial control.</p>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h4>Product</h4>
+          <a href="#how">Confirm &amp; Pay</a>
+          <a href="#primitives">Primitives</a>
+          <a href="#security">Security model</a>
+          <a href="#docs">Verticals</a>
+        </div>
+        <div class="foot-col">
+          <h4>Developers</h4>
+          <a href="#">API reference</a>
+          <a href="#">Replay &amp; verify</a>
+          <a href="#">Canonicalization</a>
+          <a href="#">Changelog</a>
+        </div>
+        <div class="foot-col">
+          <h4>Company</h4>
+          <a href="#">System design</a>
+          <a href="#">Security</a>
+          <a href="#cta">Contact</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>© 2026 Digital Finance HQ · CAST v1.4</span>
+      <span class="mono">Append-only · No updates · No deletes · Ever</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8));
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>

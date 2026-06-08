@@ -1,0 +1,747 @@
+<style>
+:root {
+  --bg: #FAF8F3;
+  --bg-alt: #F2EFE6;
+  --ink: #1A1915;
+  --ink-2: #44433E;
+  --ink-3: #7A7870;
+  --line: #D8D4C7;
+  --line-soft: #E8E4D8;
+  --fw1: #D85A30;
+  --fw2: #1D9E75;
+  --fw3: #378ADD;
+  --fn-sf: #1D9E75;
+  --fn-cd: #D85A30;
+  --fn-po: #378ADD;
+  --fn-xf: #7F77DD;
+  --st-have: #1D9E75;
+  --st-have-bg: #E1F5EE;
+  --st-avail: #D49114;
+  --st-avail-bg: #FAEEDA;
+  --st-build: #A32D2D;
+  --st-build-bg: #FCEBEB;
+}
+
+.bi-wrap { font-family: ui-serif, Georgia, 'Times New Roman', serif; background: var(--bg); color: var(--ink); padding: 24px 28px; line-height: 1.45; }
+.bi-wrap * { box-sizing: border-box; }
+
+.bi-header { border-bottom: 0.5px solid var(--line); padding-bottom: 16px; margin-bottom: 18px; }
+.bi-header h2 { font-size: 22px; font-weight: 500; letter-spacing: -0.01em; margin: 0 0 4px 0; }
+.bi-header p { font-size: 12px; color: var(--ink-3); margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.55; }
+
+.legends { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-family: ui-sans-serif, system-ui, sans-serif; }
+.legend-block { background: white; border: 0.5px solid var(--line); border-radius: 4px; padding: 10px 14px; }
+.legend-block h4 { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 8px 0; }
+.legend-items { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); }
+.legend-item .chip { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.02em; }
+
+.chip.have { background: var(--st-have-bg); color: #0A4A33; }
+.chip.avail { background: var(--st-avail-bg); color: #854F0B; }
+.chip.build { background: var(--st-build-bg); color: #7A1E1E; }
+.chip.fw1 { background: #FAECE7; color: #4A1B0C; }
+.chip.fw2 { background: #E1F5EE; color: #085041; }
+.chip.fw3 { background: #E6F1FB; color: #042C53; }
+
+/* Summary tiles */
+.status-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 22px; font-family: ui-sans-serif, system-ui, sans-serif; }
+.status-tile { background: white; border: 0.5px solid var(--line); border-radius: 4px; padding: 14px 16px; position: relative; overflow: hidden; }
+.status-tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.status-tile.have::before { background: var(--st-have); }
+.status-tile.avail::before { background: var(--st-avail); }
+.status-tile.build::before { background: var(--st-build); }
+.status-tile .count { font-size: 28px; font-weight: 500; font-family: ui-serif, Georgia, serif; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.status-tile .label { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; margin-top: 6px; margin-bottom: 6px; }
+.status-tile.have .label { color: #0A4A33; }
+.status-tile.avail .label { color: #854F0B; }
+.status-tile.build .label { color: #7A1E1E; }
+.status-tile .desc { font-size: 11px; color: var(--ink-3); line-height: 1.5; }
+
+.section-title { font-size: 14px; font-weight: 500; margin: 22px 0 8px 0; padding-bottom: 6px; border-bottom: 0.5px solid var(--line); letter-spacing: 0.02em; text-transform: uppercase; font-family: ui-sans-serif, system-ui, sans-serif; color: var(--ink-2); }
+
+/* Main matrix table */
+.bi-table { width: 100%; border-collapse: collapse; background: white; border: 0.5px solid var(--line); border-radius: 4px; overflow: hidden; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; }
+.bi-table thead { background: var(--bg-alt); }
+.bi-table th { text-align: left; padding: 9px 10px; font-size: 9.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); border-bottom: 0.5px solid var(--line); border-right: 0.5px solid var(--line-soft); vertical-align: middle; }
+.bi-table th:last-child { border-right: none; }
+.bi-table td { padding: 9px 10px; vertical-align: top; border-bottom: 0.5px solid var(--line-soft); border-right: 0.5px solid var(--line-soft); color: var(--ink-2); line-height: 1.45; }
+.bi-table td:last-child { border-right: none; }
+.bi-table tr:last-child td { border-bottom: none; }
+.bi-table tr.cat-row td { background: var(--bg-alt); font-family: ui-serif, Georgia, serif; font-size: 12px; font-weight: 500; color: var(--ink); padding: 10px 12px; letter-spacing: -0.005em; }
+.bi-table .input-name { font-weight: 500; color: var(--ink); font-size: 11px; line-height: 1.35; margin-bottom: 2px; }
+.bi-table .input-def { font-size: 10px; color: var(--ink-3); font-style: italic; line-height: 1.4; }
+.bi-table .fw-chip { font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 8px; letter-spacing: 0.02em; display: inline-block; margin-right: 3px; margin-bottom: 2px; white-space: nowrap; }
+.bi-table .tool-tag { font-size: 10px; font-weight: 600; color: var(--ink); background: var(--bg-alt); padding: 1px 5px; border-radius: 3px; display: inline-block; margin-right: 3px; margin-bottom: 2px; }
+.bi-table .dept { font-size: 10.5px; color: var(--ink-2); }
+.bi-table .source { font-size: 10px; color: var(--ink-3); line-height: 1.4; }
+.bi-table .status-chip { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.02em; display: inline-block; white-space: nowrap; }
+.bi-table .status-chip.have { background: var(--st-have-bg); color: #0A4A33; }
+.bi-table .status-chip.avail { background: var(--st-avail-bg); color: #854F0B; }
+.bi-table .status-chip.build { background: var(--st-build-bg); color: #7A1E1E; }
+.bi-table .note { font-size: 9.5px; color: var(--ink-3); line-height: 1.4; }
+
+.col-input { width: 20%; }
+.col-fw { width: 7%; }
+.col-tool { width: 9%; }
+.col-dept { width: 14%; }
+.col-source { width: 17%; }
+.col-status { width: 11%; }
+.col-note { width: 22%; }
+
+.bi-footer { margin-top: 20px; padding-top: 14px; border-top: 0.5px solid var(--line); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; color: var(--ink-3); line-height: 1.55; }
+.bi-footer strong { color: var(--ink-2); font-weight: 500; }
+.bi-footer ol { margin: 8px 0 0 0; padding-left: 20px; }
+.bi-footer li { margin-bottom: 4px; }
+</style>
+
+<div class="bi-wrap">
+
+<div class="bi-header">
+  <h2>Culina Health — Core business inputs matrix</h2>
+  <p>Every input that feeds the three flywheels, mapped to the tool that captures it, the function that owns it, the source system it lives in, and its availability status. Use this to triage: what do we have, what can we pull as available, what needs to be built or sourced.</p>
+</div>
+
+<div class="legends">
+  <div class="legend-block">
+    <h4>Availability status</h4>
+    <div class="legend-items">
+      <div class="legend-item"><span class="chip have">HAVE</span>Input already exists in a system or workbook today</div>
+      <div class="legend-item"><span class="chip avail">AVAILABLE</span>System captures it but not yet wired / reported</div>
+      <div class="legend-item"><span class="chip build">TO BUILD</span>Not captured today — needs new instrumentation or process</div>
+    </div>
+  </div>
+  <div class="legend-block">
+    <h4>Flywheel</h4>
+    <div class="legend-items">
+      <div class="legend-item"><span class="chip fw1">FW1</span>Outcomes → Referral trust</div>
+      <div class="legend-item"><span class="chip fw2">FW2</span>Utilization → Margin</div>
+      <div class="legend-item"><span class="chip fw3">FW3</span>Payer value → Scale</div>
+    </div>
+  </div>
+</div>
+
+<div class="status-summary">
+  <div class="status-tile have">
+    <div class="count">18</div>
+    <div class="label">HAVE IT</div>
+    <div class="desc">Lives in the operating model, EHR, or RCM today — needs wiring into the relevant tool, not new data collection.</div>
+  </div>
+  <div class="status-tile avail">
+    <div class="count">12</div>
+    <div class="label">AVAILABLE</div>
+    <div class="desc">Source system captures it but Culina isn't reporting or using it — configuration and process work, not build.</div>
+  </div>
+  <div class="status-tile build">
+    <div class="count">8</div>
+    <div class="label">TO BUILD / SOURCE</div>
+    <div class="desc">Not captured today. Requires a new instrument, manual survey, or payer data access conversation.</div>
+  </div>
+</div>
+
+<div class="section-title">Inputs matrix — 38 core inputs across 5 categories</div>
+
+<table class="bi-table">
+  <thead>
+    <tr>
+      <th class="col-input">Core business input</th>
+      <th class="col-fw">Flywheel</th>
+      <th class="col-tool">Tool</th>
+      <th class="col-dept">Department / owner</th>
+      <th class="col-source">Source system</th>
+      <th class="col-status">Status</th>
+      <th class="col-note">Notes / gap to close</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- ===================== CLINICAL & CARE DELIVERY ===================== -->
+    <tr class="cat-row"><td colspan="7">Clinical & care delivery inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Sessions scheduled vs. delivered per RD</div>
+        <div class="input-def">Weekly count, broken out by pod</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D1</span></td>
+      <td class="dept">Director Clinical Ops (inputs) · VP Clinical (reviews)</td>
+      <td class="source">EHR (Canvas/Elation) + Healthie scheduling</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">CAST dashboard already aggregates — needs weekly export to D1.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Fill rate by pod</div>
+        <div class="input-def">% of available slots booked (target &gt;80%)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D1</span></td>
+      <td class="dept">Director Clinical Ops</td>
+      <td class="source">Scheduling platform (Healthie)</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Core denominator for all utilization math.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">No-show rate by pod and condition</div>
+        <div class="input-def">% booked slots missed (target &lt;8%)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D1</span></td>
+      <td class="dept">Director Clinical Ops</td>
+      <td class="source">EHR + scheduling platform</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Captured; condition-level cut may need pod tagging discipline.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">$50 no-show fee enforcement rate</div>
+        <div class="input-def">% of no-shows where fee actually billed &amp; collected</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D1</span> <span class="tool-tag">A2</span></td>
+      <td class="dept">Director Clinical Ops · CFO (collection)</td>
+      <td class="source">EHR + billing system</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Patient-side billing supports it; need reporting view to confirm enforcement vs. policy.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Net effective sessions per RD per week</div>
+        <div class="input-def">Scheduled − no-shows − cancellations (target 17–18)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D1</span> <span class="tool-tag">D2</span></td>
+      <td class="dept">Director Clinical Ops · CFO</td>
+      <td class="source">Derived from EHR + scheduling</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Calculation exists in CAST; formalize as KPI line in D1.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Episode completion rate</div>
+        <div class="input-def">% patients reaching 4+ sessions</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">D1</span></td>
+      <td class="dept">VP Clinical · Director Clinical Ops</td>
+      <td class="source">EHR episode records</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Data is in EHR; "4+ session" definition and cohort logic need to be standardized.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">1-session dropout rate</div>
+        <div class="input-def">Patients who don't return after first session</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">D5</span></td>
+      <td class="dept">VP Clinical</td>
+      <td class="source">EHR</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Raised as open question in CEO call notes — measurable from EHR, not yet reported.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Referral-to-first-session time</div>
+        <div class="input-def">Business days from referral receipt to first session (target &lt;5)</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">D5</span></td>
+      <td class="dept">Director Clinical Ops</td>
+      <td class="source">EHR + intake workflow</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Referral timestamp and first-session timestamp both exist — needs a linking report.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Note return SLA compliance</div>
+        <div class="input-def">% progress notes returned within 24 hrs post-session</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span> <span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">D5</span></td>
+      <td class="dept">VP Clinical · Director Clinical Ops</td>
+      <td class="source">EHR note timestamps</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">EHR has the data; needs a weekly compliance query + alert threshold.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Documentation completeness score</div>
+        <div class="input-def">CPT + biometric delta + clinical rationale all present</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span> <span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">D5</span></td>
+      <td class="dept">VP Clinical</td>
+      <td class="source">EHR structured fields</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Score doesn't exist — requires defining a 3–4 point rubric and a query across EHR fields.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">A1c / weight / lipid state-change per patient</div>
+        <div class="input-def">Biometric delta pre → post episode</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A3</span></td>
+      <td class="dept">VP Clinical (data) · Growth (report)</td>
+      <td class="source">EHR + referring physician data</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">A1c reduction target of −1.1 points is achieved — data exists but not aggregated into payer report.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Avoided ER visits &amp; hospitalizations</div>
+        <div class="input-def">Downstream utilization delta for managed members</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A3</span></td>
+      <td class="dept">Growth · StratOps (model)</td>
+      <td class="source">CareFirst claims data (requires agreement)</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Requires formal data-sharing with CareFirst, or modeled from published MNT outcome rates. Single biggest FW3 gap.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Patient re-engagement rate</div>
+        <div class="input-def">% returning after a lapse (model assumes 28%)</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">B3</span></td>
+      <td class="dept">Growth Lead</td>
+      <td class="source">EHR + patient engagement platform</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">28% is a model assumption — need actuals pulled to validate or correct.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Physician "note usefulness" feedback</div>
+        <div class="input-def">Direct signal that returned notes are valued</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">B3</span></td>
+      <td class="dept">Growth Lead · VP Clinical</td>
+      <td class="source">None — new survey required</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Currently inferred from referral volume only. A lightweight quarterly pulse to top referring physicians would close the loop.</td>
+    </tr>
+
+    <!-- ===================== REVENUE CYCLE & BILLING ===================== -->
+    <tr class="cat-row"><td colspan="7">Revenue cycle &amp; billing inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Prior auth first-pass approval rate</div>
+        <div class="input-def">% PAs approved without appeal (current 87% → target 90%)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span> <span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">D5</span> <span class="tool-tag">A2</span></td>
+      <td class="dept">CFO · RCM platform</td>
+      <td class="source">RCM platform (Athena/Waystar)</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Known at 87%. Each 1% = ~$135k/yr recovered at 10k sessions.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Days to PA approval</div>
+        <div class="input-def">Avg time from submission to decision</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">A2</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">RCM platform</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Raised as open question in CEO call — measurable, not yet surfaced.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">UM denial rate by reason code</div>
+        <div class="input-def">Billing error vs. medical necessity vs. documentation</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A3</span> <span class="tool-tag">D5</span></td>
+      <td class="dept">CFO · VP Clinical</td>
+      <td class="source">RCM denial queue + ERA 835 codes</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Reason codes arrive in ERA feed — need taxonomy mapping to distinguish UM vs. billing.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Clean claim rate at clearinghouse</div>
+        <div class="input-def">% claims passing scrubbing without rejection (target &gt;98%)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">A2</span></td>
+      <td class="dept">CFO · billing team</td>
+      <td class="source">Clearinghouse (Change Healthcare / Availity)</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Standard clearinghouse report.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Denial overturn / recovery rate</div>
+        <div class="input-def">$ recovered ÷ $ appealed</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">A2</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">RCM platform</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Flagged as open question. Largest hidden FW2 lever — add to A2 explicitly.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">AR aging by bucket (0–30 / 31–60 / 61–90 / 90+)</div>
+        <div class="input-def">Outstanding receivables by age band</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C2</span> <span class="tool-tag">C3</span> <span class="tool-tag">A2</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">RCM platform</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Standard AR report. Wire into C2/C3 weekly.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Payer underpayment variance</div>
+        <div class="input-def">Contracted rate vs. actual ERA payment, &gt;$10 variance</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">A2</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">ERA 835 reconciliation</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">RCM supports it but not always auto-reconciled. Needs configuration, not build.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Average revenue per session (actual vs. $135 model)</div>
+        <div class="input-def">Blended collected rate across all payers</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C1</span> <span class="tool-tag">C2</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">RCM + financial close</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Model value $135 exists; actual collected rate is in RCM — validate monthly in C2.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Sessions per episode (actual vs. 4.5 model)</div>
+        <div class="input-def">Avg sessions billed per patient episode</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span> <span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C1</span> <span class="tool-tag">D2</span></td>
+      <td class="dept">CFO · VP Clinical</td>
+      <td class="source">EHR + RCM</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Open CEO question — 4.5 is assumption, actual derivable from EHR.</td>
+    </tr>
+
+    <!-- ===================== REFERRAL & GROWTH ===================== -->
+    <tr class="cat-row"><td colspan="7">Referral &amp; growth inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Referral partner activation rate</div>
+        <div class="input-def">% of in-network physician groups actively referring (35% → 40% target)</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">A2</span> <span class="tool-tag">B3</span></td>
+      <td class="dept">Growth Lead</td>
+      <td class="source">Referral pipeline tracker / CRM</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Known at 35%. Needs monthly refresh and pod-level cut.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Referrals received per week per active group</div>
+        <div class="input-def">Throughput signal on each activated referrer</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">B3</span> <span class="tool-tag">B1</span></td>
+      <td class="dept">Growth Lead</td>
+      <td class="source">EHR + referral log</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Each referral logged; throughput-per-group view needs to be built.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Blended CAC by channel</div>
+        <div class="input-def">Physician / DTC / employer / CareFirst</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">B3</span> <span class="tool-tag">C4</span></td>
+      <td class="dept">Growth Lead · CFO</td>
+      <td class="source">Finance + referral attribution</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Model has assumptions; actuals wire-up needs Growth + Finance alignment.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">LTV per patient (model assumption: ~$2–4k)</div>
+        <div class="input-def">Revenue across all sessions &amp; re-engagements</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span> <span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">B3</span> <span class="tool-tag">C4</span></td>
+      <td class="dept">CFO · Growth</td>
+      <td class="source">LTV Visit Curve workbook + RCM</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Workbook already exists; tie to actuals quarterly.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Physician group → Epic/Redox integration status</div>
+        <div class="input-def">Integrated vs. portal-only — the activation enabler</div>
+      </td>
+      <td><span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">A1</span></td>
+      <td class="dept">Growth Lead · Product</td>
+      <td class="source">Redox config + partnership CRM</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Needs a tracked field per partner — manual today; add to launch checklist.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Partner contribution margin</div>
+        <div class="input-def">Revenue − attributable cost per active contract</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A2</span></td>
+      <td class="dept">CFO · Growth</td>
+      <td class="source">RCM + operating model</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Data is available; contract-level P&amp;L column doesn't exist in tool yet.</td>
+    </tr>
+
+    <!-- ===================== WORKFORCE & CAPACITY ===================== -->
+    <tr class="cat-row"><td colspan="7">Workforce &amp; capacity inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">RD employment mix (FT W-2 / PT W-2 / IPA)</div>
+        <div class="input-def">% of workforce by type — drives true loaded cost</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D3</span> <span class="tool-tag">D2</span></td>
+      <td class="dept">Director Clinical Ops · CFO</td>
+      <td class="source">HR system / payroll</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Payroll knows this; centralize in D3 tracker.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Fully loaded cost per RD by type</div>
+        <div class="input-def">Salary + benefits load (FT 25–30%, IPA 0%)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D2</span> <span class="tool-tag">C1</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">Payroll + benefits</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Model assumes $112.5k — validate vs. actual W-2/1099 split.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Days to first session from RD hire</div>
+        <div class="input-def">Onboarding friction metric (credentialing lag)</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D3</span> <span class="tool-tag">D4</span></td>
+      <td class="dept">Director Clinical Ops</td>
+      <td class="source">HR + credentialing tracker</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Events tracked in disparate places — D3 tool consolidates them.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">RD attrition rate (trailing 12mo) + reason codes</div>
+        <div class="input-def">Retention signal with pod &amp; tenure cuts</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D3</span></td>
+      <td class="dept">Director Clinical Ops · VP Clinical</td>
+      <td class="source">HR / exit interview log</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Attrition events are known; reason code taxonomy needs formalizing.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Patients per RD (actual vs. 167 model)</div>
+        <div class="input-def">Census or active-in-period, varies by pod</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">D2</span> <span class="tool-tag">D4</span></td>
+      <td class="dept">VP Clinical · CFO</td>
+      <td class="source">EHR</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Open CEO question — census vs. active distinction needs to be defined before reporting.</td>
+    </tr>
+
+    <!-- ===================== FINANCIAL ===================== -->
+    <tr class="cat-row"><td colspan="7">Financial inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Monthly P&amp;L actuals (all lines)</div>
+        <div class="input-def">Revenue, COGS, OpEx, EBITDA — every line vs. budget</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C1</span> <span class="tool-tag">C2</span></td>
+      <td class="dept">CFO · outsourced finance</td>
+      <td class="source">General ledger (to NetSuite post-ERP)</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Outsourced close produces it; standardize export format into C2.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Cash position &amp; 13-week forecast</div>
+        <div class="input-def">Bank balance + projected inflow/outflow</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C3</span></td>
+      <td class="dept">CFO</td>
+      <td class="source">Bank + RCM collection forecast</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">C3 tool substantially built; wire live actuals biweekly.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Runway (weeks)</div>
+        <div class="input-def">Cash ÷ avg weekly burn</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C1</span> <span class="tool-tag">C3</span> <span class="tool-tag">B1</span></td>
+      <td class="dept">CFO · CEO</td>
+      <td class="source">Derived from C1 + C3</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Calculated in model — surface on Monday command pack.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Insurance mix % (currently 93% model)</div>
+        <div class="input-def">Revenue concentration across top payers</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span></td>
+      <td><span class="tool-tag">C1</span> <span class="tool-tag">A2</span></td>
+      <td class="dept">CFO · Growth</td>
+      <td class="source">RCM payer mix report</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Model assumption confirmed at 93%. Top-3 payer concentration is the open diligence item.</td>
+    </tr>
+
+    <!-- ===================== PAYER / PARTNERSHIP ===================== -->
+    <tr class="cat-row"><td colspan="7">Payer &amp; strategic partnership inputs</td></tr>
+
+    <tr>
+      <td>
+        <div class="input-name">CareFirst avoided cost per managed member</div>
+        <div class="input-def">$7k/year model assumption — the ROI metric CareFirst measures</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A3</span></td>
+      <td class="dept">Growth · StratOps (model)</td>
+      <td class="source">Modeled from A1c delta + published MNT outcome rates; validated vs. CareFirst claims</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Most important single input to source. Modeled version can launch Q1; claims-validated version requires CareFirst data partnership.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">SDOH / equity composition (55%+ patients of color)</div>
+        <div class="input-def">CareFirst-valued metric tied to exclusive status</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A3</span></td>
+      <td class="dept">Growth · VP Clinical</td>
+      <td class="source">Patient intake demographics</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Intake captures demographics; aggregation into payer report is a query, not a build.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">CareFirst member referral volume</div>
+        <div class="input-def">Referrals coming through CareFirst channel specifically</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span> <span class="fw-chip fw1">FW1</span></td>
+      <td><span class="tool-tag">A2</span> <span class="tool-tag">B3</span></td>
+      <td class="dept">Growth Lead</td>
+      <td class="source">Referral log + insurance eligibility</td>
+      <td><span class="status-chip have">HAVE</span></td>
+      <td class="note">Channel attribution is in place.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Top-3 payer contracted rates &amp; renewal timing</div>
+        <div class="input-def">Reimbursement rate exposure at renewal</div>
+      </td>
+      <td><span class="fw-chip fw2">FW2</span> <span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">A2</span> <span class="tool-tag">C5</span></td>
+      <td class="dept">CFO · Growth</td>
+      <td class="source">Contracts + RCM</td>
+      <td><span class="status-chip avail">AVAILABLE</span></td>
+      <td class="note">Flagged as open CEO question. Contracts exist; central tracker does not.</td>
+    </tr>
+
+    <tr>
+      <td>
+        <div class="input-name">Value-based contract terms &amp; PMPM status</div>
+        <div class="input-def">Are any VBC/bundled arrangements live or in negotiation</div>
+      </td>
+      <td><span class="fw-chip fw3">FW3</span></td>
+      <td><span class="tool-tag">C5</span> <span class="tool-tag">A3</span></td>
+      <td class="dept">CEO · CFO · Growth</td>
+      <td class="source">Contract legal + payer relationships</td>
+      <td><span class="status-chip build">TO BUILD</span></td>
+      <td class="note">Explicit open question in CEO call notes. Status inventory needed.</td>
+    </tr>
+
+  </tbody>
+</table>
+
+<div class="bi-footer">
+<strong>How to use this matrix.</strong>
+<ol>
+  <li><strong>HAVE (18):</strong> Wire these into the relevant tool in Sprint 1–2. The blocker is plumbing, not data collection. Highest near-term ROI because the measurement work is already done.</li>
+  <li><strong>AVAILABLE (12):</strong> Work with the system owner (RCM vendor, EHR admin, HR) to configure or extract. Most can be closed in a single working session per input — these become sprint-level tasks, not net-new tool builds.</li>
+  <li><strong>TO BUILD / SOURCE (8):</strong> These are the real prioritization conversation. Rank by FW impact: <strong>CareFirst avoided cost</strong>, <strong>denial overturn rate</strong>, and <strong>documentation completeness score</strong> are the three highest-leverage gaps. Physician feedback pulse, VBC inventory, and Epic/Redox partner status are operationally cheap adds. Days-to-first-session onboarding and full downstream utilization data require cross-system work or payer data access.</li>
+</ol>
+<strong>Strategic read:</strong> Culina already has most of what it needs — the constraint is wiring and reporting discipline, not collection. The 8 "to build" inputs concentrate on the FW3 payer loop, which is also the one the Series B narrative depends on most. Sequence the build accordingly.
+</div>
+
+</div>

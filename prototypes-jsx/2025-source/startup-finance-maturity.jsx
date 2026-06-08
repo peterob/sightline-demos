@@ -1,0 +1,661 @@
+import React, { useState } from 'react';
+
+const StartupFinanceMaturity = () => {
+  const [selectedStage, setSelectedStage] = useState('seed');
+  const [expandedCapability, setExpandedCapability] = useState(null);
+
+  const stages = {
+    preseed: {
+      label: 'Pre-Seed',
+      raised: '$0-500K',
+      burn: '$20-50K/mo',
+      runway: '6-12 mo',
+      teamSize: '0-0.25 FTE finance',
+      color: '#666'
+    },
+    seed: {
+      label: 'Seed',
+      raised: '$500K-3M',
+      burn: '$50-150K/mo',
+      runway: '12-18 mo',
+      teamSize: '0.25-0.5 FTE finance',
+      color: '#8b5cf6'
+    },
+    seriesA: {
+      label: 'Series A',
+      raised: '$3-15M',
+      burn: '$150-500K/mo',
+      runway: '18-24 mo',
+      teamSize: '1-2 FTE finance',
+      color: '#3b82f6'
+    },
+    seriesB: {
+      label: 'Series B',
+      raised: '$15-50M',
+      burn: '$500K-2M/mo',
+      runway: '24-36 mo',
+      teamSize: '3-6 FTE finance',
+      color: '#22c55e'
+    }
+  };
+
+  const capabilities = [
+    {
+      id: 'cash',
+      name: 'Cash Position',
+      question: 'How quickly can you state exact cash position?',
+      levels: {
+        preseed: { 
+          target: 'Same day',
+          how: 'Single bank account, founder checks daily',
+          tool: 'Bank app',
+          cost: '$0',
+          status: 'manual'
+        },
+        seed: { 
+          target: 'Real-time',
+          how: 'Bank feed connected, auto-reconciled',
+          tool: 'Mercury/Brex + QBO',
+          cost: '$0-200/mo',
+          status: 'automated'
+        },
+        seriesA: { 
+          target: 'Real-time, multi-entity',
+          how: 'All accounts consolidated, sweep visibility',
+          tool: 'Treasury dashboard',
+          cost: '$200-500/mo',
+          status: 'automated'
+        },
+        seriesB: { 
+          target: 'Real-time, forecasted',
+          how: 'Position + 13-week forward projection',
+          tool: 'Treasury + FP&A integration',
+          cost: '$500-2K/mo',
+          status: 'predictive'
+        }
+      },
+      investorExpects: 'Series A+: Answer within 1 hour. Series B: Answer immediately with forecast.'
+    },
+    {
+      id: 'burn',
+      name: 'Burn Rate Accuracy',
+      question: 'What is your monthly burn, and how confident are you?',
+      levels: {
+        preseed: { 
+          target: '±20% accuracy',
+          how: 'Bank statement review, rough categories',
+          tool: 'Spreadsheet',
+          cost: '$0',
+          status: 'manual'
+        },
+        seed: { 
+          target: '±10% accuracy',
+          how: 'Categorized expenses, accrual awareness',
+          tool: 'QBO/Xero + bookkeeper',
+          cost: '$500-1.5K/mo',
+          status: 'semi-automated'
+        },
+        seriesA: { 
+          target: '±5% accuracy',
+          how: 'Accrual accounting, prepaid/deferred handled',
+          tool: 'Accountant + close process',
+          cost: '$2-5K/mo',
+          status: 'controlled'
+        },
+        seriesB: { 
+          target: '±2% accuracy, variance explained',
+          how: 'Budget vs actual, department-level attribution',
+          tool: 'FP&A function',
+          cost: '$8-15K/mo',
+          status: 'predictive'
+        }
+      },
+      investorExpects: 'Series A: Know your burn ±$10K. Series B: Explain variances to budget.'
+    },
+    {
+      id: 'runway',
+      name: 'Runway Calculation',
+      question: 'How many months until zero, and what assumptions?',
+      levels: {
+        preseed: { 
+          target: 'Monthly estimate',
+          how: 'Cash ÷ average burn',
+          tool: 'Back of envelope',
+          cost: '$0',
+          status: 'manual'
+        },
+        seed: { 
+          target: 'Monthly, scenario-based',
+          how: 'Base/bull/bear cases',
+          tool: 'Spreadsheet model',
+          cost: '$0',
+          status: 'manual'
+        },
+        seriesA: { 
+          target: 'Weekly update, driver-based',
+          how: 'Headcount plan → burn → runway',
+          tool: 'Financial model',
+          cost: '$0-2K (model build)',
+          status: 'modeled'
+        },
+        seriesB: { 
+          target: 'Real-time, trigger-based',
+          how: 'Auto-update on actuals, alert thresholds',
+          tool: 'FP&A + treasury integration',
+          cost: '$2-5K/mo',
+          status: 'automated'
+        }
+      },
+      investorExpects: 'Series A: 3 scenarios modeled. Series B: Live dashboard with triggers.'
+    },
+    {
+      id: 'close',
+      name: 'Monthly Close',
+      question: 'How many days after month-end to have final numbers?',
+      levels: {
+        preseed: { 
+          target: 'N/A or 30+ days',
+          how: 'Founder reviews when needed',
+          tool: 'Bank statements',
+          cost: '$0',
+          status: 'none'
+        },
+        seed: { 
+          target: '15-20 business days',
+          how: 'Outsourced bookkeeper, monthly batch',
+          tool: 'QBO + bookkeeper',
+          cost: '$500-1.5K/mo',
+          status: 'manual'
+        },
+        seriesA: { 
+          target: '10-12 business days',
+          how: 'Close checklist, accountant review',
+          tool: 'Accounting firm or FT hire',
+          cost: '$3-8K/mo',
+          status: 'process'
+        },
+        seriesB: { 
+          target: '5-7 business days',
+          how: 'Close calendar, reconciliation workflow',
+          tool: 'Controller + close management',
+          cost: '$10-20K/mo',
+          status: 'controlled'
+        }
+      },
+      investorExpects: 'Series A: Books closed by day 15. Series B: Closed by day 7.'
+    },
+    {
+      id: 'revenue',
+      name: 'Revenue Recognition',
+      question: 'Can you defend how you recognize revenue?',
+      levels: {
+        preseed: { 
+          target: 'Cash basis acceptable',
+          how: 'Record when paid',
+          tool: 'Bank + spreadsheet',
+          cost: '$0',
+          status: 'simple'
+        },
+        seed: { 
+          target: 'Accrual basis, simple',
+          how: 'Invoiced = recognized (if delivered)',
+          tool: 'QBO invoicing',
+          cost: '$0',
+          status: 'semi-controlled'
+        },
+        seriesA: { 
+          target: 'ASC 606 awareness',
+          how: 'Deferred revenue tracked, contracts reviewed',
+          tool: 'Accountant oversight',
+          cost: '$1-3K/mo',
+          status: 'controlled'
+        },
+        seriesB: { 
+          target: 'ASC 606 compliant',
+          how: 'Performance obligations mapped, SSP documented',
+          tool: 'Rev rec system or policy',
+          cost: '$3-10K/mo',
+          status: 'auditable'
+        }
+      },
+      investorExpects: 'Series A: Know your policy. Series B: Auditor-tested policy in place.'
+    },
+    {
+      id: 'ap',
+      name: 'Accounts Payable',
+      question: 'Do you know what you owe and when?',
+      levels: {
+        preseed: { 
+          target: 'Founder pays bills',
+          how: 'Credit card + manual payments',
+          tool: 'Card + bank bill pay',
+          cost: '$0',
+          status: 'manual'
+        },
+        seed: { 
+          target: 'Centralized payment',
+          how: 'AP inbox, weekly payment run',
+          tool: 'Bill.com or Ramp',
+          cost: '$0-200/mo',
+          status: 'semi-automated'
+        },
+        seriesA: { 
+          target: 'Approval workflow',
+          how: 'PO optional, approval required >$X',
+          tool: 'AP automation + approval',
+          cost: '$200-500/mo',
+          status: 'controlled'
+        },
+        seriesB: { 
+          target: '3-way match',
+          how: 'PO → Receipt → Invoice matching',
+          tool: 'AP automation + procurement',
+          cost: '$500-2K/mo',
+          status: 'validated'
+        }
+      },
+      investorExpects: 'Series A: Know your AP aging. Series B: No surprise invoices.'
+    },
+    {
+      id: 'audit',
+      name: 'Audit Readiness',
+      question: 'How painful would a financial audit be?',
+      levels: {
+        preseed: { 
+          target: 'Not applicable',
+          how: 'Tax return only',
+          tool: 'CPA for taxes',
+          cost: '$1-3K/year',
+          status: 'minimal'
+        },
+        seed: { 
+          target: 'Review possible',
+          how: 'Clean books, organized docs',
+          tool: 'Bookkeeper + doc storage',
+          cost: '$500-2K/year',
+          status: 'organized'
+        },
+        seriesA: { 
+          target: 'Audit-ready',
+          how: 'Support for balances, policies documented',
+          tool: 'Accountant + evidence retention',
+          cost: '$20-50K audit',
+          status: 'ready'
+        },
+        seriesB: { 
+          target: 'Audit efficient',
+          how: 'PBC list pre-populated, controls tested',
+          tool: 'Controller + audit management',
+          cost: '$50-150K audit',
+          status: 'efficient'
+        }
+      },
+      investorExpects: 'Series A: Auditable if needed. Series B: Audit completed or in progress.'
+    },
+    {
+      id: 'evidence',
+      name: 'Transaction Evidence',
+      question: 'Can you prove any transaction happened?',
+      levels: {
+        preseed: { 
+          target: 'Email/receipts exist somewhere',
+          how: 'Founder memory + inbox search',
+          tool: 'Email',
+          cost: '$0',
+          status: 'scattered'
+        },
+        seed: { 
+          target: 'Organized by month',
+          how: 'Folder structure, receipts uploaded',
+          tool: 'Google Drive + Expensify',
+          cost: '$0-100/mo',
+          status: 'organized'
+        },
+        seriesA: { 
+          target: 'Linked to transactions',
+          how: 'Attachments on bills, contracts referenced',
+          tool: 'AP system + doc management',
+          cost: '$200-500/mo',
+          status: 'linked'
+        },
+        seriesB: { 
+          target: 'Evidence-gated',
+          how: 'Transaction blocked without required proof',
+          tool: 'Validation layer',
+          cost: '$1-3K/mo',
+          status: 'enforced'
+        }
+      },
+      investorExpects: 'Series A: Find support within 1 day. Series B: Evidence attached at creation.'
+    }
+  ];
+
+  const currentStage = stages[selectedStage];
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'manual': '#ef4444',
+      'none': '#ef4444',
+      'minimal': '#ef4444',
+      'scattered': '#ef4444',
+      'simple': '#f59e0b',
+      'semi-automated': '#f59e0b',
+      'semi-controlled': '#f59e0b',
+      'organized': '#f59e0b',
+      'process': '#3b82f6',
+      'modeled': '#3b82f6',
+      'controlled': '#3b82f6',
+      'linked': '#3b82f6',
+      'ready': '#3b82f6',
+      'automated': '#22c55e',
+      'predictive': '#22c55e',
+      'validated': '#22c55e',
+      'enforced': '#22c55e',
+      'auditable': '#22c55e',
+      'efficient': '#22c55e'
+    };
+    return colors[status] || '#666';
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      color: '#e0e0e0',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      padding: '32px',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <span style={{
+              width: '10px',
+              height: '10px',
+              background: '#22c55e',
+              borderRadius: '2px'
+            }}/>
+            <span style={{ fontSize: '14px', color: '#888' }}>sightline</span>
+          </div>
+          <h1 style={{
+            fontSize: '28px',
+            fontWeight: '500',
+            color: '#fff',
+            margin: '0 0 8px 0'
+          }}>
+            Startup Finance Maturity Framework
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#666',
+            margin: 0
+          }}>
+            What investors expect at each stage. What it costs. What tools to use.
+          </p>
+        </div>
+
+        {/* Stage Selector */}
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '32px',
+          flexWrap: 'wrap'
+        }}>
+          {Object.entries(stages).map(([key, stage]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedStage(key)}
+              style={{
+                padding: '12px 20px',
+                background: selectedStage === key ? `${stage.color}20` : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${selectedStage === key ? stage.color : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <div style={{ fontSize: '13px', color: selectedStage === key ? stage.color : '#888', marginBottom: '4px' }}>
+                {stage.label}
+              </div>
+              <div style={{ fontSize: '11px', color: '#666' }}>
+                {stage.raised}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Stage Context */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+          marginBottom: '32px',
+          padding: '20px',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '8px',
+          border: '1px solid rgba(255,255,255,0.06)'
+        }}>
+          <div>
+            <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>RAISED</div>
+            <div style={{ fontSize: '16px', color: currentStage.color }}>{currentStage.raised}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>TYPICAL BURN</div>
+            <div style={{ fontSize: '16px', color: '#fff' }}>{currentStage.burn}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>TARGET RUNWAY</div>
+            <div style={{ fontSize: '16px', color: '#fff' }}>{currentStage.runway}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>FINANCE TEAM</div>
+            <div style={{ fontSize: '16px', color: '#fff' }}>{currentStage.teamSize}</div>
+          </div>
+        </div>
+
+        {/* Capabilities Grid */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ fontSize: '11px', color: '#888', letterSpacing: '1px', marginBottom: '16px' }}>
+            CAPABILITY REQUIREMENTS AT {currentStage.label.toUpperCase()}
+          </div>
+          
+          {capabilities.map((cap) => {
+            const level = cap.levels[selectedStage];
+            const isExpanded = expandedCapability === cap.id;
+            
+            return (
+              <div
+                key={cap.id}
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                  overflow: 'hidden'
+                }}
+              >
+                <div
+                  onClick={() => setExpandedCapability(isExpanded ? null : cap.id)}
+                  style={{
+                    padding: '16px 20px',
+                    cursor: 'pointer',
+                    display: 'grid',
+                    gridTemplateColumns: '200px 1fr 120px 100px 80px',
+                    gap: '16px',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '13px', color: '#fff', marginBottom: '2px' }}>{cap.name}</div>
+                    <div style={{ fontSize: '10px', color: '#666' }}>{cap.question}</div>
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#ddd' }}>{level.target}</div>
+                  <div style={{ fontSize: '11px', color: '#888' }}>{level.tool}</div>
+                  <div style={{ fontSize: '12px', color: '#22c55e' }}>{level.cost}</div>
+                  <div style={{
+                    fontSize: '9px',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    background: `${getStatusColor(level.status)}20`,
+                    color: getStatusColor(level.status),
+                    textAlign: 'center',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {level.status}
+                  </div>
+                </div>
+                
+                {isExpanded && (
+                  <div style={{
+                    padding: '16px 20px',
+                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(0,0,0,0.2)'
+                  }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '12px',
+                      marginBottom: '16px'
+                    }}>
+                      {Object.entries(cap.levels).map(([stageKey, stageLevel]) => (
+                        <div
+                          key={stageKey}
+                          style={{
+                            padding: '12px',
+                            background: stageKey === selectedStage ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255,255,255,0.02)',
+                            border: `1px solid ${stageKey === selectedStage ? '#8b5cf6' : 'rgba(255,255,255,0.05)'}`,
+                            borderRadius: '6px'
+                          }}
+                        >
+                          <div style={{ fontSize: '10px', color: stages[stageKey].color, marginBottom: '6px' }}>
+                            {stages[stageKey].label}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#ddd', marginBottom: '4px' }}>{stageLevel.target}</div>
+                          <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>{stageLevel.how}</div>
+                          <div style={{ fontSize: '10px', color: '#22c55e' }}>{stageLevel.cost}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{
+                      padding: '12px',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      borderRadius: '4px',
+                      borderLeft: '3px solid #f59e0b'
+                    }}>
+                      <div style={{ fontSize: '10px', color: '#f59e0b', marginBottom: '4px' }}>INVESTOR EXPECTATION</div>
+                      <div style={{ fontSize: '12px', color: '#ddd' }}>{cap.investorExpects}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Monthly Cost Summary */}
+        <div style={{
+          background: 'rgba(34, 197, 94, 0.05)',
+          border: '1px solid rgba(34, 197, 94, 0.2)',
+          borderRadius: '8px',
+          padding: '24px',
+          marginBottom: '32px'
+        }}>
+          <div style={{ fontSize: '11px', color: '#22c55e', letterSpacing: '1px', marginBottom: '16px' }}>
+            ESTIMATED MONTHLY FINANCE COST AT {currentStage.label.toUpperCase()}
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '24px'
+          }}>
+            <div>
+              <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>TOOLS & SOFTWARE</div>
+              <div style={{ fontSize: '20px', color: '#fff' }}>
+                {selectedStage === 'preseed' && '$0-200'}
+                {selectedStage === 'seed' && '$500-2K'}
+                {selectedStage === 'seriesA' && '$2-5K'}
+                {selectedStage === 'seriesB' && '$5-15K'}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>PEOPLE (INTERNAL + EXTERNAL)</div>
+              <div style={{ fontSize: '20px', color: '#fff' }}>
+                {selectedStage === 'preseed' && '$0-500'}
+                {selectedStage === 'seed' && '$1-3K'}
+                {selectedStage === 'seriesA' && '$8-15K'}
+                {selectedStage === 'seriesB' && '$25-50K'}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>% OF BURN</div>
+              <div style={{ fontSize: '20px', color: '#22c55e' }}>
+                {selectedStage === 'preseed' && '1-2%'}
+                {selectedStage === 'seed' && '2-4%'}
+                {selectedStage === 'seriesA' && '3-5%'}
+                {selectedStage === 'seriesB' && '3-4%'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sightline Value */}
+        <div style={{
+          background: 'rgba(139, 92, 246, 0.05)',
+          border: '1px solid rgba(139, 92, 246, 0.2)',
+          borderRadius: '8px',
+          padding: '24px'
+        }}>
+          <div style={{ fontSize: '11px', color: '#8b5cf6', letterSpacing: '1px', marginBottom: '16px' }}>
+            WHERE SIGHTLINE FITS
+          </div>
+          <div style={{ fontSize: '14px', color: '#ddd', lineHeight: '1.7', marginBottom: '16px' }}>
+            Sightline is most valuable at <strong>Seed → Series A transition</strong> and beyond. 
+            We replace the manual work of evidence gathering and transaction validation with 
+            systematic enforcement—so your 0.5 FTE finance person operates like a 2 FTE team.
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px'
+          }}>
+            {[
+              { metric: 'Close time', from: '15 days', to: '5 days' },
+              { metric: 'Audit prep', from: '40 hours', to: '4 hours' },
+              { metric: 'Evidence retrieval', from: '1 day', to: '1 click' }
+            ].map((item, i) => (
+              <div key={i} style={{
+                padding: '12px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '4px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '10px', color: '#888', marginBottom: '6px' }}>{item.metric}</div>
+                <div style={{ fontSize: '12px' }}>
+                  <span style={{ color: '#ef4444', textDecoration: 'line-through' }}>{item.from}</span>
+                  <span style={{ color: '#666', margin: '0 6px' }}>→</span>
+                  <span style={{ color: '#22c55e' }}>{item.to}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          marginTop: '40px',
+          paddingTop: '24px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            Small teams. Top-of-line equipment. Mission won.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StartupFinanceMaturity;

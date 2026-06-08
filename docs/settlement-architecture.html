@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement Visibility Architecture - Integration Roadmap</title>
+    <style>
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f2e;
+            --bg-card: #242b3d;
+            --text-primary: #f0f4f8;
+            --text-secondary: #8b9db5;
+            --accent-cyan: #22d3ee;
+            --accent-green: #22c55e;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --border-color: #2d3548;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 40px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.75rem; margin-bottom: 8px; color: var(--accent-cyan); }
+        h2 { font-size: 1.35rem; margin: 40px 0 16px; color: var(--text-primary); border-bottom: 2px solid var(--accent-cyan); padding-bottom: 8px; }
+        h3 { font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent-purple); }
+        h4 { font-size: 0.95rem; margin: 20px 0 8px; color: var(--accent-amber); }
+        p { margin-bottom: 14px; color: var(--text-secondary); }
+        .subtitle { color: var(--text-secondary); margin-bottom: 32px; font-size: 1.05rem; }
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 24px 0;
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+        .flow-box {
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .flow-box.source { border-color: var(--accent-amber); }
+        .flow-box.sightline { border-color: var(--accent-cyan); background: rgba(34, 211, 238, 0.1); }
+        .flow-box.output { border-color: var(--accent-green); }
+        .flow-arrow {
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+        }
+        .flow-box h5 { color: var(--text-primary); margin-bottom: 4px; font-size: 0.85rem; }
+        .flow-box p { font-size: 0.75rem; margin: 0; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem; }
+        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
+        th { background: var(--bg-card); font-weight: 600; color: var(--accent-cyan); }
+        td { background: var(--bg-secondary); }
+        .event-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .event-instruction { background: rgba(34, 211, 238, 0.2); color: var(--accent-cyan); }
+        .event-confirmation { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .event-exception { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .priority-high { color: var(--accent-green); font-weight: 600; }
+        .priority-medium { color: var(--accent-amber); }
+        .priority-low { color: var(--text-secondary); }
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .integration-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .integration-card h5 { color: var(--accent-cyan); margin-bottom: 8px; }
+        .integration-card ul { margin: 0; padding-left: 18px; font-size: 0.85rem; }
+        .integration-card li { margin: 4px 0; color: var(--text-secondary); }
+        .code-block {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            margin: 12px 0;
+            color: #e2e8f0;
+        }
+        .callout {
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 4px solid var(--accent-purple);
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .callout h4 { color: var(--accent-purple); margin-bottom: 8px; }
+        .warning {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--accent-red);
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning h4 { color: var(--accent-red); margin-bottom: 8px; }
+        footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Settlement Visibility Architecture</h1>
+    <p class="subtitle">Integration roadmap for bulletproof audit without handling funds</p>
+
+    <h2>1. The Visibility Loop</h2>
+    <p>For every payment, you need to capture three events and link them cryptographically:</p>
+
+    <div class="flow-diagram">
+        <div class="flow-box source">
+            <h5>📤 INSTRUCTION</h5>
+            <p>Your system says "pay"</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box source">
+            <h5>🏦 EXECUTION</h5>
+            <p>Bank/processor initiates</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box sightline">
+            <h5>🔗 SIGHTLINE</h5>
+            <p>Hash + link events</p>
+        </div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box output">
+            <h5>✅ CONFIRMATION</h5>
+            <p>Settlement verified</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h4>The Audit Chain</h4>
+        <div class="code-block">
+{
+  "instruction": {
+    "id": "INS-2026-0847",
+    "timestamp": "2026-02-06T14:23:01Z",
+    "type": "payment_instruction",
+    "payload": { "vendor": "Pacific Steel", "amount": 47250.00, "account": "****6789" },
+    "hash": "a3f8c2d1..."
+  },
+  "execution": {
+    "id": "EXE-2026-0847",
+    "timestamp": "2026-02-06T14:23:04Z",
+    "type": "payment_initiated",
+    "source": "bank_api",
+    "reference": "ACH-9982341",
+    "parent_hash": "a3f8c2d1...",
+    "hash": "b7e4f9a2..."
+  },
+  "confirmation": {
+    "id": "CNF-2026-0847",
+    "timestamp": "2026-02-07T09:15:22Z",
+    "type": "payment_settled",
+    "source": "bank_webhook",
+    "status": "completed",
+    "parent_hash": "b7e4f9a2...",
+    "hash": "c9d2e8b3..."
+  },
+  "chain_verified": true,
+  "settlement_proof": "SHA256(a3f8c2d1 + b7e4f9a2 + c9d2e8b3) = d4f7a1c9..."
+}
+        </div>
+    </div>
+
+    <h2>2. Integration Map by Data Source</h2>
+
+    <h3>Banking & Treasury</h3>
+    <div class="integration-grid">
+        <div class="integration-card">
+            <h5>Plaid (Recommended Primary)</h5>
+            <ul>
+                <li><strong>Auth:</strong> Verify account ownership</li>
+                <li><strong>Transactions:</strong> Real-time transaction feed</li>
+                <li><strong>Balance:</strong> Current/available balances</li>
+                <li><strong>Transfer:</strong> Initiate ACH (requires approval)</li>
+            </ul>
+            <p style="margin-top:8px;font-size:0.8rem;color:var(--accent-green);">✓ Best coverage for SMB bank accounts</p>
+        </div>
+        <div class="integration-card">
+            <h5>MX (Alternative)</h5>
+            <ul>
+                <li><strong>Accounts:</strong> Multi-bank aggregation</li>
+                <li><strong>Transactions:</strong> Categorized history</li>
+                <li><strong>Webhooks:</strong> Real-time notifications</li>
+            </ul>
+            <p style="margin-top:8px;font-size:0.8rem;color:var(--accent-amber);">○ Good for credit unions, smaller banks</p>
+        </div>
+        <div class="integration-card">
+            <h5>Direct Bank APIs</h5>
+            <ul>
+                <li><strong>SVB/Mercury/Brex:</strong> Native APIs for startups</li>
+                <li><strong>JP Morgan Access:</strong> Enterprise treasury</li>
+                <li><strong>Wells Fargo Gateway:</strong> Commercial accounts</li>
+            </ul>
+            <p style="margin-top:8px;font-size:0.8rem;color:var(--accent-cyan);">★ Fastest confirmation, but bank-specific</p>
+        </div>
+    </div>
+
+    <h3>Payment Processors</h3>
+    <div class="integration-grid">
+        <div class="integration-card">
+            <h5>Stripe</h5>
+            <ul>
+                <li><code>payment_intent.succeeded</code> — Card payment confirmed</li>
+                <li><code>payout.paid</code> — Funds deposited to bank</li>
+                <li><code>charge.refunded</code> — Refund completed</li>
+                <li><code>invoice.paid</code> — Invoice settled</li>
+            </ul>
+        </div>
+        <div class="integration-card">
+            <h5>Bill.com / BILL</h5>
+            <ul>
+                <li><code>Payment.Completed</code> — AP payment settled</li>
+                <li><code>Payment.Failed</code> — Settlement exception</li>
+                <li><code>ReceivedPay.Deposited</code> — AR deposited</li>
+            </ul>
+        </div>
+        <div class="integration-card">
+            <h5>Shopify Payments</h5>
+            <ul>
+                <li><code>orders/paid</code> — Order payment captured</li>
+                <li><code>refunds/create</code> — Refund issued</li>
+                <li><code>payouts/create</code> — Payout initiated</li>
+                <li>GraphQL: <code>shopifyPaymentsAccount.balanceTransactions</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>ERP / Accounting Systems</h3>
+    <div class="integration-grid">
+        <div class="integration-card">
+            <h5>QuickBooks Online</h5>
+            <ul>
+                <li><code>Payment</code> — Customer payment received</li>
+                <li><code>BillPayment</code> — Vendor payment made</li>
+                <li><code>Deposit</code> — Bank deposit recorded</li>
+                <li><code>Transfer</code> — Inter-account transfer</li>
+            </ul>
+        </div>
+        <div class="integration-card">
+            <h5>NetSuite</h5>
+            <ul>
+                <li><code>CustomerPayment</code> — AR settlement</li>
+                <li><code>VendorPayment</code> — AP settlement</li>
+                <li><code>Deposit</code> — Bank reconciliation</li>
+                <li>SuiteScript webhooks for real-time</li>
+            </ul>
+        </div>
+        <div class="integration-card">
+            <h5>Sage Intacct</h5>
+            <ul>
+                <li><code>ARPYMT</code> — AR payment applied</li>
+                <li><code>APPYMT</code> — AP payment processed</li>
+                <li><code>BANKACCTRECON</code> — Bank reconciliation</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>3. Event Taxonomy</h2>
+    <p>Standardize all incoming events into these categories:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Event Type</th>
+                <th>Category</th>
+                <th>Sources</th>
+                <th>Trust Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="event-type event-instruction">payment.instructed</span></td>
+                <td>Instruction</td>
+                <td>Your system (policy engine triggered)</td>
+                <td>Internal — Canonical</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-instruction">payment.approved</span></td>
+                <td>Instruction</td>
+                <td>Your system (human/agent approved)</td>
+                <td>Internal — Canonical</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-confirmation">payment.initiated</span></td>
+                <td>Execution</td>
+                <td>Bank API, Bill.com, Stripe</td>
+                <td>High — Regulated processor</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-confirmation">payment.pending</span></td>
+                <td>Execution</td>
+                <td>Bank API (ACH pending)</td>
+                <td>High — Bank confirmation</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-confirmation">payment.settled</span></td>
+                <td>Confirmation</td>
+                <td>Bank webhook, Plaid transaction</td>
+                <td>High — Final settlement</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-exception">payment.failed</span></td>
+                <td>Exception</td>
+                <td>Bank API, processor webhook</td>
+                <td>High — Requires investigation</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-exception">payment.returned</span></td>
+                <td>Exception</td>
+                <td>Bank (NSF, account closed)</td>
+                <td>High — Reversal required</td>
+            </tr>
+            <tr>
+                <td><span class="event-type event-confirmation">deposit.confirmed</span></td>
+                <td>Confirmation</td>
+                <td>Bank API, Plaid balance change</td>
+                <td>High — Funds available</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>4. The Reconciliation Engine</h2>
+    <p>Your policy engine should run continuous reconciliation:</p>
+
+    <div class="card">
+        <h4>Reconciliation Rules</h4>
+        <div class="code-block">
+// Rule 1: Instruction → Execution matching
+WHEN payment.instructed EXISTS
+AND payment.initiated NOT EXISTS WITHIN 24 hours
+THEN flag "Payment instruction not executed"
+
+// Rule 2: Execution → Settlement matching
+WHEN payment.initiated EXISTS
+AND payment.settled NOT EXISTS WITHIN 5 business days
+THEN flag "ACH settlement delayed"
+
+// Rule 3: Amount matching
+WHEN payment.instructed.amount != payment.settled.amount
+THEN flag "Settlement amount mismatch"
+
+// Rule 4: Orphan detection
+WHEN payment.settled EXISTS
+AND payment.instructed NOT EXISTS
+THEN flag "Unmatched settlement - potential fraud"
+
+// Rule 5: Reversal detection
+WHEN payment.settled EXISTS
+AND payment.returned EXISTS referencing same transaction
+THEN flag "Payment reversal - update AR/AP"
+        </div>
+    </div>
+
+    <h2>5. Integration Priority Matrix</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Integration</th>
+                <th>Priority</th>
+                <th>Visibility Gained</th>
+                <th>Effort</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Plaid Transactions</strong></td>
+                <td class="priority-high">P0 — Critical</td>
+                <td>Bank settlement confirmation for all accounts</td>
+                <td>2-3 weeks</td>
+            </tr>
+            <tr>
+                <td><strong>QuickBooks Online</strong></td>
+                <td class="priority-high">P0 — Critical</td>
+                <td>AR/AP instruction capture, GL reconciliation</td>
+                <td>2-3 weeks</td>
+            </tr>
+            <tr>
+                <td><strong>Stripe Webhooks</strong></td>
+                <td class="priority-high">P1 — High</td>
+                <td>E-commerce payment confirmation</td>
+                <td>1 week</td>
+            </tr>
+            <tr>
+                <td><strong>Shopify Payments</strong></td>
+                <td class="priority-high">P1 — High</td>
+                <td>Order → Payout complete chain (your RBF use case)</td>
+                <td>2 weeks</td>
+            </tr>
+            <tr>
+                <td><strong>Bill.com</strong></td>
+                <td class="priority-medium">P2 — Medium</td>
+                <td>AP payment execution and settlement</td>
+                <td>2 weeks</td>
+            </tr>
+            <tr>
+                <td><strong>NetSuite</strong></td>
+                <td class="priority-medium">P2 — Medium</td>
+                <td>Enterprise ERP reconciliation</td>
+                <td>4-6 weeks</td>
+            </tr>
+            <tr>
+                <td><strong>Direct Bank APIs</strong></td>
+                <td class="priority-low">P3 — Nice to Have</td>
+                <td>Faster confirmation than Plaid aggregation</td>
+                <td>Bank-specific</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>6. Minimum Viable Visibility Stack</h2>
+
+    <div class="callout">
+        <h4>🎯 MVP Integration Set (8-10 weeks)</h4>
+        <p>With just three integrations, you achieve 80% visibility:</p>
+        <ol style="margin: 12px 0 0 20px; color: var(--text-secondary);">
+            <li><strong>Plaid</strong> — Settlement confirmation for any US bank account</li>
+            <li><strong>QuickBooks Online</strong> — Instruction capture (when user creates bill payment)</li>
+            <li><strong>Stripe or Shopify</strong> — E-commerce payment chain (pick based on target vertical)</li>
+        </ol>
+        <p style="margin-top: 12px;">This covers: Cash in bank ↔ AR/AP in accounting ↔ E-commerce transactions</p>
+    </div>
+
+    <h2>7. Data Flow Architecture</h2>
+
+    <div class="card">
+        <h4>Event Ingestion Pipeline</h4>
+        <div class="code-block">
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA SOURCES                                 │
+├──────────────┬──────────────┬──────────────┬───────────────────────┤
+│   Plaid      │  QuickBooks  │   Stripe     │   Shopify             │
+│  (webhooks)  │   (webhooks) │  (webhooks)  │   (webhooks)          │
+└──────┬───────┴──────┬───────┴──────┬───────┴───────────┬───────────┘
+       │              │              │                   │
+       ▼              ▼              ▼                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    SIGHTLINE INGESTION LAYER                        │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │ Normalize  │→ │ Classify   │→ │ Hash &     │→ │ Link to    │    │
+│  │ Event      │  │ Event Type │  │ Timestamp  │  │ Parent     │    │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      EVENT STORE (Immutable)                        │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  Event DAG: instruction → execution → confirmation          │   │
+│  │  Hash Chain: each event references parent hash              │   │
+│  │  Replay: deterministic recomputation from any point         │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     RECONCILIATION ENGINE                           │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │ Match      │  │ Detect     │  │ Flag       │  │ Generate   │    │
+│  │ Pairs      │  │ Orphans    │  │ Exceptions │  │ Proofs     │    │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        VISIBILITY OUTPUTS                           │
+├──────────────────┬──────────────────┬──────────────────────────────┤
+│  Settlement      │  Audit Reports   │  Exception Alerts            │
+│  Dashboard       │  (on-demand)     │  (real-time)                 │
+└──────────────────┴──────────────────┴──────────────────────────────┘
+        </div>
+    </div>
+
+    <h2>8. What This Enables</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Capability</th>
+                <th>Without Handling Funds</th>
+                <th>Audit Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Prove payment was instructed</td>
+                <td>✅ Hash of instruction in your system</td>
+                <td>"Our system generated this payment instruction at this time"</td>
+            </tr>
+            <tr>
+                <td>Prove payment was executed</td>
+                <td>✅ Bank/processor API confirmation</td>
+                <td>"The bank confirms they initiated ACH transfer #X"</td>
+            </tr>
+            <tr>
+                <td>Prove payment settled</td>
+                <td>✅ Plaid transaction or bank webhook</td>
+                <td>"Funds arrived in vendor's account on this date"</td>
+            </tr>
+            <tr>
+                <td>Detect missing settlements</td>
+                <td>✅ Reconciliation engine flags orphans</td>
+                <td>"These 3 payments were instructed but never settled"</td>
+            </tr>
+            <tr>
+                <td>Replay historical state</td>
+                <td>✅ Event DAG allows point-in-time reconstruction</td>
+                <td>"Here's exactly what our system knew on March 15"</td>
+            </tr>
+            <tr>
+                <td>Cryptographic proof of chain</td>
+                <td>✅ Hash linking proves no tampering</td>
+                <td>"This chain is mathematically unmodified since creation"</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <h4>⚠️ What You Can't Do Without Handling Funds</h4>
+        <ul style="margin: 8px 0 0 20px; color: var(--text-secondary);">
+            <li><strong>Guarantee execution</strong> — You can instruct, but client's bank ultimately decides</li>
+            <li><strong>Conditional release (escrow)</strong> — Can't hold funds until conditions met</li>
+            <li><strong>Real-time settlement</strong> — ACH is still T+1 to T+3</li>
+            <li><strong>Payment failure prevention</strong> — Can only detect after the fact</li>
+        </ul>
+        <p style="margin-top: 12px;">These limitations are acceptable for your stated goal (audit visibility). If escrow becomes critical, revisit facilitation via BaaS partner.</p>
+    </div>
+
+    <footer>
+        Settlement Visibility Architecture • February 2026 • Option 1: Orchestration with Full Visibility
+    </footer>
+</body>
+</html>

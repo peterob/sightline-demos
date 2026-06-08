@@ -1,0 +1,703 @@
+import React, { useState } from 'react';
+
+const BrandStrategy = () => {
+  const [activeTab, setActiveTab] = useState('positioning');
+  const [selectedArchetype, setSelectedArchetype] = useState('engineer');
+
+  const tabs = {
+    positioning: { label: 'POSITIONING', color: '#3b82f6' },
+    archetypes: { label: 'BRAND ARCHETYPES', color: '#8b5cf6' },
+    language: { label: 'LANGUAGE SYSTEM', color: '#22c55e' },
+    differentiation: { label: 'VS COMPETITORS', color: '#f59e0b' },
+    assets: { label: 'BRAND ASSETS', color: '#ec4899' }
+  };
+
+  const archetypes = {
+    engineer: {
+      name: 'The Engineer',
+      tagline: 'We build systems that can\'t lie.',
+      tone: 'Precise, technical, confident',
+      risk: 'May alienate non-technical CFOs',
+      audience: 'Tech-forward finance leaders, PE ops teams',
+      color: '#3b82f6',
+      words: ['Architecture', 'System', 'Integrity', 'Validation', 'Framework'],
+      avoid: ['Revolutionary', 'Disrupt', 'Transform', 'AI-powered']
+    },
+    guardian: {
+      name: 'The Guardian',
+      tagline: 'Your numbers, verified.',
+      tone: 'Protective, trustworthy, calm authority',
+      risk: 'May feel too conservative',
+      audience: 'Risk-averse CFOs, audit committees, boards',
+      color: '#22c55e',
+      words: ['Protection', 'Assurance', 'Evidence', 'Verified', 'Trusted'],
+      avoid: ['Cutting-edge', 'Innovative', 'Disrupt', 'Beta']
+    },
+    truth: {
+      name: 'The Truth-Teller',
+      tagline: 'Finance without the fiction.',
+      tone: 'Direct, provocative, contrarian',
+      risk: 'May feel aggressive to incumbents',
+      audience: 'Frustrated operators, PE due diligence, turnaround',
+      color: '#ef4444',
+      words: ['Truth', 'Proof', 'Real', 'Honest', 'Exposed'],
+      avoid: ['Partnership', 'Solution', 'Synergy', 'Optimize']
+    },
+    craftsman: {
+      name: 'The Craftsman',
+      tagline: 'Financial operations, precisely built.',
+      tone: 'Methodical, quality-obsessed, understated',
+      risk: 'May undersell the innovation',
+      audience: 'Quality-focused CFOs, family offices, long-term holders',
+      color: '#8b5cf6',
+      words: ['Craft', 'Precision', 'Built', 'Quality', 'Designed'],
+      avoid: ['Scalable', 'Rapid', 'Explosive', 'Growth-hack']
+    }
+  };
+
+  const competitors = [
+    {
+      name: 'Traditional ERPs',
+      their_position: 'Complete business suite',
+      their_weakness: 'Accept anything, reconcile later',
+      your_counter: 'We\'re the integrity layer they\'re missing',
+      attack_line: '"Your ERP is a filing cabinet. We\'re the lock."'
+    },
+    {
+      name: 'Modern Accounting (Pilot, etc)',
+      their_position: 'AI-automated bookkeeping',
+      their_weakness: 'Still reactive, still trust-based',
+      your_counter: 'Automation without proof is faster mistakes',
+      attack_line: '"They automate the journal entry. We eliminate it."'
+    },
+    {
+      name: 'Audit Firms',
+      their_position: 'Independent verification',
+      their_weakness: 'Point-in-time, sampling-based, expensive',
+      your_counter: 'Continuous verification built into operations',
+      attack_line: '"They test samples. We validate everything."'
+    },
+    {
+      name: 'GRC/Controls Software',
+      their_position: 'Control monitoring and compliance',
+      their_weakness: 'Monitors after the fact, doesn\'t prevent',
+      your_counter: 'Prevention > detection',
+      attack_line: '"They watch the door. We lock it."'
+    }
+  ];
+
+  const languageSystem = {
+    core_terms: [
+      { term: 'Evidence-gated', meaning: 'Nothing enters without proof', use: 'Primary descriptor' },
+      { term: 'Proof-first', meaning: 'Verification before recording', use: 'Philosophy/approach' },
+      { term: 'Event record', meaning: 'Atomic unit with embedded proof', use: 'Technical conversations' },
+      { term: 'Exception queue', meaning: 'Where rejected items surface', use: 'Operational language' },
+      { term: 'Append-only', meaning: 'History is sacred', use: 'Trust/integrity discussions' }
+    ],
+    banned_words: [
+      { word: 'Blockchain', reason: 'Baggage, not the point' },
+      { word: 'AI-powered', reason: 'Overused, undermines credibility' },
+      { word: 'Revolutionary', reason: 'Hyperbole, invites skepticism' },
+      { word: 'Seamless', reason: 'Every vendor says this' },
+      { word: 'Best-in-class', reason: 'Meaningless superlative' },
+      { word: 'Synergy', reason: 'Corporate cringe' }
+    ],
+    power_phrases: [
+      'The system won\'t post it unless the evidence is attached.',
+      'Problems surface in hours, not weeks.',
+      'Your ledger is always audit-ready.',
+      'We don\'t fix later. We block now.',
+      'Support first. Posting second.',
+      'The proof is in the record, not the filing cabinet.'
+    ]
+  };
+
+  const brandAssets = {
+    name_options: [
+      { name: 'Sightline', vibe: 'Clear visibility, line of sight to truth', concern: 'Generic, many uses' },
+      { name: 'Gatekeeper', vibe: 'Protection, access control', concern: 'Slightly aggressive' },
+      { name: 'Ledgerproof', vibe: 'Exactly what it does', concern: 'Literal, less premium' },
+      { name: 'Attest', vibe: 'Verification, witness, legal weight', concern: 'May feel audit-focused' },
+      { name: 'Provenance', vibe: 'Origin, chain of custody, luxury', concern: 'May confuse supply chain' },
+      { name: 'CAST', vibe: 'Acronym flexibility, strong sound', concern: 'Needs meaning built' }
+    ],
+    visual_principles: [
+      'Precision over decoration',
+      'Dark mode as default (seriousness, focus)',
+      'Monospace typography (engineering, code)',
+      'Green = accepted, Red = rejected (universal)',
+      'Flow diagrams over static charts',
+      'Show the gate visually'
+    ],
+    tagline_options: [
+      { line: 'Finance without the fiction.', tone: 'Provocative' },
+      { line: 'Proof before posting.', tone: 'Direct' },
+      { line: 'Your ledger, verified.', tone: 'Assured' },
+      { line: 'The integrity layer.', tone: 'Technical' },
+      { line: 'Evidence-native finance.', tone: 'Category-creating' },
+      { line: 'Built to close. Ready to audit.', tone: 'Operational' }
+    ]
+  };
+
+  const selectedArch = archetypes[selectedArchetype];
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
+      color: '#e0e0e0',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      padding: '24px',
+      boxSizing: 'border-box'
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: '300',
+          letterSpacing: '6px',
+          textTransform: 'uppercase',
+          color: '#fff',
+          margin: '0 0 8px 0'
+        }}>
+          BRAND STRATEGY
+        </h1>
+        <p style={{
+          fontSize: '12px',
+          color: '#666',
+          letterSpacing: '2px',
+          margin: 0
+        }}>
+          PROOF-FIRST FINANCE POSITIONING
+        </p>
+      </div>
+
+      {/* Navigation */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '6px',
+        marginBottom: '40px',
+        flexWrap: 'wrap'
+      }}>
+        {Object.entries(tabs).map(([key, { label, color }]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            style={{
+              padding: '10px 16px',
+              background: activeTab === key ? `${color}20` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${activeTab === key ? color : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: '4px',
+              color: activeTab === key ? color : '#666',
+              cursor: 'pointer',
+              fontSize: '9px',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              transition: 'all 0.2s'
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+
+        {/* POSITIONING */}
+        {activeTab === 'positioning' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Core Position */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '32px',
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '3px', color: '#3b82f6', marginBottom: '16px' }}>
+                CORE POSITION
+              </div>
+              <div style={{ fontSize: '22px', color: '#fff', fontWeight: '400', lineHeight: '1.4' }}>
+                The <span style={{ color: '#8b5cf6' }}>integrity layer</span> between your operations and your ledger
+              </div>
+            </div>
+
+            {/* Position Framework */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#22c55e', marginBottom: '12px' }}>
+                  FOR WHO
+                </div>
+                <div style={{ fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                  CFOs and finance leaders at operationally complex businesses who are tired of month-end firefighting and audit scrambles
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#3b82f6', marginBottom: '12px' }}>
+                  WHAT WE ARE
+                </div>
+                <div style={{ fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                  An evidence-gated financial coordination platform that validates transactions before they post
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#8b5cf6', marginBottom: '12px' }}>
+                  UNLIKE
+                </div>
+                <div style={{ fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                  Traditional ERPs that accept anything and reconcile later, or "AI bookkeeping" that automates without verifying
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#f59e0b', marginBottom: '12px' }}>
+                  WE DELIVER
+                </div>
+                <div style={{ fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                  A ledger that's always audit-ready, problems that surface in hours not weeks, and finance teams freed from reconciliation
+                </div>
+              </div>
+            </div>
+
+            {/* Category Creation */}
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#8b5cf6', marginBottom: '16px' }}>
+                CATEGORY CREATION OPPORTUNITY
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 40px 1fr',
+                alignItems: 'center',
+                gap: '0'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px' }}>EXISTING CATEGORY</div>
+                  <div style={{ fontSize: '14px', color: '#999' }}>Financial Software</div>
+                </div>
+                <div style={{ textAlign: 'center', fontSize: '20px', color: '#8b5cf6' }}>→</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#8b5cf6', marginBottom: '8px' }}>NEW CATEGORY</div>
+                  <div style={{ fontSize: '14px', color: '#fff' }}>Evidence-Native Finance</div>
+                </div>
+              </div>
+              <div style={{
+                marginTop: '20px',
+                fontSize: '11px',
+                color: '#888',
+                textAlign: 'center'
+              }}>
+                Own the category, define the criteria, make competitors explain why they don't do this
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ARCHETYPES */}
+        {activeTab === 'archetypes' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Selector */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '24px'
+            }}>
+              {Object.entries(archetypes).map(([key, arch]) => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedArchetype(key)}
+                  style={{
+                    padding: '10px 20px',
+                    background: selectedArchetype === key ? `${arch.color}20` : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${selectedArchetype === key ? arch.color : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: '4px',
+                    color: selectedArchetype === key ? arch.color : '#666',
+                    cursor: 'pointer',
+                    fontSize: '11px',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {arch.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Archetype Detail */}
+            <div style={{
+              background: `${selectedArch.color}10`,
+              border: `1px solid ${selectedArch.color}40`,
+              borderRadius: '8px',
+              padding: '32px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                fontSize: '24px',
+                color: '#fff',
+                marginBottom: '8px'
+              }}>
+                {selectedArch.name}
+              </div>
+              <div style={{
+                fontSize: '18px',
+                color: selectedArch.color,
+                marginBottom: '24px',
+                fontStyle: 'italic'
+              }}>
+                "{selectedArch.tagline}"
+              </div>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '20px'
+              }}>
+                <div>
+                  <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#888', marginBottom: '8px' }}>TONE</div>
+                  <div style={{ fontSize: '13px', color: '#ddd' }}>{selectedArch.tone}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#888', marginBottom: '8px' }}>BEST FOR</div>
+                  <div style={{ fontSize: '13px', color: '#ddd' }}>{selectedArch.audience}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#22c55e', marginBottom: '8px' }}>USE WORDS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedArch.words.map((w, i) => (
+                      <span key={i} style={{
+                        background: 'rgba(34, 197, 94, 0.15)',
+                        padding: '4px 10px',
+                        borderRadius: '3px',
+                        fontSize: '11px',
+                        color: '#22c55e'
+                      }}>{w}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#ef4444', marginBottom: '8px' }}>AVOID WORDS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedArch.avoid.map((w, i) => (
+                      <span key={i} style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        padding: '4px 10px',
+                        borderRadius: '3px',
+                        fontSize: '11px',
+                        color: '#ef4444',
+                        textDecoration: 'line-through'
+                      }}>{w}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                marginTop: '20px',
+                padding: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '4px',
+                borderLeft: '3px solid #ef4444'
+              }}>
+                <div style={{ fontSize: '10px', color: '#ef4444', marginBottom: '4px' }}>RISK</div>
+                <div style={{ fontSize: '12px', color: '#999' }}>{selectedArch.risk}</div>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#888', marginBottom: '12px' }}>
+                RECOMMENDATION
+              </div>
+              <div style={{ fontSize: '13px', color: '#ddd', lineHeight: '1.6' }}>
+                Lead with <span style={{ color: '#3b82f6' }}>Engineer</span> for technical credibility, 
+                layer in <span style={{ color: '#22c55e' }}>Guardian</span> for trust. 
+                Use <span style={{ color: '#ef4444' }}>Truth-Teller</span> sparingly for contrast.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LANGUAGE SYSTEM */}
+        {activeTab === 'language' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Core Terms */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '24px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#22c55e', marginBottom: '20px' }}>
+                CORE VOCABULARY
+              </div>
+              {languageSystem.core_terms.map((t, i) => (
+                <div key={i} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '140px 1fr 140px',
+                  gap: '16px',
+                  padding: '12px 0',
+                  borderBottom: i < languageSystem.core_terms.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none'
+                }}>
+                  <div style={{ fontSize: '13px', color: '#22c55e', fontWeight: '500' }}>{t.term}</div>
+                  <div style={{ fontSize: '12px', color: '#999' }}>{t.meaning}</div>
+                  <div style={{ fontSize: '10px', color: '#666', textAlign: 'right' }}>{t.use}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Banned Words */}
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '8px',
+              padding: '24px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#ef4444', marginBottom: '20px' }}>
+                BANNED WORDS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {languageSystem.banned_words.map((b, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px'
+                  }}>
+                    <span style={{
+                      fontSize: '13px',
+                      color: '#ef4444',
+                      textDecoration: 'line-through',
+                      minWidth: '100px'
+                    }}>{b.word}</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{b.reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Power Phrases */}
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#8b5cf6', marginBottom: '20px' }}>
+                POWER PHRASES — USE THESE
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {languageSystem.power_phrases.map((p, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    padding: '12px 16px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: '#ddd',
+                    borderLeft: '3px solid #8b5cf6'
+                  }}>
+                    "{p}"
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* VS COMPETITORS */}
+        {activeTab === 'differentiation' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {competitors.map((c, i) => (
+              <div key={i} style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '24px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ fontSize: '16px', color: '#fff' }}>{c.name}</div>
+                  <div style={{
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    padding: '4px 10px',
+                    borderRadius: '3px',
+                    fontSize: '10px',
+                    color: '#f59e0b'
+                  }}>
+                    COMPETITOR
+                  </div>
+                </div>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '16px',
+                  marginBottom: '16px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '9px', letterSpacing: '1px', color: '#666', marginBottom: '6px' }}>THEY SAY</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>{c.their_position}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9px', letterSpacing: '1px', color: '#ef4444', marginBottom: '6px' }}>THEIR GAP</div>
+                    <div style={{ fontSize: '12px', color: '#999' }}>{c.their_weakness}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '9px', letterSpacing: '1px', color: '#22c55e', marginBottom: '6px' }}>YOUR COUNTER</div>
+                    <div style={{ fontSize: '12px', color: '#ddd' }}>{c.your_counter}</div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  padding: '12px 16px',
+                  borderRadius: '4px',
+                  borderLeft: '3px solid #8b5cf6'
+                }}>
+                  <div style={{ fontSize: '9px', color: '#8b5cf6', marginBottom: '4px' }}>ATTACK LINE</div>
+                  <div style={{ fontSize: '13px', color: '#fff', fontStyle: 'italic' }}>{c.attack_line}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* BRAND ASSETS */}
+        {activeTab === 'assets' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Name Options */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '24px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#ec4899', marginBottom: '20px' }}>
+                NAME OPTIONS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {brandAssets.name_options.map((n, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    padding: '16px',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <div style={{ fontSize: '18px', color: '#fff', marginBottom: '8px' }}>{n.name}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>{n.vibe}</div>
+                    <div style={{ fontSize: '10px', color: '#f59e0b' }}>⚠ {n.concern}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Taglines */}
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '24px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#8b5cf6', marginBottom: '20px' }}>
+                TAGLINE OPTIONS
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                {brandAssets.tagline_options.map((t, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 16px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: '4px'
+                  }}>
+                    <div style={{ fontSize: '13px', color: '#fff' }}>"{t.line}"</div>
+                    <div style={{ fontSize: '9px', color: '#666', letterSpacing: '1px' }}>{t.tone.toUpperCase()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Visual Principles */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#888', marginBottom: '20px' }}>
+                VISUAL PRINCIPLES
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                {brandAssets.visual_principles.map((v, i) => (
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '12px',
+                    color: '#aaa'
+                  }}>
+                    <span style={{ color: '#ec4899' }}>◆</span>
+                    {v}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default BrandStrategy;

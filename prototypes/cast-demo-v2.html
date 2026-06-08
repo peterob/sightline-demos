@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST - Coordinated Accounting for Shared Truth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* State colors */
+        .state-committed { background: #DBEAFE; color: #1E40AF; }
+        .state-funded { background: #D1FAE5; color: #065F46; }
+        .state-dispute-window { background: #FEF3C7; color: #92400E; }
+        .state-disputed { background: #FEE2E2; color: #991B1B; }
+        .state-settled { background: #BBF7D0; color: #14532D; }
+        .state-refunded { background: #FECACA; color: #7F1D1D; }
+        
+        /* Hash styling */
+        .hash { 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 10px; 
+            background: #1E293B; 
+            color: #4ADE80; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            letter-spacing: 0.5px;
+        }
+        
+        /* Event type indicators */
+        .event-commitment { border-left: 3px solid #3B82F6; }
+        .event-funding { border-left: 3px solid #10B981; }
+        .event-attestation { border-left: 3px solid #F59E0B; }
+        .event-dispute { border-left: 3px solid #EF4444; }
+        .event-settlement { border-left: 3px solid #22C55E; }
+        
+        /* Animations */
+        .pulse-green { animation: pulseGreen 2s infinite; }
+        @keyframes pulseGreen {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+        }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Countdown */
+        .countdown { font-variant-numeric: tabular-nums; }
+        
+        /* Flow diagram */
+        .flow-node {
+            min-width: 100px;
+            text-align: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            position: relative;
+        }
+        .flow-arrow {
+            width: 32px;
+            height: 2px;
+            background: linear-gradient(90deg, #94A3B8, #64748B);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left: 6px solid #64748B;
+        }
+        
+        /* Glassmorphism cards */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Party colors */
+        .party-lender { background: #EDE9FE; color: #5B21B6; }
+        .party-borrower { background: #DBEAFE; color: #1E40AF; }
+        .party-provider { background: #D1FAE5; color: #065F46; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
+                        <span class="text-white font-bold">C</span>
+                    </div>
+                    <div>
+                        <span class="font-bold text-slate-900">CAST</span>
+                        <span class="text-slate-400 text-sm ml-2 hidden sm:inline">Coordinated Accounting for Shared Truth</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                    <button onclick="showTab('pitch')" id="tab-pitch" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-slate-900">
+                        Pitch
+                    </button>
+                    <button onclick="showTab('demo')" id="tab-demo" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600 hover:text-slate-900">
+                        Live Demo
+                    </button>
+                    <button onclick="showTab('finance')" id="tab-finance" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600 hover:text-slate-900">
+                        Finance
+                    </button>
+                    <button onclick="showTab('technical')" id="tab-technical" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600 hover:text-slate-900">
+                        Technical
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="w-2 h-2 bg-green-500 rounded-full pulse-green"></span>
+                        <span class="text-green-600 font-medium">Chain Verified</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- PITCH TAB -->
+    <div id="content-pitch" class="tab-content">
+        <!-- Hero -->
+        <section class="py-20 px-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-5xl font-extrabold text-slate-900 mb-6 leading-tight">
+                    The coordination layer for<br>
+                    <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">multi-party transactions</span>
+                </h1>
+                <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+                    Two parties make a deal. Each records it in their own system. At month-end, someone spends three days figuring out why the numbers don't match.
+                </p>
+                <p class="text-2xl font-semibold text-slate-900">
+                    We built the infrastructure to eliminate that.
+                </p>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="py-16 px-6 bg-white border-y border-slate-200">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">How It Works</h2>
+                
+                <div class="grid md:grid-cols-3 gap-8 mb-12">
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 mb-2">One Ledger</h3>
+                        <p class="text-slate-600 text-sm">Both parties commit to the same ledger. Not your ledger, not theirs—<em>the</em> ledger.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 mb-2">Escrow Control</h3>
+                        <p class="text-slate-600 text-sm">Funds sit in escrow until the state machine says release. No emails. No disputes.</p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-slate-900 mb-2">Cryptographic Proof</h3>
+                        <p class="text-slate-600 text-sm">Every event is hash-chained. Anyone can verify. The math guarantees alignment.</p>
+                    </div>
+                </div>
+
+                <!-- State Flow -->
+                <div class="bg-slate-50 rounded-2xl p-8 overflow-x-auto">
+                    <div class="flex items-center justify-center gap-2 min-w-max">
+                        <div class="flow-node state-committed">COMMITTED<br><span class="font-normal text-xs opacity-75">Terms locked</span></div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node state-funded">FUNDED<br><span class="font-normal text-xs opacity-75">In escrow</span></div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node state-dispute-window">DISPUTE WINDOW<br><span class="font-normal text-xs opacity-75">72h countdown</span></div>
+                        <div class="flow-arrow"></div>
+                        <div class="flow-node state-settled">SETTLED<br><span class="font-normal text-xs opacity-75">Released</span></div>
+                    </div>
+                    <p class="text-center text-slate-500 text-sm mt-6">Seller attests delivery → Buyer has 72 hours to dispute → Funds release automatically</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- GPU Financing Focus -->
+        <section class="py-16 px-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <div class="inline-block px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium mb-4">
+                            Beachhead Market
+                        </div>
+                        <h2 class="text-3xl font-bold text-slate-900 mb-4">GPU Compute Financing</h2>
+                        <p class="text-slate-600 mb-6">
+                            A $50 billion market with a $100 billion problem: <strong>lenders can't see their collateral.</strong>
+                        </p>
+                        <p class="text-slate-600 mb-6">
+                            A GPU financing deal involves three parties—borrower, lender, compute provider—with three systems, reconciled monthly if you're lucky. Collateral "visibility" means a PDF someone emailed last Tuesday.
+                        </p>
+                        <p class="text-slate-900 font-medium">
+                            We give lenders real-time state. Every compute commitment, every usage attestation, every payment release—on a shared ledger all three parties can see.
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xl shadow-slate-200/50">
+                        <h3 class="font-semibold text-slate-900 mb-4">Three Parties, One Truth</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3 p-3 rounded-lg party-lender">
+                                <div class="w-10 h-10 bg-violet-200 rounded-full flex items-center justify-center font-bold text-violet-700">L</div>
+                                <div>
+                                    <div class="font-medium">Lender</div>
+                                    <div class="text-xs opacity-75">Real-time collateral visibility</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 rounded-lg party-borrower">
+                                <div class="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center font-bold text-blue-700">B</div>
+                                <div>
+                                    <div class="font-medium">Borrower</div>
+                                    <div class="text-xs opacity-75">Commits to compute usage</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 rounded-lg party-provider">
+                                <div class="w-10 h-10 bg-emerald-200 rounded-full flex items-center justify-center font-bold text-emerald-700">P</div>
+                                <div>
+                                    <div class="font-medium">Compute Provider</div>
+                                    <div class="text-xs opacity-75">Attests delivery, receives payment</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                            <span class="hash">shared_ledger:0x7f3a9b2c</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Now -->
+        <section class="py-16 px-6 bg-slate-900 text-white">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-2xl font-bold mb-8">Why Now?</h2>
+                <div class="grid md:grid-cols-2 gap-6 text-left">
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="text-indigo-400 font-medium mb-2">The pieces exist</div>
+                        <p class="text-slate-300 text-sm">Event sourcing, escrow, hash chains—all proven. But everyone built for single-party record-keeping.</p>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="text-violet-400 font-medium mb-2">No incumbent</div>
+                        <p class="text-slate-300 text-sm">GPU financing is a new market. No legacy systems to displace. We're building the rails.</p>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="text-emerald-400 font-medium mb-2">Misaligned incentives</div>
+                        <p class="text-slate-300 text-sm">Banks profit from float. Reconciliation software profits from complexity. Nobody optimized for coordination.</p>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="text-amber-400 font-medium mb-2">Technical buyers</div>
+                        <p class="text-slate-300 text-sm">AI/ML companies understand event sourcing and cryptographic proof. They'll adopt what works.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Ask -->
+        <section class="py-20 px-6">
+            <div class="max-w-3xl mx-auto text-center">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6">The Ask</h2>
+                <p class="text-xl text-slate-600 mb-8">
+                    One pilot. One lender, one borrower, one compute provider. A real deal, real money, real coordination.
+                </p>
+                <p class="text-lg text-slate-900 font-medium mb-10">
+                    We'll prove that three parties can share one truth—and that reconciliation becomes architecturally impossible.
+                </p>
+                
+                <div class="inline-flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100">
+                    <p class="text-slate-700 font-medium">We're not asking you to trust us.</p>
+                    <p class="text-slate-900 text-lg">We're asking you to trust the math.</p>
+                    <div class="flex items-center gap-3 mt-2">
+                        <span class="hash">immutable</span>
+                        <span class="hash">verifiable</span>
+                        <span class="hash">deterministic</span>
+                    </div>
+                </div>
+                
+                <p class="text-2xl font-bold text-slate-900 mt-12">
+                    Zero trust. Shared truth. No reconciliation.
+                </p>
+                <p class="text-indigo-600 font-semibold text-lg mt-2">That's CAST.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- DEMO TAB -->
+    <div id="content-demo" class="tab-content hidden">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            
+            <!-- Metrics -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Total in Escrow</div>
+                    <div class="text-3xl font-bold text-slate-900">$2.4M</div>
+                    <div class="text-xs text-emerald-600 mt-1 font-medium">12 active deals</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">In Dispute Window</div>
+                    <div class="text-3xl font-bold text-amber-600">$380K</div>
+                    <div class="text-xs text-slate-500 mt-1">3 deals counting down</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Under Dispute</div>
+                    <div class="text-3xl font-bold text-red-600">$45K</div>
+                    <div class="text-xs text-slate-500 mt-1">1 deal frozen</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Released This Month</div>
+                    <div class="text-3xl font-bold text-emerald-600">$1.8M</div>
+                    <div class="text-xs text-slate-500 mt-1">23 deals settled</div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Deals List -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-slate-900">Active Deals</h2>
+                        <button onclick="openCreateModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition shadow-lg shadow-indigo-200">
+                            + New Deal
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                        <!-- Deal: Dispute Window (urgent) -->
+                        <div class="p-4 hover:bg-slate-50 cursor-pointer transition" onclick="selectDeal('GPU-2024-0892')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">GPU-2024-0892</span>
+                                        <span class="state-dispute-window px-2 py-0.5 rounded text-xs font-semibold">DISPUTE WINDOW</span>
+                                        <span class="text-xs text-amber-600 font-semibold countdown animate-pulse">⏱ 4h 23m left</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">H100 Cluster - 500 GPU-hours</div>
+                                    <div class="flex items-center gap-4 mt-2 text-sm">
+                                        <span class="party-borrower px-2 py-0.5 rounded text-xs">Borrower: Nexus AI</span>
+                                        <span class="party-provider px-2 py-0.5 rounded text-xs">Provider: CoreWeave</span>
+                                        <span class="party-lender px-2 py-0.5 rounded text-xs">Lender: Valor Capital</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$125,000</div>
+                                    <div class="text-xs text-amber-600 mt-1">Buyer can dispute</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal: Funded -->
+                        <div class="p-4 hover:bg-slate-50 cursor-pointer transition" onclick="selectDeal('GPU-2024-0915')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">GPU-2024-0915</span>
+                                        <span class="state-funded px-2 py-0.5 rounded text-xs font-semibold">FUNDED</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">A100 Training Job - 2,000 GPU-hours</div>
+                                    <div class="flex items-center gap-4 mt-2 text-sm">
+                                        <span class="party-borrower px-2 py-0.5 rounded text-xs">Borrower: Synthesis Labs</span>
+                                        <span class="party-provider px-2 py-0.5 rounded text-xs">Provider: Lambda</span>
+                                        <span class="party-lender px-2 py-0.5 rounded text-xs">Lender: Norwest Ventures</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$340,000</div>
+                                    <div class="text-xs text-emerald-600 mt-1">In escrow</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal: Disputed -->
+                        <div class="p-4 hover:bg-red-50 cursor-pointer transition bg-red-50/50" onclick="selectDeal('GPU-2024-0847')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">GPU-2024-0847</span>
+                                        <span class="state-disputed px-2 py-0.5 rounded text-xs font-semibold">DISPUTED</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">H100 Inference Cluster - 100 GPU-hours</div>
+                                    <div class="flex items-center gap-4 mt-2 text-sm">
+                                        <span class="party-borrower px-2 py-0.5 rounded text-xs">Borrower: ModelForge</span>
+                                        <span class="party-provider px-2 py-0.5 rounded text-xs">Provider: RunPod</span>
+                                        <span class="party-lender px-2 py-0.5 rounded text-xs">Lender: Hercules Capital</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$45,000</div>
+                                    <div class="text-xs text-red-600 mt-1">Performance dispute</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal: Settled -->
+                        <div class="p-4 hover:bg-slate-50 cursor-pointer transition opacity-60" onclick="selectDeal('GPU-2024-0831')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">GPU-2024-0831</span>
+                                        <span class="state-settled px-2 py-0.5 rounded text-xs font-semibold">SETTLED</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">A100 Fine-tuning - 800 GPU-hours</div>
+                                    <div class="flex items-center gap-4 mt-2 text-sm">
+                                        <span class="party-borrower px-2 py-0.5 rounded text-xs">Borrower: Anthropic Research</span>
+                                        <span class="party-provider px-2 py-0.5 rounded text-xs">Provider: CoreWeave</span>
+                                        <span class="party-lender px-2 py-0.5 rounded text-xs">Lender: SVB</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$186,000</div>
+                                    <div class="text-xs text-emerald-600 mt-1">✓ Released Jan 20</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Log -->
+                <div class="lg:col-span-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-slate-900">Event Log</h2>
+                        <button onclick="verifyChain()" class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                            Verify Chain →
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                        <div class="p-3 event-attestation fade-in">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-amber-700">ATTESTATION</span>
+                                <span class="mono text-xs text-slate-400">EVT-4821</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mb-1">CoreWeave attested delivery</div>
+                            <div class="text-xs text-slate-400 mb-2">GPU-2024-0892 • 2 min ago</div>
+                            <div class="flex items-center gap-1">
+                                <span class="hash">8f2a9c3b</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">7e1b8d4a</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 event-funding">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-emerald-700">FUNDING</span>
+                                <span class="mono text-xs text-slate-400">EVT-4820</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mb-1">Synthesis Labs funded escrow</div>
+                            <div class="text-xs text-slate-400 mb-2">GPU-2024-0915 • 1 hour ago</div>
+                            <div class="flex items-center gap-1">
+                                <span class="hash">7e1b8d4a</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">6d0c7e39</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 event-dispute">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-red-700">DISPUTE</span>
+                                <span class="mono text-xs text-slate-400">EVT-4819</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mb-1">ModelForge raised dispute</div>
+                            <div class="text-xs text-slate-400 mb-2">GPU-2024-0847 • 3 hours ago</div>
+                            <div class="flex items-center gap-1">
+                                <span class="hash">6d0c7e39</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">5c9b6f28</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 event-settlement">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-green-700">SETTLEMENT</span>
+                                <span class="mono text-xs text-slate-400">EVT-4818</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mb-1">Auto-released to CoreWeave</div>
+                            <div class="text-xs text-slate-400 mb-2">GPU-2024-0831 • Yesterday</div>
+                            <div class="flex items-center gap-1">
+                                <span class="hash">5c9b6f28</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">4b8a5e17</span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 event-commitment">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-blue-700">COMMITMENT</span>
+                                <span class="mono text-xs text-slate-400">EVT-4817</span>
+                            </div>
+                            <div class="text-xs text-slate-600 mb-1">Lambda committed terms</div>
+                            <div class="text-xs text-slate-400 mb-2">GPU-2024-0915 • Yesterday</div>
+                            <div class="flex items-center gap-1">
+                                <span class="hash">4b8a5e17</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">3a7940f6</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-slate-50 rounded-xl">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-slate-600">Chain Length</span>
+                            <span class="font-semibold text-slate-900">4,821 events</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm mt-2">
+                            <span class="text-slate-600">Integrity</span>
+                            <span class="font-semibold text-emerald-600">✓ 100% verified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINANCE TAB -->
+    <div id="content-finance" class="tab-content hidden">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Financial Overview</h2>
+                    <p class="text-slate-500 text-sm mt-1">Auto-generated from event log • Period: January 2026</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option>January 2026</option>
+                        <option>December 2025</option>
+                        <option>November 2025</option>
+                    </select>
+                    <button onclick="exportFinance()" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition">
+                        Export CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl p-5 text-white">
+                    <div class="text-sm opacity-80 mb-1">Total Throughput</div>
+                    <div class="text-3xl font-bold">$4.67M</div>
+                    <div class="text-xs opacity-70 mt-1">↑ 23% vs prior period</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Net Position</div>
+                    <div class="text-3xl font-bold text-emerald-600">$2.82M</div>
+                    <div class="text-xs text-slate-500 mt-1">Assets − Liabilities</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Budget Variance</div>
+                    <div class="text-3xl font-bold text-amber-600">($180K)</div>
+                    <div class="text-xs text-slate-500 mt-1">4.2% under plan</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Settlement Rate</div>
+                    <div class="text-3xl font-bold text-slate-900">94.2%</div>
+                    <div class="text-xs text-emerald-600 mt-1">↑ 2.1% vs prior</div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                <!-- Trial Balance -->
+                <div class="bg-white rounded-xl border border-slate-200">
+                    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-slate-900">Trial Balance</h3>
+                        <span class="text-xs text-slate-500">As of Jan 23, 2026</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-slate-500 text-xs uppercase tracking-wide">
+                                    <th class="pb-3">Account</th>
+                                    <th class="pb-3 text-right">Debit</th>
+                                    <th class="pb-3 text-right">Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="font-medium text-slate-700">
+                                    <td class="py-2" colspan="3">ASSETS</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">1010 · Escrow Held - Active</td>
+                                    <td class="py-2 text-right font-mono">2,400,000</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">1020 · Escrow Held - Dispute Window</td>
+                                    <td class="py-2 text-right font-mono">380,000</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">1030 · Escrow Held - Disputed</td>
+                                    <td class="py-2 text-right font-mono">45,000</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                </tr>
+                                <tr class="font-medium text-slate-700">
+                                    <td class="py-2 pt-4" colspan="3">LIABILITIES</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">2010 · Due to Providers - Pending</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                    <td class="py-2 text-right font-mono">2,400,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">2020 · Due to Providers - In Window</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                    <td class="py-2 text-right font-mono">380,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">2030 · Due to Providers - Disputed</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                    <td class="py-2 text-right font-mono">45,000</td>
+                                </tr>
+                                <tr class="font-medium text-slate-700">
+                                    <td class="py-2 pt-4" colspan="3">PERIOD ACTIVITY</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">4010 · Settlements - Released</td>
+                                    <td class="py-2 text-right font-mono">1,800,000</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">4020 · Settlements - Refunded</td>
+                                    <td class="py-2 text-right font-mono">45,000</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-2 pl-4 text-slate-600">4030 · Period Settlements</td>
+                                    <td class="py-2 text-right font-mono text-slate-300">—</td>
+                                    <td class="py-2 text-right font-mono">1,845,000</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-slate-300 font-bold">
+                                    <td class="py-3">TOTALS</td>
+                                    <td class="py-3 text-right font-mono">4,670,000</td>
+                                    <td class="py-3 text-right font-mono">4,670,000</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="mt-4 p-3 bg-emerald-50 rounded-lg flex items-center gap-2">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span class="text-sm text-emerald-700 font-medium">Trial balance in balance • Derived from 4,821 events</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget vs Actual -->
+                <div class="bg-white rounded-xl border border-slate-200">
+                    <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <h3 class="font-semibold text-slate-900">Budget vs Actual</h3>
+                        <span class="text-xs text-slate-500">January 2026</span>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-slate-500 text-xs uppercase tracking-wide">
+                                    <th class="pb-3">Category</th>
+                                    <th class="pb-3 text-right">Budget</th>
+                                    <th class="pb-3 text-right">Actual</th>
+                                    <th class="pb-3 text-right">Variance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Deal Volume</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">$5,000,000</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">$4,670,000</td>
+                                    <td class="py-3 text-right font-mono text-amber-600">(330,000)</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Settlements</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">$1,500,000</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">$1,800,000</td>
+                                    <td class="py-3 text-right font-mono text-emerald-600">300,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Refunds</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">$100,000</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">$45,000</td>
+                                    <td class="py-3 text-right font-mono text-emerald-600">55,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Disputes</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">$150,000</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">$45,000</td>
+                                    <td class="py-3 text-right font-mono text-emerald-600">105,000</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Avg Deal Size</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">$125,000</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">$133,429</td>
+                                    <td class="py-3 text-right font-mono text-emerald-600">8,429</td>
+                                </tr>
+                                <tr>
+                                    <td class="py-3 text-slate-900 font-medium">Settlement Rate</td>
+                                    <td class="py-3 text-right font-mono text-slate-600">92.0%</td>
+                                    <td class="py-3 text-right font-mono text-slate-900">94.2%</td>
+                                    <td class="py-3 text-right font-mono text-emerald-600">+2.2%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <!-- Variance Chart -->
+                        <div class="mt-6">
+                            <div class="text-xs text-slate-500 uppercase tracking-wide mb-3">Variance Visualization</div>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="text-slate-600">Deal Volume</span>
+                                        <span class="text-amber-600 font-medium">-6.6%</span>
+                                    </div>
+                                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-amber-400 rounded-full" style="width: 93.4%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="text-slate-600">Settlements</span>
+                                        <span class="text-emerald-600 font-medium">+20.0%</span>
+                                    </div>
+                                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-400 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="text-slate-600">Disputes</span>
+                                        <span class="text-emerald-600 font-medium">-70.0%</span>
+                                    </div>
+                                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-400 rounded-full" style="width: 30%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Entries from Events -->
+            <div class="bg-white rounded-xl border border-slate-200 mb-8">
+                <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="font-semibold text-slate-900">Recent Journal Entries</h3>
+                    <span class="text-xs text-slate-500">Auto-generated from events</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-slate-500 text-xs uppercase tracking-wide bg-slate-50">
+                                <th class="px-5 py-3">Event</th>
+                                <th class="px-5 py-3">Date</th>
+                                <th class="px-5 py-3">Account</th>
+                                <th class="px-5 py-3 text-right">Debit</th>
+                                <th class="px-5 py-3 text-right">Credit</th>
+                                <th class="px-5 py-3">Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <!-- ATTESTATION Event -->
+                            <tr class="bg-amber-50/50">
+                                <td class="px-5 py-3" rowspan="2">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <span class="w-2 h-2 bg-amber-400 rounded-full"></span>
+                                        <span class="font-medium text-slate-900">ATTESTATION</span>
+                                    </span>
+                                    <div class="text-xs text-slate-500 mt-0.5">EVT-4821</div>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600">Jan 23</td>
+                                <td class="px-5 py-3 text-slate-600">1020 · Escrow - Dispute Window</td>
+                                <td class="px-5 py-3 text-right font-mono">125,000</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3"><span class="hash">8f2a9c3b</span></td>
+                            </tr>
+                            <tr class="bg-amber-50/50">
+                                <td class="px-5 py-3 text-slate-600">Jan 23</td>
+                                <td class="px-5 py-3 text-slate-600">1010 · Escrow - Active</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3 text-right font-mono">125,000</td>
+                                <td class="px-5 py-3"><span class="hash">8f2a9c3b</span></td>
+                            </tr>
+                            <!-- FUNDING Event -->
+                            <tr>
+                                <td class="px-5 py-3" rowspan="2">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                                        <span class="font-medium text-slate-900">FUNDING</span>
+                                    </span>
+                                    <div class="text-xs text-slate-500 mt-0.5">EVT-4820</div>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600">Jan 23</td>
+                                <td class="px-5 py-3 text-slate-600">1010 · Escrow - Active</td>
+                                <td class="px-5 py-3 text-right font-mono">340,000</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3"><span class="hash">7e1b8d4a</span></td>
+                            </tr>
+                            <tr>
+                                <td class="px-5 py-3 text-slate-600">Jan 23</td>
+                                <td class="px-5 py-3 text-slate-600">2010 · Due to Providers</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3 text-right font-mono">340,000</td>
+                                <td class="px-5 py-3"><span class="hash">7e1b8d4a</span></td>
+                            </tr>
+                            <!-- SETTLEMENT Event -->
+                            <tr class="bg-emerald-50/50">
+                                <td class="px-5 py-3" rowspan="2">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                        <span class="font-medium text-slate-900">SETTLEMENT</span>
+                                    </span>
+                                    <div class="text-xs text-slate-500 mt-0.5">EVT-4818</div>
+                                </td>
+                                <td class="px-5 py-3 text-slate-600">Jan 20</td>
+                                <td class="px-5 py-3 text-slate-600">2020 · Due to Providers - Window</td>
+                                <td class="px-5 py-3 text-right font-mono">186,000</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3"><span class="hash">5c9b6f28</span></td>
+                            </tr>
+                            <tr class="bg-emerald-50/50">
+                                <td class="px-5 py-3 text-slate-600">Jan 20</td>
+                                <td class="px-5 py-3 text-slate-600">1020 · Escrow - Dispute Window</td>
+                                <td class="px-5 py-3 text-right font-mono text-slate-300">—</td>
+                                <td class="px-5 py-3 text-right font-mono">186,000</td>
+                                <td class="px-5 py-3"><span class="hash">5c9b6f28</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- The Key Insight -->
+            <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-8 text-white">
+                <div class="max-w-3xl">
+                    <h3 class="text-xl font-bold mb-3">Zero Reconciliation Accounting</h3>
+                    <p class="text-indigo-100 mb-4">
+                        Every number on this page is derived from the event log. The trial balance isn't a separate system 
+                        that needs to be reconciled with escrow—it <em>is</em> the escrow state, projected into accounting format.
+                    </p>
+                    <div class="grid sm:grid-cols-3 gap-4 mt-6">
+                        <div class="bg-white/10 rounded-lg p-4">
+                            <div class="text-2xl font-bold">4,821</div>
+                            <div class="text-sm text-indigo-200">Events in chain</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-4">
+                            <div class="text-2xl font-bold">9,642</div>
+                            <div class="text-sm text-indigo-200">Journal entries generated</div>
+                        </div>
+                        <div class="bg-white/10 rounded-lg p-4">
+                            <div class="text-2xl font-bold">0</div>
+                            <div class="text-sm text-indigo-200">Reconciliation exceptions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TECHNICAL TAB -->
+    <div id="content-technical" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto px-6 py-12">
+            <h2 class="text-2xl font-bold text-slate-900 mb-8">Technical Architecture</h2>
+            
+            <!-- Event Structure -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 class="font-semibold text-slate-900 mb-4">Event Structure</h3>
+                <pre class="bg-slate-900 text-slate-100 p-4 rounded-lg text-sm overflow-x-auto"><code>{
+  "event_id": "EVT-4821",
+  "deal_id": "GPU-2024-0892",
+  "event_type": "ATTESTATION",
+  "actor": "CoreWeave",
+  "timestamp": "2026-01-23T14:32:17Z",
+  "data": {
+    "gpu_hours_delivered": 500,
+    "usage_log_hash": "sha256:7f3a9b2c...",
+    "performance_metrics": { "avg_utilization": 0.94 }
+  },
+  "hash": "8f2a9c3b1d4e5f6a",
+  "prior_hash": "7e1b8d4a2c3b5e6f"
+}</code></pre>
+            </div>
+
+            <!-- State Machine -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 class="font-semibold text-slate-900 mb-4">State Machine</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="text-sm font-medium text-slate-700 mb-3">Valid Transitions</h4>
+                        <div class="space-y-2 text-sm mono">
+                            <div class="flex items-center gap-2">
+                                <span class="state-committed px-2 py-1 rounded">COMMITTED</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="state-funded px-2 py-1 rounded">FUNDED</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="state-funded px-2 py-1 rounded">FUNDED</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="state-dispute-window px-2 py-1 rounded">DISPUTE_WINDOW</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="state-dispute-window px-2 py-1 rounded">DISPUTE_WINDOW</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="state-settled px-2 py-1 rounded">SETTLED</span>
+                                <span class="text-xs text-slate-500">(auto, 72h)</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="state-dispute-window px-2 py-1 rounded">DISPUTE_WINDOW</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="state-disputed px-2 py-1 rounded">DISPUTED</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="state-disputed px-2 py-1 rounded">DISPUTED</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="state-settled px-2 py-1 rounded">SETTLED</span>
+                                <span class="text-xs text-slate-500">| REFUNDED</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-medium text-slate-700 mb-3">Invariants</h4>
+                        <ul class="space-y-2 text-sm text-slate-600">
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 mt-0.5">✓</span>
+                                <span>State can only move forward (no rollback)</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 mt-0.5">✓</span>
+                                <span>Every transition requires a signed event</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 mt-0.5">✓</span>
+                                <span>Hash chain is append-only, immutable</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 mt-0.5">✓</span>
+                                <span>Funds release only from terminal states</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-emerald-500 mt-0.5">✓</span>
+                                <span>Any party can recompute state from events</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hash Chain Verification -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 class="font-semibold text-slate-900 mb-4">Hash Chain Verification</h3>
+                <pre class="bg-slate-900 text-slate-100 p-4 rounded-lg text-sm overflow-x-auto"><code>// Anyone can verify the chain independently
+function verifyChain(events) {
+  let priorHash = "GENESIS";
+  
+  for (const event of events) {
+    const computed = sha256(
+      event.event_id + "|" +
+      event.deal_id + "|" +
+      event.event_type + "|" +
+      event.actor + "|" +
+      event.timestamp + "|" +
+      JSON.stringify(event.data) + "|" +
+      priorHash
+    );
+    
+    if (computed !== event.hash) {
+      throw new Error(`Tampering detected at ${event.event_id}`);
+    }
+    
+    priorHash = event.hash;
+  }
+  
+  return { verified: true, length: events.length };
+}</code></pre>
+            </div>
+
+            <!-- Why Not Blockchain -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6">
+                <h3 class="font-semibold text-amber-900 mb-3">Why Not Blockchain?</h3>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <div class="font-medium text-amber-800 mb-1">We don't need:</div>
+                        <ul class="text-amber-700 space-y-1">
+                            <li>• Decentralized consensus (parties are known)</li>
+                            <li>• Token economics (using real USD)</li>
+                            <li>• Global state (just our deals)</li>
+                            <li>• Permissionless access (invited parties only)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-medium text-amber-800 mb-1">We do need:</div>
+                        <ul class="text-amber-700 space-y-1">
+                            <li>• Immutability (hash chains provide this)</li>
+                            <li>• Multi-party visibility (shared ledger)</li>
+                            <li>• Verifiability (anyone can check the math)</li>
+                            <li>• Speed (instant, not 12-second blocks)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Deal Modal -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl fade-in">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-semibold text-lg text-slate-900">Create New Deal</h3>
+                <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                    <input type="text" id="newDealDesc" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="H100 Cluster - 500 GPU-hours">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
+                    <input type="number" id="newDealAmount" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="125000">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Borrower</label>
+                        <input type="text" id="newDealBorrower" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm" placeholder="Company">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Provider</label>
+                        <input type="text" id="newDealProvider" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm" placeholder="Company">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Lender</label>
+                        <input type="text" id="newDealLender" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition text-sm" placeholder="Company">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Dispute Window</label>
+                    <select class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        <option value="24">24 hours</option>
+                        <option value="48">48 hours</option>
+                        <option value="72" selected>72 hours</option>
+                        <option value="168">7 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeCreateModal()" class="px-4 py-2 text-slate-700 hover:bg-slate-200 rounded-lg font-medium text-sm transition">
+                    Cancel
+                </button>
+                <button onclick="createDeal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition shadow-lg shadow-indigo-200">
+                    Create Deal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deal Detail Modal -->
+    <div id="dealModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto fade-in">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div>
+                    <h3 class="font-semibold text-lg text-slate-900" id="modalDealId">GPU-2024-0892</h3>
+                    <p class="text-sm text-slate-500" id="modalDealDesc">H100 Cluster - 500 GPU-hours</p>
+                </div>
+                <button onclick="closeDealModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6" id="modalContent">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-white', 'shadow', 'text-slate-900');
+                el.classList.add('text-slate-600');
+            });
+            
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            const activeBtn = document.getElementById('tab-' + tabName);
+            activeBtn.classList.add('bg-white', 'shadow', 'text-slate-900');
+            activeBtn.classList.remove('text-slate-600');
+        }
+
+        // Modal functions
+        function openCreateModal() {
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('createModal').classList.add('flex');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('createModal').classList.remove('flex');
+        }
+
+        function closeDealModal() {
+            document.getElementById('dealModal').classList.add('hidden');
+            document.getElementById('dealModal').classList.remove('flex');
+        }
+
+        function selectDeal(dealId) {
+            const deals = {
+                'GPU-2024-0892': {
+                    id: 'GPU-2024-0892',
+                    desc: 'H100 Cluster - 500 GPU-hours',
+                    amount: 125000,
+                    state: 'DISPUTE_WINDOW',
+                    borrower: 'Nexus AI',
+                    provider: 'CoreWeave', 
+                    lender: 'Valor Capital',
+                    deadline: '4h 23m remaining',
+                    stateClass: 'state-dispute-window'
+                },
+                'GPU-2024-0915': {
+                    id: 'GPU-2024-0915',
+                    desc: 'A100 Training Job - 2,000 GPU-hours',
+                    amount: 340000,
+                    state: 'FUNDED',
+                    borrower: 'Synthesis Labs',
+                    provider: 'Lambda',
+                    lender: 'Norwest Ventures',
+                    stateClass: 'state-funded'
+                },
+                'GPU-2024-0847': {
+                    id: 'GPU-2024-0847',
+                    desc: 'H100 Inference Cluster - 100 GPU-hours',
+                    amount: 45000,
+                    state: 'DISPUTED',
+                    borrower: 'ModelForge',
+                    provider: 'RunPod',
+                    lender: 'Hercules Capital',
+                    disputeReason: 'GPU utilization below committed SLA (78% vs 95% guaranteed)',
+                    stateClass: 'state-disputed'
+                },
+                'GPU-2024-0831': {
+                    id: 'GPU-2024-0831',
+                    desc: 'A100 Fine-tuning - 800 GPU-hours',
+                    amount: 186000,
+                    state: 'SETTLED',
+                    borrower: 'Anthropic Research',
+                    provider: 'CoreWeave',
+                    lender: 'SVB',
+                    settledAt: 'Jan 20, 2026 09:01 UTC',
+                    stateClass: 'state-settled'
+                }
+            };
+
+            const deal = deals[dealId];
+            if (!deal) return;
+
+            document.getElementById('modalDealId').textContent = deal.id;
+            document.getElementById('modalDealDesc').textContent = deal.desc;
+
+            let actions = '';
+            if (deal.state === 'FUNDED') {
+                actions = `
+                    <button onclick="attestDelivery('${deal.id}')" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition">
+                        Attest Delivery (Provider Action)
+                    </button>
+                `;
+            } else if (deal.state === 'DISPUTE_WINDOW') {
+                actions = `
+                    <button onclick="raiseDispute('${deal.id}')" class="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition mb-2">
+                        Raise Dispute (Borrower Action)
+                    </button>
+                    <p class="text-xs text-slate-500 text-center">Window expires in ${deal.deadline} — funds will auto-release to provider</p>
+                `;
+            } else if (deal.state === 'DISPUTED') {
+                actions = `
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="settleDeal('${deal.id}')" class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition">
+                            Release to Provider
+                        </button>
+                        <button onclick="refundDeal('${deal.id}')" class="py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition">
+                            Refund Borrower
+                        </button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <div class="text-sm text-slate-500 mb-1">Amount</div>
+                        <div class="text-3xl font-bold text-slate-900">$${deal.amount.toLocaleString()}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-slate-500 mb-1">State</div>
+                        <div class="${deal.stateClass} inline-block px-4 py-2 rounded-lg font-semibold mt-1">${deal.state}</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="party-borrower rounded-lg p-3">
+                        <div class="text-xs uppercase tracking-wide opacity-75 mb-1">Borrower</div>
+                        <div class="font-medium">${deal.borrower}</div>
+                    </div>
+                    <div class="party-provider rounded-lg p-3">
+                        <div class="text-xs uppercase tracking-wide opacity-75 mb-1">Provider</div>
+                        <div class="font-medium">${deal.provider}</div>
+                    </div>
+                    <div class="party-lender rounded-lg p-3">
+                        <div class="text-xs uppercase tracking-wide opacity-75 mb-1">Lender</div>
+                        <div class="font-medium">${deal.lender}</div>
+                    </div>
+                </div>
+
+                ${deal.deadline ? `
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <div class="text-xs text-amber-600 uppercase tracking-wide mb-1">Dispute Window</div>
+                    <div class="font-semibold text-amber-800 text-lg">${deal.deadline}</div>
+                </div>
+                ` : ''}
+
+                ${deal.disputeReason ? `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="text-xs text-red-600 uppercase tracking-wide mb-1">Dispute Reason</div>
+                    <div class="font-medium text-red-800">${deal.disputeReason}</div>
+                </div>
+                ` : ''}
+
+                ${deal.settledAt ? `
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
+                    <div class="text-xs text-emerald-600 uppercase tracking-wide mb-1">Settled</div>
+                    <div class="font-medium text-emerald-800">${deal.settledAt}</div>
+                </div>
+                ` : ''}
+
+                ${actions ? `<div class="mb-6">${actions}</div>` : ''}
+
+                <div class="border-t border-slate-200 pt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-medium text-slate-900">Event History</h4>
+                        <span class="hash">current: 8f2a9c3b</span>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center gap-3 p-2 bg-slate-50 rounded">
+                            <span class="hash">8f2a9c3b</span>
+                            <span class="font-medium text-amber-700">ATTESTATION</span>
+                            <span class="text-slate-500">${deal.provider}</span>
+                            <span class="text-slate-400 ml-auto text-xs">2 min ago</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-2 bg-slate-50 rounded">
+                            <span class="hash">7e1b8d4a</span>
+                            <span class="font-medium text-emerald-700">FUNDING</span>
+                            <span class="text-slate-500">${deal.borrower}</span>
+                            <span class="text-slate-400 ml-auto text-xs">Jan 15</span>
+                        </div>
+                        <div class="flex items-center gap-3 p-2 bg-slate-50 rounded">
+                            <span class="hash">6d0c7e39</span>
+                            <span class="font-medium text-blue-700">COMMITMENT</span>
+                            <span class="text-slate-500">${deal.provider}</span>
+                            <span class="text-slate-400 ml-auto text-xs">Jan 14</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dealModal').classList.remove('hidden');
+            document.getElementById('dealModal').classList.add('flex');
+        }
+
+        function createDeal() {
+            const desc = document.getElementById('newDealDesc').value;
+            const amount = document.getElementById('newDealAmount').value;
+            if (!desc || !amount) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            const dealId = 'GPU-2024-' + Math.random().toString().slice(2, 6);
+            alert(`✓ Deal Created\n\nID: ${dealId}\nAmount: $${parseInt(amount).toLocaleString()}\nState: COMMITTED\n\nEvent logged to chain with hash: ${Math.random().toString(36).slice(2, 10)}`);
+            closeCreateModal();
+        }
+
+        function attestDelivery(dealId) {
+            if (confirm(`Attest delivery for ${dealId}?\n\nThis will start the 72-hour dispute window.`)) {
+                alert(`✓ Delivery Attested\n\nDeal: ${dealId}\nNew State: DISPUTE_WINDOW\n\nBorrower has 72 hours to dispute.\nEvent logged: ATTESTATION`);
+                closeDealModal();
+            }
+        }
+
+        function raiseDispute(dealId) {
+            const reason = prompt('Enter dispute reason:');
+            if (reason) {
+                alert(`✓ Dispute Raised\n\nDeal: ${dealId}\nNew State: DISPUTED\nReason: ${reason}\n\nFunds are frozen pending resolution.\nEvent logged: DISPUTE`);
+                closeDealModal();
+            }
+        }
+
+        function settleDeal(dealId) {
+            if (confirm(`Release funds to provider for ${dealId}?`)) {
+                alert(`✓ Deal Settled\n\nDeal: ${dealId}\nNew State: SETTLED\n\nFunds released to provider.\nEvent logged: SETTLEMENT`);
+                closeDealModal();
+            }
+        }
+
+        function refundDeal(dealId) {
+            if (confirm(`Refund borrower for ${dealId}?`)) {
+                alert(`✓ Deal Refunded\n\nDeal: ${dealId}\nNew State: REFUNDED\n\nFunds returned to borrower.\nEvent logged: REFUND`);
+                closeDealModal();
+            }
+        }
+
+        function verifyChain() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center fade-in">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Chain Verified ✓</h3>
+                    <p class="text-slate-600 mb-4">All 4,821 events have valid hashes.<br>No tampering detected.</p>
+                    <div class="bg-slate-50 rounded-lg p-4 mb-6">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <div class="text-slate-500">Events</div>
+                                <div class="font-bold text-slate-900">4,821</div>
+                            </div>
+                            <div>
+                                <div class="text-slate-500">Integrity</div>
+                                <div class="font-bold text-emerald-600">100%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" class="px-6 py-2 bg-slate-900 text-white rounded-lg font-medium hover:bg-slate-800 transition">
+                        Close
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function exportFinance() {
+            alert('Exporting to CSV...\n\nIn production, this would download:\n• Trial Balance\n• Budget vs Actual\n• Journal Entries\n\nAll derived from the same event log.');
+        }
+
+        // Countdown timer simulation
+        setInterval(() => {
+            const countdown = document.querySelector('.countdown');
+            if (countdown && countdown.textContent.includes('4h')) {
+                const mins = parseInt(countdown.textContent.match(/(\d+)m/)?.[1] || 23);
+                countdown.textContent = `⏱ 4h ${mins > 0 ? mins - 1 : 59}m left`;
+            }
+        }, 60000);
+    </script>
+</body>
+</html>

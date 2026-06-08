@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof-Based Settlement - Risks & Deterministic Architecture</title>
+    <style>
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1a1f2e;
+            --bg-card: #242b3d;
+            --text-primary: #f0f4f8;
+            --text-secondary: #8b9db5;
+            --accent-cyan: #22d3ee;
+            --accent-green: #22c55e;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --border-color: #2d3548;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 40px 24px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 1.75rem; margin-bottom: 8px; color: var(--accent-cyan); }
+        h2 { font-size: 1.35rem; margin: 40px 0 16px; color: var(--text-primary); border-bottom: 2px solid var(--accent-red); padding-bottom: 8px; }
+        h2.solution { border-bottom-color: var(--accent-green); }
+        h3 { font-size: 1.1rem; margin: 28px 0 12px; color: var(--accent-purple); }
+        p { margin-bottom: 14px; color: var(--text-secondary); }
+        .subtitle { color: var(--text-secondary); margin-bottom: 32px; font-size: 1.05rem; }
+        .risk-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-red);
+            border-radius: 0 12px 12px 0;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .risk-card h4 { color: var(--accent-red); margin-bottom: 8px; }
+        .risk-card .scenario { background: var(--bg-card); padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 0.9rem; }
+        .risk-card .scenario strong { color: var(--accent-amber); }
+        .mitigation {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 3px solid var(--accent-green);
+            padding: 12px;
+            margin-top: 12px;
+            border-radius: 0 6px 6px 0;
+        }
+        .mitigation h5 { color: var(--accent-green); margin-bottom: 6px; font-size: 0.85rem; }
+        .proof-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-green);
+            border-radius: 0 12px 12px 0;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        .proof-card h4 { color: var(--accent-green); margin-bottom: 8px; }
+        .code-block {
+            background: #1e293b;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            margin: 12px 0;
+            color: #e2e8f0;
+        }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85rem; }
+        th, td { border: 1px solid var(--border-color); padding: 12px; text-align: left; }
+        th { background: var(--bg-card); font-weight: 600; color: var(--accent-cyan); }
+        td { background: var(--bg-secondary); }
+        .assumption { color: var(--accent-amber); font-weight: 600; }
+        .provable { color: var(--accent-green); font-weight: 600; }
+        .not-provable { color: var(--accent-red); font-weight: 600; }
+        .callout {
+            background: rgba(139, 92, 246, 0.1);
+            border-left: 4px solid var(--accent-purple);
+            padding: 16px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .callout h4 { color: var(--accent-purple); margin-bottom: 8px; }
+        .matrix {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+        .matrix-box {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+        .matrix-box h5 { margin-bottom: 8px; font-size: 0.9rem; }
+        .matrix-box ul { margin: 0; padding-left: 18px; font-size: 0.85rem; }
+        .matrix-box li { margin: 4px 0; color: var(--text-secondary); }
+        footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Proof-Based Settlement Architecture</h1>
+    <p class="subtitle">Risks, assumptions, and the path to deterministic verification</p>
+
+    <h2>1. Assumption Inventory</h2>
+    <p>Every "proof" relies on underlying assumptions. Here's what observation-based settlement visibility assumes:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Assumption</th>
+                <th>Risk If Wrong</th>
+                <th>Can Be Eliminated?</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Bank/Plaid data is accurate</td>
+                <td>Your "proof" is based on false data</td>
+                <td class="not-provable">No — must trust data source</td>
+            </tr>
+            <tr>
+                <td>Bank/Plaid data is complete</td>
+                <td>Missing transactions = invisible events</td>
+                <td class="not-provable">No — can't prove negative</td>
+            </tr>
+            <tr>
+                <td>Your instruction caused the observed settlement</td>
+                <td>Correlation ≠ causation</td>
+                <td class="provable">Yes — with unique identifiers</td>
+            </tr>
+            <tr>
+                <td>No tampering between source and your system</td>
+                <td>Man-in-the-middle modifies data</td>
+                <td class="provable">Yes — with signed payloads</td>
+            </tr>
+            <tr>
+                <td>Your system's clock is accurate</td>
+                <td>Timestamp manipulation</td>
+                <td class="provable">Yes — trusted timestamping</td>
+            </tr>
+            <tr>
+                <td>Your event store is immutable</td>
+                <td>Historical records modified</td>
+                <td class="provable">Yes — hash chains / Merkle trees</td>
+            </tr>
+            <tr>
+                <td>Settlement finality is real</td>
+                <td>ACH returns, chargebacks reverse "settled" transactions</td>
+                <td class="assumption">Partially — must model reversibility</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>2. Risk Analysis</h2>
+
+    <div class="risk-card">
+        <h4>⚠️ Risk 1: Correlation vs. Causation</h4>
+        <p>You observe: "We instructed payment X, and payment X settled." But did YOUR instruction cause it?</p>
+        <div class="scenario">
+            <strong>Scenario:</strong> Client's accountant manually initiates the same payment in their bank portal 5 minutes before your system does. Both "succeed." You see settlement, claim credit. But your instruction was actually rejected as duplicate. Your audit trail shows false causation.
+        </div>
+        <div class="mitigation">
+            <h5>✓ Mitigation: Idempotency Keys</h5>
+            <p>Include a unique identifier (UUID) in every payment instruction. Require that identifier to appear in the bank's confirmation. If the bank doesn't echo your key, you can't claim causation.</p>
+        </div>
+    </div>
+
+    <div class="risk-card">
+        <h4>⚠️ Risk 2: Data Source Integrity</h4>
+        <p>You're trusting Plaid/bank APIs to give you accurate, complete data. What if they're wrong?</p>
+        <div class="scenario">
+            <strong>Scenario:</strong> Plaid has a bug. It shows a transaction as "posted" when it's actually "pending." You mark settlement complete. Next day, the transaction reverses. Your proof was based on false data.
+        </div>
+        <div class="mitigation">
+            <h5>✓ Mitigation: Multi-Source Corroboration</h5>
+            <p>Don't trust a single source. Corroborate Plaid transaction with bank statement import AND accounting system entry. Three-way match for settlement, not just PO/Invoice/Receipt.</p>
+        </div>
+    </div>
+
+    <div class="risk-card">
+        <h4>⚠️ Risk 3: Observation Latency</h4>
+        <p>There's always a gap between when something happens and when you observe it. State is uncertain during that window.</p>
+        <div class="scenario">
+            <strong>Scenario:</strong> Payment settles at 2:00 PM. Plaid webhook arrives at 2:15 PM. At 2:10 PM, someone queries your system for settlement status. You say "pending." They make a business decision based on stale data.
+        </div>
+        <div class="mitigation">
+            <h5>✓ Mitigation: Explicit Uncertainty Modeling</h5>
+            <p>Never claim certainty you don't have. Model states as: <code>instructed → initiated → pending_confirmation → confirmed</code>. Report confidence intervals, not binary states.</p>
+        </div>
+    </div>
+
+    <div class="risk-card">
+        <h4>⚠️ Risk 4: Settlement Non-Finality</h4>
+        <p>ACH isn't final for 60 days. Chargebacks can reverse card payments. "Settled" doesn't mean "irreversible."</p>
+        <div class="scenario">
+            <strong>Scenario:</strong> Payment settles. You release goods. 45 days later, ACH return (NSF). You thought settlement was final. It wasn't. Your proof of settlement is now a proof of reversal.
+        </div>
+        <div class="mitigation">
+            <h5>✓ Mitigation: Finality Tiers</h5>
+            <p>Model settlement finality explicitly: <code>provisional</code> (0-3 days), <code>likely_final</code> (3-60 days for ACH), <code>final</code> (past chargeback window). Never treat provisional as final.</p>
+        </div>
+    </div>
+
+    <div class="risk-card">
+        <h4>⚠️ Risk 5: Completeness (Proving the Negative)</h4>
+        <p>You can prove what you observed. You cannot prove you observed everything.</p>
+        <div class="scenario">
+            <strong>Scenario:</strong> Client has two bank accounts. You're integrated with one. Fraudulent payments go out of the second account. Your audit trail shows "no unauthorized payments" because you didn't see them.
+        </div>
+        <div class="mitigation">
+            <h5>✓ Mitigation: Scope Declaration</h5>
+            <p>Explicitly declare the scope of your visibility. "This proof covers accounts A, B, C for period X-Y." Never imply completeness beyond declared scope.</p>
+        </div>
+    </div>
+
+    <h2 class="solution">3. What CAN Be Proof-Based & Deterministic</h2>
+
+    <div class="proof-card">
+        <h4>✓ Proof 1: You Received This Data At This Time</h4>
+        <p>Cryptographically provable with signed timestamps.</p>
+        <div class="code-block">
+// RFC 3161 Trusted Timestamping
+{
+  "data": { "transaction_id": "TXN-123", "amount": 47250.00, "status": "settled" },
+  "data_hash": "SHA256(data) = a3f8c2d1...",
+  "timestamp": "2026-02-06T14:23:01Z",
+  "tsa_signature": "RFC3161_TSA_signs(data_hash + timestamp)",
+  "tsa_certificate": "DigiCert Timestamp Authority"
+}
+
+// Verification: Anyone can verify TSA signature proves data existed at timestamp
+        </div>
+        <p><strong>What this proves:</strong> "This exact data payload existed at this exact time, signed by a trusted third party."</p>
+    </div>
+
+    <div class="proof-card">
+        <h4>✓ Proof 2: Data Was Not Modified After Receipt</h4>
+        <p>Hash chains provide tamper-evidence.</p>
+        <div class="code-block">
+// Each event includes hash of previous event
+Event N:   { data: {...}, prev_hash: "hash(N-1)", hash: "hash(N)" }
+Event N+1: { data: {...}, prev_hash: "hash(N)",   hash: "hash(N+1)" }
+
+// To tamper with Event N, attacker must:
+// 1. Modify Event N
+// 2. Recompute hash(N)
+// 3. Update Event N+1's prev_hash
+// 4. Recompute hash(N+1)
+// 5. Continue for ALL subsequent events
+// 6. Do this before anyone has verified the chain
+
+// Mitigation: Periodic anchoring to public blockchain or RFC 3161 TSA
+        </div>
+        <p><strong>What this proves:</strong> "If any event was modified, the chain breaks. An intact chain proves no tampering."</p>
+    </div>
+
+    <div class="proof-card">
+        <h4>✓ Proof 3: Your Instruction Matches The Settlement (Causation Link)</h4>
+        <p>Idempotency keys create verifiable linkage.</p>
+        <div class="code-block">
+// Your instruction includes unique key
+Instruction: {
+  idempotency_key: "SL-2026-0847-a3f8",
+  vendor: "Pacific Steel",
+  amount: 47250.00,
+  account: "****6789"
+}
+
+// Bank API echoes key in confirmation
+Bank Response: {
+  status: "initiated",
+  reference: "ACH-9982341",
+  client_reference: "SL-2026-0847-a3f8"  // ← Your key echoed back
+}
+
+// Settlement confirmation (via Plaid or bank)
+Settlement: {
+  transaction_id: "TXN-ABC123",
+  amount: 47250.00,
+  memo: "SL-2026-0847-a3f8"  // ← Your key in memo field
+}
+
+// Verification: instruction.idempotency_key == settlement.memo
+// This PROVES your instruction caused this settlement
+        </div>
+        <p><strong>What this proves:</strong> "This specific settlement was caused by this specific instruction because the unique key appears in both."</p>
+    </div>
+
+    <div class="proof-card">
+        <h4>✓ Proof 4: Deterministic State Reconstruction</h4>
+        <p>Given the same event stream, anyone reaches the same state.</p>
+        <div class="code-block">
+// State is a pure function of events
+function computeState(events: Event[]): State {
+  return events.reduce((state, event) => {
+    switch(event.type) {
+      case 'payment.instructed':
+        return { ...state, pending: [...state.pending, event.payload] };
+      case 'payment.settled':
+        return {
+          ...state,
+          pending: state.pending.filter(p => p.id !== event.payload.id),
+          settled: [...state.settled, event.payload]
+        };
+      // ... deterministic for all event types
+    }
+  }, initialState);
+}
+
+// Proof: computeState(events) always returns same result for same events
+// Anyone can replay and verify
+        </div>
+        <p><strong>What this proves:</strong> "The state I show you is the only possible state given these events. You can verify by replaying."</p>
+    </div>
+
+    <h2 class="solution">4. The Deterministic Settlement Proof Architecture</h2>
+
+    <div class="callout">
+        <h4>🎯 Design Principle: Prove What You Can, Declare What You Assume</h4>
+        <p>Don't claim proofs you can't deliver. Be explicit about trust boundaries.</p>
+    </div>
+
+    <h3>Trust Boundary Model</h3>
+    <div class="matrix">
+        <div class="matrix-box" style="border-color: var(--accent-green);">
+            <h5 style="color: var(--accent-green);">Within Your Trust Boundary (Provable)</h5>
+            <ul>
+                <li>Data received at timestamp (RFC 3161)</li>
+                <li>Data not modified since receipt (hash chain)</li>
+                <li>Instruction-settlement linkage (idempotency key)</li>
+                <li>State computation determinism (pure functions)</li>
+                <li>Event ordering (causal DAG)</li>
+            </ul>
+        </div>
+        <div class="matrix-box" style="border-color: var(--accent-red);">
+            <h5 style="color: var(--accent-red);">Outside Your Trust Boundary (Assumed)</h5>
+            <ul>
+                <li>Bank/Plaid data accuracy</li>
+                <li>Bank/Plaid data completeness</li>
+                <li>Settlement finality (until chargeback window closes)</li>
+                <li>No out-of-band transactions</li>
+                <li>Client's other systems don't contradict</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Proof Certificate Structure</h3>
+    <div class="code-block">
+{
+  "proof_type": "settlement_verification",
+  "proof_version": "1.0",
+
+  "claim": {
+    "statement": "Payment SL-2026-0847 settled for $47,250.00 to Pacific Steel",
+    "instruction_hash": "a3f8c2d1...",
+    "settlement_hash": "c9d2e8b3...",
+    "chain_root": "d4f7a1c9..."
+  },
+
+  "evidence": {
+    "instruction": {
+      "event_id": "INS-2026-0847",
+      "timestamp": "2026-02-06T14:23:01Z",
+      "tsa_token": "RFC3161_TOKEN_BASE64...",
+      "idempotency_key": "SL-2026-0847-a3f8"
+    },
+    "settlement": {
+      "event_id": "CNF-2026-0847",
+      "timestamp": "2026-02-07T09:15:22Z",
+      "tsa_token": "RFC3161_TOKEN_BASE64...",
+      "source": "plaid_webhook",
+      "memo_contains_key": true
+    },
+    "chain_proof": {
+      "merkle_path": ["hash1", "hash2", "hash3"],
+      "root_anchored_to": "ethereum_tx_0xabc123..."
+    }
+  },
+
+  "assumptions": [
+    "Plaid transaction data accurately reflects bank ledger",
+    "No ACH return received as of proof generation time",
+    "Scope limited to account ****6789 at First National Bank"
+  ],
+
+  "validity": {
+    "generated_at": "2026-02-07T10:00:00Z",
+    "valid_until": "2026-04-07T10:00:00Z",  // 60 days for ACH finality
+    "finality_status": "provisional"
+  },
+
+  "verification_instructions": {
+    "1": "Verify TSA tokens with DigiCert Timestamp Authority",
+    "2": "Verify Merkle path from event hashes to root",
+    "3": "Verify root anchor on Ethereum (optional)",
+    "4": "Verify idempotency_key appears in settlement memo",
+    "5": "Check validity period has not expired"
+  }
+}
+    </div>
+
+    <h2 class="solution">5. Implementation Requirements</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Requirement</th>
+                <th>Implementation</th>
+                <th>Complexity</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Trusted Timestamping</td>
+                <td>RFC 3161 TSA (DigiCert, Sectigo, or self-hosted)</td>
+                <td>Medium — API integration</td>
+            </tr>
+            <tr>
+                <td>Hash Chain</td>
+                <td>SHA-256 linked list, event references previous hash</td>
+                <td>Low — implement in event store</td>
+            </tr>
+            <tr>
+                <td>Merkle Tree</td>
+                <td>Binary tree of hashes for efficient subset proofs</td>
+                <td>Medium — standard library available</td>
+            </tr>
+            <tr>
+                <td>Idempotency Keys</td>
+                <td>UUIDv4 in every payment instruction, require echo</td>
+                <td>Low — field in API calls</td>
+            </tr>
+            <tr>
+                <td>Deterministic Compute</td>
+                <td>Pure functions, no side effects, same input → same output</td>
+                <td>Medium — discipline in code</td>
+            </tr>
+            <tr>
+                <td>External Anchoring (Optional)</td>
+                <td>Periodic Merkle root to Ethereum, Bitcoin, or RFC 3161</td>
+                <td>Medium — adds independent verifiability</td>
+            </tr>
+            <tr>
+                <td>Finality Modeling</td>
+                <td>State machine: provisional → likely_final → final</td>
+                <td>Low — domain modeling</td>
+            </tr>
+            <tr>
+                <td>Scope Declaration</td>
+                <td>Explicit metadata on every proof certificate</td>
+                <td>Low — documentation discipline</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>6. The Honest Answer</h2>
+
+    <div class="callout">
+        <h4>What You Can Achieve</h4>
+        <p><strong>Deterministic, proof-based verification that:</strong></p>
+        <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
+            <li>You received specific data at specific times (RFC 3161 proves)</li>
+            <li>That data has not been modified (hash chain proves)</li>
+            <li>Your instruction and the settlement are linked (idempotency key proves)</li>
+            <li>Anyone can replay and reach the same state (determinism proves)</li>
+        </ul>
+    </div>
+
+    <div class="risk-card">
+        <h4>What You Cannot Achieve (Irreducible Assumptions)</h4>
+        <p>No matter what you build, you must trust:</p>
+        <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
+            <li>The data source (Plaid, bank) is giving you accurate data</li>
+            <li>You're seeing all relevant transactions (no hidden accounts)</li>
+            <li>Settlement finality rules of the payment rail (ACH returns, chargebacks)</li>
+        </ul>
+        <p style="margin-top: 12px;"><strong>This is why your Trust Architecture prototype scores data sources.</strong> You're making assumptions explicit and probabilistic, not eliminating them.</p>
+    </div>
+
+    <h2>7. Recommendation: Layered Proof Model</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Layer</th>
+                <th>What It Proves</th>
+                <th>Trust Requirement</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Layer 0: Cryptographic</strong></td>
+                <td>Data integrity, timestamps, linkage</td>
+                <td>Math only — trustless</td>
+            </tr>
+            <tr>
+                <td><strong>Layer 1: Source Trust</strong></td>
+                <td>Data source is reliable</td>
+                <td>Trust Plaid/bank — scored</td>
+            </tr>
+            <tr>
+                <td><strong>Layer 2: Corroboration</strong></td>
+                <td>Multiple sources agree</td>
+                <td>Reduces single-source risk</td>
+            </tr>
+            <tr>
+                <td><strong>Layer 3: Finality</strong></td>
+                <td>Settlement won't reverse</td>
+                <td>Time-based (60 days ACH)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>Your proof certificates should declare which layers are satisfied. A "Layer 0 + Layer 1" proof is weaker than "Layer 0 + Layer 1 + Layer 2 + Layer 3".</p>
+
+    <footer>
+        Proof-Based Settlement Architecture • February 2026 • Deterministic Verification Framework
+    </footer>
+</body>
+</html>

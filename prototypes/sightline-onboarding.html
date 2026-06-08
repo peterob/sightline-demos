@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Onboarding Configuration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: { 1: '#0a0b0d', 2: '#12141a', 3: '#1a1d24', card: '#1e2128' },
+            bdr: '#2a2e38',
+            tx: { 1: '#ffffff', 2: '#9aa0ab', m: '#6b7280' },
+            ac: { blue: '#4da6ff', green: '#00d4aa', red: '#ff6b6b', yellow: '#ffc107', orange: '#ff9f43', purple: '#a78bfa', cyan: '#22d3ee' }
+          }
+        }
+      }
+    }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0a0b0d 0%, #1b3a5c 50%, #2e1065 100%); }
+        .glass-card { background: #1e2128; backdrop-filter: blur(10px); }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.4); }
+        .tab-active { border-bottom: 3px solid #4da6ff; color: #4da6ff; background: rgba(255,255,255,0.15); }
+        .input-field { border: 1px solid #2a2e38; border-radius: 8px; padding: 8px 12px; transition: all 0.2s; background: #12141a; color: #e8eaf0; }
+        .input-field:focus { outline: none; border-color: #4da6ff; box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1); }
+        .btn-primary { background: linear-gradient(135deg, #4da6ff 0%, #2e5fa1 100%); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(77, 166, 255, 0.3); }
+        .btn-secondary { background: #1e2128; color: #9aa0ab; padding: 8px 16px; border-radius: 8px; border: 1px solid #2a2e38; font-weight: 500; transition: all 0.2s; }
+        .btn-secondary:hover { background: #1a1d24; border-color: #3a3e48; }
+        .cat-1 { background: rgba(77,166,255,0.15); color: #4da6ff; }
+        .cat-2 { background: rgba(0,212,170,0.15); color: #00d4aa; }
+        .cat-3 { background: rgba(255,193,7,0.15); color: #ffc107; }
+        .cat-4 { background: rgba(167,139,250,0.15); color: #a78bfa; }
+        .auto-badge { background: rgba(0,212,170,0.15); color: #00d4aa; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+        .human-badge { background: rgba(255,159,67,0.15); color: #ff9f43; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+        .skill-badge { background: rgba(77,166,255,0.15); color: #4da6ff; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+        .risk-high { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+        .peak-month { background: rgba(77,166,255,0.15); color: #4da6ff; }
+        .peak-quarter { background: rgba(255,193,7,0.15); color: #ffc107; }
+        .peak-year { background: rgba(255,107,107,0.15); color: #ff6b6b; }
+        .peak-audit { background: rgba(167,139,250,0.15); color: #a78bfa; }
+        .utilization-good { color: #00d4aa; }
+        .utilization-warning { color: #ff9f43; }
+        .utilization-critical { color: #ff6b6b; }
+        .domain-ap { border-left: 4px solid #4da6ff; }
+        .domain-ar { border-left: 4px solid #00d4aa; }
+        .domain-gl { border-left: 4px solid #ffc107; }
+        .domain-fp { border-left: 4px solid #a78bfa; }
+        .domain-exec { border-left: 4px solid #ff6b6b; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: #1e2128; border: 1px solid #2a2e38; border-radius: 16px; max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .drop-zone { border: 2px dashed #2a2e38; border-radius: 12px; padding: 2rem; text-align: center; transition: all 0.2s; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #4da6ff; background: #12141a; }
+        .scenario-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #2a2e38; outline: none; }
+        .scenario-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #4da6ff; cursor: pointer; }
+        .insight-card { border-radius: 12px; padding: 1rem; }
+        .insight-critical { background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.15)); border: 1px solid rgba(255,107,107,0.3); }
+        .insight-warning { background: linear-gradient(135deg, rgba(255,193,7,0.08), rgba(255,193,7,0.15)); border: 1px solid rgba(255,193,7,0.3); }
+        .insight-success { background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(0,212,170,0.15)); border: 1px solid rgba(0,212,170,0.3); }
+        .insight-info { background: linear-gradient(135deg, rgba(77,166,255,0.08), rgba(77,166,255,0.15)); border: 1px solid rgba(77,166,255,0.3); }
+        .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 200px; padding: 10px 0; }
+        .bar-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: 4px; }
+        .bar-label { font-size: 11px; color: #6b7280; margin-top: 8px; text-align: center; }
+        .bar-value { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        .bundle-card { border: 2px solid #2a2e38; border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer; }
+        .bundle-card.active { border-color: #4da6ff; background: rgba(77,166,255,0.05); box-shadow: 0 0 0 3px rgba(77,166,255,0.1); }
+        .bundle-card:hover { border-color: #3a3e48; }
+        .gauge-bg { height: 8px; border-radius: 4px; background: #2a2e38; overflow: hidden; }
+        .gauge-fill { height: 100%; border-radius: 4px; transition: width 0.6s; }
+    </style>
+</head>
+<body class="bg-bg-1 text-tx-1 min-h-screen">
+    <header class="gradient-header text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center"><span class="text-lg font-bold">S</span></div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Sightline — Onboarding Configuration</h1>
+                        <p class="text-ac-blue/60 text-sm">CAST Protocol · Role → Job → Task → Skill Mapping</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/15 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-ac-blue/60">Roles</p>
+                        <p class="text-lg font-bold" id="header-team-count">0</p>
+                    </div>
+                    <div class="bg-white/15 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-ac-blue/60">Tasks</p>
+                        <p class="text-lg font-bold" id="header-task-count">0</p>
+                    </div>
+                    <div class="bg-white/15 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-ac-blue/60">Automation</p>
+                        <p class="text-lg font-bold text-ac-green" id="header-automation">0%</p>
+                    </div>
+                    <div class="bg-white/15 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-ac-blue/60">Skills</p>
+                        <p class="text-lg font-bold text-ac-blue" id="header-skills">0</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex gap-1 mt-5 -mb-5 overflow-x-auto">
+                <button onclick="showTab('team')" id="tab-team" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 tab-active whitespace-nowrap">Team</button>
+                <button onclick="showTab('tasks')" id="tab-tasks" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Task Templates</button>
+                <button onclick="showTab('skills')" id="tab-skills" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🤖 Skills</button>
+                <button onclick="showTab('bundles')" id="tab-bundles" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">📦 Job Bundles</button>
+                <button onclick="showTab('analysis')" id="tab-analysis" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Analysis</button>
+                <button onclick="showTab('risk')" id="tab-risk" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🚨 Risk</button>
+                <button onclick="showTab('peak')" id="tab-peak" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">📅 Peak</button>
+                <button onclick="showTab('categories')" id="tab-categories" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🏷️ CAST Categories</button>
+                <button onclick="showTab('scenario')" id="tab-scenario" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🔮 Automation Impact</button>
+                <button onclick="showTab('export')" id="tab-export" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Export</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- ═══ Tab: Team ═══ -->
+        <section id="content-team" class="tab-content">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <h2 class="text-xl font-bold text-tx-1">Team Structure — Sightline Roles</h2>
+                        <p class="text-tx-2 text-sm">Map your finance team to CAST role definitions. Each role is assigned Jobs containing Task Templates.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="localStorage.removeItem('sightlineOnboardingData'); loadSampleData()" class="btn-secondary text-sm">🔄 Reset Demo</button>
+                        <button onclick="openAddMemberModal()" class="btn-primary">+ Add Role</button>
+                    </div>
+                </div>
+                <div class="bg-ac-blue/10 border border-ac-blue/30 rounded-lg p-3 mb-4 text-sm text-ac-blue">
+                    <strong>CAST Organizational Model:</strong> ROLE → JOB → TASK TEMPLATE → TASK INSTANCE (Work Order). Each role's automation % is derived from the ratio of automated task templates to total templates.
+                </div>
+                <div id="team-list" class="space-y-3"></div>
+            </div>
+            <div class="grid grid-cols-5 gap-4">
+                <div class="glass-card rounded-xl p-4 border border-bdr text-center"><p class="text-sm text-tx-2">Total FTEs</p><p class="text-2xl font-bold" id="setup-total-fte">0</p></div>
+                <div class="glass-card rounded-xl p-4 border border-bdr text-center"><p class="text-sm text-tx-2">Annual Cost</p><p class="text-2xl font-bold" id="setup-total-cost">$0</p></div>
+                <div class="glass-card rounded-xl p-4 border border-bdr text-center"><p class="text-sm text-tx-2">Capacity (hrs/mo)</p><p class="text-2xl font-bold" id="setup-total-capacity">0</p></div>
+                <div class="glass-card rounded-xl p-4 border border-bdr text-center"><p class="text-sm text-tx-2">Avg Automation</p><p class="text-2xl font-bold text-ac-green" id="setup-avg-auto">0%</p></div>
+                <div class="glass-card rounded-xl p-4 border border-bdr text-center"><p class="text-sm text-tx-2">Cash Position</p><p class="text-2xl font-bold text-ac-blue">$2.85M</p></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Task Templates ═══ -->
+        <section id="content-tasks" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <div class="flex items-center gap-4 mb-4">
+                    <select id="task-member-select" onchange="loadMemberTasks()" class="input-field flex-1 max-w-xs"><option value="">-- Select Role --</option></select>
+                    <button onclick="openAddTaskModal()" class="btn-primary" id="add-task-btn" disabled>+ Add Template</button>
+                </div>
+                <div class="bg-ac-purple/10 border border-ac-purple/30 rounded-lg p-3 mb-4 text-sm text-ac-purple">
+                    Each task template maps to a CAST Task Category (1-4), an Agent Skill, and an automation status. <strong>Cat 1</strong> = Automatable Verification (70%), <strong>Cat 2</strong> = Routable Decision (15%), <strong>Cat 3</strong> = Judgment Call (10%), <strong>Cat 4</strong> = System Teaching (5%).
+                </div>
+                <div id="member-task-summary" class="hidden mb-6">
+                    <div class="bg-bg-3 rounded-lg p-4 flex justify-between items-center">
+                        <div><h3 class="font-semibold" id="selected-member-name">-</h3><p class="text-sm text-tx-2" id="selected-member-role">-</p></div>
+                        <div class="flex gap-6 text-center">
+                            <div><p class="text-xl font-bold" id="member-task-count">0</p><p class="text-xs text-tx-2">Templates</p></div>
+                            <div><p class="text-xl font-bold text-ac-blue" id="member-hours-month">0</p><p class="text-xs text-tx-2">Hrs (Human)</p></div>
+                            <div><p class="text-xl font-bold text-ac-green" id="member-auto-pct">0%</p><p class="text-xs text-tx-2">Automated</p></div>
+                            <div><p class="text-xl font-bold" id="member-utilization">0%</p><p class="text-xs text-tx-2">Util</p></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="member-tasks-list" class="space-y-2"><div class="text-center py-8 text-tx-m">Select a role to view task templates</div></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Skills ═══ -->
+        <section id="content-skills" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-tx-1">🤖 Agent Skill Registry</h2>
+                        <p class="text-tx-2 text-sm">Atomic, composable capabilities. Each skill does one thing and is measured independently.</p>
+                    </div>
+                    <div class="flex gap-4 text-center">
+                        <div class="bg-ac-green/10 rounded-lg px-4 py-2"><p class="text-xs text-tx-2">Avg Success</p><p class="text-lg font-bold text-ac-green">97.3%</p></div>
+                        <div class="bg-ac-blue/10 rounded-lg px-4 py-2"><p class="text-xs text-tx-2">Avg Latency</p><p class="text-lg font-bold text-ac-blue">0.4s</p></div>
+                    </div>
+                </div>
+                <div id="skills-grid" class="grid grid-cols-3 gap-4"></div>
+            </div>
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <h3 class="text-lg font-bold mb-4">Running Agents</h3>
+                <p class="text-tx-2 text-sm mb-4">Agents compose skills to execute task templates autonomously.</p>
+                <table class="w-full text-sm">
+                    <thead class="bg-bg-3"><tr><th class="text-left py-2 px-3">Agent</th><th class="text-left py-2 px-3">Current Task</th><th class="text-left py-2 px-3">Skills In Use</th><th class="text-center py-2 px-3">Status</th><th class="text-right py-2 px-3">Uptime</th></tr></thead>
+                    <tbody class="divide-y divide-bdr">
+                        <tr><td class="py-2 px-3 font-medium">AP Processing Agent</td><td class="py-2 px-3 text-tx-2">INV-4893 Three-Way Match</td><td class="py-2 px-3"><span class="skill-badge">ThreeWayMatch</span> <span class="skill-badge">DuplicateDetect</span> <span class="skill-badge">BudgetCheck</span></td><td class="py-2 px-3 text-center"><span class="auto-badge">● Running</span></td><td class="py-2 px-3 text-right text-tx-2">4h 22m</td></tr>
+                        <tr><td class="py-2 px-3 font-medium">Vendor Compliance Agent</td><td class="py-2 px-3 text-tx-2">Daily credential scan</td><td class="py-2 px-3"><span class="skill-badge">VendorVerify</span></td><td class="py-2 px-3 text-center"><span class="auto-badge">● Running</span></td><td class="py-2 px-3 text-right text-tx-2">4h 22m</td></tr>
+                        <tr><td class="py-2 px-3 font-medium">Collections Agent</td><td class="py-2 px-3 text-tx-2">AR-2847 Dunning Tier 2</td><td class="py-2 px-3"><span class="skill-badge">CollectionsDunning</span></td><td class="py-2 px-3 text-center"><span class="auto-badge">● Running</span></td><td class="py-2 px-3 text-right text-tx-2">4h 22m</td></tr>
+                        <tr><td class="py-2 px-3 font-medium">Forecast Agent</td><td class="py-2 px-3 text-tx-2">Weekly projection refresh</td><td class="py-2 px-3"><span class="skill-badge">CashForecast</span> <span class="skill-badge">DiscountOptimizer</span></td><td class="py-2 px-3 text-center"><span class="auto-badge">● Running</span></td><td class="py-2 px-3 text-right text-tx-2">4h 22m</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Job Bundles ═══ -->
+        <section id="content-bundles" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-tx-1">📦 Job Bundles — Pre-loaded Configurations</h2>
+                        <p class="text-tx-2 text-sm">Each bundle packages Jobs, Task Templates, Skills, and Policies. Click to toggle activation.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6" id="bundles-grid">
+                    <div class="bundle-card active" onclick="toggleBundle(this)" data-bundle="ap">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold">AP Full Automation Bundle</h3>
+                            <span class="auto-badge font-semibold">Active</span>
+                        </div>
+                        <p class="text-sm text-tx-2 mb-3">Complete AP workflow: invoice ingestion through payment execution.</p>
+                        <div class="flex gap-4 text-xs text-tx-m mb-3">
+                            <span>12 task templates</span><span>4 skills</span><span>6 policies</span>
+                        </div>
+                        <div class="flex gap-4 text-xs mb-2">
+                            <span><strong>Jobs:</strong> Invoice Processing, Payment Optimization</span>
+                        </div>
+                        <div class="flex gap-1 flex-wrap">
+                            <span class="skill-badge">ThreeWayMatch</span>
+                            <span class="skill-badge">DuplicateDetect</span>
+                            <span class="skill-badge">BudgetCheck</span>
+                            <span class="skill-badge">DiscountOptimizer</span>
+                        </div>
+                    </div>
+                    <div class="bundle-card active" onclick="toggleBundle(this)" data-bundle="vendor">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold">Vendor Compliance Bundle</h3>
+                            <span class="auto-badge font-semibold">Active</span>
+                        </div>
+                        <p class="text-sm text-tx-2 mb-3">Vendor lifecycle from onboarding through continuous monitoring.</p>
+                        <div class="flex gap-4 text-xs text-tx-m mb-3">
+                            <span>5 task templates</span><span>2 skills</span><span>3 policies</span>
+                        </div>
+                        <div class="flex gap-4 text-xs mb-2">
+                            <span><strong>Jobs:</strong> Vendor Management</span>
+                        </div>
+                        <div class="flex gap-1 flex-wrap">
+                            <span class="skill-badge">VendorVerify</span>
+                            <span class="skill-badge">ComplianceCheck</span>
+                        </div>
+                    </div>
+                    <div class="bundle-card active" onclick="toggleBundle(this)" data-bundle="ar">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold">AR Collections Bundle</h3>
+                            <span class="auto-badge font-semibold">Active</span>
+                        </div>
+                        <p class="text-sm text-tx-2 mb-3">Automated dunning, aging analysis, and collection workflows.</p>
+                        <div class="flex gap-4 text-xs text-tx-m mb-3">
+                            <span>4 task templates</span><span>1 skill</span><span>2 policies</span>
+                        </div>
+                        <div class="flex gap-4 text-xs mb-2">
+                            <span><strong>Jobs:</strong> Collections Management</span>
+                        </div>
+                        <div class="flex gap-1 flex-wrap">
+                            <span class="skill-badge">CollectionsDunning</span>
+                        </div>
+                    </div>
+                    <div class="bundle-card active" onclick="toggleBundle(this)" data-bundle="close">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-bold">Month-End Close Bundle</h3>
+                            <span class="auto-badge font-semibold">Active</span>
+                        </div>
+                        <p class="text-sm text-tx-2 mb-3">Period close automation: accruals, reconciliation, journal posting, close checklist.</p>
+                        <div class="flex gap-4 text-xs text-tx-m mb-3">
+                            <span>6 task templates</span><span>2 skills</span><span>4 policies</span>
+                        </div>
+                        <div class="flex gap-4 text-xs mb-2">
+                            <span><strong>Jobs:</strong> Period Close</span>
+                        </div>
+                        <div class="flex gap-1 flex-wrap">
+                            <span class="skill-badge">JournalAutoPost</span>
+                            <span class="skill-badge">Reconciler</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-ac-green/10 border border-ac-green/30 rounded-lg p-4">
+                    <h4 class="font-semibold text-ac-green mb-1">Invariant Core (Never Changes)</h4>
+                    <p class="text-sm text-ac-green">EVENT Capture → POLICY Evaluation → WORK ORDER Creation → CAPACITY Allocation → LEDGER Posting → LINEAGE Hash Chain. These six primitives are permanent regardless of which bundles are activated.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Analysis ═══ -->
+        <section id="content-analysis" class="tab-content hidden">
+            <div class="grid grid-cols-4 gap-3 mb-6">
+                <div class="glass-card rounded-xl p-3 border border-bdr"><p class="text-xs text-tx-2">Human Hrs/Mo</p><p class="text-lg font-bold" id="analysis-total-hours">0</p></div>
+                <div class="glass-card rounded-xl p-3 border border-bdr"><p class="text-xs text-tx-2">Capacity</p><p class="text-lg font-bold" id="analysis-capacity">0</p></div>
+                <div class="glass-card rounded-xl p-3 border border-bdr"><p class="text-xs text-tx-2">Human Utilization</p><p class="text-lg font-bold" id="analysis-utilization">0%</p></div>
+                <div class="glass-card rounded-xl p-3 border border-bdr"><p class="text-xs text-tx-2">$/Human Hour</p><p class="text-lg font-bold" id="analysis-cost-hour">$0</p></div>
+            </div>
+            <div class="glass-card rounded-xl p-5 border border-bdr">
+                <h3 class="font-semibold mb-3">Individual Workload (Human Tasks Only)</h3>
+                <table class="w-full text-sm">
+                    <thead class="bg-bg-3"><tr><th class="text-left py-2 px-3">Name</th><th class="text-left py-2 px-3">Role</th><th class="text-center py-2 px-3">Templates</th><th class="text-center py-2 px-3">Human Hrs</th><th class="text-center py-2 px-3">Automation</th><th class="text-center py-2 px-3">Util</th><th class="text-center py-2 px-3">Status</th></tr></thead>
+                    <tbody id="team-utilization-table" class="divide-y divide-bdr"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Risk ═══ -->
+        <section id="content-risk" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <h2 class="text-xl font-bold mb-2">🚨 Key Person & Automation Risk</h2>
+                <p class="text-tx-2 mb-4">Tasks with only one person who can do them AND no automation backup — single points of failure.</p>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="insight-card insight-critical"><p class="text-2xl font-bold" id="risk-high-count">0</p><p class="text-sm">High Risk (Human-only, 1 person)</p></div>
+                    <div class="insight-card insight-warning"><p class="text-2xl font-bold" id="risk-medium-count">0</p><p class="text-sm">Medium (Automated, 1 person backup)</p></div>
+                    <div class="insight-card insight-success"><p class="text-2xl font-bold" id="risk-low-count">0</p><p class="text-sm">Low (Automated or 2+ people)</p></div>
+                </div>
+                <h3 class="font-semibold mb-3">High Risk Tasks</h3>
+                <div id="high-risk-tasks" class="space-y-2 mb-6"></div>
+                <h3 class="font-semibold mb-3">Risk by Person</h3>
+                <div id="risk-by-person" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Peak ═══ -->
+        <section id="content-peak" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <h2 class="text-xl font-bold mb-2">📅 Peak Period Planning</h2>
+                <p class="text-tx-2 mb-4">Human-only tasks tagged with peak periods require 50% more time during those periods. Automated tasks absorb peaks without impact.</p>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="insight-card insight-info"><p class="text-sm font-medium">Month-End</p><p class="text-2xl font-bold" id="peak-month-hours">0</p><p class="text-xs text-tx-2">extra human hrs</p></div>
+                    <div class="insight-card insight-warning"><p class="text-sm font-medium">Quarter-End</p><p class="text-2xl font-bold" id="peak-quarter-hours">0</p><p class="text-xs text-tx-2">extra human hrs</p></div>
+                    <div class="insight-card insight-critical"><p class="text-sm font-medium">Year-End</p><p class="text-2xl font-bold" id="peak-year-hours">0</p><p class="text-xs text-tx-2">extra human hrs</p></div>
+                    <div class="insight-card" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);"><p class="text-sm font-medium">Audit</p><p class="text-2xl font-bold" id="peak-audit-hours">0</p><p class="text-xs text-tx-2">extra human hrs</p></div>
+                </div>
+                <h3 class="font-semibold mb-3">Workload by Period (Human Only)</h3>
+                <div id="peak-bar-chart" class="bar-chart mb-6"></div>
+                <h3 class="font-semibold mb-3">Who's Overloaded During Close?</h3>
+                <div id="peak-overload" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: CAST Categories ═══ -->
+        <section id="content-categories" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <h2 class="text-xl font-bold mb-2">🏷️ CAST Task Categories</h2>
+                <p class="text-tx-2 mb-4">Four categories define the automation continuum. The goal is to maximize Cat 1 & 2 and minimize Cat 3 & 4 over time via the Learning Loop.</p>
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="insight-card insight-info"><p class="text-sm font-medium">Cat 1: Auto Verify</p><p class="text-2xl font-bold" id="cat-1-count">0</p><p class="text-xs text-tx-2" id="cat-1-pct">0%</p><p class="text-xs text-tx-m mt-1">Target: 70%</p></div>
+                    <div class="insight-card insight-success"><p class="text-sm font-medium">Cat 2: Routable</p><p class="text-2xl font-bold" id="cat-2-count">0</p><p class="text-xs text-tx-2" id="cat-2-pct">0%</p><p class="text-xs text-tx-m mt-1">Target: 15%</p></div>
+                    <div class="insight-card insight-warning"><p class="text-sm font-medium">Cat 3: Judgment</p><p class="text-2xl font-bold" id="cat-3-count">0</p><p class="text-xs text-tx-2" id="cat-3-pct">0%</p><p class="text-xs text-tx-m mt-1">Target: 10%</p></div>
+                    <div class="insight-card" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);"><p class="text-sm font-medium">Cat 4: Teaching</p><p class="text-2xl font-bold" id="cat-4-count">0</p><p class="text-xs text-tx-2" id="cat-4-pct">0%</p><p class="text-xs text-tx-m mt-1">Target: 5%</p></div>
+                </div>
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Hours by Category</h3>
+                        <div id="cat-hours-chart" class="bar-chart" style="height:180px;"></div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Cost by Category</h3>
+                        <div id="cat-cost-chart" class="bar-chart" style="height:180px;"></div>
+                    </div>
+                </div>
+                <div class="bg-ac-purple/10 border border-ac-purple/30 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-ac-purple">🧠 Learning Loop Opportunity</h4>
+                    <p class="text-sm text-ac-purple" id="cat-opportunity">Loading...</p>
+                </div>
+                <h3 class="font-semibold mb-3">Human-Required Tasks (Cat 2-4)</h3>
+                <div id="human-tasks-list" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Automation Impact ═══ -->
+        <section id="content-scenario" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-bdr shadow-sm">
+                <h2 class="text-xl font-bold mb-4">🔮 CAST Automation Impact Model</h2>
+                <div class="bg-ac-blue/10 border border-ac-blue/30 rounded-lg p-3 mb-6 text-sm text-ac-blue">
+                    Model the impact of CAST deployment on your workforce. Adjust automation level, headcount, and transaction volume to see before/after metrics.
+                </div>
+                <div class="grid grid-cols-3 gap-6 mb-6">
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">🤖 Automation Level</h3>
+                        <input type="range" id="scenario-automation" class="scenario-slider w-full" min="0" max="100" value="94" step="1" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-tx-m mt-1"><span>Manual</span><span id="scenario-auto-val" class="font-bold text-tx-1">94%</span><span>Full Auto</span></div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">👥 Headcount Change</h3>
+                        <input type="range" id="scenario-headcount" class="scenario-slider w-full" min="-3" max="3" value="0" step="0.5" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-tx-m mt-1"><span>-3</span><span id="scenario-headcount-val" class="font-bold text-tx-1">0 FTE</span><span>+3</span></div>
+                    </div>
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-2">📈 Volume Growth</h3>
+                        <input type="range" id="scenario-volume" class="scenario-slider w-full" min="-25" max="100" value="0" step="5" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-tx-m mt-1"><span>-25%</span><span id="scenario-volume-val" class="font-bold text-tx-1">0%</span><span>+100%</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-bg-2 text-white rounded-xl p-6 mb-6">
+                    <div class="text-xs text-tx-m mb-3 text-center">Before CAST → After CAST</div>
+                    <div class="grid grid-cols-6 gap-4 text-center">
+                        <div><p class="text-tx-m text-xs">Human Hrs</p><p class="text-sm text-tx-m" id="scenario-hours-before">0</p><p class="text-xl font-bold" id="scenario-hours-after">0</p></div>
+                        <div><p class="text-tx-m text-xs">Capacity</p><p class="text-sm text-tx-m" id="scenario-cap-before">0</p><p class="text-xl font-bold" id="scenario-cap-after">0</p></div>
+                        <div><p class="text-tx-m text-xs">Util</p><p class="text-sm text-tx-m" id="scenario-util-before">0%</p><p class="text-xl font-bold" id="scenario-util-after">0%</p></div>
+                        <div><p class="text-tx-m text-xs">Mo Cost</p><p class="text-sm text-tx-m" id="scenario-cost-before">$0</p><p class="text-xl font-bold" id="scenario-cost-after">$0</p></div>
+                        <div><p class="text-tx-m text-xs">$/Transaction</p><p class="text-sm text-tx-m" id="scenario-unit-before">$0</p><p class="text-xl font-bold" id="scenario-unit-after">$0</p></div>
+                        <div><p class="text-tx-m text-xs">Discounts/Mo</p><p class="text-sm text-tx-m" id="scenario-discount-before">$0</p><p class="text-xl font-bold text-ac-green" id="scenario-discount-after">$0</p></div>
+                    </div>
+                </div>
+                <div id="scenario-summary" class="insight-card insight-info"><p>Adjust sliders to model CAST deployment scenarios.</p></div>
+            </div>
+        </section>
+
+        <!-- ═══ Tab: Export ═══ -->
+        <section id="content-export" class="tab-content hidden">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="glass-card rounded-xl p-6 border border-bdr">
+                    <h2 class="text-xl font-bold mb-4">Export Configuration</h2>
+                    <div class="space-y-3">
+                        <button onclick="exportFullJSON()" class="btn-primary w-full">📊 Full Sightline Config (JSON)</button>
+                        <button onclick="exportTasksCSV()" class="btn-secondary w-full">📋 Task Templates (CSV)</button>
+                        <button onclick="exportSummary()" class="btn-secondary w-full">📑 Onboarding Summary</button>
+                    </div>
+                    <div class="mt-6 border-t pt-4">
+                        <h3 class="font-semibold mb-2 text-sm">Export includes:</h3>
+                        <ul class="text-sm text-tx-2 space-y-1">
+                            <li>• Role → Job → Task Template mappings</li>
+                            <li>• Skill assignments & automation flags</li>
+                            <li>• CAST category classifications</li>
+                            <li>• Bundle activation states</li>
+                            <li>• Scenario modeling parameters</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-bdr">
+                    <h2 class="text-xl font-bold mb-4">Import Configuration</h2>
+                    <div class="drop-zone" ondrop="handleJSONDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <p class="text-tx-2 mb-2">Drag Sightline Config JSON here</p>
+                        <input type="file" id="json-file-input" accept=".json" onchange="handleJSONUpload(event)" class="hidden">
+                        <button onclick="document.getElementById('json-file-input').click()" class="btn-secondary text-sm">Choose File</button>
+                    </div>
+                    <div class="mt-4 bg-ac-orange/10 border border-ac-orange/30 rounded-lg p-3 text-sm text-ac-orange">
+                        <strong>Note:</strong> Import replaces all current configuration. Export first if you want to preserve your current state.
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Member Modal -->
+    <div id="add-member-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-4">Add Team Role</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Name *</label><input type="text" id="member-name" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Sightline Role *</label>
+                    <select id="member-role" class="input-field w-full">
+                        <option value="AP Manager">AP Manager</option>
+                        <option value="AP Specialist">AP Specialist</option>
+                        <option value="AR Manager">AR Manager</option>
+                        <option value="AR Specialist">AR Specialist</option>
+                        <option value="Controller">Controller</option>
+                        <option value="Sr Accountant">Sr Accountant</option>
+                        <option value="Staff Accountant">Staff Accountant</option>
+                        <option value="Financial Analyst">Financial Analyst</option>
+                        <option value="CFO">CFO</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Domain</label>
+                    <select id="member-domain" class="input-field w-full"><option value="ap">AP</option><option value="ar">AR</option><option value="gl">GL</option><option value="fp">FP&A</option><option value="exec">Executive</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">FTE</label><input type="number" id="member-fte" class="input-field w-full" value="1.0" step="0.1"></div>
+                <div><label class="block text-sm font-medium mb-1">Salary</label><input type="number" id="member-salary" class="input-field w-full" value="65000"></div>
+                <div><label class="block text-sm font-medium mb-1">Reports To</label><input type="text" id="member-manager" class="input-field w-full"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddMemberModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveMember()" class="btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-2">Add Task Template for <span id="task-modal-member-name">-</span></h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Job *</label>
+                    <select id="task-job" class="input-field w-full">
+                        <option value="Invoice Processing">Invoice Processing</option>
+                        <option value="Vendor Management">Vendor Management</option>
+                        <option value="Payment Optimization">Payment Optimization</option>
+                        <option value="Period Close">Period Close</option>
+                        <option value="Collections">Collections</option>
+                        <option value="Financial Reporting">Financial Reporting</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Template Name *</label><input type="text" id="task-name" class="input-field w-full" placeholder="e.g., Three-Way Match"></div>
+                <div><label class="block text-sm font-medium mb-1">Frequency</label>
+                    <select id="task-frequency" class="input-field w-full"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Volume</label><input type="number" id="task-volume" class="input-field w-full" value="10"></div>
+                <div><label class="block text-sm font-medium mb-1">Actual Min</label><input type="number" id="task-time" class="input-field w-full" value="15"></div>
+                <div><label class="block text-sm font-medium mb-1">Goal Min (CAST)</label><input type="number" id="task-goal-time" class="input-field w-full" value="2"></div>
+                <div><label class="block text-sm font-medium mb-1">CAST Category</label>
+                    <select id="task-category" class="input-field w-full">
+                        <option value="1">Cat 1: Automatable Verification</option>
+                        <option value="2">Cat 2: Routable Decision</option>
+                        <option value="3">Cat 3: Judgment Call</option>
+                        <option value="4">Cat 4: System Teaching</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Automation</label>
+                    <select id="task-automation" class="input-field w-full"><option value="auto">🤖 Automated</option><option value="human">👤 Human Required</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Skill Reference</label>
+                    <select id="task-skill" class="input-field w-full">
+                        <option value="">None</option>
+                        <option value="ThreeWayMatch">ThreeWayMatch</option>
+                        <option value="DuplicateDetect">DuplicateDetect</option>
+                        <option value="BudgetCheck">BudgetCheck</option>
+                        <option value="VendorVerify">VendorVerify</option>
+                        <option value="FraudPattern">FraudPattern</option>
+                        <option value="DiscountOptimizer">DiscountOptimizer</option>
+                        <option value="CollectionsDunning">CollectionsDunning</option>
+                        <option value="JournalAutoPost">JournalAutoPost</option>
+                        <option value="CashForecast">CashForecast</option>
+                    </select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Agent</label>
+                    <select id="task-agent" class="input-field w-full">
+                        <option value="">None</option>
+                        <option value="AP Processing Agent">AP Processing Agent</option>
+                        <option value="Vendor Compliance Agent">Vendor Compliance Agent</option>
+                        <option value="Collections Agent">Collections Agent</option>
+                        <option value="Forecast Agent">Forecast Agent</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium mb-1">Peak Periods</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-month"> Month-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-quarter"> Quarter-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-year"> Year-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-audit"> Audit</label>
+                    </div>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Systems</label><input type="text" id="task-systems" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Notes</label><input type="text" id="task-notes" class="input-field w-full"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddTaskModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveTask()" class="btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let teamMembers = [];
+        let tasks = [];
+        const freqMult = {daily:22, weekly:4.33, monthly:1, quarterly:0.33};
+        const bundleJobs = {
+            ap: ['Invoice Processing', 'Payment Optimization'],
+            vendor: ['Vendor Management'],
+            ar: ['Collections'],
+            close: ['Period Close']
+        };
+        let activeBundles = new Set(['ap', 'vendor', 'ar', 'close']);
+
+        function getActiveTasks() {
+            return tasks.filter(t => {
+                for (const [bundle, jobs] of Object.entries(bundleJobs)) {
+                    if (jobs.includes(t.job) && !activeBundles.has(bundle)) return false;
+                }
+                return true;
+            });
+        }
+        const domainLabels = {ap:'AP', ar:'AR', gl:'GL', fp:'FP&A', exec:'Executive'};
+        const catLabels = {1:'Auto Verify', 2:'Routable', 3:'Judgment', 4:'Teaching'};
+        const catColors = {1:'#3b82f6', 2:'#10b981', 3:'#f59e0b', 4:'#8b5cf6'};
+
+        // ═══ Sightline Demo Data — matches Sightline_Final_Prototype.html & Sightline_Demo_Workbook.xlsx ═══
+        const sampleData = {
+            teamMembers: [
+                {id:0, name:'M. Johnson',     role:'AP Manager',        domain:'ap',   fte:1,   salary:95000,  manager:'CFO'},
+                {id:1, name:'S. Martinez',    role:'AP Specialist',     domain:'ap',   fte:1,   salary:62000,  manager:'M. Johnson'},
+                {id:2, name:'J. Walsh',       role:'AP Clerk',          domain:'ap',   fte:1,   salary:48000,  manager:'M. Johnson'},
+                {id:3, name:'A. Rodriguez',   role:'AR Manager',        domain:'ar',   fte:1,   salary:88000,  manager:'CFO'},
+                {id:4, name:'J. Wilson',      role:'AR Specialist',     domain:'ar',   fte:1,   salary:54000,  manager:'A. Rodriguez'},
+                {id:5, name:'R. Martinez',    role:'Controller',        domain:'gl',   fte:1,   salary:145000, manager:'CFO'},
+                {id:6, name:'E. Thompson',    role:'Sr Accountant',     domain:'gl',   fte:1,   salary:85000,  manager:'R. Martinez'},
+                {id:7, name:'C. Anderson',    role:'Staff Accountant',  domain:'gl',   fte:1,   salary:62000,  manager:'R. Martinez'},
+                {id:8, name:'K. Brown',       role:'Financial Analyst', domain:'fp',   fte:1,   salary:82000,  manager:'CFO'}
+            ],
+            tasks: [
+                // ──── M. Johnson (AP Manager, id:0) — Job: Invoice Processing ────
+                {id:0,  memberId:0, job:'Invoice Processing',    name:'Review exceptions & escalations',       frequency:'daily',     volume:12, time:10, goalTime:8,   category:3, automation:'human',  skill:'ThreeWayMatch',     agent:'',                     peakPeriods:['month'],            systems:'Sightline', notes:'Variance >2% threshold'},
+                {id:1,  memberId:0, job:'Invoice Processing',    name:'Approve invoices >$10K',                frequency:'daily',     volume:5,  time:8,  goalTime:5,   category:2, automation:'human',  skill:'BudgetCheck',       agent:'',                     peakPeriods:[],                   systems:'Sightline', notes:'Authority threshold'},
+                {id:2,  memberId:0, job:'Vendor Management',     name:'New vendor approval',                   frequency:'weekly',    volume:3,  time:20, goalTime:15,  category:3, automation:'human',  skill:'VendorVerify',      agent:'',                     peakPeriods:[],                   systems:'Sightline', notes:'Judgment required'},
+                {id:3,  memberId:0, job:'Payment Optimization',  name:'Large payment authorization (>$50K)',   frequency:'weekly',    volume:2,  time:15, goalTime:10,  category:2, automation:'human',  skill:'DiscountOptimizer', agent:'',                     peakPeriods:['month'],            systems:'Sightline', notes:'AUTH-002 policy'},
+
+                // ──── S. Martinez (AP Specialist, id:1) — Invoice Processing (operational) ────
+                {id:4,  memberId:1, job:'Invoice Processing',    name:'Invoice ingestion & OCR',               frequency:'daily',     volume:45, time:5,  goalTime:0.5, category:1, automation:'auto',   skill:'ThreeWayMatch',     agent:'AP Processing Agent',  peakPeriods:['month'],            systems:'Sightline', notes:'Auto-captured'},
+                {id:5,  memberId:1, job:'Invoice Processing',    name:'Three-way match (PO↔GR↔Invoice)',       frequency:'daily',     volume:35, time:6,  goalTime:0.3, category:1, automation:'auto',   skill:'ThreeWayMatch',     agent:'AP Processing Agent',  peakPeriods:['month'],            systems:'Sightline', notes:'98.1% success'},
+                {id:6,  memberId:1, job:'Invoice Processing',    name:'Duplicate detection',                   frequency:'daily',     volume:35, time:3,  goalTime:0.1, category:1, automation:'auto',   skill:'DuplicateDetect',   agent:'AP Processing Agent',  peakPeriods:[],                   systems:'Sightline', notes:'99.7% success'},
+                {id:7,  memberId:1, job:'Invoice Processing',    name:'Budget check & GL coding',              frequency:'daily',     volume:35, time:4,  goalTime:0.4, category:1, automation:'auto',   skill:'BudgetCheck',       agent:'AP Processing Agent',  peakPeriods:[],                   systems:'Sightline', notes:'96.8% success'},
+                {id:8,  memberId:1, job:'Invoice Processing',    name:'Route for approval',                    frequency:'daily',     volume:30, time:3,  goalTime:0.2, category:1, automation:'auto',   skill:'BudgetCheck',       agent:'AP Processing Agent',  peakPeriods:[],                   systems:'Sightline', notes:'Auto-routed'},
+                {id:9,  memberId:1, job:'Invoice Processing',    name:'Payment scheduling',                    frequency:'daily',     volume:30, time:3,  goalTime:0.2, category:1, automation:'auto',   skill:'DiscountOptimizer', agent:'AP Processing Agent',  peakPeriods:['month'],            systems:'Sightline', notes:'Auto-scheduled'},
+                {id:10, memberId:1, job:'Invoice Processing',    name:'Variance escalation review',            frequency:'daily',     volume:3,  time:18, goalTime:12,  category:2, automation:'human',  skill:'ThreeWayMatch',     agent:'',                     peakPeriods:['month'],            systems:'Sightline', notes:'Agent pre-analyzed'},
+
+                // ──── J. Walsh (AP Clerk, id:2) — Data Entry (pre-CAST tasks, now mostly automated) ────
+                {id:11, memberId:2, job:'Invoice Processing',    name:'Scan & digitize documents',             frequency:'daily',     volume:45, time:2,  goalTime:0,   category:1, automation:'auto',   skill:'ThreeWayMatch',     agent:'AP Processing Agent',  peakPeriods:[],                   systems:'Sightline', notes:'OCR handles'},
+                {id:12, memberId:2, job:'Invoice Processing',    name:'Manual data entry (non-standard)',      frequency:'daily',     volume:5,  time:10, goalTime:8,   category:2, automation:'human',  skill:'',                  agent:'',                     peakPeriods:['month'],            systems:'Sightline', notes:'Edge cases'},
+                {id:13, memberId:2, job:'Vendor Management',     name:'Vendor credential verification',        frequency:'daily',     volume:5,  time:15, goalTime:1.2, category:1, automation:'auto',   skill:'VendorVerify',      agent:'Vendor Compliance Agent', peakPeriods:[],                 systems:'Sightline', notes:'97.2% success'},
+                {id:14, memberId:2, job:'Vendor Management',     name:'W-9 / Tax ID validation',               frequency:'weekly',    volume:5,  time:20, goalTime:1,   category:1, automation:'auto',   skill:'VendorVerify',      agent:'Vendor Compliance Agent', peakPeriods:[],                 systems:'Sightline', notes:'Auto-verified'},
+                {id:15, memberId:2, job:'Vendor Management',     name:'Insurance & license monitoring',        frequency:'daily',     volume:3,  time:10, goalTime:0.5, category:1, automation:'auto',   skill:'VendorVerify',      agent:'Vendor Compliance Agent', peakPeriods:[],                 systems:'Sightline', notes:'Continuous scan'},
+
+                // ──── A. Rodriguez (AR Manager, id:3) — Collections ────
+                {id:16, memberId:3, job:'Collections',           name:'Review AR aging report',                frequency:'daily',     volume:1,  time:30, goalTime:20,  category:3, automation:'human',  skill:'CollectionsDunning', agent:'',                    peakPeriods:['month','quarter'],   systems:'Sightline', notes:'Strategic review'},
+                {id:17, memberId:3, job:'Collections',           name:'High-value escalations',                frequency:'daily',     volume:4,  time:25, goalTime:20,  category:3, automation:'human',  skill:'CollectionsDunning', agent:'',                    peakPeriods:['quarter'],           systems:'Sightline', notes:'Judgment required'},
+                {id:18, memberId:3, job:'Collections',           name:'Credit application review',             frequency:'weekly',    volume:3,  time:30, goalTime:25,  category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:[],                    systems:'Sightline', notes:'Risk assessment'},
+                {id:19, memberId:3, job:'Collections',           name:'Automated dunning sequences',           frequency:'daily',     volume:20, time:6,  goalTime:0.3, category:1, automation:'auto',   skill:'CollectionsDunning', agent:'Collections Agent',   peakPeriods:['month'],             systems:'Sightline', notes:'$127K collected MTD'},
+
+                // ──── J. Wilson (AR Specialist, id:4) — Cash Application ────
+                {id:20, memberId:4, job:'Collections',           name:'Apply payments (cash app)',              frequency:'daily',     volume:50, time:3,  goalTime:0.2, category:1, automation:'auto',   skill:'CollectionsDunning', agent:'Collections Agent',   peakPeriods:['month'],             systems:'Sightline', notes:'Auto-matched'},
+                {id:21, memberId:4, job:'Collections',           name:'Research unapplied payments',           frequency:'daily',     volume:8,  time:15, goalTime:10,  category:2, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month'],             systems:'Sightline', notes:'Manual research'},
+                {id:22, memberId:4, job:'Collections',           name:'Collection calls',                      frequency:'daily',     volume:20, time:6,  goalTime:5,   category:2, automation:'human',  skill:'CollectionsDunning', agent:'',                    peakPeriods:['quarter'],           systems:'Phone',     notes:'After auto-dunning fails'},
+
+                // ──── R. Martinez (Controller, id:5) — Period Close ────
+                {id:23, memberId:5, job:'Period Close',          name:'Review journal entries',                 frequency:'monthly',   volume:60, time:8,  goalTime:2,   category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month','quarter','year'], systems:'Sightline', notes:'Auto-posted, human spot-check'},
+                {id:24, memberId:5, job:'Period Close',          name:'Balance sheet recon review',             frequency:'monthly',   volume:25, time:15, goalTime:12,  category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month','quarter','year'], systems:'Sightline', notes:'Expert judgment'},
+                {id:25, memberId:5, job:'Period Close',          name:'Flux analysis & commentary',             frequency:'monthly',   volume:1,  time:180,goalTime:120, category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month','quarter'],        systems:'Excel',     notes:'Strategic analysis'},
+                {id:26, memberId:5, job:'Period Close',          name:'Variance investigation',                 frequency:'monthly',   volume:10, time:20, goalTime:15,  category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month'],                  systems:'Sightline', notes:'Root cause'},
+                {id:27, memberId:5, job:'Period Close',          name:'Close certification sign-off',           frequency:'monthly',   volume:1,  time:30, goalTime:25,  category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month','quarter','year'], systems:'Sightline', notes:'Final sign-off'},
+
+                // ──── E. Thompson (Sr Accountant, id:6) — Reconciliation ────
+                {id:28, memberId:6, job:'Period Close',          name:'Accrual calculation',                    frequency:'monthly',   volume:15, time:25, goalTime:0.5, category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month'],                  systems:'Sightline', notes:'Auto-calculated'},
+                {id:29, memberId:6, job:'Period Close',          name:'Sub-ledger reconciliation',              frequency:'monthly',   volume:35, time:20, goalTime:1,   category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month','quarter'],        systems:'Sightline', notes:'Auto-reconciled'},
+                {id:30, memberId:6, job:'Period Close',          name:'Complex journal entries',                frequency:'monthly',   volume:15, time:25, goalTime:20,  category:2, automation:'human',  skill:'JournalAutoPost',    agent:'',                    peakPeriods:['month'],                  systems:'Sightline', notes:'Requires judgment'},
+                {id:31, memberId:6, job:'Period Close',          name:'Intercompany reconciliation',            frequency:'monthly',   volume:1,  time:180,goalTime:120, category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month','quarter'],        systems:'Excel',     notes:'Complex IC'},
+                {id:32, memberId:6, job:'Period Close',          name:'Close checklist tracking',               frequency:'monthly',   volume:1,  time:30, goalTime:5,   category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month'],                  systems:'Sightline', notes:'Auto-tracked'},
+
+                // ──── C. Anderson (Staff Accountant, id:7) — Standard JEs ────
+                {id:33, memberId:7, job:'Period Close',          name:'Standard journal entries',               frequency:'monthly',   volume:30, time:12, goalTime:0.15,category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month'],                  systems:'Sightline', notes:'Auto-posted'},
+                {id:34, memberId:7, job:'Period Close',          name:'Accrual reversals',                      frequency:'monthly',   volume:20, time:8,  goalTime:0.1, category:1, automation:'auto',   skill:'JournalAutoPost',    agent:'AP Processing Agent', peakPeriods:['month','quarter'],        systems:'Sightline', notes:'Auto-reversed'},
+                {id:35, memberId:7, job:'Period Close',          name:'Credit card reconciliation',             frequency:'monthly',   volume:8,  time:35, goalTime:25,  category:2, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month'],                  systems:'Card portals', notes:'Manual match'},
+                {id:36, memberId:7, job:'Invoice Processing',    name:'Expense report review',                  frequency:'weekly',    volume:25, time:8,  goalTime:5,   category:2, automation:'human',  skill:'BudgetCheck',        agent:'',                    peakPeriods:[],                         systems:'Concur',    notes:'Policy check'},
+
+                // ──── K. Brown (Financial Analyst, id:8) — Reporting & Forecasting ────
+                {id:37, memberId:8, job:'Financial Reporting',   name:'Monthly reporting package',              frequency:'monthly',   volume:1,  time:720,goalTime:480, category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month','quarter'],        systems:'Excel, PPT',notes:'Strategic deliverable'},
+                {id:38, memberId:8, job:'Financial Reporting',   name:'Weekly flash report',                    frequency:'weekly',    volume:1,  time:90, goalTime:60,  category:2, automation:'human',  skill:'CashForecast',       agent:'',                    peakPeriods:[],                         systems:'Sightline', notes:'Data from Sightline'},
+                {id:39, memberId:8, job:'Financial Reporting',   name:'Ad-hoc analysis',                       frequency:'weekly',    volume:4,  time:75, goalTime:60,  category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['quarter'],                systems:'Excel, SQL',notes:'Strategic'},
+                {id:40, memberId:8, job:'Financial Reporting',   name:'Budget vs actuals analysis',             frequency:'monthly',   volume:1,  time:300,goalTime:200, category:3, automation:'human',  skill:'',                   agent:'',                    peakPeriods:['month'],                  systems:'Excel',     notes:''},
+                {id:41, memberId:8, job:'Payment Optimization',  name:'Cash flow impact forecast',              frequency:'weekly',    volume:1,  time:60, goalTime:5,   category:1, automation:'auto',   skill:'CashForecast',       agent:'Forecast Agent',      peakPeriods:[],                         systems:'Sightline', notes:'94% confidence'},
+                {id:42, memberId:8, job:'Payment Optimization',  name:'Early pay discount analysis',            frequency:'daily',     volume:10, time:5,  goalTime:0.2, category:1, automation:'auto',   skill:'DiscountOptimizer',  agent:'Forecast Agent',      peakPeriods:[],                         systems:'Sightline', notes:'$14.2K captured MTD'},
+                {id:43, memberId:8, job:'Financial Reporting',   name:'13-week rolling forecast',               frequency:'monthly',   volume:1,  time:240,goalTime:10,  category:1, automation:'auto',   skill:'CashForecast',       agent:'Forecast Agent',      peakPeriods:['quarter'],                systems:'Sightline', notes:'Auto-generated'}
+            ]
+        };
+
+        // ═══ Skill Registry Data ═══
+        const skillRegistry = [
+            {name:'ThreeWayMatch',      icon:'🔍', desc:'Matches PO ↔ Goods Receipt ↔ Invoice. Flags variance above configurable threshold.', success:98.1, latency:'0.3s', invocations:342, objects:['Invoice','PO','GoodsReceipt'], jobs:['Invoice Processing']},
+            {name:'DuplicateDetect',    icon:'🛡️', desc:'Fuzzy matching on vendor+amount+date+description. Catches exact and near-duplicates.', success:99.7, latency:'0.1s', invocations:342, objects:['Invoice'], jobs:['Invoice Processing']},
+            {name:'BudgetCheck',        icon:'📊', desc:'Validates spend against budget by GL code and department. Auto-assigns GL coding.', success:96.8, latency:'0.4s', invocations:335, objects:['Invoice','Budget','GLCode'], jobs:['Invoice Processing']},
+            {name:'VendorVerify',       icon:'✅', desc:'Validates vendor credentials: W-9, tax ID, insurance, licenses. Continuous monitoring.', success:97.2, latency:'1.2s', invocations:89, objects:['Vendor','Contract'], jobs:['Vendor Management']},
+            {name:'FraudPattern',       icon:'🚨', desc:'Behavioral anomaly detection across invoice patterns, amounts, timing, and vendor relationships.', success:94.5, latency:'0.8s', invocations:47, objects:['Invoice','Vendor','Payment'], jobs:['Invoice Processing']},
+            {name:'DiscountOptimizer',  icon:'💰', desc:'Evaluates early-pay discounts vs. cash position. Recommends optimal payment timing.', success:99.1, latency:'0.2s', invocations:156, objects:['Invoice','Payment','CashPosition'], jobs:['Payment Optimization']},
+            {name:'CollectionsDunning', icon:'📬', desc:'Automated dunning sequences for overdue AR. Escalation tiers with configurable timing.', success:96.3, latency:'0.5s', invocations:18, objects:['Invoice','Customer'], jobs:['Collections']},
+            {name:'JournalAutoPost',    icon:'📖', desc:'Generates and posts journal entries from settled transactions. Double-entry with full GL coding.', success:99.4, latency:'0.15s', invocations:284, objects:['JournalEntry','GLCode','Ledger'], jobs:['Period Close']},
+            {name:'CashForecast',       icon:'🔮', desc:'13-week rolling cash forecast from AR/AP pipeline, recurring obligations, and seasonal patterns.', success:94.0, latency:'2.1s', invocations:12, objects:['CashPosition','Invoice','Payment'], jobs:['Payment Optimization','Financial Reporting']}
+        ];
+
+        // ═══ Init ═══
+        document.addEventListener('DOMContentLoaded', loadSampleData);
+
+        function loadSampleData() {
+            const stored = localStorage.getItem('sightlineOnboardingData');
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    teamMembers = data.teamMembers || [];
+                    tasks = data.tasks || [];
+                    if (data.activeBundles) {
+                        activeBundles = new Set(data.activeBundles);
+                    }
+                } catch(e) {
+                    teamMembers = JSON.parse(JSON.stringify(sampleData.teamMembers));
+                    tasks = JSON.parse(JSON.stringify(sampleData.tasks));
+                    activeBundles = new Set(['ap', 'vendor', 'ar', 'close']);
+                }
+            } else {
+                teamMembers = JSON.parse(JSON.stringify(sampleData.teamMembers));
+                tasks = JSON.parse(JSON.stringify(sampleData.tasks));
+                activeBundles = new Set(['ap', 'vendor', 'ar', 'close']);
+            }
+            // Sync bundle UI with activeBundles state
+            document.querySelectorAll('.bundle-card').forEach(el => {
+                const bundle = el.dataset.bundle;
+                const badge = el.querySelector('.auto-badge, .human-badge');
+                if (activeBundles.has(bundle)) {
+                    el.classList.add('active');
+                    if (badge) { badge.textContent = 'Active'; badge.className = 'auto-badge font-semibold'; }
+                } else {
+                    el.classList.remove('active');
+                    if (badge) { badge.textContent = 'Inactive'; badge.className = 'human-badge font-semibold'; }
+                }
+            });
+            refreshAll();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('sightlineOnboardingData', JSON.stringify({
+                teamMembers,
+                tasks,
+                activeBundles: [...activeBundles]
+            }));
+        }
+
+        function refreshAll() {
+            renderTeamList();
+            updateSetupStats();
+            populateMemberSelect();
+            updateHeaderStats();
+            renderSkills();
+            document.getElementById('member-tasks-list').innerHTML = '<div class="text-center py-8 text-tx-m">Select a role to view task templates</div>';
+            document.getElementById('member-task-summary').classList.add('hidden');
+        }
+
+        // ═══ Tabs ═══
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+            document.getElementById('content-' + id).classList.remove('hidden');
+            document.getElementById('tab-' + id).classList.add('tab-active');
+            requestAnimationFrame(() => {
+                if (id === 'analysis') renderAnalysis();
+                if (id === 'risk') renderRisk();
+                if (id === 'peak') renderPeak();
+                if (id === 'categories') renderCategories();
+                if (id === 'scenario') updateScenario();
+            });
+        }
+
+        // ═══ Calculations ═══
+        function calcHours(t) { return (t.volume * t.time / 60) * (freqMult[t.frequency] || 1); }
+        function calcGoalHours(t) { return (t.volume * (t.goalTime || t.time) / 60) * (freqMult[t.frequency] || 1); }
+        function calcMonthlyVolume(t) { return t.volume * (freqMult[t.frequency] || 1); }
+        function memberHumanHours(mid) { return tasks.filter(t => t.memberId === mid && t.automation === 'human').reduce((s, t) => s + calcHours(t), 0); }
+        function memberAllHours(mid) { return tasks.filter(t => t.memberId === mid).reduce((s, t) => s + calcHours(t), 0); }
+        function memberAutoRate(mid) {
+            const mt = tasks.filter(t => t.memberId === mid);
+            if (!mt.length) return 0;
+            const auto = mt.filter(t => t.automation === 'auto').length;
+            return Math.round(auto / mt.length * 100);
+        }
+        function utilClass(u) { return u < 70 ? 'utilization-good' : u < 90 ? 'utilization-warning' : 'utilization-critical'; }
+
+        // ═══ Header Stats ═══
+        function updateHeaderStats() {
+            const active = getActiveTasks();
+            document.getElementById('header-team-count').textContent = teamMembers.length;
+            document.getElementById('header-task-count').textContent = active.length;
+            const autoTasks = active.filter(t => t.automation === 'auto').length;
+            const autoPct = active.length > 0 ? Math.round(autoTasks / active.length * 100) : 0;
+            document.getElementById('header-automation').textContent = autoPct + '%';
+            const uniqueSkills = new Set(active.filter(t => t.skill).map(t => t.skill));
+            document.getElementById('header-skills').textContent = uniqueSkills.size;
+        }
+
+        // ═══ Team ═══
+        function openAddMemberModal() { document.getElementById('add-member-modal').classList.remove('hidden'); }
+        function closeAddMemberModal() { document.getElementById('add-member-modal').classList.add('hidden'); }
+        function saveMember() {
+            const name = document.getElementById('member-name').value.trim();
+            const role = document.getElementById('member-role').value;
+            if (!name) { alert('Name required'); return; }
+            const newId = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 0;
+            teamMembers.push({
+                id: newId, name, role,
+                domain: document.getElementById('member-domain').value,
+                fte: parseFloat(document.getElementById('member-fte').value) || 1,
+                salary: parseFloat(document.getElementById('member-salary').value) || 0,
+                manager: document.getElementById('member-manager').value.trim()
+            });
+            closeAddMemberModal();
+            refreshAll();
+            saveToStorage();
+        }
+        function deleteMember(id) {
+            if (!confirm('Remove this role?')) return;
+            teamMembers = teamMembers.filter(m => m.id !== id);
+            tasks = tasks.filter(t => t.memberId !== id);
+            refreshAll();
+            saveToStorage();
+        }
+
+        function renderTeamList() {
+            const c = document.getElementById('team-list');
+            const active = getActiveTasks();
+            if (!teamMembers.length) { c.innerHTML = '<div class="text-center py-8 text-tx-m">No roles defined</div>'; return; }
+            c.innerHTML = teamMembers.map(m => {
+                const mt = active.filter(t => t.memberId === m.id);
+                const humanHrs = mt.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+                const cap = m.fte * 160;
+                const util = cap > 0 ? Math.round(humanHrs / cap * 100) : 0;
+                const tc = mt.length;
+                const autoCount = mt.filter(t => t.automation === 'auto').length;
+                const autoRate = mt.length > 0 ? Math.round(autoCount / mt.length * 100) : 0;
+                const jobs = [...new Set(mt.map(t => t.job))];
+                return `<div class="border rounded-lg p-4 domain-${m.domain} flex justify-between items-center hover:shadow-md transition-shadow">
+                    <div>
+                        <h4 class="font-semibold">${m.name}</h4>
+                        <p class="text-sm text-tx-2">${m.role} · Reports to: ${m.manager}</p>
+                        <p class="text-xs text-tx-m mt-1">Jobs: ${jobs.join(', ') || 'None'}</p>
+                    </div>
+                    <div class="flex items-center gap-5 text-sm">
+                        <div class="text-center"><span class="block font-semibold">${tc}</span><span class="text-xs text-tx-m">templates</span></div>
+                        <div class="text-center"><span class="block font-semibold">${Math.round(humanHrs)}</span><span class="text-xs text-tx-m">human hrs</span></div>
+                        <div class="text-center"><span class="block font-semibold text-ac-green">${autoRate}%</span><span class="text-xs text-tx-m">automated</span></div>
+                        <div class="text-center"><span class="block font-semibold ${utilClass(util)}">${util}%</span><span class="text-xs text-tx-m">util</span></div>
+                        <div class="text-center"><span class="block font-semibold">$${(m.salary / 1000).toFixed(0)}k</span><span class="text-xs text-tx-m">salary</span></div>
+                        <button onclick="deleteMember(${m.id})" class="text-ac-red hover:text-ac-red">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateSetupStats() {
+            const active = getActiveTasks();
+            const fte = teamMembers.reduce((s, m) => s + m.fte, 0);
+            const cost = teamMembers.reduce((s, m) => s + m.salary, 0);
+            const cap = fte * 160;
+            const humanHrs = active.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+            const autoTasks = active.filter(t => t.automation === 'auto').length;
+            const autoPct = active.length > 0 ? Math.round(autoTasks / active.length * 100) : 0;
+            document.getElementById('setup-total-fte').textContent = fte.toFixed(1);
+            document.getElementById('setup-total-cost').textContent = '$' + cost.toLocaleString();
+            document.getElementById('setup-total-capacity').textContent = Math.round(cap);
+            document.getElementById('setup-avg-auto').textContent = autoPct + '%';
+        }
+
+        // ═══ Task Templates ═══
+        function populateMemberSelect() {
+            document.getElementById('task-member-select').innerHTML = '<option value="">-- Select Role --</option>' +
+                teamMembers.map(m => `<option value="${m.id}">${m.name} (${m.role})</option>`).join('');
+        }
+
+        function loadMemberTasks() {
+            const mid = parseInt(document.getElementById('task-member-select').value);
+            const btn = document.getElementById('add-task-btn');
+            const sum = document.getElementById('member-task-summary');
+            const list = document.getElementById('member-tasks-list');
+            if (isNaN(mid)) { btn.disabled = true; sum.classList.add('hidden'); list.innerHTML = '<div class="text-center py-8 text-tx-m">Select a role</div>'; return; }
+            btn.disabled = false;
+            sum.classList.remove('hidden');
+            const m = teamMembers.find(x => x.id === mid);
+            const mt = tasks.filter(t => t.memberId === mid);
+            const humanHrs = memberHumanHours(mid);
+            const cap = m.fte * 160;
+            const util = cap > 0 ? Math.round(humanHrs / cap * 100) : 0;
+            const autoRate = memberAutoRate(mid);
+            document.getElementById('selected-member-name').textContent = m.name;
+            document.getElementById('selected-member-role').textContent = m.role + ' · ' + m.domain.toUpperCase();
+            document.getElementById('member-task-count').textContent = mt.length;
+            document.getElementById('member-hours-month').textContent = Math.round(humanHrs);
+            document.getElementById('member-auto-pct').textContent = autoRate + '%';
+            document.getElementById('member-utilization').textContent = util + '%';
+            document.getElementById('member-utilization').className = 'text-xl font-bold ' + utilClass(util);
+            if (!mt.length) { list.innerHTML = '<div class="text-center py-8 text-tx-m">No templates</div>'; return; }
+            // Group by job
+            const jobs = {};
+            mt.forEach(t => { if (!jobs[t.job]) jobs[t.job] = []; jobs[t.job].push(t); });
+            list.innerHTML = Object.entries(jobs).map(([job, ts]) => {
+                const autoCount = ts.filter(t => t.automation === 'auto').length;
+                const jobAutoPct = Math.round(autoCount / ts.length * 100);
+                return `<div class="mb-4">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h4 class="font-semibold text-tx-1">${job}</h4>
+                        <span class="auto-badge">${jobAutoPct}% auto</span>
+                        <span class="text-xs text-tx-m">${ts.length} templates</span>
+                    </div>
+                    ${ts.map(t => {
+                        const h = calcHours(t);
+                        const peaks = (t.peakPeriods || []).map(p => `<span class="peak-${p} px-1 py-0.5 rounded text-xs">${p}</span>`).join('');
+                        const autoBadge = t.automation === 'auto' ? '<span class="auto-badge">🤖 Auto</span>' : '<span class="human-badge">👤 Human</span>';
+                        const skillBadge = t.skill ? `<span class="skill-badge">${t.skill}</span>` : '';
+                        const catBadge = `<span class="cat-${t.category} px-1 py-0.5 rounded text-xs">Cat ${t.category}</span>`;
+                        return `<div class="border rounded-lg p-3 flex justify-between items-center ml-4 hover:bg-bg-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <p class="font-medium text-sm">${t.name}</p>
+                                    ${autoBadge}
+                                </div>
+                                <div class="flex gap-1.5 mt-1.5 flex-wrap items-center">
+                                    ${catBadge} ${skillBadge} ${peaks}
+                                    ${t.agent ? `<span class="text-xs text-tx-m">Agent: ${t.agent}</span>` : ''}
+                                </div>
+                                <p class="text-xs text-tx-m mt-1">${t.volume}×${t.time}min ${t.frequency} · Goal: ${t.goalTime}min</p>
+                            </div>
+                            <div class="text-right ml-4">
+                                <p class="font-semibold text-sm">${h.toFixed(1)} hrs</p>
+                                ${t.automation === 'auto' ? `<p class="text-xs text-ac-green">→ ${calcGoalHours(t).toFixed(1)} hrs</p>` : ''}
+                                <button onclick="deleteTask(${t.id})" class="text-ac-red text-sm mt-1">✕</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>`;
+            }).join('');
+        }
+
+        function openAddTaskModal() {
+            const mid = document.getElementById('task-member-select').value;
+            if (!mid) return;
+            const m = teamMembers.find(x => x.id === parseInt(mid));
+            document.getElementById('task-modal-member-name').textContent = m.name;
+            document.getElementById('add-task-modal').classList.remove('hidden');
+        }
+        function closeAddTaskModal() { document.getElementById('add-task-modal').classList.add('hidden'); }
+
+        function saveTask() {
+            const mid = parseInt(document.getElementById('task-member-select').value);
+            const name = document.getElementById('task-name').value.trim();
+            if (!name) { alert('Template name required'); return; }
+            const peaks = [];
+            if (document.getElementById('peak-month').checked) peaks.push('month');
+            if (document.getElementById('peak-quarter').checked) peaks.push('quarter');
+            if (document.getElementById('peak-year').checked) peaks.push('year');
+            if (document.getElementById('peak-audit').checked) peaks.push('audit');
+            const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 0;
+            tasks.push({
+                id: newId, memberId: mid,
+                job: document.getElementById('task-job').value,
+                name,
+                frequency: document.getElementById('task-frequency').value,
+                volume: parseInt(document.getElementById('task-volume').value) || 1,
+                time: parseInt(document.getElementById('task-time').value) || 1,
+                goalTime: parseFloat(document.getElementById('task-goal-time').value) || 1,
+                category: parseInt(document.getElementById('task-category').value) || 1,
+                automation: document.getElementById('task-automation').value,
+                skill: document.getElementById('task-skill').value,
+                agent: document.getElementById('task-agent').value,
+                peakPeriods: peaks,
+                systems: document.getElementById('task-systems').value.trim(),
+                notes: document.getElementById('task-notes').value.trim()
+            });
+            closeAddTaskModal();
+            loadMemberTasks();
+            renderTeamList();
+            updateHeaderStats();
+            saveToStorage();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            loadMemberTasks();
+            renderTeamList();
+            updateHeaderStats();
+            saveToStorage();
+        }
+
+        // ═══ Skills ═══
+        function renderSkills() {
+            const grid = document.getElementById('skills-grid');
+            grid.innerHTML = skillRegistry.map(s => {
+                const taskCount = tasks.filter(t => t.skill === s.name).length;
+                const autoCount = tasks.filter(t => t.skill === s.name && t.automation === 'auto').length;
+                return `<div class="border rounded-xl p-4 hover:shadow-md transition-shadow">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="font-bold text-sm">${s.icon} ${s.name}</h4>
+                        <span class="auto-badge">Active</span>
+                    </div>
+                    <p class="text-xs text-tx-2 mb-3">${s.desc}</p>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="font-semibold text-ac-green">${s.success}%</span></div>
+                        <div class="gauge-bg"><div class="gauge-fill bg-ac-green/100" style="width:${s.success}%"></div></div>
+                        <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="font-mono">${s.latency}</span></div>
+                        <div class="flex justify-between"><span class="text-tx-m">Invocations (24h)</span><span>${s.invocations}</span></div>
+                        <div class="flex justify-between"><span class="text-tx-m">Tasks Using</span><span>${taskCount} (${autoCount} auto)</span></div>
+                        <div class="mt-2"><span class="text-tx-m">Objects: </span>${s.objects.map(o => `<span class="cat-1 px-1 py-0.5 rounded text-xs ml-0.5">${o}</span>`).join(' ')}</div>
+                        <div><span class="text-tx-m">Jobs: </span>${s.jobs.map(j => `<span class="text-ac-purple text-xs">${j}</span>`).join(', ')}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ═══ Analysis ═══
+        function renderAnalysis() {
+            const active = getActiveTasks();
+            const humanHrs = active.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+            const cap = teamMembers.reduce((s, m) => s + m.fte * 160, 0);
+            const util = cap > 0 ? Math.round(humanHrs / cap * 100) : 0;
+            const cost = teamMembers.reduce((s, m) => s + m.salary, 0);
+            const cph = humanHrs > 0 ? (cost / 12) / humanHrs : 0;
+            document.getElementById('analysis-total-hours').textContent = Math.round(humanHrs);
+            document.getElementById('analysis-capacity').textContent = Math.round(cap);
+            document.getElementById('analysis-utilization').textContent = util + '%';
+            document.getElementById('analysis-utilization').className = 'text-lg font-bold ' + utilClass(util);
+            document.getElementById('analysis-cost-hour').textContent = '$' + cph.toFixed(2);
+            document.getElementById('team-utilization-table').innerHTML = teamMembers.map(m => {
+                const mt = active.filter(t => t.memberId === m.id);
+                const tc = mt.length;
+                const hh = mt.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+                const cap = m.fte * 160;
+                const util = cap > 0 ? Math.round(hh / cap * 100) : 0;
+                const autoCount = mt.filter(t => t.automation === 'auto').length;
+                const ar = mt.length > 0 ? Math.round(autoCount / mt.length * 100) : 0;
+                const st = util < 70 ? '✅' : util < 90 ? '⚠️' : '🔴';
+                return `<tr><td class="py-2 px-3 font-medium">${m.name}</td><td class="py-2 px-3">${m.role}</td><td class="py-2 px-3 text-center">${tc}</td><td class="py-2 px-3 text-center">${Math.round(hh)}</td><td class="py-2 px-3 text-center text-ac-green">${ar}%</td><td class="py-2 px-3 text-center ${utilClass(util)}">${util}%</td><td class="py-2 px-3 text-center">${st}</td></tr>`;
+            }).join('');
+        }
+
+        // ═══ Risk ═══
+        function renderRisk() {
+            const active = getActiveTasks();
+            const humanOnly = active.filter(t => t.automation === 'human');
+            const taskCounts = {};
+            humanOnly.forEach(t => { taskCounts[t.name] = (taskCounts[t.name] || 0) + 1; });
+            const highRisk = humanOnly.filter(t => taskCounts[t.name] === 1);
+            const autoSingle = active.filter(t => t.automation === 'auto' && active.filter(t2 => t2.name === t.name).length === 1);
+            const lowRisk = active.filter(t => !highRisk.includes(t) && !autoSingle.includes(t));
+            document.getElementById('risk-high-count').textContent = highRisk.length;
+            document.getElementById('risk-medium-count').textContent = autoSingle.length;
+            document.getElementById('risk-low-count').textContent = lowRisk.length;
+            document.getElementById('high-risk-tasks').innerHTML = highRisk.length > 0 ?
+                highRisk.sort((a, b) => calcHours(b) - calcHours(a)).slice(0, 10).map(t => {
+                    const m = teamMembers.find(x => x.id === t.memberId);
+                    return `<div class="flex justify-between items-center p-3 border border-ac-red/30 rounded-lg bg-ac-red/10">
+                        <div><p class="font-medium">${t.name}</p><p class="text-sm text-tx-2">${t.job} · <strong class="text-ac-red">Only: ${m?.name}</strong> · Cat ${t.category}</p></div>
+                        <div class="text-right"><span class="font-semibold">${calcHours(t).toFixed(1)} hrs</span><span class="human-badge ml-2">👤 Human</span></div>
+                    </div>`;
+                }).join('') : '<p class="text-tx-2">No high-risk tasks — great coverage!</p>';
+            const riskByPerson = {};
+            highRisk.forEach(t => {
+                const m = teamMembers.find(x => x.id === t.memberId);
+                if (m) { if (!riskByPerson[m.id]) riskByPerson[m.id] = { member: m, tasks: [], hours: 0 }; riskByPerson[m.id].tasks.push(t); riskByPerson[m.id].hours += calcHours(t); }
+            });
+            document.getElementById('risk-by-person').innerHTML = Object.values(riskByPerson).sort((a, b) => b.hours - a.hours).map(p =>
+                `<div class="flex justify-between items-center p-3 border rounded-lg"><div><p class="font-semibold">${p.member.name}</p><p class="text-sm text-tx-2">${p.member.role}</p></div><div class="text-right"><p class="text-ac-red font-bold">${p.tasks.length} sole-owner tasks</p><p class="text-sm">${Math.round(p.hours)} hrs at risk</p></div></div>`
+            ).join('') || '<p class="text-tx-2">No risks identified</p>';
+        }
+
+        // ═══ Peak Periods ═══
+        function renderPeak() {
+            const active = getActiveTasks();
+            const peakHours = { month: 0, quarter: 0, year: 0, audit: 0 };
+            active.filter(t => t.automation === 'human').forEach(t => {
+                const taskHrs = calcHours(t);
+                const peaks = t.peakPeriods || [];
+                if (peaks.includes('month')) peakHours.month += taskHrs * 0.5;
+                if (peaks.includes('quarter')) peakHours.quarter += taskHrs * 0.5;
+                if (peaks.includes('year')) peakHours.year += taskHrs * 0.5;
+                if (peaks.includes('audit')) peakHours.audit += taskHrs * 0.5;
+            });
+            document.getElementById('peak-month-hours').textContent = Math.round(peakHours.month);
+            document.getElementById('peak-quarter-hours').textContent = Math.round(peakHours.quarter);
+            document.getElementById('peak-year-hours').textContent = Math.round(peakHours.year);
+            document.getElementById('peak-audit-hours').textContent = Math.round(peakHours.audit);
+            const baseHours = active.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+            const data = [
+                { label: 'Normal', value: baseHours, color: '#64748b' },
+                { label: 'Month-End', value: baseHours + peakHours.month, color: '#4da6ff' },
+                { label: 'Quarter-End', value: baseHours + peakHours.quarter, color: '#f59e0b' },
+                { label: 'Year-End', value: baseHours + peakHours.year, color: '#ef4444' },
+                { label: 'Audit', value: baseHours + peakHours.audit, color: '#8b5cf6' }
+            ];
+            const maxVal = Math.max(...data.map(d => d.value));
+            document.getElementById('peak-bar-chart').innerHTML = data.map(d => {
+                const pct = maxVal > 0 ? (d.value / maxVal * 100) : 0;
+                return `<div class="bar-item"><span class="bar-value">${Math.round(d.value)}</span><div class="bar" style="height:${pct}%;background:${d.color};"></div><span class="bar-label">${d.label}</span></div>`;
+            }).join('');
+            const overloaded = teamMembers.map(m => {
+                const baseHrs = active.filter(t => t.memberId === m.id && t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+                const peakHrs = active.filter(t => t.memberId === m.id && t.automation === 'human').reduce((s, t) => {
+                    return s + ((t.peakPeriods || []).includes('month') ? calcHours(t) * 0.5 : 0);
+                }, 0);
+                const totalPeakHrs = baseHrs + peakHrs;
+                const cap = m.fte * 160;
+                const peakUtil = cap > 0 ? Math.round(totalPeakHrs / cap * 100) : 0;
+                return { member: m, baseHrs, peakHrs, totalPeakHrs, peakUtil };
+            }).filter(x => x.peakUtil > 90).sort((a, b) => b.peakUtil - a.peakUtil);
+            document.getElementById('peak-overload').innerHTML = overloaded.length > 0 ?
+                overloaded.map(x => `<div class="flex justify-between items-center p-3 border border-ac-orange/30 rounded-lg bg-ac-orange/10"><div><p class="font-semibold">${x.member.name}</p><p class="text-sm text-tx-2">${x.member.role}</p></div><div class="text-right"><p class="text-ac-orange font-bold">${x.peakUtil}% during close</p><p class="text-sm">${Math.round(x.baseHrs)} + ${Math.round(x.peakHrs)} = ${Math.round(x.totalPeakHrs)} hrs</p></div></div>`).join('') :
+                '<p class="text-ac-green text-center py-4">✅ No one exceeds 90% during close — CAST automation absorbs peak load</p>';
+        }
+
+        // ═══ CAST Categories ═══
+        function renderCategories() {
+            const active = getActiveTasks();
+            const byCat = {1:0, 2:0, 3:0, 4:0};
+            const costByCat = {1:0, 2:0, 3:0, 4:0};
+            active.forEach(t => {
+                const hrs = calcHours(t);
+                const cat = t.category || 1;
+                const m = teamMembers.find(x => x.id === t.memberId);
+                const hourlyRate = m ? m.salary / 2080 : 0;
+                byCat[cat] = (byCat[cat] || 0) + hrs;
+                costByCat[cat] = (costByCat[cat] || 0) + (hrs * hourlyRate);
+            });
+            const totalHrs = Object.values(byCat).reduce((s, v) => s + v, 0);
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('cat-' + i + '-count').textContent = Math.round(byCat[i]) + ' hrs';
+                document.getElementById('cat-' + i + '-pct').textContent = totalHrs > 0 ? Math.round(byCat[i] / totalHrs * 100) + '%' : '0%';
+            }
+            // Hours chart
+            const hData = [{label:'Cat 1\nAuto Verify',value:byCat[1],color:'#3b82f6'},{label:'Cat 2\nRoutable',value:byCat[2],color:'#10b981'},{label:'Cat 3\nJudgment',value:byCat[3],color:'#f59e0b'},{label:'Cat 4\nTeaching',value:byCat[4],color:'#8b5cf6'}];
+            const maxH = Math.max(...hData.map(d => d.value));
+            document.getElementById('cat-hours-chart').innerHTML = hData.map(d => {
+                const pct = maxH > 0 ? (d.value / maxH * 100) : 0;
+                return `<div class="bar-item"><span class="bar-value">${Math.round(d.value)}</span><div class="bar" style="height:${Math.max(pct,5)}%;background:${d.color};"></div><span class="bar-label">${d.label}</span></div>`;
+            }).join('');
+            // Cost chart
+            const cData = [{label:'Cat 1',value:costByCat[1],color:'#3b82f6'},{label:'Cat 2',value:costByCat[2],color:'#10b981'},{label:'Cat 3',value:costByCat[3],color:'#f59e0b'},{label:'Cat 4',value:costByCat[4],color:'#8b5cf6'}];
+            const maxC = Math.max(...cData.map(d => d.value));
+            document.getElementById('cat-cost-chart').innerHTML = cData.map(d => {
+                const pct = maxC > 0 ? (d.value / maxC * 100) : 0;
+                return `<div class="bar-item"><span class="bar-value">$${Math.round(d.value).toLocaleString()}</span><div class="bar" style="height:${Math.max(pct,5)}%;background:${d.color};"></div><span class="bar-label">${d.label}</span></div>`;
+            }).join('');
+            // Opportunity
+            const cat34hrs = byCat[3] + byCat[4];
+            const cat34pct = totalHrs > 0 ? Math.round(cat34hrs / totalHrs * 100) : 0;
+            const cat34cost = costByCat[3] + costByCat[4];
+            document.getElementById('cat-opportunity').textContent = `${cat34pct}% of task hours (${Math.round(cat34hrs)} hrs) are Cat 3-4 (Judgment/Teaching). These represent the Learning Loop frontier — as patterns emerge, Cat 3 tasks can graduate to Cat 2, and Cat 2 to Cat 1. Potential annual savings: ~$${Math.round(cat34cost * 12 * 0.3).toLocaleString()} at 30% conversion rate.`;
+            // Human tasks list
+            const humanTasks = active.filter(t => t.automation === 'human').sort((a, b) => calcHours(b) - calcHours(a));
+            document.getElementById('human-tasks-list').innerHTML = humanTasks.length > 0 ?
+                humanTasks.slice(0, 10).map(t => {
+                    const m = teamMembers.find(x => x.id === t.memberId);
+                    return `<div class="flex justify-between items-center p-3 border rounded-lg hover:bg-bg-3">
+                        <div><p class="font-medium">${t.name}</p><p class="text-sm text-tx-2">${m?.name} · ${t.job}</p></div>
+                        <div class="flex items-center gap-3"><span class="cat-${t.category} px-2 py-1 rounded text-xs">Cat ${t.category}: ${catLabels[t.category]}</span><span class="human-badge">👤 Human</span><span class="font-semibold">${calcHours(t).toFixed(1)} hrs</span></div>
+                    </div>`;
+                }).join('') : '<p class="text-tx-2">No human-required tasks</p>';
+        }
+
+        // ═══ Automation Impact Scenario ═══
+        function updateScenario() {
+            const autoLevel = parseFloat(document.getElementById('scenario-automation').value) || 0;
+            const headcountDelta = parseFloat(document.getElementById('scenario-headcount').value) || 0;
+            const volumePct = parseFloat(document.getElementById('scenario-volume').value) || 0;
+            document.getElementById('scenario-auto-val').textContent = autoLevel + '%';
+            document.getElementById('scenario-headcount-val').textContent = (headcountDelta >= 0 ? '+' : '') + headcountDelta + ' FTE';
+            document.getElementById('scenario-volume-val').textContent = (volumePct >= 0 ? '+' : '') + volumePct + '%';
+
+            const active = typeof getActiveTasks === 'function' ? getActiveTasks() : tasks;
+            const autoFraction = autoLevel / 100;
+            const volScale = 1 + volumePct / 100;
+
+            // Before: all tasks at current time (manual baseline)
+            const beforeHrs = active.reduce((s, t) => s + calcHours(t), 0);
+            const currentCap = teamMembers.reduce((s, m) => s + m.fte * 160, 0);
+            const currentCost = teamMembers.reduce((s, m) => s + m.salary, 0);
+            const beforeUtil = currentCap > 0 ? beforeHrs / currentCap * 100 : 0;
+            const totalVol = active.reduce((s, t) => s + calcMonthlyVolume(t), 0);
+            const beforeUnitCost = totalVol > 0 ? (currentCost / 12) / totalVol : 0;
+
+            // After: blend goalTime (automated) and time (manual) per task
+            const afterHrs = active.reduce((s, t) => {
+                const manual = calcHours(t);
+                const goal = calcGoalHours(t);
+                return s + (goal * autoFraction + manual * (1 - autoFraction)) * volScale;
+            }, 0);
+            const avgSalary = teamMembers.length > 0 ? currentCost / teamMembers.length : 75000;
+            const afterCap = currentCap + (headcountDelta * 160);
+            const afterCost = currentCost + (headcountDelta * avgSalary);
+            const afterUtil = afterCap > 0 ? afterHrs / afterCap * 100 : 0;
+            const afterVol = totalVol * volScale;
+            const afterUnitCost = afterVol > 0 ? (afterCost / 12) / afterVol : 0;
+            const discounts = autoLevel >= 70 ? Math.round(8420 * (autoLevel / 94) * (1 + volumePct / 200)) : 0;
+
+            document.getElementById('scenario-hours-before').textContent = Math.round(beforeHrs);
+            document.getElementById('scenario-hours-after').textContent = Math.round(afterHrs);
+            document.getElementById('scenario-cap-before').textContent = Math.round(currentCap);
+            document.getElementById('scenario-cap-after').textContent = Math.round(afterCap);
+            document.getElementById('scenario-util-before').textContent = Math.round(beforeUtil) + '%';
+            document.getElementById('scenario-util-after').textContent = Math.round(afterUtil) + '%';
+            document.getElementById('scenario-cost-before').textContent = '$' + Math.round(currentCost / 12).toLocaleString();
+            document.getElementById('scenario-cost-after').textContent = '$' + Math.round(afterCost / 12).toLocaleString();
+            document.getElementById('scenario-unit-before').textContent = '$' + beforeUnitCost.toFixed(2);
+            document.getElementById('scenario-unit-after').textContent = '$' + afterUnitCost.toFixed(2);
+            document.getElementById('scenario-discount-before').textContent = '$0';
+            document.getElementById('scenario-discount-after').textContent = '$' + discounts.toLocaleString();
+
+            const savedHrs = Math.round(beforeHrs - afterHrs);
+            const savedPct = beforeHrs > 0 ? Math.round((1 - afterHrs / beforeHrs) * 100) : 0;
+            const absorbPct = volumePct;
+            document.getElementById('scenario-summary').innerHTML = '✅ At ' + autoLevel + '% automation: ' + savedHrs + ' hrs/mo freed (' + savedPct + '% reduction). Team can absorb ' + absorbPct + '% volume growth with ' + Math.round(afterUtil) + '% utilization. Early-pay discounts: $' + discounts.toLocaleString() + '/mo.';
+        }
+
+        // ═══ Bundles ═══
+        function toggleBundle(el) {
+            const bundle = el.dataset.bundle;
+            el.classList.toggle('active');
+            const badge = el.querySelector('.auto-badge, .human-badge');
+            if (el.classList.contains('active')) {
+                activeBundles.add(bundle);
+                badge.textContent = 'Active';
+                badge.className = 'auto-badge font-semibold';
+            } else {
+                activeBundles.delete(bundle);
+                badge.textContent = 'Inactive';
+                badge.className = 'human-badge font-semibold';
+            }
+            refreshAll();
+            if (typeof saveToStorage === 'function') saveToStorage();
+        }
+
+        // ═══ Export ═══
+        function exportFullJSON() {
+            const activeBundles = [...document.querySelectorAll('.bundle-card.active')].map(el => el.dataset.bundle);
+            const data = {
+                exportDate: new Date().toISOString(),
+                version: '3.0',
+                platform: 'Sightline',
+                protocol: 'CAST',
+                cashPosition: 2847392,
+                activeBundles,
+                skillRegistry,
+                teamMembers,
+                tasks
+            };
+            downloadFile(JSON.stringify(data, null, 2), 'Sightline_Config.json', 'application/json');
+        }
+
+        function exportTasksCSV() {
+            const h = ['Template','Owner','Role','Job','Category','Automation','Skill','Agent','Freq','Vol','Min','GoalMin','Peaks','Hrs','Systems'];
+            const rows = tasks.map(t => {
+                const m = teamMembers.find(x => x.id === t.memberId);
+                return [t.name, m?.name||'', m?.role||'', t.job, 'Cat '+t.category, t.automation, t.skill||'', t.agent||'', t.frequency, t.volume, t.time, t.goalTime, (t.peakPeriods||[]).join(';'), calcHours(t).toFixed(1), t.systems];
+            });
+            downloadFile([h,...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n'), 'Sightline_Tasks.csv', 'text/csv');
+        }
+
+        function exportSummary() {
+            const autoTasks = tasks.filter(t => t.automation === 'auto').length;
+            const autoPct = tasks.length > 0 ? Math.round(autoTasks / tasks.length * 100) : 0;
+            const humanHrs = tasks.filter(t => t.automation === 'human').reduce((s, t) => s + calcHours(t), 0);
+            const totalHrs = tasks.reduce((s, t) => s + calcHours(t), 0);
+            const byCat = {1:0,2:0,3:0,4:0};
+            tasks.forEach(t => byCat[t.category||1] += calcHours(t));
+            const rpt = `SIGHTLINE ONBOARDING CONFIGURATION SUMMARY
+${'═'.repeat(50)}
+Platform: Sightline | Protocol: CAST
+Cash Position: $2,847,392
+Date: ${new Date().toISOString().slice(0,10)}
+
+TEAM
+────
+Roles: ${teamMembers.length} | FTEs: ${teamMembers.reduce((s,m)=>s+m.fte,0)} | Annual Cost: $${teamMembers.reduce((s,m)=>s+m.salary,0).toLocaleString()}
+
+AUTOMATION
+──────────
+Task Templates: ${tasks.length} | Automated: ${autoTasks} (${autoPct}%) | Human: ${tasks.length - autoTasks}
+Total Hours: ${Math.round(totalHrs)} → Human Hours: ${Math.round(humanHrs)} (${Math.round(humanHrs/totalHrs*100)}%)
+Active Skills: ${new Set(tasks.filter(t=>t.skill).map(t=>t.skill)).size} | Active Agents: 4
+
+CAST CATEGORIES
+───────────────
+Cat 1 (Auto Verify): ${Math.round(byCat[1])} hrs | Cat 2 (Routable): ${Math.round(byCat[2])} hrs
+Cat 3 (Judgment): ${Math.round(byCat[3])} hrs | Cat 4 (Teaching): ${Math.round(byCat[4])} hrs
+
+ROLE DEFINITIONS
+────────────────
+${teamMembers.map(m => {
+    const mt = tasks.filter(t=>t.memberId===m.id);
+    const jobs = [...new Set(mt.map(t=>t.job))];
+    return `${m.name} (${m.role}): ${mt.length} templates, ${memberAutoRate(m.id)}% auto, Jobs: ${jobs.join(', ')}`;
+}).join('\n')}
+
+ACTIVE BUNDLES
+──────────────
+AP Full Automation | Vendor Compliance | AR Collections | Month-End Close
+
+INVARIANT CORE
+──────────────
+EVENT → POLICY → WORK ORDER → CAPACITY → LEDGER → LINEAGE (Hash Chain)
+`;
+            downloadFile(rpt, 'Sightline_Summary.txt', 'text/plain');
+        }
+
+        function downloadFile(c, f, m) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([c], { type: m }));
+            a.download = f;
+            a.click();
+        }
+
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+        function handleDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
+        function handleJSONDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); if (e.dataTransfer.files[0]) processJSON(e.dataTransfer.files[0]); }
+        function handleJSONUpload(e) { if (e.target.files[0]) processJSON(e.target.files[0]); }
+
+        function processJSON(file) {
+            const r = new FileReader();
+            r.onload = e => {
+                try {
+                    const d = JSON.parse(e.target.result);
+                    if (d.teamMembers && d.tasks) {
+                        if (!confirm('Replace all configuration data?')) return;
+                        teamMembers = d.teamMembers;
+                        tasks = d.tasks;
+                        refreshAll();
+                        saveToStorage();
+                        alert('Sightline configuration imported successfully!');
+                        showTab('team');
+                    } else { alert('Invalid Sightline config format'); }
+                } catch (err) { alert('Error: ' + err.message); }
+            };
+            r.readAsText(file);
+        }
+    </script>
+</body>
+</html>

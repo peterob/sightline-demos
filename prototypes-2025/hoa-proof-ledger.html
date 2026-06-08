@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HOA Proof Ledger — Working UI</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f1a2d; --panel2:#0c1628;
+      --text:#e8eefc; --muted:#aab7d6; --line:rgba(255,255,255,.12);
+      --ok:#2bd4a4; --warn:#ffcc66; --fail:#ff6b6b; --info:#7aa7ff;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background:
+        radial-gradient(1100px 650px at 20% 0%, rgba(122,167,255,.10), transparent 60%),
+        radial-gradient(900px 600px at 80% 10%, rgba(43,212,164,.08), transparent 55%),
+        var(--bg);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    header{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 12px}
+    h1{margin:0;font-size:18px}
+    .sub{margin-top:4px;color:var(--muted);font-size:13px;line-height:1.35}
+    .pillrow{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03);font-size:12px;color:var(--muted)}
+    .grid{display:grid;gap:12px;grid-template-columns:1.05fr .95fr;align-items:start}
+    @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+    .card{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      box-shadow:var(--shadow); overflow:hidden;
+    }
+    .hd{padding:12px 14px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .hd h2{margin:0;font-size:13px}
+    .bd{padding:12px 14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .grow{flex:1}
+    .btn{
+      padding:8px 10px;border-radius:12px;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      color:var(--text); font-size:12px; cursor:pointer;
+    }
+    .btn.primary{background:linear-gradient(180deg, rgba(122,167,255,.25), rgba(122,167,255,.10));}
+    .btn:active{transform:translateY(1px)}
+    .input, select{
+      width:100%; padding:9px 10px;border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.20);
+      color:var(--text);
+      font-size:13px; outline:none;
+    }
+    .two{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+    @media (max-width:720px){.two{grid-template-columns:1fr}}
+    .line{height:1px;background:var(--line);margin:10px 0}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius:14px;
+      padding:10px;
+      cursor:pointer;
+      display:flex;gap:10px;align-items:flex-start;
+    }
+    .item:hover{background: rgba(255,255,255,.03)}
+    .badge{
+      padding:4px 8px;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      font-size:11px;color:var(--muted);white-space:nowrap
+    }
+    .badge.ok{color:var(--ok);border-color:rgba(43,212,164,.35);background:rgba(43,212,164,.10)}
+    .badge.warn{color:var(--warn);border-color:rgba(255,204,102,.35);background:rgba(255,204,102,.10)}
+    .badge.fail{color:var(--fail);border-color:rgba(255,107,107,.35);background:rgba(255,107,107,.10)}
+    .badge.info{color:var(--info);border-color:rgba(122,167,255,.35);background:rgba(122,167,255,.10)}
+    .meta{color:var(--muted);font-size:12px}
+    .kvs{display:grid;grid-template-columns:170px 1fr;gap:8px 10px}
+    @media (max-width:560px){.kvs{grid-template-columns:1fr}}
+    .k{color:var(--muted);font-size:12px}
+    .v{font-size:13px}
+    .mono{font-family:var(--mono);font-size:12px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+      font-size:12px;color:var(--muted);cursor:pointer;
+    }
+    .tab.active{color:var(--text);border-color:rgba(122,167,255,.35);background:rgba(122,167,255,.14)}
+    .table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.02)}
+    .table th,.table td{padding:10px;font-size:12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    .table th{color:var(--muted);font-weight:600;background:rgba(255,255,255,.02)}
+    .table tr:last-child td{border-bottom:none}
+    .right{text-align:right}
+    .errorBox{
+      display:none;
+      margin:10px 0 0;
+      border:1px solid rgba(255,107,107,.45);
+      background: rgba(255,107,107,.10);
+      border-radius:14px;
+      padding:10px;
+    }
+    .errorBox pre{margin:0;white-space:pre-wrap;font-family:var(--mono);font-size:12px;color:var(--text)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>HOA Proof Ledger — Working UI</h1>
+        <div class="sub">If anything breaks, an error panel will appear below.</div>
+      </div>
+      <div class="pillrow">
+        <div class="pill">Org: Cypress Ridge HOA</div>
+        <div class="pill">Period: FY2026</div>
+        <div class="pill">Demo: Local only</div>
+      </div>
+    </header>
+
+    <div class="errorBox" id="errorBox"><pre id="errorText"></pre></div>
+
+    <div class="grid">
+      <!-- Left: Tape -->
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2>Event Tape</h2>
+            <div class="meta">Append-only events (demo). Click one.</div>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnReseed">Reseed</button>
+            <button class="btn primary" id="btnNew">+ Payment Intent</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="two">
+            <div>
+              <div class="meta">Search</div>
+              <input class="input" id="q" placeholder="vendor, category, memo..." />
+            </div>
+            <div>
+              <div class="meta">Filter</div>
+              <select id="filter">
+                <option value="ALL">All events</option>
+                <option value="PAYMENT_INTENT">Payment intents</option>
+                <option value="PAYMENT_SUBMITTED">Submitted</option>
+                <option value="PAYMENT_SETTLED">Settled</option>
+                <option value="RESERVE_TRANSFER">Reserve transfers</option>
+              </select>
+            </div>
+          </div>
+          <div class="line"></div>
+          <div class="list" id="tape"></div>
+        </div>
+      </section>
+
+      <!-- Right: Detail/Exceptions/Report -->
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2 id="rightTitle">Event Detail</h2>
+            <div class="meta" id="rightSub">Select an event to view facts + evaluations.</div>
+          </div>
+          <div class="tabs">
+            <div class="tab active" data-tab="detail">Detail</div>
+            <div class="tab" data-tab="exceptions">Exceptions</div>
+            <div class="tab" data-tab="report">Homeowner Report</div>
+          </div>
+        </div>
+        <div class="bd" id="panel-detail"></div>
+        <div class="bd" id="panel-exceptions" style="display:none"></div>
+        <div class="bd" id="panel-report" style="display:none"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // Show runtime errors on screen instead of blank page.
+  const showError = (err) => {
+    const box = document.getElementById("errorBox");
+    const txt = document.getElementById("errorText");
+    if (!box || !txt) return;
+    box.style.display = "block";
+    txt.textContent = String(err?.stack || err);
+  };
+  window.addEventListener("error", (e) => showError(e.error || e.message));
+  window.addEventListener("unhandledrejection", (e) => showError(e.reason));
+
+  const demo = {
+    categories: [
+      { id:"c1", code:"MAINT", name:"Maintenance", type:"OPERATING" },
+      { id:"c3", code:"LEGAL", name:"Legal", type:"OPERATING" },
+      { id:"c4", code:"RES_ROOF", name:"Reserves: Roof", type:"RESERVE" }
+    ],
+    vendors: [
+      { id:"v1", name:"GreenScape Landscaping" },
+      { id:"v3", name:"Dawson Roofing Co." },
+      { id:"v4", name:"Harris Legal Group" }
+    ],
+    approvals: [
+      { id:"a1", type:"MANAGER_APPROVAL", by:"Manager", ref:"Ticket #1842" },
+      { id:"a2", type:"TREASURER_APPROVAL", by:"Treasurer", ref:"Email confirmation" },
+      { id:"a3", type:"BOARD_VOTE", by:"Board", ref:"Minutes 2026-01-07" }
+    ],
+    policies: [
+      { key:"PAYMENT_APPROVAL_TIERS", tiers:[
+        { max: 2000, req:["MANAGER_APPROVAL"] },
+        { max: 10000, req:["TREASURER_APPROVAL"] },
+        { max: 99999999, req:["BOARD_VOTE"] }
+      ]},
+      { key:"RESERVE_RESTRICTION", req:["BOARD_VOTE"] }
+    ],
+    events: [],
+    evals: []
+  };
+
+  const iso = (d) => new Date(d).toISOString();
+  const fmt = (s) => new Date(s).toLocaleString(undefined,{year:"numeric",month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  const money = (n) => (n==null||isNaN(n)) ? "—" : n.toLocaleString(undefined,{style:"currency",currency:"USD"});
+  const cat = (id) => demo.categories.find(c=>c.id===id);
+  const ven = (id) => demo.vendors.find(v=>v.id===id);
+  const ap = (id) => demo.approvals.find(a=>a.id===id);
+
+  const state = { selected:null, tab:"detail" };
+
+  function seed(){
+    demo.events = [];
+    demo.evals = [];
+
+    const now = Date.now();
+    demo.events.push(
+      { id:"e1", type:"PAYMENT_INTENT", occurred_at: iso(now-86400000*5), categoryId:"c1", vendorId:"v1", amount:1450, memo:"January landscaping", approvalId:"a1" },
+      { id:"e2", type:"PAYMENT_INTENT", occurred_at: iso(now-86400000*3.6), categoryId:"c4", vendorId:"v3", amount:18500, memo:"Roof deposit (reserve)", approvalId:"a2" }, // should FAIL reserve rule
+      { id:"e3", type:"PAYMENT_INTENT", occurred_at: iso(now-86400000*2.4), categoryId:"c3", vendorId:"v4", amount:12500, memo:"Legal retainer increase", approvalId:"a3" }
+    );
+
+    demo.events.forEach(e => evaluate(e.id));
+    state.selected = "e3";
+  }
+
+  function evaluate(eventId){
+    demo.evals = demo.evals.filter(x=>x.eventId !== eventId);
+    const e = demo.events.find(x=>x.id===eventId);
+    if (!e) return;
+
+    const c = e.categoryId ? cat(e.categoryId) : null;
+    const approval = e.approvalId ? ap(e.approvalId) : null;
+
+    // Policy 1: approval tiers
+    const tiers = demo.policies.find(p=>p.key==="PAYMENT_APPROVAL_TIERS").tiers;
+    const tier = tiers.find(t => (e.amount||0) <= t.max) || tiers[tiers.length-1];
+    const required = tier.req;
+
+    if (!approval) {
+      demo.evals.push({ eventId:e.id, policy:"PAYMENT_APPROVAL_TIERS", outcome:"FAIL", code:"APPROVAL_MISSING", text:`Missing approval (${required.join(", ")})` });
+    } else if (!required.includes(approval.type)){
+      demo.evals.push({ eventId:e.id, policy:"PAYMENT_APPROVAL_TIERS", outcome:"FAIL", code:"APPROVAL_INSUFFICIENT", text:`Got ${approval.type}; required ${required.join(", ")}` });
+    } else {
+      demo.evals.push({ eventId:e.id, policy:"PAYMENT_APPROVAL_TIERS", outcome:"PASS", code:"APPROVAL_OK", text:`Approval satisfied (${approval.type})` });
+    }
+
+    // Policy 2: reserve restriction
+    if (c && c.type === "RESERVE"){
+      if (!approval || approval.type !== "BOARD_VOTE"){
+        demo.evals.push({ eventId:e.id, policy:"RESERVE_RESTRICTION", outcome:"FAIL", code:"RESERVE_NEEDS_BOARD_VOTE", text:"Reserve spend requires BOARD_VOTE" });
+      } else {
+        demo.evals.push({ eventId:e.id, policy:"RESERVE_RESTRICTION", outcome:"PASS", code:"RESERVE_OK", text:"Reserve spend has BOARD_VOTE" });
+      }
+    }
+  }
+
+  function status(eventId){
+    const ev = demo.evals.filter(x=>x.eventId===eventId);
+    if (ev.some(x=>x.outcome==="FAIL")) return "FAIL";
+    if (ev.some(x=>x.outcome==="WARN")) return "WARN";
+    if (ev.some(x=>x.outcome==="PASS")) return "PASS";
+    return "NONE";
+  }
+
+  function badgeStatus(s){
+    if (s==="FAIL") return `<span class="badge fail">FAIL</span>`;
+    if (s==="WARN") return `<span class="badge warn">WARN</span>`;
+    if (s==="PASS") return `<span class="badge ok">PASS</span>`;
+    return `<span class="badge">NO EVAL</span>`;
+  }
+
+  function renderTape(){
+    const tape = document.getElementById("tape");
+    const q = (document.getElementById("q")?.value || "").toLowerCase().trim();
+    const f = document.getElementById("filter")?.value || "ALL";
+    if (!tape) return;
+
+    const list = demo.events
+      .slice()
+      .sort((a,b)=>new Date(b.occurred_at)-new Date(a.occurred_at))
+      .filter(e => f==="ALL" ? true : e.type===f)
+      .filter(e => {
+        if (!q) return true;
+        const c = e.categoryId ? cat(e.categoryId) : null;
+        const v = e.vendorId ? ven(e.vendorId) : null;
+        const hay = [e.id,e.type,e.memo,c?.code,c?.name,v?.name].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+
+    tape.innerHTML = list.map(e=>{
+      const c = e.categoryId ? cat(e.categoryId) : null;
+      const v = e.vendorId ? ven(e.vendorId) : null;
+      const sel = (e.id===state.selected) ? `style="border-color:rgba(122,167,255,.45);background:rgba(122,167,255,.10)"` : "";
+      return `
+        <div class="item" data-eid="${e.id}" ${sel}>
+          <div style="min-width:105px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+            ${badgeStatus(status(e.id))}
+            <span class="badge info">${e.type.replaceAll("_"," ")}</span>
+          </div>
+          <div class="grow">
+            <div style="display:flex;justify-content:space-between;gap:10px">
+              <div>
+                <div style="font-size:13px"><b>${c?c.code:"—"}</b> <span class="meta">·</span> <span>${v?v.name:"—"}</span></div>
+                <div class="meta">${fmt(e.occurred_at)}</div>
+              </div>
+              <div style="font-weight:700">${money(e.amount)}</div>
+            </div>
+            ${e.memo ? `<div class="meta" style="margin-top:6px">${e.memo}</div>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("") || `<div class="meta">No events.</div>`;
+
+    tape.querySelectorAll("[data-eid]").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        state.selected = el.getAttribute("data-eid");
+        renderAll();
+      });
+    });
+  }
+
+  function renderDetail(){
+    const panel = document.getElementById("panel-detail");
+    if (!panel) return;
+    if (!state.selected){
+      panel.innerHTML = `<div class="meta">Select an event.</div>`;
+      return;
+    }
+    const e = demo.events.find(x=>x.id===state.selected);
+    const c = e.categoryId ? cat(e.categoryId) : null;
+    const v = e.vendorId ? ven(e.vendorId) : null;
+    const approval = e.approvalId ? ap(e.approvalId) : null;
+    const evs = demo.evals.filter(x=>x.eventId===e.id);
+
+    panel.innerHTML = `
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="row" style="gap:8px">
+            ${badgeStatus(status(e.id))}
+            <span class="badge info">${e.type.replaceAll("_"," ")}</span>
+            ${c ? `<span class="badge">${c.type}</span>` : ""}
+          </div>
+          <div class="meta" style="margin-top:6px">${fmt(e.occurred_at)} · <span class="mono">${e.id}</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:800">${money(e.amount)}</div>
+          <div class="meta">USD</div>
+        </div>
+      </div>
+
+      <div class="line"></div>
+
+      <div class="kvs">
+        <div class="k">Category</div><div class="v">${c ? `${c.code} — ${c.name}` : "—"}</div>
+        <div class="k">Vendor</div><div class="v">${v ? v.name : "—"}</div>
+        <div class="k">Memo</div><div class="v">${e.memo || "—"}</div>
+        <div class="k">Approval</div><div class="v">${approval ? `<span class="badge">${approval.type}</span> <span class="meta">(${approval.by})</span>` : "—"}</div>
+      </div>
+
+      <div class="line"></div>
+
+      <h2 style="margin:0 0 8px;font-size:13px">Policy Evaluations</h2>
+      ${evs.map(pe=>{
+        const b = pe.outcome==="FAIL" ? "fail" : (pe.outcome==="PASS" ? "ok" : "warn");
+        return `
+          <div class="item" style="cursor:default">
+            <div style="min-width:110px;display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+              <span class="badge ${b}">${pe.outcome}</span>
+              <span class="badge">${pe.policy}</span>
+            </div>
+            <div class="grow">
+              <div style="font-size:13px"><b class="mono">${pe.code}</b></div>
+              <div class="meta">${pe.text}</div>
+            </div>
+          </div>
+        `;
+      }).join("")}
+
+      <div class="line"></div>
+      <div class="row">
+        <button class="btn primary" id="btnReEval">Re-evaluate</button>
+        <button class="btn" id="btnSwitchTab">Go to Exceptions</button>
+      </div>
+    `;
+
+    document.getElementById("btnReEval")?.addEventListener("click", ()=>{
+      evaluate(e.id);
+      renderAll();
+    });
+    document.getElementById("btnSwitchTab")?.addEventListener("click", ()=>{
+      setTab("exceptions");
+    });
+  }
+
+  function renderExceptions(){
+    const panel = document.getElementById("panel-exceptions");
+    if (!panel) return;
+
+    const rows = [];
+    demo.events.forEach(e=>{
+      demo.evals.filter(x=>x.eventId===e.id && (x.outcome==="FAIL" || x.outcome==="WARN"))
+        .forEach(x=> rows.push({e, x}));
+    });
+
+    if (!rows.length){
+      panel.innerHTML = `<div class="meta">No exceptions.</div>`;
+      return;
+    }
+
+    panel.innerHTML = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Status</th><th>Event</th><th>Time</th><th>Category</th><th>Vendor</th>
+            <th class="right">Amount</th><th>Code</th><th>Reason</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>{
+            const c = r.e.categoryId ? cat(r.e.categoryId) : null;
+            const v = r.e.vendorId ? ven(r.e.vendorId) : null;
+            const badge = r.x.outcome==="FAIL" ? "fail" : "warn";
+            return `
+              <tr>
+                <td><span class="badge ${badge}">${r.x.outcome}</span></td>
+                <td class="mono">${r.e.id}</td>
+                <td>${fmt(r.e.occurred_at)}</td>
+                <td>${c?c.code:"—"}</td>
+                <td class="meta">${v?v.name:"—"}</td>
+                <td class="right">${money(r.e.amount)}</td>
+                <td class="mono">${r.x.code}</td>
+                <td class="meta">${r.x.text}</td>
+                <td><button class="btn" data-go="${r.e.id}">View</button></td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+
+    panel.querySelectorAll("[data-go]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        state.selected = b.getAttribute("data-go");
+        setTab("detail");
+      });
+    });
+  }
+
+  function renderReport(){
+    const panel = document.getElementById("panel-report");
+    if (!panel) return;
+
+    const fail = demo.evals.filter(x=>x.outcome==="FAIL").length;
+    const warn = demo.evals.filter(x=>x.outcome==="WARN").length;
+
+    panel.innerHTML = `
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="row" style="gap:8px">
+            <span class="badge info">Aggregate-only</span>
+            <span class="badge">No vendor details</span>
+          </div>
+          <div class="meta" style="margin-top:6px">This is the kind of output homeowners can see without exposing invoices/vendors.</div>
+        </div>
+        <div style="text-align:right">
+          <div class="badge fail">FAIL: ${fail}</div>
+          <div style="height:6px"></div>
+          <div class="badge warn">WARN: ${warn}</div>
+        </div>
+      </div>
+      <div class="line"></div>
+      <div class="meta">
+        In a real system this page would be driven by <span class="mono">proof_claim</span> rows attached to a
+        <span class="mono">HOMEOWNER_MONTHLY</span> disclosure scope.
+      </div>
+    `;
+  }
+
+  function setTab(tab){
+    state.tab = tab;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===tab));
+    document.getElementById("panel-detail").style.display = tab==="detail" ? "block" : "none";
+    document.getElementById("panel-exceptions").style.display = tab==="exceptions" ? "block" : "none";
+    document.getElementById("panel-report").style.display = tab==="report" ? "block" : "none";
+    renderAll();
+  }
+
+  function renderAll(){
+    renderTape();
+    if (state.tab==="detail") renderDetail();
+    if (state.tab==="exceptions") renderExceptions();
+    if (state.tab==="report") renderReport();
+  }
+
+  function bind(){
+    const on = (id, evt, fn) => { const el=document.getElementById(id); if (el) el.addEventListener(evt, fn); };
+    on("btnReseed","click", ()=>{ seed(); renderAll(); });
+    on("btnNew","click", ()=>{
+      const amount = parseFloat(prompt("Payment amount (USD):", "2500")||"");
+      if (!isFinite(amount)) return;
+      const id = "e" + (demo.events.length+1);
+      demo.events.push({ id, type:"PAYMENT_INTENT", occurred_at: iso(Date.now()), categoryId:"c1", vendorId:"v1", amount, memo:"New payment intent", approvalId:"a2" });
+      evaluate(id);
+      state.selected = id;
+      renderAll();
+    });
+    on("q","input", renderTape);
+    on("filter","change", renderTape);
+
+    document.querySelectorAll(".tab").forEach(t=>{
+      t.addEventListener("click", ()=> setTab(t.dataset.tab));
+    });
+  }
+
+  // Start
+  seed();
+  bind();
+  renderAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline - 13 Week Cash Flow Forecast</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+    .cash-flow-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cash-flow-table th, .cash-flow-table td { padding: 10px 8px; text-align: right; border-bottom: 1px solid #e5e7eb; }
+    .cash-flow-table th { background: #f9fafb; font-weight: 600; color: #374151; position: sticky; top: 0; }
+    .cash-flow-table td:first-child, .cash-flow-table th:first-child { text-align: left; position: sticky; left: 0; background: white; z-index: 1; min-width: 180px; }
+    .cash-flow-table th:first-child { background: #f9fafb; z-index: 2; }
+    .cash-flow-table tr:hover td { background: #f0f9ff; }
+    .cash-flow-table tr:hover td:first-child { background: #f0f9ff; }
+    .row-header { font-weight: 500; color: #111827; }
+    .row-section { font-weight: 600; color: #1f2937; background: #f3f4f6 !important; }
+    .row-subtotal { font-weight: 600; color: #1f2937; border-top: 2px solid #d1d5db; }
+    .row-total { font-weight: 700; color: #111827; background: #e0e7ff !important; border-top: 2px solid #6366f1; }
+    .row-indent { padding-left: 24px !important; color: #6b7280; }
+    .positive { color: #059669; }
+    .negative { color: #dc2626; }
+    .projected { color: #6366f1; font-style: italic; }
+    .week-current { background: #fef3c7 !important; }
+    .week-header-current { background: #f59e0b !important; color: white !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ============================================
+    // BASE DATA
+    // ============================================
+    
+    const TODAY = new Date('2025-02-24'); // Simulation date
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    // Generate 13 weeks starting from 2 weeks ago
+    const generateWeeks = () => {
+      const weeks = [];
+      const startDate = new Date(TODAY.getTime() - (2 * WEEK_MS)); // Start 2 weeks before today
+      
+      for (let i = 0; i < 13; i++) {
+        const weekStart = new Date(startDate.getTime() + (i * WEEK_MS));
+        const weekEnd = new Date(weekStart.getTime() + (6 * 24 * 60 * 60 * 1000));
+        weeks.push({
+          id: i,
+          start: weekStart,
+          end: weekEnd,
+          label: `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          isCurrent: weekStart <= TODAY && weekEnd >= TODAY,
+          isPast: weekEnd < TODAY,
+          isFuture: weekStart > TODAY
+        });
+      }
+      return weeks;
+    };
+
+    const vendors = [
+      { id: 'VND-001', name: 'Luminaire Factory Co.', paymentTerms: 30, category: 'Lighting' },
+      { id: 'VND-002', name: 'HomeStyle Textiles', paymentTerms: 45, category: 'Soft Goods' },
+      { id: 'VND-003', name: 'Pacific Freight 3PL', paymentTerms: 15, category: '3PL' },
+      { id: 'VND-004', name: 'Artisan Ceramics Ltd', paymentTerms: 30, category: 'Decor' },
+      { id: 'VND-005', name: 'Nordic Wood Design', paymentTerms: 30, category: 'Furniture' }
+    ];
+
+    // Purchase Orders with expected dates
+    const initialPurchaseOrders = [
+      // Past/Current POs
+      { id: 'PO-2025-0831', vendorId: 'VND-001', amount: 42500, orderDate: '2025-01-05', shipDate: '2025-02-01', receiveDate: '2025-02-08', paymentDueDate: '2025-03-10', status: 'RECEIVED', paid: false },
+      { id: 'PO-2025-0847', vendorId: 'VND-001', amount: 48350, orderDate: '2025-01-10', shipDate: '2025-02-12', receiveDate: '2025-02-18', paymentDueDate: '2025-03-20', status: 'VARIANCE_OPEN', paid: false, varianceAmount: 1375 },
+      { id: 'PO-2025-0852', vendorId: 'VND-002', amount: 16000, orderDate: '2025-01-15', shipDate: '2025-02-14', receiveDate: '2025-02-19', paymentDueDate: '2025-04-05', status: 'RECEIVED', paid: false },
+      
+      // Upcoming POs
+      { id: 'PO-2025-0861', vendorId: 'VND-001', amount: 15200, orderDate: '2025-02-01', shipDate: '2025-03-05', receiveDate: '2025-03-12', paymentDueDate: '2025-04-11', status: 'PENDING_SHIPMENT', paid: false },
+      { id: 'PO-2025-0872', vendorId: 'VND-004', amount: 22800, orderDate: '2025-02-10', shipDate: '2025-03-10', receiveDate: '2025-03-18', paymentDueDate: '2025-04-17', status: 'CONFIRMED', paid: false },
+      { id: 'PO-2025-0885', vendorId: 'VND-002', amount: 31500, orderDate: '2025-02-15', shipDate: '2025-03-20', receiveDate: '2025-03-28', paymentDueDate: '2025-05-12', status: 'CONFIRMED', paid: false },
+      { id: 'PO-2025-0891', vendorId: 'VND-005', amount: 67000, orderDate: '2025-02-20', shipDate: '2025-04-01', receiveDate: '2025-04-15', paymentDueDate: '2025-05-15', status: 'CONFIRMED', paid: false },
+      { id: 'PO-2025-0903', vendorId: 'VND-001', amount: 38400, orderDate: '2025-02-22', shipDate: '2025-03-25', receiveDate: '2025-04-02', paymentDueDate: '2025-05-02', status: 'PENDING_CONFIRM', paid: false },
+    ];
+
+    // 3PL/Operating costs (weekly)
+    const weeklyOperatingCosts = {
+      '3pl_storage': 2800,
+      '3pl_pick_pack': 0, // Variable, calculated from orders
+      'shipping_prepaid': 0, // Variable
+      'payroll': 18500,
+      'rent': 4200,
+      'software': 1850,
+      'marketing': 8500,
+      'other': 2400
+    };
+
+    // Sales forecast (weekly revenue)
+    const baseSalesForecast = [
+      { weekOffset: -2, orders: 312, revenue: 48200, cogs: 19280 },
+      { weekOffset: -1, orders: 345, revenue: 52100, cogs: 20840 },
+      { weekOffset: 0, orders: 358, revenue: 54800, cogs: 21920 },
+      { weekOffset: 1, orders: 320, revenue: 49500, cogs: 19800 },
+      { weekOffset: 2, orders: 385, revenue: 58200, cogs: 23280 },
+      { weekOffset: 3, orders: 410, revenue: 62500, cogs: 25000 },
+      { weekOffset: 4, orders: 395, revenue: 60100, cogs: 24040 },
+      { weekOffset: 5, orders: 420, revenue: 64800, cogs: 25920 },
+      { weekOffset: 6, orders: 445, revenue: 68500, cogs: 27400 },
+      { weekOffset: 7, orders: 430, revenue: 66200, cogs: 26480 },
+      { weekOffset: 8, orders: 465, revenue: 71800, cogs: 28720 },
+      { weekOffset: 9, orders: 480, revenue: 74200, cogs: 29680 },
+      { weekOffset: 10, orders: 450, revenue: 69500, cogs: 27800 }
+    ];
+
+    // Event types that affect cash flow
+    const initialEvents = [
+      // Past events (actuals)
+      { id: 'evt_001', timestamp: '2025-02-08T14:00:00Z', type: 'PO_RECEIVED', poId: 'PO-2025-0831', data: { unitsReceived: 425, variance: 0 } },
+      { id: 'evt_002', timestamp: '2025-02-18T14:00:00Z', type: 'PO_RECEIVED', poId: 'PO-2025-0847', data: { unitsReceived: 612, variance: 1375 } },
+      { id: 'evt_003', timestamp: '2025-02-19T14:00:00Z', type: 'PO_RECEIVED', poId: 'PO-2025-0852', data: { unitsReceived: 650, variance: 0 } },
+      
+      // Sales actuals
+      { id: 'evt_004', timestamp: '2025-02-10T00:00:00Z', type: 'WEEK_SALES_ACTUAL', data: { weekOffset: -2, orders: 312, revenue: 48200, refunds: 1240 } },
+      { id: 'evt_005', timestamp: '2025-02-17T00:00:00Z', type: 'WEEK_SALES_ACTUAL', data: { weekOffset: -1, orders: 358, revenue: 54650, refunds: 890 } },
+      
+      // Payment made
+      { id: 'evt_006', timestamp: '2025-02-15T00:00:00Z', type: 'PAYMENT_MADE', poId: 'PO-2025-0818', data: { amount: 28400, vendor: 'VND-001' } },
+    ];
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    const formatCurrency = (n, compact = false) => {
+      if (compact && Math.abs(n) >= 1000) {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(n);
+      }
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+    };
+    
+    const formatNumber = (n) => new Intl.NumberFormat('en-US').format(n);
+    
+    const getWeekForDate = (dateStr, weeks) => {
+      const date = new Date(dateStr);
+      return weeks.find(w => date >= w.start && date <= w.end);
+    };
+
+    const dateInWeek = (dateStr, week) => {
+      const date = new Date(dateStr);
+      return date >= week.start && date <= week.end;
+    };
+
+    // ============================================
+    // CASH FLOW CALCULATION ENGINE
+    // ============================================
+
+    function calculateCashFlow(weeks, purchaseOrders, events, openingCash = 125000) {
+      const cashFlow = weeks.map(week => ({
+        weekId: week.id,
+        week: week,
+        
+        // INFLOWS
+        salesRevenue: 0,
+        salesRevenueActual: false,
+        refunds: 0,
+        otherIncome: 0,
+        totalInflows: 0,
+        
+        // OUTFLOWS - Inventory
+        poPayments: [],
+        totalPoPayments: 0,
+        varianceCredits: 0,
+        
+        // OUTFLOWS - Operations
+        thirdPlStorage: 0,
+        thirdPlFulfillment: 0,
+        shippingCosts: 0,
+        
+        // OUTFLOWS - Fixed
+        payroll: 0,
+        rent: 0,
+        software: 0,
+        marketing: 0,
+        otherOpex: 0,
+        totalOutflows: 0,
+        
+        // NET
+        netCashFlow: 0,
+        openingBalance: 0,
+        closingBalance: 0,
+        
+        // Metadata
+        isActual: week.isPast,
+        isProjected: week.isFuture || week.isCurrent
+      }));
+
+      // Apply sales forecast / actuals
+      baseSalesForecast.forEach(forecast => {
+        const weekIndex = forecast.weekOffset + 2; // Offset from our start
+        if (weekIndex >= 0 && weekIndex < cashFlow.length) {
+          cashFlow[weekIndex].salesRevenue = forecast.revenue;
+          
+          // Check for actual override
+          const actualEvent = events.find(e => 
+            e.type === 'WEEK_SALES_ACTUAL' && e.data.weekOffset === forecast.weekOffset
+          );
+          if (actualEvent) {
+            cashFlow[weekIndex].salesRevenue = actualEvent.data.revenue;
+            cashFlow[weekIndex].refunds = actualEvent.data.refunds || 0;
+            cashFlow[weekIndex].salesRevenueActual = true;
+          }
+        }
+      });
+
+      // Apply PO payments based on payment due dates
+      purchaseOrders.forEach(po => {
+        const paymentWeek = getWeekForDate(po.paymentDueDate, weeks);
+        if (paymentWeek) {
+          const weekData = cashFlow.find(cf => cf.weekId === paymentWeek.id);
+          if (weekData && !po.paid) {
+            // Check for variance credits
+            let paymentAmount = po.amount;
+            if (po.varianceAmount) {
+              paymentAmount -= po.varianceAmount;
+              weekData.varianceCredits += po.varianceAmount;
+            }
+            
+            weekData.poPayments.push({
+              poId: po.id,
+              vendorId: po.vendorId,
+              amount: paymentAmount,
+              status: po.status
+            });
+            weekData.totalPoPayments += paymentAmount;
+          }
+        }
+      });
+
+      // Apply operating costs
+      cashFlow.forEach((week, idx) => {
+        const forecast = baseSalesForecast[idx] || baseSalesForecast[baseSalesForecast.length - 1];
+        
+        week.thirdPlStorage = weeklyOperatingCosts['3pl_storage'];
+        week.thirdPlFulfillment = Math.round(forecast.orders * 2.85); // $2.85 per order pick/pack
+        week.shippingCosts = Math.round(forecast.orders * 6.20); // Avg $6.20 per shipment
+        
+        week.payroll = weeklyOperatingCosts['payroll'];
+        week.rent = weeklyOperatingCosts['rent'];
+        week.software = weeklyOperatingCosts['software'];
+        week.marketing = weeklyOperatingCosts['marketing'];
+        week.otherOpex = weeklyOperatingCosts['other'];
+      });
+
+      // Calculate totals and running balance
+      let runningBalance = openingCash;
+      
+      cashFlow.forEach((week, idx) => {
+        week.openingBalance = runningBalance;
+        
+        week.totalInflows = week.salesRevenue - week.refunds + week.otherIncome;
+        
+        week.totalOutflows = 
+          week.totalPoPayments +
+          week.thirdPlStorage +
+          week.thirdPlFulfillment +
+          week.shippingCosts +
+          week.payroll +
+          week.rent +
+          week.software +
+          week.marketing +
+          week.otherOpex -
+          week.varianceCredits; // Credits reduce outflows
+        
+        week.netCashFlow = week.totalInflows - week.totalOutflows;
+        week.closingBalance = week.openingBalance + week.netCashFlow;
+        
+        runningBalance = week.closingBalance;
+      });
+
+      return cashFlow;
+    }
+
+    // ============================================
+    // COMPONENTS
+    // ============================================
+
+    function MetricCard({ label, value, subtext, trend, variant = 'default', large = false }) {
+      const variants = {
+        default: { bg: '#ffffff', border: '#e5e7eb' },
+        success: { bg: '#f0fdf4', border: '#86efac' },
+        warning: { bg: '#fffbeb', border: '#fcd34d' },
+        danger: { bg: '#fef2f2', border: '#fca5a5' },
+        info: { bg: '#eff6ff', border: '#93c5fd' }
+      };
+      const v = variants[variant];
+      
+      return (
+        <div style={{
+          backgroundColor: v.bg,
+          border: `1px solid ${v.border}`,
+          borderRadius: '12px',
+          padding: large ? '24px' : '20px',
+          flex: 1,
+          minWidth: large ? '180px' : '140px'
+        }}>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {label}
+          </div>
+          <div style={{ fontSize: large ? '28px' : '22px', fontWeight: '700', color: '#111827', marginBottom: '4px', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            {value}
+            {trend !== undefined && (
+              <span style={{ 
+                fontSize: '13px', 
+                fontWeight: '500',
+                color: trend > 0 ? '#059669' : trend < 0 ? '#dc2626' : '#6b7280'
+              }}>
+                {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)}%
+              </span>
+            )}
+          </div>
+          {subtext && (
+            <div style={{ fontSize: '12px', color: '#9ca3af' }}>{subtext}</div>
+          )}
+        </div>
+      );
+    }
+
+    function CashFlowChart({ cashFlow }) {
+      const maxVal = Math.max(...cashFlow.map(w => Math.max(w.totalInflows, w.totalOutflows, Math.abs(w.closingBalance))));
+      const scale = 140 / maxVal;
+
+      return (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '180px', padding: '20px 0' }}>
+          {cashFlow.map((week, i) => (
+            <div key={i} style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              opacity: week.week.isPast ? 0.7 : 1
+            }}>
+              <div style={{ height: '140px', width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '2px', position: 'relative' }}>
+                {/* Inflows */}
+                <div style={{ 
+                  width: '12px', 
+                  height: `${week.totalInflows * scale}px`, 
+                  backgroundColor: '#10b981', 
+                  borderRadius: '2px 2px 0 0',
+                  minHeight: '2px'
+                }} title={`Inflows: ${formatCurrency(week.totalInflows)}`} />
+                {/* Outflows */}
+                <div style={{ 
+                  width: '12px', 
+                  height: `${week.totalOutflows * scale}px`, 
+                  backgroundColor: '#ef4444', 
+                  borderRadius: '2px 2px 0 0',
+                  minHeight: '2px'
+                }} title={`Outflows: ${formatCurrency(week.totalOutflows)}`} />
+                {/* Balance line marker */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: `${Math.max(0, week.closingBalance) * scale}px`,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '20px',
+                  height: '3px',
+                  backgroundColor: '#6366f1',
+                  borderRadius: '2px'
+                }} title={`Balance: ${formatCurrency(week.closingBalance)}`} />
+              </div>
+              <div style={{ 
+                marginTop: '8px', 
+                fontSize: '10px', 
+                color: week.week.isCurrent ? '#f59e0b' : '#6b7280', 
+                textAlign: 'center',
+                fontWeight: week.week.isCurrent ? '600' : '400'
+              }}>
+                {week.week.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function CashFlowTable({ cashFlow, purchaseOrders, vendors }) {
+      const getVendorName = (vendorId) => vendors.find(v => v.id === vendorId)?.name || vendorId;
+
+      const renderCell = (value, isProjected = false, isNegative = false) => {
+        const className = isProjected ? 'projected' : (isNegative || value < 0) ? 'negative' : value > 0 ? 'positive' : '';
+        return <span className={className}>{formatCurrency(value)}</span>;
+      };
+
+      return (
+        <div style={{ overflowX: 'auto', maxHeight: '600px' }}>
+          <table className="cash-flow-table">
+            <thead>
+              <tr>
+                <th>Week Ending</th>
+                {cashFlow.map(week => (
+                  <th key={week.weekId} className={week.week.isCurrent ? 'week-header-current' : ''}>
+                    {week.week.label}
+                    {week.week.isCurrent && <div style={{ fontSize: '9px', fontWeight: '400' }}>Current</div>}
+                  </th>
+                ))}
+                <th style={{ background: '#e0e7ff' }}>13-Wk Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Opening Balance */}
+              <tr>
+                <td className="row-header">Opening Cash</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(week.openingBalance, week.isProjected)}
+                  </td>
+                ))}
+                <td>—</td>
+              </tr>
+
+              {/* INFLOWS SECTION */}
+              <tr>
+                <td className="row-section">CASH INFLOWS</td>
+                {cashFlow.map(week => <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}></td>)}
+                <td></td>
+              </tr>
+              <tr>
+                <td className="row-indent">Sales Revenue {cashFlow.some(w => !w.salesRevenueActual) && '*'}</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(week.salesRevenue, !week.salesRevenueActual)}
+                  </td>
+                ))}
+                <td className="positive">{formatCurrency(cashFlow.reduce((s, w) => s + w.salesRevenue, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Refunds</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {week.refunds > 0 ? renderCell(-week.refunds, week.isProjected, true) : '—'}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.refunds, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-subtotal">Total Inflows</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    <strong>{renderCell(week.totalInflows, week.isProjected)}</strong>
+                  </td>
+                ))}
+                <td><strong className="positive">{formatCurrency(cashFlow.reduce((s, w) => s + w.totalInflows, 0))}</strong></td>
+              </tr>
+
+              {/* OUTFLOWS - INVENTORY */}
+              <tr>
+                <td className="row-section">INVENTORY PURCHASES</td>
+                {cashFlow.map(week => <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}></td>)}
+                <td></td>
+              </tr>
+              {/* Show individual PO payments */}
+              {purchaseOrders.filter(po => !po.paid).map(po => {
+                const paymentWeek = cashFlow.find(cf => 
+                  cf.poPayments.some(p => p.poId === po.id)
+                );
+                return (
+                  <tr key={po.id}>
+                    <td className="row-indent" style={{ fontSize: '11px' }}>
+                      {po.id} ({getVendorName(po.vendorId).split(' ')[0]})
+                    </td>
+                    {cashFlow.map(week => {
+                      const payment = week.poPayments.find(p => p.poId === po.id);
+                      return (
+                        <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                          {payment ? renderCell(-payment.amount, week.isProjected, true) : '—'}
+                        </td>
+                      );
+                    })}
+                    <td className="negative">{formatCurrency(-po.amount + (po.varianceAmount || 0))}</td>
+                  </tr>
+                );
+              })}
+              <tr>
+                <td className="row-indent">Variance Credits</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {week.varianceCredits > 0 ? <span className="positive">{formatCurrency(week.varianceCredits)}</span> : '—'}
+                  </td>
+                ))}
+                <td className="positive">{formatCurrency(cashFlow.reduce((s, w) => s + w.varianceCredits, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-subtotal">Net Inventory Payments</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    <strong>{week.totalPoPayments > 0 ? renderCell(-(week.totalPoPayments - week.varianceCredits), week.isProjected, true) : '—'}</strong>
+                  </td>
+                ))}
+                <td><strong className="negative">{formatCurrency(-(cashFlow.reduce((s, w) => s + w.totalPoPayments - w.varianceCredits, 0)))}</strong></td>
+              </tr>
+
+              {/* OUTFLOWS - FULFILLMENT */}
+              <tr>
+                <td className="row-section">FULFILLMENT & SHIPPING</td>
+                {cashFlow.map(week => <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}></td>)}
+                <td></td>
+              </tr>
+              <tr>
+                <td className="row-indent">3PL Storage</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.thirdPlStorage, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.thirdPlStorage, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">3PL Pick & Pack</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.thirdPlFulfillment, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.thirdPlFulfillment, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Outbound Shipping</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.shippingCosts, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.shippingCosts, 0))}</td>
+              </tr>
+
+              {/* OUTFLOWS - OPERATING */}
+              <tr>
+                <td className="row-section">OPERATING EXPENSES</td>
+                {cashFlow.map(week => <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}></td>)}
+                <td></td>
+              </tr>
+              <tr>
+                <td className="row-indent">Payroll</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.payroll, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.payroll, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Rent & Utilities</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.rent, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.rent, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Software & Tools</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.software, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.software, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Marketing & Ads</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.marketing, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.marketing, 0))}</td>
+              </tr>
+              <tr>
+                <td className="row-indent">Other Operating</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    {renderCell(-week.otherOpex, week.isProjected, true)}
+                  </td>
+                ))}
+                <td className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.otherOpex, 0))}</td>
+              </tr>
+
+              {/* TOTALS */}
+              <tr>
+                <td className="row-subtotal">Total Outflows</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''}>
+                    <strong>{renderCell(-week.totalOutflows, week.isProjected, true)}</strong>
+                  </td>
+                ))}
+                <td><strong className="negative">{formatCurrency(-cashFlow.reduce((s, w) => s + w.totalOutflows, 0))}</strong></td>
+              </tr>
+
+              {/* NET & CLOSING */}
+              <tr>
+                <td className="row-total">Net Cash Flow</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''} style={{ background: week.week.isCurrent ? '#fef3c7' : '#e0e7ff' }}>
+                    <strong className={week.netCashFlow >= 0 ? 'positive' : 'negative'}>
+                      {formatCurrency(week.netCashFlow)}
+                    </strong>
+                  </td>
+                ))}
+                <td style={{ background: '#e0e7ff' }}>
+                  <strong className={cashFlow.reduce((s, w) => s + w.netCashFlow, 0) >= 0 ? 'positive' : 'negative'}>
+                    {formatCurrency(cashFlow.reduce((s, w) => s + w.netCashFlow, 0))}
+                  </strong>
+                </td>
+              </tr>
+              <tr>
+                <td className="row-total">Closing Cash</td>
+                {cashFlow.map(week => (
+                  <td key={week.weekId} className={week.week.isCurrent ? 'week-current' : ''} style={{ background: week.week.isCurrent ? '#fef3c7' : '#e0e7ff' }}>
+                    <strong className={week.closingBalance >= 0 ? 'positive' : 'negative'}>
+                      {formatCurrency(week.closingBalance)}
+                    </strong>
+                  </td>
+                ))}
+                <td style={{ background: '#e0e7ff' }}>
+                  <strong className={cashFlow[cashFlow.length - 1].closingBalance >= 0 ? 'positive' : 'negative'}>
+                    {formatCurrency(cashFlow[cashFlow.length - 1].closingBalance)}
+                  </strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function EventSimulator({ onAddEvent, purchaseOrders }) {
+      const [selectedEvent, setSelectedEvent] = useState('');
+
+      const simulateEvents = {
+        'variance_resolved': {
+          label: 'Resolve PO-0847 Variance (Credit $1,375)',
+          event: { type: 'VARIANCE_RESOLVED', poId: 'PO-2025-0847', data: { creditAmount: 1375, resolution: 'CREDIT_MEMO' } }
+        },
+        'sales_boost': {
+          label: 'Sales Surge +15% (Week 3)',
+          event: { type: 'SALES_ADJUSTMENT', data: { weekOffset: 3, multiplier: 1.15 } }
+        },
+        'sales_decline': {
+          label: 'Sales Decline -20% (Week 3)',
+          event: { type: 'SALES_ADJUSTMENT', data: { weekOffset: 3, multiplier: 0.80 } }
+        },
+        'po_delay': {
+          label: 'Delay PO-0872 Payment +2 Weeks',
+          event: { type: 'PAYMENT_DELAYED', poId: 'PO-2025-0872', data: { delayWeeks: 2 } }
+        },
+        'new_po': {
+          label: 'Add New PO ($25,000)',
+          event: { type: 'NEW_PO', data: { amount: 25000, vendorId: 'VND-001', paymentWeeksOut: 6 } }
+        }
+      };
+
+      return (
+        <div style={{ 
+          display: 'flex', 
+          gap: '12px', 
+          padding: '16px', 
+          backgroundColor: '#f3f4f6', 
+          borderRadius: '8px',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>Simulate Event:</span>
+          <select 
+            value={selectedEvent}
+            onChange={(e) => setSelectedEvent(e.target.value)}
+            style={{ 
+              padding: '8px 12px', 
+              borderRadius: '6px', 
+              border: '1px solid #d1d5db',
+              fontSize: '13px',
+              minWidth: '250px'
+            }}
+          >
+            <option value="">Select an event...</option>
+            {Object.entries(simulateEvents).map(([key, val]) => (
+              <option key={key} value={key}>{val.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              if (selectedEvent && simulateEvents[selectedEvent]) {
+                onAddEvent(simulateEvents[selectedEvent].event);
+                setSelectedEvent('');
+              }
+            }}
+            disabled={!selectedEvent}
+            style={{
+              backgroundColor: selectedEvent ? '#3b82f6' : '#9ca3af',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: selectedEvent ? 'pointer' : 'not-allowed',
+              fontWeight: '500',
+              fontSize: '13px'
+            }}
+          >
+            Apply Event
+          </button>
+          <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: 'auto' }}>
+            Events update the forecast in real-time
+          </span>
+        </div>
+      );
+    }
+
+    // ============================================
+    // MAIN DASHBOARD
+    // ============================================
+
+    function ThirteenWeekCashFlow() {
+      const [events, setEvents] = useState(initialEvents);
+      const [purchaseOrders, setPurchaseOrders] = useState(initialPurchaseOrders);
+      const [openingCash, setOpeningCash] = useState(125000);
+
+      const weeks = useMemo(() => generateWeeks(), []);
+      
+      const cashFlow = useMemo(() => {
+        // Apply event modifications to POs
+        let modifiedPOs = [...purchaseOrders];
+        let salesAdjustments = {};
+
+        events.forEach(event => {
+          if (event.type === 'VARIANCE_RESOLVED') {
+            const poIndex = modifiedPOs.findIndex(po => po.id === event.poId);
+            if (poIndex >= 0) {
+              modifiedPOs[poIndex] = { ...modifiedPOs[poIndex], status: 'RECEIVED' };
+            }
+          }
+          if (event.type === 'PAYMENT_DELAYED') {
+            const poIndex = modifiedPOs.findIndex(po => po.id === event.poId);
+            if (poIndex >= 0) {
+              const currentDue = new Date(modifiedPOs[poIndex].paymentDueDate);
+              currentDue.setDate(currentDue.getDate() + (event.data.delayWeeks * 7));
+              modifiedPOs[poIndex] = { 
+                ...modifiedPOs[poIndex], 
+                paymentDueDate: currentDue.toISOString().split('T')[0] 
+              };
+            }
+          }
+          if (event.type === 'SALES_ADJUSTMENT') {
+            salesAdjustments[event.data.weekOffset] = event.data.multiplier;
+          }
+          if (event.type === 'NEW_PO') {
+            const newPO = {
+              id: `PO-2025-${String(900 + modifiedPOs.length).padStart(4, '0')}`,
+              vendorId: event.data.vendorId,
+              amount: event.data.amount,
+              orderDate: TODAY.toISOString().split('T')[0],
+              paymentDueDate: new Date(TODAY.getTime() + (event.data.paymentWeeksOut * WEEK_MS)).toISOString().split('T')[0],
+              status: 'CONFIRMED',
+              paid: false
+            };
+            modifiedPOs.push(newPO);
+          }
+        });
+
+        // Calculate with modifications
+        const cf = calculateCashFlow(weeks, modifiedPOs, events, openingCash);
+        
+        // Apply sales adjustments
+        Object.entries(salesAdjustments).forEach(([weekOffset, multiplier]) => {
+          const weekIndex = parseInt(weekOffset) + 2;
+          if (weekIndex >= 0 && weekIndex < cf.length) {
+            cf[weekIndex].salesRevenue = Math.round(cf[weekIndex].salesRevenue * multiplier);
+            cf[weekIndex].totalInflows = cf[weekIndex].salesRevenue - cf[weekIndex].refunds;
+            // Recalculate downstream
+            for (let i = weekIndex; i < cf.length; i++) {
+              cf[i].netCashFlow = cf[i].totalInflows - cf[i].totalOutflows;
+              cf[i].closingBalance = cf[i].openingBalance + cf[i].netCashFlow;
+              if (i + 1 < cf.length) {
+                cf[i + 1].openingBalance = cf[i].closingBalance;
+              }
+            }
+          }
+        });
+
+        return cf;
+      }, [weeks, purchaseOrders, events, openingCash]);
+
+      const addEvent = (eventData) => {
+        const newEvent = {
+          id: `evt_${String(events.length + 1).padStart(3, '0')}`,
+          timestamp: new Date().toISOString(),
+          ...eventData
+        };
+        setEvents([...events, newEvent]);
+        
+        // If it's a new PO, also add to PO list
+        if (eventData.type === 'NEW_PO') {
+          // Handled in useMemo
+        }
+      };
+
+      // Calculate summary metrics
+      const totalInflows = cashFlow.reduce((s, w) => s + w.totalInflows, 0);
+      const totalOutflows = cashFlow.reduce((s, w) => s + w.totalOutflows, 0);
+      const endingCash = cashFlow[cashFlow.length - 1]?.closingBalance || 0;
+      const lowestCash = Math.min(...cashFlow.map(w => w.closingBalance));
+      const lowestCashWeek = cashFlow.find(w => w.closingBalance === lowestCash);
+
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '24px' }}>◈</span>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  13-Week Cash Flow Forecast
+                </h1>
+              </div>
+              <div style={{ color: '#6b7280' }}>
+                Lumina Home & Co. • Week of {weeks.find(w => w.isCurrent)?.label} • Updated in real-time from Sightline events
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              <MetricCard
+                label="Opening Cash"
+                value={formatCurrency(openingCash)}
+                subtext={weeks[0]?.label}
+                variant="default"
+                large
+              />
+              <MetricCard
+                label="Total Inflows"
+                value={formatCurrency(totalInflows)}
+                subtext="13-week projected"
+                variant="success"
+                large
+              />
+              <MetricCard
+                label="Total Outflows"
+                value={formatCurrency(totalOutflows)}
+                subtext="13-week projected"
+                variant="danger"
+                large
+              />
+              <MetricCard
+                label="Ending Cash"
+                value={formatCurrency(endingCash)}
+                subtext={weeks[weeks.length - 1]?.label}
+                variant={endingCash > openingCash ? 'success' : endingCash > 0 ? 'warning' : 'danger'}
+                large
+              />
+              <MetricCard
+                label="Minimum Cash"
+                value={formatCurrency(lowestCash)}
+                subtext={`Week of ${lowestCashWeek?.week?.label}`}
+                variant={lowestCash > 50000 ? 'success' : lowestCash > 0 ? 'warning' : 'danger'}
+                large
+              />
+            </div>
+
+            {/* Event Simulator */}
+            <div style={{ marginBottom: '24px' }}>
+              <EventSimulator onAddEvent={addEvent} purchaseOrders={purchaseOrders} />
+            </div>
+
+            {/* Chart */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              padding: '24px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  Weekly Cash Flow Trend
+                </h2>
+                <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }}></span>
+                    Inflows
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '2px' }}></span>
+                    Outflows
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '20px', height: '3px', backgroundColor: '#6366f1', borderRadius: '2px' }}></span>
+                    Closing Balance
+                  </div>
+                </div>
+              </div>
+              <CashFlowChart cashFlow={cashFlow} />
+            </div>
+
+            {/* Detailed Table */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              padding: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  Detailed Cash Flow Statement
+                </h2>
+                <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                  <span style={{ color: '#6366f1', fontStyle: 'italic' }}>Italics = Projected</span>
+                  {' • '}
+                  <span style={{ backgroundColor: '#fef3c7', padding: '2px 6px', borderRadius: '4px' }}>Current Week</span>
+                </div>
+              </div>
+              <CashFlowTable cashFlow={cashFlow} purchaseOrders={purchaseOrders} vendors={vendors} />
+              <div style={{ marginTop: '16px', fontSize: '11px', color: '#9ca3af' }}>
+                * Sales revenue projections based on historical trends and seasonality. Actuals replace projections as weeks complete.
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // APP WRAPPER
+    // ============================================
+
+    function App() {
+      const [view, setView] = useState('cashflow');
+
+      return (
+        <div>
+          {/* Navigation Header */}
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            backgroundColor: '#1f2937',
+            padding: '12px 32px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: 'white', fontWeight: '700', fontSize: '18px' }}>◈ Sightline</span>
+              <span style={{ color: '#9ca3af', fontSize: '13px' }}>13-Week Cash Flow</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '4px', backgroundColor: '#374151', borderRadius: '8px', padding: '4px' }}>
+              <button
+                onClick={() => setView('cashflow')}
+                style={{
+                  backgroundColor: view === 'cashflow' ? '#6366f1' : 'transparent',
+                  color: view === 'cashflow' ? 'white' : '#9ca3af',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px'
+                }}
+              >
+                13-Week Forecast
+              </button>
+            </div>
+
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>
+              Real-time • Event-driven updates
+            </div>
+          </div>
+
+          <ThirteenWeekCashFlow />
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

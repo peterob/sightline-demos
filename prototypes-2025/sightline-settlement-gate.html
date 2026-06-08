@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sightline MVP — Settlement Gate (Quantity Variance)</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: #0b0d12;
+      color: #e8ecf3;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    header { display:flex; gap:16px; align-items:flex-start; justify-content: space-between; margin-bottom: 18px; }
+    .title { display:flex; flex-direction:column; gap:6px; }
+    .title h1 { margin:0; font-size: 18px; letter-spacing: 0.2px; }
+    .title p { margin:0; color:#b8c0d4; font-size: 13px; line-height: 1.35; }
+
+    .grid { display:grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    .card {
+      background: #111521;
+      border: 1px solid #1c2234;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.25);
+    }
+    .card h2 { margin:0 0 10px; font-size: 14px; color:#dbe3f7; }
+    .sub { color:#b8c0d4; font-size: 12px; margin-top: -6px; margin-bottom: 10px; }
+
+    .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .row > * { flex: 0 0 auto; }
+    button, input, select {
+      border-radius: 10px;
+      border: 1px solid #26304a;
+      background: #0f1320;
+      color: #e8ecf3;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline: none;
+    }
+    button { cursor:pointer; }
+    button:hover { border-color:#3a4a75; }
+    button.primary { background:#1b2a4d; border-color:#3453a3; }
+    button.danger { background:#2b1620; border-color:#7a2b42; }
+    button.ghost { background:transparent; }
+    input { width: 120px; }
+    select { padding-right: 34px; }
+    .pill {
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px; border-radius: 999px;
+      border: 1px solid #26304a; background:#0f1320;
+      font-size: 12px; color:#cfd7ea;
+    }
+    .pill strong { color:#fff; font-weight: 600; }
+    .status {
+      display:flex; flex-direction:column; gap:8px;
+      padding: 12px; border-radius: 12px; border: 1px solid #26304a;
+      background: #0f1320;
+    }
+    .status .headline { display:flex; justify-content:space-between; align-items:center; gap: 10px; }
+    .badge {
+      font-size: 11px; padding: 6px 10px; border-radius: 999px; border: 1px solid #26304a;
+      background: #0b0d12;
+      color:#cfd7ea;
+      white-space: nowrap;
+    }
+    .badge.ok { border-color:#2d7a56; color:#baf2d5; background:#0c1812; }
+    .badge.blocked { border-color:#7a2b42; color:#ffd0dd; background:#1a0c12; }
+
+    .timeline { display:flex; flex-direction:column; gap: 10px; }
+    .evt {
+      display:grid;
+      grid-template-columns: 74px 1fr auto;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #1c2234;
+      background: #0f1320;
+      border-radius: 12px;
+    }
+    .evt .t { color:#b8c0d4; font-size: 12px; }
+    .evt .k { font-weight: 650; font-size: 13px; color:#e8ecf3; }
+    .evt .m { color:#b8c0d4; font-size: 12px; margin-top: 2px; }
+    .evt .r { color:#b8c0d4; font-size: 12px; text-align:right; }
+
+    .kv { width:100%; border-collapse: collapse; font-size: 13px; }
+    .kv td { padding: 9px 8px; border-bottom: 1px dashed #24304a; }
+    .kv td:first-child { color:#b8c0d4; }
+    .kv td:last-child { text-align:right; font-variant-numeric: tabular-nums; }
+    .kv tr:last-child td { border-bottom: none; }
+
+    .callout {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #26304a;
+      background: #0f1320;
+      color:#cfd7ea;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .callout strong { color:#fff; }
+    .muted { color:#b8c0d4; font-size: 12px; }
+    .footer { margin-top: 14px; display:flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .smalllink { color:#b8c0d4; text-decoration:none; font-size: 12px; }
+    .smalllink:hover { color:#e8ecf3; }
+
+    @media (max-width: 920px) {
+      .grid { grid-template-columns: 1fr; }
+      input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Settlement Gate MVP — Quantity Variance</h1>
+        <p>One-screen demo: append-only events → invariant evaluation → payment blocked or released.</p>
+      </div>
+      <div class="row">
+        <span class="pill"><strong>Ledger</strong> <span id="ledgerId"></span></span>
+        <button class="ghost" id="resetBtn" title="Reset to default demo data">Reset</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Timeline + Controls -->
+      <section class="card">
+        <h2>Event Timeline (Append-Only)</h2>
+        <div class="sub">Use controls to add events. "Attempt Payment" triggers the settlement gate.</div>
+
+        <div class="card" style="padding:12px; margin-bottom:12px;">
+          <div class="row" style="justify-content: space-between;">
+            <div class="row">
+              <select id="eventType">
+                <option value="GOODS_SHIPPED">GOODS_SHIPPED</option>
+                <option value="GOODS_RECEIVED">GOODS_RECEIVED</option>
+                <option value="GOODS_DAMAGED">GOODS_DAMAGED</option>
+                <option value="VARIANCE_DECLARED">VARIANCE_DECLARED</option>
+                <option value="INVOICE_SUBMITTED">INVOICE_SUBMITTED</option>
+              </select>
+
+              <input id="qty" type="number" min="0" step="1" placeholder="qty" />
+              <select id="actor">
+                <option value="Buyer">Buyer</option>
+                <option value="Supplier">Supplier</option>
+                <option value="System">System</option>
+              </select>
+              <button id="addEventBtn">Add Event</button>
+            </div>
+
+            <div class="row">
+              <button class="primary" id="attemptPaymentBtn">Attempt Payment</button>
+              <button class="danger" id="forcePayBtn" title="For demo only. Shows why bypass is logged.">Bypass (Log Only)</button>
+            </div>
+          </div>
+          <div class="muted" style="margin-top:10px;">
+            Tip: Try shipped 500, received 480, invoice → attempt payment → blocked. Then declare variance 20 → attempt payment → released.
+          </div>
+        </div>
+
+        <div id="timeline" class="timeline"></div>
+
+        <div class="footer">
+          <a class="smalllink" href="#" id="exportBtn">Export events as JSON</a>
+          <span class="muted">No backend in this demo. All state is in-memory.</span>
+        </div>
+      </section>
+
+      <!-- Right: Invariant + Status -->
+      <aside class="card">
+        <h2>Invariant State</h2>
+        <div class="sub">Payment is allowed only when shipped = received + damaged + variance.</div>
+
+        <div class="status" id="statusBox">
+          <div class="headline">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <div style="font-size:13px; font-weight:650;">Settlement Gate</div>
+              <div class="muted" id="gateExplain">—</div>
+            </div>
+            <span class="badge" id="badge">—</span>
+          </div>
+          <div class="muted">Current balance</div>
+          <table class="kv" aria-label="Invariant breakdown">
+            <tr><td>Shipped</td><td id="shipped">0</td></tr>
+            <tr><td>Received</td><td id="received">0</td></tr>
+            <tr><td>Damaged</td><td id="damaged">0</td></tr>
+            <tr><td>Variance Declared</td><td id="variance">0</td></tr>
+            <tr><td style="font-weight:650;">Unattributed</td><td id="unattributed" style="font-weight:650;">0</td></tr>
+          </table>
+        </div>
+
+        <div class="callout" id="actionBox">
+          <strong>Action required:</strong>
+          <div style="margin-top:6px;" id="nextAction">—</div>
+        </div>
+
+        <div class="callout">
+          <strong>Invariant (enforced):</strong>
+          <div style="margin-top:8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color:#cfd7ea;">
+            shipped = received + damaged + variance_declared
+          </div>
+          <div class="muted" style="margin-top:10px;">
+            If this does not hold, the system logs <code>PAYMENT_BLOCKED</code>.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Demo State ----------
+    const ledger = {
+      ledger_id: "PO-4567",
+      events: []
+    };
+
+    const TYPES = {
+      PO_CREATED: "PO_CREATED",
+      GOODS_SHIPPED: "GOODS_SHIPPED",
+      GOODS_RECEIVED: "GOODS_RECEIVED",
+      GOODS_DAMAGED: "GOODS_DAMAGED",
+      VARIANCE_DECLARED: "VARIANCE_DECLARED",
+      INVOICE_SUBMITTED: "INVOICE_SUBMITTED",
+      PAYMENT_ATTEMPTED: "PAYMENT_ATTEMPTED",
+      PAYMENT_BLOCKED: "PAYMENT_BLOCKED",
+      PAYMENT_RELEASED: "PAYMENT_RELEASED",
+      PAYMENT_BYPASSED: "PAYMENT_BYPASSED"
+    };
+
+    function nowHHMM() {
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${hh}:${mm}`;
+    }
+
+    function uid() {
+      return Math.random().toString(16).slice(2) + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function appendEvent(event_type, { quantity = null, actor = "System", metadata = {} } = {}) {
+      ledger.events.push({
+        event_id: uid(),
+        ts: new Date().toISOString(),
+        t: nowHHMM(),
+        event_type,
+        quantity,
+        actor,
+        metadata
+      });
+      render();
+    }
+
+    // ---------- Invariant Engine ----------
+    function sumQty(type) {
+      return ledger.events
+        .filter(e => e.event_type === type)
+        .reduce((acc, e) => acc + (Number(e.quantity) || 0), 0);
+    }
+
+    function invariantState() {
+      const shipped = sumQty(TYPES.GOODS_SHIPPED);
+      const received = sumQty(TYPES.GOODS_RECEIVED);
+      const damaged = sumQty(TYPES.GOODS_DAMAGED);
+      const variance = sumQty(TYPES.VARIANCE_DECLARED);
+
+      const rhs = received + damaged + variance;
+      const unattributed = Math.max(0, shipped - rhs);
+
+      const holds = shipped > 0 && (shipped === rhs);
+      return { shipped, received, damaged, variance, rhs, unattributed, holds };
+    }
+
+    function attemptPayment() {
+      appendEvent(TYPES.PAYMENT_ATTEMPTED, { actor: "System" });
+      const s = invariantState();
+      if (s.holds) {
+        appendEvent(TYPES.PAYMENT_RELEASED, { actor: "System", metadata: { reason: "Invariant holds" } });
+      } else {
+        appendEvent(TYPES.PAYMENT_BLOCKED, {
+          actor: "System",
+          metadata: {
+            reason: "Invariant violation",
+            detail: `Unattributed quantity: ${s.unattributed}`
+          }
+        });
+      }
+    }
+
+    // For demo: shows that bypass is always logged (and you'd flag it)
+    function bypassPayment() {
+      appendEvent(TYPES.PAYMENT_BYPASSED, { actor: "System", metadata: { note: "Bypass logged for audit/alerting" } });
+    }
+
+    // ---------- Rendering ----------
+    function el(tag, attrs = {}, children = []) {
+      const node = document.createElement(tag);
+      Object.entries(attrs).forEach(([k, v]) => {
+        if (k === "class") node.className = v;
+        else if (k === "html") node.innerHTML = v;
+        else node.setAttribute(k, v);
+      });
+      children.forEach(c => node.appendChild(typeof c === "string" ? document.createTextNode(c) : c));
+      return node;
+    }
+
+    function renderTimeline() {
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = "";
+
+      const events = [...ledger.events].slice().reverse(); // newest first
+      if (events.length === 0) {
+        timeline.appendChild(el("div", { class: "muted" }, ["No events yet. Add one above."]));
+        return;
+      }
+
+      for (const e of events) {
+        const qtyPart = (e.quantity === null || e.quantity === undefined || e.quantity === "") ? "" : `qty=${e.quantity}`;
+        const metaPart = e.metadata && Object.keys(e.metadata).length
+          ? JSON.stringify(e.metadata)
+          : "";
+
+        timeline.appendChild(
+          el("div", { class: "evt" }, [
+            el("div", { class: "t" }, [e.t]),
+            el("div", {}, [
+              el("div", { class: "k" }, [e.event_type]),
+              el("div", { class: "m" }, [
+                [qtyPart, metaPart].filter(Boolean).join("  •  ") || "—"
+              ])
+            ]),
+            el("div", { class: "r" }, [e.actor])
+          ])
+        );
+      }
+    }
+
+    function renderInvariant() {
+      const s = invariantState();
+      document.getElementById("shipped").textContent = s.shipped;
+      document.getElementById("received").textContent = s.received;
+      document.getElementById("damaged").textContent = s.damaged;
+      document.getElementById("variance").textContent = s.variance;
+      document.getElementById("unattributed").textContent = s.unattributed;
+
+      const badge = document.getElementById("badge");
+      const explain = document.getElementById("gateExplain");
+      const nextAction = document.getElementById("nextAction");
+
+      if (s.shipped === 0) {
+        badge.className = "badge";
+        badge.textContent = "WAITING";
+        explain.textContent = "No shipment recorded yet.";
+        nextAction.textContent = "Add GOODS_SHIPPED to start the ledger.";
+        return;
+      }
+
+      if (s.holds) {
+        badge.className = "badge ok";
+        badge.textContent = "ALLOW_PAYMENT";
+        explain.textContent = "Invariant holds. Payment can be released.";
+        nextAction.textContent = "Attempt Payment to emit PAYMENT_RELEASED.";
+      } else {
+        badge.className = "badge blocked";
+        badge.textContent = "BLOCK_PAYMENT";
+        explain.textContent = "Invariant violated. Cash cannot move.";
+        nextAction.innerHTML =
+          `Missing attribution for <strong>${s.unattributed}</strong> units.<br/>` +
+          `Next: add <code>VARIANCE_DECLARED</code> (or <code>GOODS_DAMAGED</code>) to balance shipped quantity.`;
+      }
+    }
+
+    function render() {
+      document.getElementById("ledgerId").textContent = ledger.ledger_id;
+      renderTimeline();
+      renderInvariant();
+    }
+
+    // ---------- Controls ----------
+    function seedDefault() {
+      ledger.events = [];
+      appendEvent(TYPES.PO_CREATED, { actor: "Buyer", metadata: { po: ledger.ledger_id, line_items: 1 } });
+      appendEvent(TYPES.GOODS_SHIPPED, { actor: "Supplier", quantity: 500, metadata: { shipment: "SHP-001" } });
+      appendEvent(TYPES.GOODS_RECEIVED, { actor: "Buyer", quantity: 480, metadata: { receipt: "RCV-001" } });
+      appendEvent(TYPES.INVOICE_SUBMITTED, { actor: "Supplier", metadata: { invoice: "INV-123" } });
+      // Note: do not attempt payment yet — user does that in demo
+    }
+
+    document.getElementById("addEventBtn").addEventListener("click", () => {
+      const type = document.getElementById("eventType").value;
+      const qtyInput = document.getElementById("qty").value;
+      const actor = document.getElementById("actor").value;
+
+      // Quantity is optional for some types
+      const needsQty = [TYPES.GOODS_SHIPPED, TYPES.GOODS_RECEIVED, TYPES.GOODS_DAMAGED, TYPES.VARIANCE_DECLARED].includes(type);
+      const quantity = needsQty ? (qtyInput === "" ? null : Number(qtyInput)) : null;
+
+      const metadata = {};
+      if (type === TYPES.VARIANCE_DECLARED && quantity !== null) metadata.reason = "Quantity variance";
+      if (type === TYPES.GOODS_DAMAGED && quantity !== null) metadata.evidence = "Photo/packing slip";
+
+      appendEvent(type, { quantity, actor, metadata });
+
+      // clear qty for convenience
+      document.getElementById("qty").value = "";
+    });
+
+    document.getElementById("attemptPaymentBtn").addEventListener("click", attemptPayment);
+    document.getElementById("forcePayBtn").addEventListener("click", bypassPayment);
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      seedDefault();
+      render();
+    });
+
+    document.getElementById("exportBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      const blob = new Blob([JSON.stringify({ ledger_id: ledger.ledger_id, events: ledger.events }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${ledger.ledger_id}-events.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // ---------- Boot ----------
+    seedDefault();
+    render();
+  </script>
+</body>
+</html>

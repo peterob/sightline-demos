@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST v1 — Customer Conversations</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f9f9f7; color: #222; }
+
+.app { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+.app-title { font-size: 13px; font-weight: 500; color: #888; margin-bottom: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+.nav { display: flex; gap: 0; border-bottom: 1px solid #e0ddd6; margin-bottom: 0; }
+.nav-btn {
+  flex: 1; padding: 12px 8px; font-size: 13px; font-weight: 500;
+  background: none; border: none; cursor: pointer;
+  color: #888; border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+.nav-btn.active { color: #222; border-bottom-color: #0E7C7B; }
+.nav-btn:hover:not(.active) { background: #f4f4f0; }
+
+.panel { display: none; padding: 20px 0; }
+.panel.active { display: block; }
+
+.convo-header {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 16px 20px; background: #f4f4f0;
+  border-radius: 12px; border: 0.5px solid #e0ddd6; margin-bottom: 20px;
+}
+.convo-icon {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 500;
+}
+.convo-title { font-size: 15px; font-weight: 500; color: #222; margin-bottom: 4px; }
+.convo-role { font-size: 12px; color: #888; }
+.convo-goal { font-size: 13px; color: #555; margin-top: 6px; line-height: 1.5; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+@media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
+.card { background: #fff; border: 0.5px solid #e0ddd6; border-radius: 12px; padding: 16px; }
+.card-label { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.card-q { font-size: 13px; color: #222; line-height: 1.6; font-style: italic; border-left: 2px solid #0E7C7B; padding-left: 10px; }
+.show-items { display: flex; flex-direction: column; gap: 6px; }
+.show-item { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: #555; line-height: 1.5; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #0E7C7B; flex-shrink: 0; margin-top: 6px; }
+
+.full-card { background: #fff; border: 0.5px solid #e0ddd6; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+.full-card-head { padding: 12px 16px; background: #f4f4f0; border-bottom: 0.5px solid #e0ddd6; font-size: 12px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.08em; }
+.full-card-body { padding: 16px; }
+
+.trade-msg { background: #1B2A4A; border-radius: 12px; padding: 20px; color: white; max-width: 320px; margin: 0 auto; }
+.trade-msg .company { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 6px; }
+.trade-msg .invoice { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.trade-msg .amount { font-size: 28px; font-weight: 500; color: #0DCFCE; margin-bottom: 2px; }
+.trade-msg .details { font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 2px; }
+.trade-msg .deadline { font-size: 12px; color: rgba(255,255,255,0.38); margin: 12px 0 16px; }
+.trade-msg-btns { display: flex; gap: 8px; }
+.tmb { flex: 1; padding: 10px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); font-size: 13px; font-weight: 500; color: white; cursor: pointer; text-align: center; transition: background 0.15s; }
+.tmb:hover { background: rgba(255,255,255,0.14); }
+.tmb.confirm { background: #0E7C7B; border-color: #0E7C7B; }
+
+.trigger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.trigger-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 0.5px solid #e0ddd6; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.15s; background: #fff; color: #222; }
+.trigger-item:hover { border-color: #0E7C7B; }
+.trigger-item.active { border-color: #0E7C7B; background: #E1F5EE; color: #085041; }
+.trigger-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+.trigger-item.active .trigger-dot { background: #0E7C7B; }
+.trigger-result { padding: 12px 16px; background: #f4f4f0; border-radius: 8px; border: 0.5px solid #e0ddd6; font-size: 13px; color: #555; line-height: 1.6; min-height: 60px; }
+.trigger-count { font-size: 22px; font-weight: 500; color: #0E7C7B; margin-bottom: 4px; }
+
+.roi-slider-group { margin-bottom: 16px; }
+.roi-label { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.roi-label span { font-size: 13px; color: #888; }
+.roi-label strong { font-size: 13px; color: #222; }
+input[type=range] { width: 100%; accent-color: #0E7C7B; }
+.roi-results { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0; }
+.roi-metric { background: #f4f4f0; border-radius: 8px; padding: 12px; text-align: center; }
+.roi-metric .rm-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.roi-metric .rm-val { font-size: 20px; font-weight: 500; color: #222; }
+.rm-val.green { color: #0F6E56; }
+.rm-val.amber { color: #854F0B; }
+
+.proof-record { font-family: 'Courier New', monospace; font-size: 12px; background: #f4f4f0; border: 0.5px solid #e0ddd6; border-radius: 8px; padding: 14px; line-height: 1.8; color: #888; }
+.proof-field { color: #222; font-weight: 500; }
+.proof-val { color: #0E7C7B; }
+.proof-hash { color: #854F0B; word-break: break-all; }
+
+.std-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid #e0ddd6; font-size: 13px; gap: 12px; }
+.std-row:last-child { border-bottom: none; }
+.std-status { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.status-yes { background: #E1F5EE; color: #085041; }
+.status-gap { background: #FAEEDA; color: #633806; }
+
+.version-item { padding: 12px 14px; border-radius: 8px; margin-bottom: 8px; background: #fff; }
+.version-item.featured { border: 2px solid #0E7C7B; }
+.version-item.muted { border: 0.5px solid #e0ddd6; }
+.version-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.version-name { font-size: 13px; font-weight: 500; color: #222; }
+.version-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.badge-ready { background: #E1F5EE; color: #085041; }
+.badge-post { background: #FAEEDA; color: #633806; }
+.badge-long { background: #f4f4f0; color: #888; }
+.version-desc { font-size: 12px; color: #888; }
+
+.section-label { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 0 10px; }
+
+.vendor-row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+.vendor-notes { flex: 1; min-width: 180px; }
+.vendor-notes .show-items { margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-title">CAST v1 — Three customer conversations</div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="show(0)">AP controller</button>
+    <button class="nav-btn" onclick="show(1)">PE operating partner</button>
+    <button class="nav-btn" onclick="show(2)">Auditor</button>
+  </div>
+
+  <div id="p0" class="panel active">
+    <div class="convo-header">
+      <div class="convo-icon" style="background:#E1F5EE;color:#085041;">AP</div>
+      <div>
+        <div class="convo-title">Conversation 1: AP Controller</div>
+        <div class="convo-role">PE portfolio company — $20M–$150M revenue</div>
+        <div class="convo-goal">Goal: test trigger rate and vendor response assumption. Not a sale — a calibration conversation.</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-label">The question that matters</div>
+        <div class="card-q">"Of your last 50 AP transactions, how many involved a new vendor, a bank change, or an amount you weren't expecting?"</div>
+      </div>
+      <div class="card">
+        <div class="card-label">What you learn</div>
+        <div class="show-items">
+          <div class="show-item"><div class="dot"></div>Whether trigger policy is calibrated correctly</div>
+          <div class="show-item"><div class="dot"></div>Vendor response friction at their specific vendor mix</div>
+          <div class="show-item"><div class="dot"></div>Whether AP team would actually use a queue vs. email</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Trigger rate estimator — use in the room</div>
+    <div class="full-card">
+      <div class="full-card-head">Select which triggers apply to this company's AP flow</div>
+      <div class="full-card-body">
+        <div class="trigger-grid">
+          <div class="trigger-item active" onclick="toggleTrigger(this, 15)"><div class="trigger-dot"></div>First payment to vendor</div>
+          <div class="trigger-item active" onclick="toggleTrigger(this, 8)"><div class="trigger-dot"></div>Bank instruction changed</div>
+          <div class="trigger-item active" onclick="toggleTrigger(this, 22)"><div class="trigger-dot"></div>Amount above $10K</div>
+          <div class="trigger-item" onclick="toggleTrigger(this, 12)"><div class="trigger-dot"></div>Amount anomaly vs. history</div>
+          <div class="trigger-item active" onclick="toggleTrigger(this, 5)"><div class="trigger-dot"></div>Duplicate suspicion</div>
+          <div class="trigger-item" onclick="toggleTrigger(this, 4)"><div class="trigger-dot"></div>Rush payment</div>
+          <div class="trigger-item" onclick="toggleTrigger(this, 3)"><div class="trigger-dot"></div>Blocked vendor</div>
+          <div class="trigger-item active" onclick="toggleTrigger(this, 9)"><div class="trigger-dot"></div>Missing PO / SOW ref</div>
+        </div>
+        <div class="trigger-result">
+          <div class="trigger-count" id="trigger-pct">59%</div>
+          <div id="trigger-text">of AP transactions would generate a Trade Message under selected triggers — based on industry benchmarks for a $50M revenue company with 100 active vendors.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Show them — the vendor experience</div>
+    <div class="full-card">
+      <div class="full-card-head">Vendor-facing Trade Message (mobile)</div>
+      <div class="full-card-body">
+        <div class="vendor-row">
+          <div class="trade-msg">
+            <div class="company">BrightPath Services → INV-1048</div>
+            <div class="invoice">Payment confirmation request</div>
+            <div class="amount">$47,200</div>
+            <div class="details">March 28 · Account ending 9921</div>
+            <div class="details">PO-882 / Phase 2 retrofit</div>
+            <div class="deadline">Reply by 5:00 PM ET Thursday</div>
+            <div class="trade-msg-btns">
+              <div class="tmb confirm">Confirm</div>
+              <div class="tmb">Change</div>
+              <div class="tmb">Dispute</div>
+            </div>
+          </div>
+          <div class="vendor-notes">
+            <div class="show-items">
+              <div class="show-item"><div class="dot"></div>Mobile-first — works on any device</div>
+              <div class="show-item"><div class="dot"></div>No account required on first use</div>
+              <div class="show-item"><div class="dot"></div>Three actions only — nothing else visible</div>
+              <div class="show-item"><div class="dot"></div>Under 30 seconds to confirm</div>
+              <div class="show-item"><div class="dot"></div>Dispute triggers immediate payment block</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="p1" class="panel">
+    <div class="convo-header">
+      <div class="convo-icon" style="background:#E6F1FB;color:#0C447C;">PE</div>
+      <div>
+        <div class="convo-title">Conversation 2: PE Operating Partner</div>
+        <div class="convo-role">GP or operating partner with portfolio company oversight</div>
+        <div class="convo-goal">Goal: validate channel and QoE framing. Get two or three CFO introductions.</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-label">The question that matters</div>
+        <div class="card-q">"If a portfolio company had CAST in place for 18 months before a QoE, what would the examiner see differently?"</div>
+      </div>
+      <div class="card">
+        <div class="card-label">What you learn</div>
+        <div class="show-items">
+          <div class="show-item"><div class="dot"></div>Whether proof record resonates as exit preparation</div>
+          <div class="show-item"><div class="dot"></div>Whether they'd recommend across portfolio</div>
+          <div class="show-item"><div class="dot"></div>Which portfolio companies are closest to the ICP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">ROI calculator — use in the room</div>
+    <div class="full-card">
+      <div class="full-card-head">Status quo cost vs. CAST — fill in their numbers</div>
+      <div class="full-card-body">
+        <div class="roi-slider-group">
+          <div class="roi-label"><span>Annual AP spend</span><strong id="ap-val">$50M</strong></div>
+          <input type="range" min="10" max="150" step="5" value="50" id="ap-slider" oninput="calcROI()">
+        </div>
+        <div class="roi-slider-group">
+          <div class="roi-label"><span>Controller fully-loaded cost</span><strong id="ctrl-val">$150K</strong></div>
+          <input type="range" min="100" max="250" step="10" value="150" id="ctrl-slider" oninput="calcROI()">
+        </div>
+        <div class="roi-slider-group">
+          <div class="roi-label"><span>Borrowing base size</span><strong id="bb-val">$5M</strong></div>
+          <input type="range" min="1" max="20" step="1" value="5" id="bb-slider" oninput="calcROI()">
+        </div>
+        <div class="roi-results">
+          <div class="roi-metric"><div class="rm-label">BEC expected loss / yr</div><div class="rm-val amber" id="bec-val">$150K</div></div>
+          <div class="roi-metric"><div class="rm-label">Reconciliation labor</div><div class="rm-val amber" id="recon-val">$52K</div></div>
+          <div class="roi-metric"><div class="rm-label">Advance rate gain</div><div class="rm-val amber" id="ar-val">$150K</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="roi-metric"><div class="rm-label">Total status quo cost</div><div class="rm-val amber" id="total-cost">$352K</div></div>
+          <div class="roi-metric"><div class="rm-label">CAST at $4K/mo</div><div class="rm-val green">$48K / yr</div></div>
+        </div>
+        <div style="padding:12px 16px;background:#f4f4f0;border-radius:8px;border:0.5px solid #e0ddd6;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;">Net ROI (status quo cost vs. CAST subscription)</div>
+          <div style="font-size:22px;font-weight:500;color:#0F6E56;" id="roi-val">7.3x</div>
+          <div style="font-size:12px;color:#888;margin-top:4px;">At $4K/month. Value benchmarked against exposure, not SaaS comparables.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Show them — version map</div>
+    <div class="full-card">
+      <div class="full-card-head">Three levels of CAST</div>
+      <div class="full-card-body">
+        <div class="version-item featured">
+          <div class="version-header"><span class="version-name">CAST v1 — Confirm & Pay</span><span class="version-badge badge-ready">Ready to build</span></div>
+          <div class="version-desc">High-risk AP flows. Trade Messages. PE portfolio company beachhead. $500K–$1M ARR target.</div>
+        </div>
+        <div class="version-item muted">
+          <div class="version-header"><span class="version-name">CAST v2+ — Expanded coverage</span><span class="version-badge badge-post">Post v1</span></div>
+          <div class="version-desc">PO/quote acceptance. Milestone acceptance. First financing counterparty pilot. Stream 2 monetization.</div>
+        </div>
+        <div class="version-item muted">
+          <div class="version-header"><span class="version-name">CAST Full — Complete architecture</span><span class="version-badge badge-long">Long-term</span></div>
+          <div class="version-desc">All verticals. GPU compute. Institutional grant management. Full financing and insurance infrastructure.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="p2" class="panel">
+    <div class="convo-header">
+      <div class="convo-icon" style="background:#FAEEDA;color:#633806;">AU</div>
+      <div>
+        <div class="convo-title">Conversation 3: Auditor or Compliance Officer</div>
+        <div class="convo-role">Audit firm partner or nonprofit compliance officer</div>
+        <div class="convo-goal">Goal: validate proof standard. Confirm whether CAST bilateral event record satisfies their evidence requirement — and identify any gaps.</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-label">The question that matters</div>
+        <div class="card-q">"If every GL entry had a CAST reference with a bilateral proof record attached, how would that change your substantive testing approach?"</div>
+      </div>
+      <div class="card">
+        <div class="card-label">What you learn</div>
+        <div class="show-items">
+          <div class="show-item"><div class="dot"></div>Whether the audit trail claim holds</div>
+          <div class="show-item"><div class="dot"></div>What gaps exist before the enterprise pitch</div>
+          <div class="show-item"><div class="dot"></div>Whether FRE 803(6) business records standard is met</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Show them — the bilateral proof record</div>
+    <div class="full-card">
+      <div class="full-card-head">Sample CAST bilateral event record</div>
+      <div class="full-card-body">
+        <div class="proof-record">
+          <div><span class="proof-field">cast_reference:</span>    <span class="proof-val">#CAST-2026-0042371</span></div>
+          <div><span class="proof-field">event_type:</span>         <span class="proof-val">bilateral_event</span></div>
+          <div><span class="proof-field">payer:</span>              <span class="proof-val">BrightPath Holdings LLC</span></div>
+          <div><span class="proof-field">vendor:</span>             <span class="proof-val">Apex Electrical Services Inc.</span></div>
+          <div><span class="proof-field">invoice_ref:</span>        <span class="proof-val">INV-1048</span></div>
+          <div><span class="proof-field">amount:</span>             <span class="proof-val">$47,200.00 USD</span></div>
+          <div><span class="proof-field">payment_date:</span>       <span class="proof-val">2026-03-28</span></div>
+          <div><span class="proof-field">destination_token:</span>  <span class="proof-val">tok_9921_verified</span></div>
+          <div><span class="proof-field">confirmation_method:</span><span class="proof-val">vendor_portal_passkey</span></div>
+          <div><span class="proof-field">vendor_signed_at:</span>   <span class="proof-val">2026-03-24T14:32:07Z</span></div>
+          <div><span class="proof-field">policy_version:</span>     <span class="proof-val">POL-v4.2 (active 2026-01-01)</span></div>
+          <div><span class="proof-field">approver:</span>           <span class="proof-val">J. Harmon (Controller) — 2026-03-24T15:01:44Z</span></div>
+          <div><span class="proof-field">lineage_hash:</span>       <span class="proof-hash">a7f3d2c891b04e56f2a3c7d8e1f09b2c 3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a</span></div>
+          <div><span class="proof-field">hash_status:</span>        <span class="proof-val">INTACT — verified 2026-03-28T09:00:00Z</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Evidence standard checklist — FRE 803(6) business records</div>
+    <div class="full-card">
+      <div class="full-card-head">Does CAST proof satisfy the standard?</div>
+      <div class="full-card-body">
+        <div class="std-row"><span>Made at or near time of transaction</span><span class="std-status status-yes">Satisfies</span></div>
+        <div class="std-row"><span>Made by person with knowledge</span><span class="std-status status-yes">Satisfies — bilateral co-authorship</span></div>
+        <div class="std-row"><span>Kept in regular course of business</span><span class="std-status status-yes">Satisfies — system-generated</span></div>
+        <div class="std-row"><span>Regular practice to make such records</span><span class="std-status status-yes">Satisfies — policy-governed</span></div>
+        <div class="std-row"><span>Tamper-evident / unaltered</span><span class="std-status status-yes">Satisfies — lineage hash</span></div>
+        <div class="std-row"><span>Counterparty identity verification</span><span class="std-status status-gap">Gap — depends on onboarding strength</span></div>
+        <div class="std-row"><span>Coverage of all material transactions</span><span class="std-status status-gap">Gap — v1 is trigger-based, not comprehensive</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(i) {
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('active', i===j));
+  document.querySelectorAll('.nav-btn').forEach((b,j) => b.classList.toggle('active', i===j));
+}
+
+let triggerPcts = [15, 8, 22, 0, 5, 0, 0, 9];
+function toggleTrigger(el, pct) {
+  const idx = Array.from(el.parentNode.children).indexOf(el);
+  el.classList.toggle('active');
+  triggerPcts[idx] = el.classList.contains('active') ? pct : 0;
+  const total = Math.min(95, triggerPcts.reduce((a,b)=>a+b,0));
+  document.getElementById('trigger-pct').textContent = total + '%';
+}
+
+function calcROI() {
+  const ap = parseInt(document.getElementById('ap-slider').value);
+  const ctrl = parseInt(document.getElementById('ctrl-slider').value);
+  const bb = parseInt(document.getElementById('bb-slider').value);
+  document.getElementById('ap-val').textContent = '$' + ap + 'M';
+  document.getElementById('ctrl-val').textContent = '$' + ctrl + 'K';
+  document.getElementById('bb-val').textContent = '$' + bb + 'M';
+  const bec = Math.round(ap * 1000 * 0.003);
+  const recon = Math.round(ctrl * 1000 * 0.35);
+  const arGain = Math.round(bb * 1000000 * 0.03);
+  const total = bec + recon + arGain + 8000;
+  const roi = (total / 48000).toFixed(1);
+  document.getElementById('bec-val').textContent = '$' + (bec/1000).toFixed(0) + 'K';
+  document.getElementById('recon-val').textContent = '$' + (recon/1000).toFixed(0) + 'K';
+  document.getElementById('ar-val').textContent = '$' + (arGain/1000).toFixed(0) + 'K';
+  document.getElementById('total-cost').textContent = '$' + (total/1000).toFixed(0) + 'K';
+  document.getElementById('roi-val').textContent = roi + 'x';
+}
+calcROI();
+</script>
+</body>
+</html>

@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deal Wiki — CAST Live</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1814;
+    --ink2: #4a4640;
+    --ink3: #8a8580;
+    --paper: #f5f2ec;
+    --paper2: #ede9e1;
+    --paper3: #e2ddd4;
+    --gold: #c8a84b;
+    --gold2: #e8c86b;
+    --teal: #2a6b5e;
+    --teal-light: #e8f2f0;
+    --red: #8b2f2f;
+    --red-light: #f5eaea;
+    --amber: #7a5a1a;
+    --amber-light: #f5f0e0;
+    --blue: #1a3a5e;
+    --blue-light: #e8eef5;
+    --rule: rgba(26,24,20,0.12);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: 56px 1fr;
+    gap: 0;
+  }
+
+  /* HEADER */
+  header {
+    grid-column: 1 / -1;
+    background: var(--ink);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 20px;
+    border-bottom: 2px solid var(--gold);
+  }
+  .header-logo {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 15px;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); }
+  .header-deal {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+  }
+  .header-deal span { color: #fff; font-weight: 500; }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(200,168,75,0.15);
+    border: 1px solid rgba(200,168,75,0.4);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--gold2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold2);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* SIDEBAR — TOC */
+  .sidebar {
+    background: var(--paper2);
+    border-right: 1px solid var(--rule);
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  .sidebar-section {
+    padding: 6px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-top: 12px;
+  }
+  .toc-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink2);
+    transition: background 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .toc-item:hover { background: var(--paper3); }
+  .toc-item.active { background: var(--paper3); border-left-color: var(--gold); color: var(--ink); font-weight: 500; }
+  .toc-item.locked { opacity: 0.35; cursor: default; }
+  .toc-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--teal); }
+  .dot-amber { background: var(--gold); }
+  .dot-red { background: var(--red); }
+  .dot-gray { background: var(--ink3); }
+  .toc-count {
+    margin-left: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--ink3);
+  }
+
+  /* MAIN WIKI */
+  .wiki-main {
+    overflow-y: auto;
+    padding: 32px 48px;
+    max-width: 800px;
+  }
+
+  .wiki-page { display: none; }
+  .wiki-page.active { display: block; }
+
+  .page-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .page-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .tag-event { background: var(--teal-light); color: var(--teal); }
+  .tag-policy { background: var(--amber-light); color: var(--amber); }
+  .tag-obligation { background: var(--blue-light); color: var(--blue); }
+  .tag-case { background: var(--red-light); color: var(--red); }
+  .tag-document { background: var(--paper3); color: var(--ink2); }
+
+  .page-updated {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--ink3);
+  }
+
+  .wiki-h1 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .wiki-subtitle {
+    font-size: 15px;
+    color: var(--ink2);
+    margin-bottom: 24px;
+    line-height: 1.5;
+    font-weight: 300;
+  }
+  .wiki-rule { border: none; border-top: 1px solid var(--rule); margin: 24px 0; }
+
+  .wiki-h2 {
+    font-family: 'Libre Baskerville', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 28px 0 10px;
+    color: var(--ink);
+  }
+  .wiki-h2:first-of-type { margin-top: 0; }
+
+  .wiki-p {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--ink2);
+    margin-bottom: 12px;
+  }
+
+  .fact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .fact-cell {
+    background: var(--paper);
+    padding: 10px 14px;
+  }
+  .fact-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 3px;
+  }
+  .fact-val { font-size: 13px; font-weight: 500; color: var(--ink); }
+
+  .event-log {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .event-log-header {
+    background: var(--paper3);
+    padding: 8px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    display: grid;
+    grid-template-columns: 130px 130px 1fr 80px;
+    gap: 8px;
+  }
+  .event-row {
+    display: grid;
+    grid-template-columns: 130px 130px 1fr 80px;
+    gap: 8px;
+    padding: 9px 14px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    align-items: center;
+    animation: fadeSlide 0.4s ease both;
+  }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .event-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+  .actor-human { color: var(--blue); }
+  .actor-agent { color: var(--teal); }
+  .status-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-align: center;
+  }
+  .pill-done { background: var(--teal-light); color: var(--teal); }
+  .pill-open { background: var(--amber-light); color: var(--amber); }
+  .pill-blocked { background: var(--red-light); color: var(--red); }
+
+  .wiki-link {
+    color: var(--teal);
+    text-decoration: underline;
+    text-decoration-color: rgba(42,107,94,0.3);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .wiki-link:hover { text-decoration-color: var(--teal); }
+
+  .callout {
+    border-left: 3px solid var(--gold);
+    background: var(--amber-light);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink2);
+  }
+  .callout strong { color: var(--ink); font-weight: 500; }
+
+  .obligation-list { list-style: none; margin: 12px 0; }
+  .obligation-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    background: var(--paper);
+  }
+  .obl-icon { font-size: 16px; }
+  .obl-team { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink3); margin-left: auto; }
+  .obl-status { font-family: 'IBM Plex Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 3px; }
+
+  /* FEED PANEL */
+  .feed-panel {
+    background: var(--ink);
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+  .feed-header {
+    padding: 0 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+  }
+  .feed-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 4px;
+  }
+  .feed-subtitle { font-size: 13px; color: rgba(255,255,255,0.7); }
+
+  .feed-event {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    animation: fadeIn 0.5s ease both;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .feed-event:hover { background: rgba(255,255,255,0.04); }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+  .feed-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 4px;
+  }
+  .feed-event-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--gold2);
+    margin-bottom: 3px;
+  }
+  .feed-desc { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+  .feed-actor {
+    margin-top: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .feed-actor-human { color: #7aaed4; }
+  .feed-actor-agent { color: #7acdb5; }
+
+  .feed-wiki-update {
+    padding: 10px 20px;
+    background: rgba(200,168,75,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 11px;
+    color: rgba(200,168,75,0.7);
+    animation: fadeIn 0.5s ease both;
+  }
+  .feed-wiki-icon { flex-shrink:0; margin-top:1px; opacity:0.7; font-size:13px; }
+
+  /* CONTROLS */
+  .controls {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: auto;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .btn-fire {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    border-radius: 5px;
+    padding: 9px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.05em;
+  }
+  .btn-fire:hover { background: var(--gold2); }
+  .btn-fire:active { transform: scale(0.98); }
+  .btn-fire:disabled { opacity: 0.3; cursor: default; }
+  .btn-reset {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 5px;
+    padding: 7px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-reset:hover { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.7); }
+
+  .progress-track {
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 1px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-fill-bar {
+    height: 100%;
+    background: var(--gold);
+    border-radius: 1px;
+    transition: width 0.4s ease;
+  }
+  .step-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">CAST · Sightline</div>
+  <div class="header-sep"></div>
+  <div class="header-deal">Deal <span>MQ-2026-047</span> · Project Falcon · Sell-side mandate</div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>Wiki building live</div>
+  </div>
+</header>
+
+<!-- SIDEBAR TOC -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">Deal overview</div>
+  <div class="toc-item active" onclick="showPage('overview')" id="toc-overview">
+    <div class="toc-dot dot-green"></div>
+    <span>Project Falcon</span>
+    <span class="toc-count" id="cnt-overview">1</span>
+  </div>
+
+  <div class="sidebar-section">Mandate phase</div>
+  <div class="toc-item locked" onclick="showPage('mandate')" id="toc-mandate">
+    <div class="toc-dot dot-gray"></div>
+    <span>Mandate accepted</span>
+    <span class="toc-count" id="cnt-mandate">—</span>
+  </div>
+  <div class="toc-item locked" onclick="showPage('conflicts')" id="toc-conflicts">
+    <div class="toc-dot dot-gray"></div>
+    <span>Conflict check</span>
+    <span class="toc-count" id="cnt-conflicts">—</span>
+  </div>
+
+  <div class="sidebar-section">Kickoff phase</div>
+  <div class="toc-item locked" onclick="showPage('obligations')" id="toc-obligations">
+    <div class="toc-dot dot-gray"></div>
+    <span>Workstreams</span>
+    <span class="toc-count" id="cnt-obligations">—</span>
+  </div>
+
+  <div class="sidebar-section">Materials phase</div>
+  <div class="toc-item locked" onclick="showPage('teaser')" id="toc-teaser">
+    <div class="toc-dot dot-gray"></div>
+    <span>Teaser deck</span>
+    <span class="toc-count" id="cnt-teaser">—</span>
+  </div>
+  <div class="toc-item locked" onclick="showPage('cim')" id="toc-cim">
+    <div class="toc-dot dot-gray"></div>
+    <span>CIM</span>
+    <span class="toc-count" id="cnt-cim">—</span>
+  </div>
+
+  <div class="sidebar-section">Approvals</div>
+  <div class="toc-item locked" onclick="showPage('ic')" id="toc-ic">
+    <div class="toc-dot dot-gray"></div>
+    <span>IC approval</span>
+    <span class="toc-count" id="cnt-ic">—</span>
+  </div>
+</nav>
+
+<!-- MAIN WIKI -->
+<main class="wiki-main">
+
+  <!-- OVERVIEW PAGE -->
+  <div class="wiki-page active" id="page-overview">
+    <div class="page-meta">
+      <span class="page-tag tag-event">Deal</span>
+      <span class="page-updated" id="overview-updated">Created — today</span>
+    </div>
+    <h1 class="wiki-h1">Project Falcon</h1>
+    <p class="wiki-subtitle">Sell-side mandate · Macquarie Capital · Auto-compiled from CAST event stream</p>
+    <hr class="wiki-rule">
+
+    <div class="fact-grid">
+      <div class="fact-cell"><div class="fact-label">Deal ID</div><div class="fact-val">MQ-2026-047</div></div>
+      <div class="fact-cell"><div class="fact-label">Type</div><div class="fact-val">Sell-side M&amp;A</div></div>
+      <div class="fact-cell"><div class="fact-label">Sector</div><div class="fact-val">Infrastructure / Energy transition</div></div>
+      <div class="fact-cell"><div class="fact-label">Target EV</div><div class="fact-val">$1.2–1.6bn (indicative)</div></div>
+      <div class="fact-cell"><div class="fact-label">Seller</div><div class="fact-val">Falcon Holdings Pty Ltd</div></div>
+      <div class="fact-cell"><div class="fact-label">Lead banker</div><div class="fact-val">J. Hartmann, MD</div></div>
+    </div>
+
+    <h2 class="wiki-h2">What this wiki is</h2>
+    <p class="wiki-p">This page is auto-compiled by CAST as events fire across the deal lifecycle. Every section below was written by an agent reading the event stream — not by a human. As new events arrive, new pages unlock and existing pages update.</p>
+
+    <div class="callout">
+      <strong>Fire events using the panel on the right →</strong> Watch the wiki build itself in real time. Each event writes to the relevant page, updates the table of contents, and adds a line to the deal audit trail.
+    </div>
+
+    <h2 class="wiki-h2">Event log</h2>
+    <div class="event-log">
+      <div class="event-log-header">
+        <span>Timestamp</span><span>Event type</span><span>Summary</span><span>Status</span>
+      </div>
+      <div id="global-event-log">
+        <div class="event-row">
+          <span class="event-type" style="color:var(--ink3)">2026-04-10 09:01</span>
+          <span class="event-type tag-event" style="background:none;padding:0">DEAL_INITIATED</span>
+          <span style="font-size:12px;color:var(--ink2)">Project Falcon created in CAST</span>
+          <span class="status-pill pill-done">done</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANDATE PAGE -->
+  <div class="wiki-page" id="page-mandate">
+    <div class="page-meta">
+      <span class="page-tag tag-event">Event</span>
+      <span class="page-updated" id="mandate-updated"></span>
+    </div>
+    <h1 class="wiki-h1">Mandate accepted</h1>
+    <p class="wiki-subtitle">MANDATE_ACCEPTED · Signed engagement letter · Fee terms locked</p>
+    <hr class="wiki-rule">
+    <div class="fact-grid" id="mandate-facts"></div>
+    <h2 class="wiki-h2">Context</h2>
+    <div id="mandate-body"></div>
+  </div>
+
+  <!-- CONFLICTS PAGE -->
+  <div class="wiki-page" id="page-conflicts">
+    <div class="page-meta">
+      <span class="page-tag tag-policy">Policy gate</span>
+      <span class="page-updated" id="conflicts-updated"></span>
+    </div>
+    <h1 class="wiki-h1">Conflict check</h1>
+    <p class="wiki-subtitle">CONFLICT_CHECK_PASSED · KYC / AML / COI · Policy v2.4.1</p>
+    <hr class="wiki-rule">
+    <div id="conflicts-body"></div>
+  </div>
+
+  <!-- OBLIGATIONS PAGE -->
+  <div class="wiki-page" id="page-obligations">
+    <div class="page-meta">
+      <span class="page-tag tag-obligation">Obligations</span>
+      <span class="page-updated" id="obligations-updated"></span>
+    </div>
+    <h1 class="wiki-h1">Workstreams</h1>
+    <p class="wiki-subtitle">WORKSTREAMS_INITIATED · 4 obligations created · Deal kickoff complete</p>
+    <hr class="wiki-rule">
+    <div id="obligations-body"></div>
+  </div>
+
+  <!-- TEASER PAGE -->
+  <div class="wiki-page" id="page-teaser">
+    <div class="page-meta">
+      <span class="page-tag tag-document">Document</span>
+      <span class="page-updated" id="teaser-updated"></span>
+    </div>
+    <h1 class="wiki-h1">Teaser deck</h1>
+    <p class="wiki-subtitle">TEASER_DRAFT_SUBMITTED · v1.0 · Agent-authored, banker-reviewed</p>
+    <hr class="wiki-rule">
+    <div id="teaser-body"></div>
+  </div>
+
+  <!-- CIM PAGE -->
+  <div class="wiki-page" id="page-cim">
+    <div class="page-meta">
+      <span class="page-tag tag-document">Document</span>
+      <span class="page-updated" id="cim-updated"></span>
+    </div>
+    <h1 class="wiki-h1">Confidential Information Memorandum</h1>
+    <p class="wiki-subtitle">CIM_DRAFT_SUBMITTED · v1.0 · Pending legal review</p>
+    <hr class="wiki-rule">
+    <div id="cim-body"></div>
+  </div>
+
+  <!-- IC PAGE -->
+  <div class="wiki-page" id="page-ic">
+    <div class="page-meta">
+      <span class="page-tag tag-policy">Approval</span>
+      <span class="page-updated" id="ic-updated"></span>
+    </div>
+    <h1 class="wiki-h1">IC approval</h1>
+    <p class="wiki-subtitle">IC_APPROVAL_GRANTED · Quorum met · Deal cleared for launch</p>
+    <hr class="wiki-rule">
+    <div id="ic-body"></div>
+  </div>
+
+</main>
+
+<!-- FEED PANEL -->
+<aside class="feed-panel" style="display:flex;flex-direction:column;">
+  <div class="feed-header">
+    <div class="feed-title">Sightline · Event feed</div>
+    <div class="feed-subtitle">Project Falcon</div>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;" id="feed-container">
+    <div class="feed-event">
+      <div class="feed-time">2026-04-10 09:01:04</div>
+      <div class="feed-event-name">DEAL_INITIATED</div>
+      <div class="feed-desc">Project Falcon created. Deal type: sell-side M&amp;A. Sector: Infrastructure.</div>
+      <div class="feed-actor actor-human">⬡ J.Hartmann · human</div>
+    </div>
+    <div class="feed-wiki-update">
+      <span class="feed-wiki-icon">📄</span>
+      <span>Wiki page <strong style="color:rgba(200,168,75,0.9)">Project Falcon</strong> created from deal parameters</span>
+    </div>
+  </div>
+
+  <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08)">
+    <div class="progress-track"><div class="progress-fill-bar" id="progress-bar" style="width:14%"></div></div>
+    <div class="step-label" id="step-label">Step 1 of 7 — Initiation</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn-fire" id="fire-btn" onclick="fireNextEvent()">⚡ Fire next event</button>
+    <button class="btn-reset" onclick="resetDemo()">↺ Reset deal</button>
+  </div>
+</aside>
+
+<script>
+const now = () => {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return `2026-04-10 ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
+
+let step = 0;
+
+const events = [
+  {
+    id: 'mandate',
+    time: () => now(),
+    eventName: 'MANDATE_ACCEPTED',
+    actor: 'J.Hartmann',
+    actorType: 'human',
+    desc: 'Signed engagement letter received. Fee: 1.5% success, $500k retainer. Exclusive mandate, 6-month term.',
+    wikiUpdate: 'Mandate accepted page written from event payload',
+    page: 'mandate',
+    tocLabel: 'Mandate accepted',
+    tocColor: 'dot-green',
+    count: '4 fields',
+    progress: 28,
+    stepLabel: 'Step 2 of 7 — Mandate',
+    render: (ts) => {
+      document.getElementById('mandate-updated').textContent = `Written from event · ${ts}`;
+      document.getElementById('mandate-facts').innerHTML = `
+        <div class="fact-cell"><div class="fact-label">Event type</div><div class="fact-val">MANDATE_ACCEPTED</div></div>
+        <div class="fact-cell"><div class="fact-label">Signed by</div><div class="fact-val">J. Hartmann, MD</div></div>
+        <div class="fact-cell"><div class="fact-label">Fee structure</div><div class="fact-val">1.5% success + $500k retainer</div></div>
+        <div class="fact-cell"><div class="fact-label">Term</div><div class="fact-val">6 months, exclusive</div></div>
+        <div class="fact-cell"><div class="fact-label">Actor type</div><div class="fact-val">Human · MD-level</div></div>
+        <div class="fact-cell"><div class="fact-label">Policy version</div><div class="fact-val">v2.4.1</div></div>
+      `;
+      document.getElementById('mandate-body').innerHTML = `
+        <p class="wiki-p">Falcon Holdings engaged Macquarie Capital as exclusive sell-side advisor for Project Falcon on 10 April 2026. The mandate covers the full sale process including preparation of marketing materials, buyer identification and outreach, management of the data room, and negotiation support through to completion.</p>
+        <p class="wiki-p">This event was authored by <span class="wiki-link">J. Hartmann</span> (human, MD). The CAST system pinned policy version 2.4.1 at the time of signing, which governs fee treatment, conflict obligations, and regulatory disclosures for this mandate type.</p>
+        <div class="callout"><strong>Next:</strong> Conflict check must clear before workstreams can be initiated. See <span class="wiki-link" onclick="showPage('conflicts')">Conflict check →</span></div>
+      `;
+    }
+  },
+  {
+    id: 'conflicts',
+    time: () => now(),
+    eventName: 'CONFLICT_CHECK_PASSED',
+    actor: 'compliance-agent-01',
+    actorType: 'agent',
+    desc: 'KYC: clear. AML screening: no matches. COI check: no existing relationships with known bidders. Policy gate passed. Elapsed: 4m 12s.',
+    wikiUpdate: 'Conflict check page written — all gates cleared, policy version pinned',
+    page: 'conflicts',
+    tocLabel: 'Conflict check',
+    tocColor: 'dot-green',
+    count: '3 gates',
+    progress: 42,
+    stepLabel: 'Step 3 of 7 — Compliance',
+    render: (ts) => {
+      document.getElementById('conflicts-updated').textContent = `Agent-authored · ${ts}`;
+      document.getElementById('conflicts-body').innerHTML = `
+        <h2 class="wiki-h2">Gate results</h2>
+        <div class="fact-grid">
+          <div class="fact-cell"><div class="fact-label">KYC</div><div class="fact-val" style="color:var(--teal)">✓ Clear</div></div>
+          <div class="fact-cell"><div class="fact-label">AML screening</div><div class="fact-val" style="color:var(--teal)">✓ No matches</div></div>
+          <div class="fact-cell"><div class="fact-label">COI check</div><div class="fact-val" style="color:var(--teal)">✓ No conflicts</div></div>
+          <div class="fact-cell"><div class="fact-label">Actor</div><div class="fact-val" style="color:var(--teal)">⬡ Agent · 4m 12s</div></div>
+          <div class="fact-cell"><div class="fact-label">Policy version</div><div class="fact-val">v2.4.1</div></div>
+          <div class="fact-cell"><div class="fact-label">Delegation</div><div class="fact-val">→ J.Hartmann auth</div></div>
+        </div>
+        <h2 class="wiki-h2">What the agent did</h2>
+        <p class="wiki-p">The compliance agent ran all three gates sequentially against live regulatory databases. KYC verified Falcon Holdings Pty Ltd ACN against ASIC records. AML screening ran seller directors and UBOs against OFAC, UN, and AU sanctions lists. COI check queried the internal relationship registry for any Macquarie Capital coverage of known infrastructure buyers in the $1–2bn range.</p>
+        <p class="wiki-p">This function was previously performed by a compliance analyst (2–4 hours). Agent elapsed time: 4 minutes 12 seconds. The full decision log is pinned to this event and cannot be altered.</p>
+        <div class="callout" style="border-color:var(--teal);background:var(--teal-light)"><strong style="color:var(--teal)">Human vs agent:</strong> This gate is now fully agent-executed. The delegation scope authorises the agent to pass or open a Case — it cannot approve exceptions. Any failed gate would have opened a <span class="wiki-link">Case</span> requiring human resolution.</div>
+      `;
+    }
+  },
+  {
+    id: 'obligations',
+    time: () => now(),
+    eventName: 'WORKSTREAMS_INITIATED',
+    actor: 'workflow-agent-01',
+    actorType: 'agent',
+    desc: '4 obligations created from deal type template: Legal NDA, Marketing brief, Financial model, Dataroom setup. SLA timers started.',
+    wikiUpdate: 'Workstreams page written — 4 obligations, assignees, SLA timers',
+    page: 'obligations',
+    tocLabel: 'Workstreams',
+    tocColor: 'dot-amber',
+    count: '4 open',
+    progress: 56,
+    stepLabel: 'Step 4 of 7 — Kickoff',
+    render: (ts) => {
+      document.getElementById('obligations-updated').textContent = `Agent-authored · ${ts}`;
+      document.getElementById('obligations-body').innerHTML = `
+        <h2 class="wiki-h2">Active obligations</h2>
+        <ul class="obligation-list">
+          <li><span class="obl-icon">⚖</span><span>NDA framework — draft standard form for buyer NDAs</span><span class="obl-team">Legal</span><span class="obl-status pill-open" style="background:var(--amber-light);color:var(--amber)">open</span></li>
+          <li><span class="obl-icon">📊</span><span>Marketing brief — sector positioning and buyer universe</span><span class="obl-team">Marketing</span><span class="obl-status pill-open" style="background:var(--amber-light);color:var(--amber)">open</span></li>
+          <li><span class="obl-icon">📈</span><span>Financial model — 3-year historicals, 5-year projection</span><span class="obl-team">Finance</span><span class="obl-status pill-open" style="background:var(--amber-light);color:var(--amber)">open</span></li>
+          <li><span class="obl-icon">🗂</span><span>Dataroom — structure, index, and initial population</span><span class="obl-team">Deal team</span><span class="obl-status pill-open" style="background:var(--amber-light);color:var(--amber)">open</span></li>
+        </ul>
+        <h2 class="wiki-h2">How these were created</h2>
+        <p class="wiki-p">The workflow agent read the MANDATE_ACCEPTED event payload (deal type: sell-side M&A, sector: infrastructure) and instantiated the standard obligation set for this deal template. No human created these tasks — the agent derived them deterministically from the mandate parameters and pinned the relevant SLA policy.</p>
+        <p class="wiki-p">SLA timer: all four obligations must reach "submitted" status within 10 business days or a Case is automatically opened and assigned to the lead banker.</p>
+        <div class="callout"><strong>The wiki advantage:</strong> In a traditional process, these obligations exist as emails and calendar invites. Here they are typed, timestamped, causal objects — queryable, SLA-tracked, and linked back to the mandate event that created them.</div>
+      `;
+    }
+  },
+  {
+    id: 'teaser',
+    time: () => now(),
+    eventName: 'TEASER_DRAFT_SUBMITTED',
+    actor: 'marketing-agent-01',
+    actorType: 'agent',
+    desc: 'Teaser deck v1.0 generated from deal parameters and sector comps. 18 slides. Routed to J.Hartmann for review. Hash: a3f92c.',
+    wikiUpdate: 'Teaser deck page written — version, hash, authoring agent, review routing',
+    page: 'teaser',
+    tocLabel: 'Teaser deck',
+    tocColor: 'dot-amber',
+    count: 'v1.0',
+    progress: 70,
+    stepLabel: 'Step 5 of 7 — Materials',
+    render: (ts) => {
+      document.getElementById('teaser-updated').textContent = `Agent-authored · ${ts}`;
+      document.getElementById('teaser-body').innerHTML = `
+        <div class="fact-grid">
+          <div class="fact-cell"><div class="fact-label">Version</div><div class="fact-val">v1.0</div></div>
+          <div class="fact-cell"><div class="fact-label">Slides</div><div class="fact-val">18</div></div>
+          <div class="fact-cell"><div class="fact-label">Author</div><div class="fact-val" style="color:var(--teal)">⬡ marketing-agent-01</div></div>
+          <div class="fact-cell"><div class="fact-label">Reviewer</div><div class="fact-val">J.Hartmann (human)</div></div>
+          <div class="fact-cell"><div class="fact-label">Doc hash</div><div class="fact-val" style="font-family:monospace;font-size:11px">a3f92c…</div></div>
+          <div class="fact-cell"><div class="fact-label">Status</div><div class="fact-val" style="color:var(--amber)">Pending review</div></div>
+        </div>
+        <h2 class="wiki-h2">What the agent used</h2>
+        <p class="wiki-p">The marketing agent read the MANDATE_ACCEPTED event (sector, EV range, seller profile) and the WORKSTREAMS_INITIATED event (marketing brief obligation). It pulled comparable infrastructure transactions from the deal database and generated an 18-slide teaser: investment highlights, business overview, market position, financial summary, and process overview.</p>
+        <p class="wiki-p">The banker's job is now editorial — refine the equity story and positioning — not structural. Time from mandate to first draft: 38 minutes. Previous process: 3–5 days.</p>
+        <div class="callout" style="border-color:var(--teal);background:var(--teal-light)"><strong style="color:var(--teal)">Cross-document consistency:</strong> When the financial model is submitted, the agent will automatically verify that all numbers in this teaser match. Discrepancies open a Case. See <span class="wiki-link" onclick="showPage('cim')">CIM →</span></div>
+      `;
+    }
+  },
+  {
+    id: 'cim',
+    time: () => now(),
+    eventName: 'CIM_DRAFT_SUBMITTED',
+    actor: 'S.Chen',
+    actorType: 'human',
+    desc: 'CIM v1.0 submitted by S.Chen (Associate). Agent-structured, banker-narrated. 68 pages. Routing to legal for review. Hash: b7e441.',
+    wikiUpdate: 'CIM page written — version history started, legal routing logged',
+    page: 'cim',
+    tocLabel: 'CIM',
+    tocColor: 'dot-amber',
+    count: 'v1.0',
+    progress: 84,
+    stepLabel: 'Step 6 of 7 — CIM',
+    render: (ts) => {
+      document.getElementById('cim-updated').textContent = `Human-submitted · ${ts}`;
+      document.getElementById('cim-body').innerHTML = `
+        <div class="fact-grid">
+          <div class="fact-cell"><div class="fact-label">Version</div><div class="fact-val">v1.0</div></div>
+          <div class="fact-cell"><div class="fact-label">Pages</div><div class="fact-val">68</div></div>
+          <div class="fact-cell"><div class="fact-label">Submitted by</div><div class="fact-val">S.Chen · Associate</div></div>
+          <div class="fact-cell"><div class="fact-label">Structured by</div><div class="fact-val" style="color:var(--teal)">⬡ cim-agent-01</div></div>
+          <div class="fact-cell"><div class="fact-label">Doc hash</div><div class="fact-val" style="font-family:monospace;font-size:11px">b7e441…</div></div>
+          <div class="fact-cell"><div class="fact-label">Next gate</div><div class="fact-val">Legal review</div></div>
+        </div>
+        <h2 class="wiki-h2">Version history</h2>
+        <div class="event-log">
+          <div class="event-log-header" style="grid-template-columns:90px 120px 1fr 70px">
+            <span>Version</span><span>Actor</span><span>Change</span><span>Status</span>
+          </div>
+          <div class="event-row" style="grid-template-columns:90px 120px 1fr 70px">
+            <span class="event-type">v1.0</span>
+            <span style="font-size:12px">S.Chen / agent</span>
+            <span style="font-size:12px;color:var(--ink2)">Initial draft — structure + narrative</span>
+            <span class="status-pill pill-open">review</span>
+          </div>
+        </div>
+        <h2 class="wiki-h2">Authoring model</h2>
+        <p class="wiki-p">The CIM agent built the section structure and populated data tables, financial exhibits, and market overview from the financial model and sector database. S. Chen (Associate) wrote the investment thesis, business description narrative, and competitive positioning — the sections requiring judgment about how to present the company.</p>
+        <p class="wiki-p">Every subsequent version will be logged here automatically as a CAST event, with actor, delta hash, and review status. The wiki page updates on each version bump — no manual tracking required.</p>
+      `;
+    }
+  },
+  {
+    id: 'ic',
+    time: () => now(),
+    eventName: 'IC_APPROVAL_GRANTED',
+    actor: 'IC-committee',
+    actorType: 'human',
+    desc: 'IC quorum met: 3/3 approvals. J.Hartmann (MD), R.Patel (Head of M&A), L.Wong (Risk). Deal cleared for buyer outreach and distribution.',
+    wikiUpdate: 'IC approval page written — quorum, signatories, deal cleared for launch',
+    page: 'ic',
+    tocLabel: 'IC approval',
+    tocColor: 'dot-green',
+    count: '3/3',
+    progress: 100,
+    stepLabel: 'Step 7 of 7 — Approved',
+    render: (ts) => {
+      document.getElementById('ic-updated').textContent = `Human · IC committee · ${ts}`;
+      document.getElementById('ic-body').innerHTML = `
+        <div class="fact-grid">
+          <div class="fact-cell"><div class="fact-label">Quorum</div><div class="fact-val" style="color:var(--teal)">✓ 3 / 3</div></div>
+          <div class="fact-cell"><div class="fact-label">Policy version</div><div class="fact-val">v2.4.1</div></div>
+          <div class="fact-cell"><div class="fact-label">Approver 1</div><div class="fact-val">J.Hartmann · MD</div></div>
+          <div class="fact-cell"><div class="fact-label">Approver 2</div><div class="fact-val">R.Patel · Head M&A</div></div>
+          <div class="fact-cell"><div class="fact-label">Approver 3</div><div class="fact-val">L.Wong · Risk</div></div>
+          <div class="fact-cell"><div class="fact-label">Deal status</div><div class="fact-val" style="color:var(--teal)">Cleared for launch</div></div>
+        </div>
+        <h2 class="wiki-h2">What the agent prepared</h2>
+        <p class="wiki-p">The IC memo agent compiled the full deal package from the CAST event stream: mandate terms, conflict check results, workstream status, teaser summary, and CIM highlights. The IC committee received a structured brief — not a deck assembled manually from emails — 24 hours before the meeting.</p>
+        <p class="wiki-p">The IC decision is irreversibly recorded. Each approver's sign-off is a separate CAST event carrying their identity, timestamp, and delegation. This is the audit trail a regulator would request.</p>
+        <div class="callout" style="border-color:var(--teal);background:var(--teal-light)">
+          <strong style="color:var(--teal)">Deal wiki complete.</strong> Project Falcon now has a structured, queryable knowledge artifact of everything that happened — who did it, when, under what policy, and in what order. The next deal in this sector inherits this as training context. The tenth deal will be faster than the first.
+        </div>
+        <h2 class="wiki-h2">What unlocks next</h2>
+        <p class="wiki-p">Distribution list management, dataroom access provisioning, and buyer NDA tracking will each auto-write their own wiki pages as events fire. The deal wiki grows until close.</p>
+      `;
+    }
+  }
+];
+
+function addFeedEvent(ev, ts) {
+  const container = document.getElementById('feed-container');
+  const actorClass = ev.actorType === 'agent' ? 'feed-actor-agent' : 'feed-actor-human';
+  const actorSymbol = ev.actorType === 'agent' ? '⬡' : '◆';
+
+  const el = document.createElement('div');
+  el.className = 'feed-event';
+  el.innerHTML = `
+    <div class="feed-time">${ts}</div>
+    <div class="feed-event-name">${ev.eventName}</div>
+    <div class="feed-desc">${ev.desc}</div>
+    <div class="feed-actor ${actorClass}">${actorSymbol} ${ev.actor} · ${ev.actorType}</div>
+  `;
+  el.onclick = () => showPage(ev.page);
+  container.insertBefore(el, container.firstChild);
+
+  const wu = document.createElement('div');
+  wu.className = 'feed-wiki-update';
+  wu.innerHTML = `<span class="feed-wiki-icon">📄</span><span>Wiki page <strong style="color:rgba(200,168,75,0.9)">${ev.tocLabel}</strong> ${ev.wikiUpdate}</span>`;
+  container.insertBefore(wu, container.firstChild);
+}
+
+function addGlobalEventRow(ev, ts) {
+  const log = document.getElementById('global-event-log');
+  const row = document.createElement('div');
+  row.className = 'event-row';
+  const tagClass = ev.actorType === 'agent' ? 'actor-agent' : 'actor-human';
+  row.innerHTML = `
+    <span class="event-type" style="color:var(--ink3)">${ts.substring(0,16)}</span>
+    <span class="event-type ${tagClass}">${ev.eventName}</span>
+    <span style="font-size:12px;color:var(--ink2)">${ev.desc.substring(0,60)}…</span>
+    <span class="status-pill pill-done">done</span>
+  `;
+  log.appendChild(row);
+}
+
+function unlockToc(id, label, colorClass, count) {
+  const el = document.getElementById('toc-' + id);
+  el.classList.remove('locked');
+  el.querySelector('.toc-dot').className = 'toc-dot ' + colorClass;
+  document.getElementById('cnt-' + id).textContent = count;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.wiki-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.toc-item').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tocEl = document.getElementById('toc-' + id);
+  if (tocEl && !tocEl.classList.contains('locked')) tocEl.classList.add('active');
+}
+
+function fireNextEvent() {
+  if (step >= events.length) return;
+  const ev = events[step];
+  const ts = ev.time();
+
+  ev.render(ts);
+  addFeedEvent(ev, ts);
+  addGlobalEventRow(ev, ts);
+  unlockToc(ev.id, ev.tocLabel, ev.tocColor, ev.count);
+
+  document.getElementById('progress-bar').style.width = ev.progress + '%';
+  document.getElementById('step-label').textContent = ev.stepLabel;
+
+  showPage(ev.page);
+  step++;
+
+  if (step >= events.length) {
+    document.getElementById('fire-btn').textContent = '✓ Deal wiki complete';
+    document.getElementById('fire-btn').disabled = true;
+  }
+}
+
+function resetDemo() {
+  step = 0;
+  document.getElementById('fire-btn').disabled = false;
+  document.getElementById('fire-btn').textContent = '⚡ Fire next event';
+  document.getElementById('progress-bar').style.width = '14%';
+  document.getElementById('step-label').textContent = 'Step 1 of 7 — Initiation';
+
+  // Reset TOC
+  ['mandate','conflicts','obligations','teaser','cim','ic'].forEach(id => {
+    const el = document.getElementById('toc-' + id);
+    el.classList.add('locked');
+    el.classList.remove('active');
+    el.querySelector('.toc-dot').className = 'toc-dot dot-gray';
+    document.getElementById('cnt-' + id).textContent = '—';
+  });
+
+  // Reset feed
+  document.getElementById('feed-container').innerHTML = `
+    <div class="feed-event">
+      <div class="feed-time">2026-04-10 09:01:04</div>
+      <div class="feed-event-name">DEAL_INITIATED</div>
+      <div class="feed-desc">Project Falcon created. Deal type: sell-side M&A. Sector: Infrastructure.</div>
+      <div class="feed-actor actor-human">◆ J.Hartmann · human</div>
+    </div>
+    <div class="feed-wiki-update">
+      <span class="feed-wiki-icon">📄</span>
+      <span>Wiki page <strong style="color:rgba(200,168,75,0.9)">Project Falcon</strong> created from deal parameters</span>
+    </div>
+  `;
+
+  // Reset global log
+  document.getElementById('global-event-log').innerHTML = `
+    <div class="event-row">
+      <span class="event-type" style="color:var(--ink3)">2026-04-10 09:01</span>
+      <span class="event-type tag-event" style="background:none;padding:0">DEAL_INITIATED</span>
+      <span style="font-size:12px;color:var(--ink2)">Project Falcon created in CAST</span>
+      <span class="status-pill pill-done">done</span>
+    </div>
+  `;
+
+  showPage('overview');
+  document.getElementById('toc-overview').classList.add('active');
+}
+</script>
+</body>
+</html>

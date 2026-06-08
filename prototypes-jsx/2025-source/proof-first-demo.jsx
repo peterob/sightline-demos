@@ -1,0 +1,649 @@
+import React, { useState, useEffect } from 'react';
+
+const ProofFirstDemo = () => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState('accepted');
+  const [showComparison, setShowComparison] = useState(false);
+
+  const scenarios = {
+    accepted: {
+      title: "Goods Received — Valid PO",
+      event: {
+        id: "EVT-2025-12-14-009381",
+        timestamp: "2025-12-14 10:00:00 UTC",
+        submitter: "WarehouseSystem",
+        type: "GOODS_RECEIVED",
+        detail: "SKU-123, Qty 50, Warehouse A",
+        evidence: ["PO#77291", "ASN#55120", "WMS#88319"]
+      },
+      checks: [
+        { rule: "PO exists", status: "pass", detail: "PO#77291 found" },
+        { rule: "PO is open", status: "pass", detail: "Status: OPEN" },
+        { rule: "Qty ≤ remaining", status: "pass", detail: "50 ≤ 100 remaining" },
+        { rule: "Location valid", status: "pass", detail: "Warehouse A active" },
+        { rule: "ASN attached", status: "pass", detail: "ASN#55120 linked" },
+        { rule: "Submitter authorized", status: "pass", detail: "Service account valid" }
+      ],
+      result: "ACCEPTED",
+      outcome: "Inventory +50, AP accrual posted automatically"
+    },
+    rejected: {
+      title: "Goods Received — Closed PO",
+      event: {
+        id: "EVT-2025-12-14-009382",
+        timestamp: "2025-12-14 10:15:00 UTC",
+        submitter: "WarehouseSystem",
+        type: "GOODS_RECEIVED",
+        detail: "SKU-456, Qty 75, Warehouse A",
+        evidence: ["PO#65102", "ASN#55121"]
+      },
+      checks: [
+        { rule: "PO exists", status: "pass", detail: "PO#65102 found" },
+        { rule: "PO is open", status: "fail", detail: "Status: CLOSED (12/13)" },
+        { rule: "Qty ≤ remaining", status: "skip", detail: "—" },
+        { rule: "Location valid", status: "skip", detail: "—" },
+        { rule: "ASN attached", status: "skip", detail: "—" },
+        { rule: "Submitter authorized", status: "skip", detail: "—" }
+      ],
+      result: "REJECTED",
+      outcome: "Routed to Procurement queue for resolution"
+    }
+  };
+
+  const scenario = scenarios[selectedScenario];
+  const totalSteps = scenario.checks.length + 2; // event + checks + result
+
+  useEffect(() => {
+    let interval;
+    if (isPlaying && currentStep < totalSteps) {
+      interval = setInterval(() => {
+        setCurrentStep(prev => {
+          if (prev >= totalSteps) {
+            setIsPlaying(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 800);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, currentStep, totalSteps]);
+
+  const reset = () => {
+    setCurrentStep(0);
+    setIsPlaying(false);
+  };
+
+  const switchScenario = (s) => {
+    setSelectedScenario(s);
+    reset();
+  };
+
+  const getCheckStatus = (index) => {
+    if (currentStep <= 0) return 'pending';
+    if (currentStep <= index) return 'pending';
+    return scenario.checks[index].status;
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
+      color: '#e0e0e0',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      padding: '24px',
+      boxSizing: 'border-box'
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: '300',
+          letterSpacing: '8px',
+          textTransform: 'uppercase',
+          color: '#fff',
+          margin: '0 0 8px 0'
+        }}>
+          PROOF-FIRST FINANCE
+        </h1>
+        <p style={{
+          fontSize: '13px',
+          color: '#666',
+          letterSpacing: '3px',
+          margin: 0
+        }}>
+          EVIDENCE-GATED EVENT PROCESSING
+        </p>
+      </div>
+
+      {/* Scenario Toggle */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '12px',
+        marginBottom: '32px'
+      }}>
+        {['accepted', 'rejected'].map(s => (
+          <button
+            key={s}
+            onClick={() => switchScenario(s)}
+            style={{
+              padding: '10px 24px',
+              background: selectedScenario === s 
+                ? (s === 'accepted' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)')
+                : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${selectedScenario === s 
+                ? (s === 'accepted' ? '#22c55e' : '#ef4444')
+                : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: '4px',
+              color: selectedScenario === s 
+                ? (s === 'accepted' ? '#22c55e' : '#ef4444')
+                : '#666',
+              cursor: 'pointer',
+              fontSize: '11px',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              transition: 'all 0.2s'
+            }}
+          >
+            {s === 'accepted' ? '✓ Valid PO' : '✗ Closed PO'}
+          </button>
+        ))}
+        <button
+          onClick={() => setShowComparison(!showComparison)}
+          style={{
+            padding: '10px 24px',
+            background: showComparison ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.03)',
+            border: `1px solid ${showComparison ? '#6366f1' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: '4px',
+            color: showComparison ? '#6366f1' : '#666',
+            cursor: 'pointer',
+            fontSize: '11px',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            transition: 'all 0.2s'
+          }}
+        >
+          Month-End Compare
+        </button>
+      </div>
+
+      {!showComparison ? (
+        <>
+          {/* Main Flow Visualization */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 60px 1fr 60px 1fr',
+            gap: '0',
+            alignItems: 'start',
+            maxWidth: '1100px',
+            margin: '0 auto 32px'
+          }}>
+            {/* Event Card */}
+            <div style={{
+              background: currentStep >= 1 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${currentStep >= 1 ? '#3b82f6' : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '8px',
+              padding: '20px',
+              transition: 'all 0.4s ease'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#3b82f6',
+                marginBottom: '16px',
+                textTransform: 'uppercase'
+              }}>
+                EVENT SUBMITTED
+              </div>
+              <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px' }}>
+                {scenario.event.id}
+              </div>
+              <div style={{ fontSize: '14px', color: '#fff', marginBottom: '12px', fontWeight: '500' }}>
+                {scenario.event.type}
+              </div>
+              <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '16px' }}>
+                {scenario.event.detail}
+              </div>
+              <div style={{
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                paddingTop: '12px',
+                marginTop: '12px'
+              }}>
+                <div style={{ fontSize: '10px', color: '#666', marginBottom: '8px', letterSpacing: '1px' }}>
+                  EVIDENCE ATTACHED
+                </div>
+                {scenario.event.evidence.map((e, i) => (
+                  <div key={i} style={{
+                    display: 'inline-block',
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '4px 8px',
+                    borderRadius: '3px',
+                    fontSize: '10px',
+                    marginRight: '6px',
+                    marginBottom: '4px',
+                    color: '#888'
+                  }}>
+                    {e}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Arrow 1 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              paddingTop: '60px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '2px',
+                background: currentStep >= 1 
+                  ? 'linear-gradient(90deg, #3b82f6, #8b5cf6)'
+                  : 'rgba(255,255,255,0.1)',
+                position: 'relative',
+                transition: 'all 0.4s'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  right: '-6px',
+                  top: '-4px',
+                  width: 0,
+                  height: 0,
+                  borderTop: '5px solid transparent',
+                  borderBottom: '5px solid transparent',
+                  borderLeft: `8px solid ${currentStep >= 1 ? '#8b5cf6' : 'rgba(255,255,255,0.1)'}`,
+                  transition: 'all 0.4s'
+                }} />
+              </div>
+            </div>
+
+            {/* Rules Engine */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '20px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#8b5cf6',
+                marginBottom: '16px',
+                textTransform: 'uppercase'
+              }}>
+                VALIDATION ENGINE
+              </div>
+              {scenario.checks.map((check, i) => {
+                const status = getCheckStatus(i);
+                return (
+                  <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: i < scenario.checks.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    opacity: status === 'pending' ? 0.4 : 1,
+                    transition: 'all 0.3s'
+                  }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: '12px',
+                      fontSize: '11px',
+                      background: status === 'pass' ? 'rgba(34, 197, 94, 0.2)' :
+                                 status === 'fail' ? 'rgba(239, 68, 68, 0.2)' :
+                                 status === 'skip' ? 'rgba(255,255,255,0.05)' :
+                                 'rgba(255,255,255,0.05)',
+                      color: status === 'pass' ? '#22c55e' :
+                             status === 'fail' ? '#ef4444' :
+                             '#444',
+                      border: `1px solid ${status === 'pass' ? '#22c55e' :
+                                          status === 'fail' ? '#ef4444' :
+                                          'rgba(255,255,255,0.1)'}`
+                    }}>
+                      {status === 'pass' ? '✓' : status === 'fail' ? '✗' : status === 'skip' ? '—' : '○'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '12px', color: '#ddd' }}>{check.rule}</div>
+                      <div style={{ fontSize: '10px', color: '#666' }}>{check.detail}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Arrow 2 */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              paddingTop: '60px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '2px',
+                background: currentStep >= totalSteps 
+                  ? (scenario.result === 'ACCEPTED' 
+                      ? 'linear-gradient(90deg, #8b5cf6, #22c55e)'
+                      : 'linear-gradient(90deg, #8b5cf6, #ef4444)')
+                  : 'rgba(255,255,255,0.1)',
+                position: 'relative',
+                transition: 'all 0.4s'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  right: '-6px',
+                  top: '-4px',
+                  width: 0,
+                  height: 0,
+                  borderTop: '5px solid transparent',
+                  borderBottom: '5px solid transparent',
+                  borderLeft: `8px solid ${currentStep >= totalSteps 
+                    ? (scenario.result === 'ACCEPTED' ? '#22c55e' : '#ef4444')
+                    : 'rgba(255,255,255,0.1)'}`,
+                  transition: 'all 0.4s'
+                }} />
+              </div>
+            </div>
+
+            {/* Result Card */}
+            <div style={{
+              background: currentStep >= totalSteps 
+                ? (scenario.result === 'ACCEPTED' 
+                    ? 'rgba(34, 197, 94, 0.1)' 
+                    : 'rgba(239, 68, 68, 0.1)')
+                : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${currentStep >= totalSteps 
+                ? (scenario.result === 'ACCEPTED' ? '#22c55e' : '#ef4444')
+                : 'rgba(255,255,255,0.08)'}`,
+              borderRadius: '8px',
+              padding: '20px',
+              transition: 'all 0.4s ease'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: currentStep >= totalSteps 
+                  ? (scenario.result === 'ACCEPTED' ? '#22c55e' : '#ef4444')
+                  : '#666',
+                marginBottom: '16px',
+                textTransform: 'uppercase'
+              }}>
+                DECISION
+              </div>
+              <div style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                color: currentStep >= totalSteps 
+                  ? (scenario.result === 'ACCEPTED' ? '#22c55e' : '#ef4444')
+                  : '#333',
+                marginBottom: '16px',
+                transition: 'all 0.4s'
+              }}>
+                {currentStep >= totalSteps ? scenario.result : '—'}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: currentStep >= totalSteps ? '#aaa' : '#444',
+                lineHeight: '1.5',
+                transition: 'all 0.4s'
+              }}>
+                {currentStep >= totalSteps ? scenario.outcome : 'Awaiting validation...'}
+              </div>
+              {currentStep >= totalSteps && scenario.result === 'ACCEPTED' && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  color: '#22c55e',
+                  letterSpacing: '1px'
+                }}>
+                  LEDGER UPDATED AUTOMATICALLY
+                </div>
+              )}
+              {currentStep >= totalSteps && scenario.result === 'REJECTED' && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  borderRadius: '4px',
+                  fontSize: '10px',
+                  color: '#ef4444',
+                  letterSpacing: '1px'
+                }}>
+                  NO LEDGER IMPACT — EXCEPTION QUEUE
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '12px',
+            marginBottom: '40px'
+          }}>
+            <button
+              onClick={() => { reset(); setIsPlaying(true); }}
+              style={{
+                padding: '12px 32px',
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                border: 'none',
+                borderRadius: '4px',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '12px',
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                fontWeight: '600'
+              }}
+            >
+              ▶ Run Demo
+            </button>
+            <button
+              onClick={reset}
+              style={{
+                padding: '12px 32px',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '4px',
+                color: '#888',
+                cursor: 'pointer',
+                fontSize: '12px',
+                letterSpacing: '2px',
+                textTransform: 'uppercase'
+              }}
+            >
+              Reset
+            </button>
+          </div>
+
+          {/* Key Insight */}
+          <div style={{
+            maxWidth: '600px',
+            margin: '0 auto',
+            textAlign: 'center',
+            padding: '24px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.05)'
+          }}>
+            <div style={{
+              fontSize: '10px',
+              letterSpacing: '3px',
+              color: '#666',
+              marginBottom: '12px',
+              textTransform: 'uppercase'
+            }}>
+              THE KEY DIFFERENCE
+            </div>
+            <p style={{
+              fontSize: '14px',
+              color: '#aaa',
+              lineHeight: '1.7',
+              margin: 0
+            }}>
+              The system doesn't "fix later." It either <span style={{ color: '#22c55e' }}>accepts with proof</span> or{' '}
+              <span style={{ color: '#ef4444' }}>rejects with a reason</span>. Problems surface in hours, not weeks.
+            </p>
+          </div>
+        </>
+      ) : (
+        /* Comparison View */
+        <div style={{
+          maxWidth: '900px',
+          margin: '0 auto'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '24px'
+          }}>
+            {/* Traditional */}
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.05)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#ef4444',
+                marginBottom: '8px',
+                textTransform: 'uppercase'
+              }}>
+                TRADITIONAL CLOSE
+              </div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#ef4444',
+                marginBottom: '20px'
+              }}>
+                16 hours
+              </div>
+              {[
+                "Export WMS activity report",
+                "Export ERP inventory transactions",
+                "Build reconciliation spreadsheet",
+                "Identify 47 variances",
+                "Chase documentation for each",
+                "Post 12 adjusting entries",
+                "Document adjustments for audit"
+              ].map((step, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  marginBottom: '10px',
+                  fontSize: '12px',
+                  color: '#999'
+                }}>
+                  <span style={{
+                    color: '#ef4444',
+                    marginRight: '10px',
+                    fontWeight: '600',
+                    minWidth: '20px'
+                  }}>{i + 1}.</span>
+                  {step}
+                </div>
+              ))}
+            </div>
+
+            {/* Evidence-Gated */}
+            <div style={{
+              background: 'rgba(34, 197, 94, 0.05)',
+              border: '1px solid rgba(34, 197, 94, 0.2)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#22c55e',
+                marginBottom: '8px',
+                textTransform: 'uppercase'
+              }}>
+                PROOF-FIRST CLOSE
+              </div>
+              <div style={{
+                fontSize: '24px',
+                fontWeight: '700',
+                color: '#22c55e',
+                marginBottom: '20px'
+              }}>
+                2 hours
+              </div>
+              {[
+                "Review exception queue (done weekly)",
+                "Confirm all exceptions resolved",
+                "Run integrity check (automated)",
+                "Close"
+              ].map((step, i) => (
+                <div key={i} style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  marginBottom: '10px',
+                  fontSize: '12px',
+                  color: '#999'
+                }}>
+                  <span style={{
+                    color: '#22c55e',
+                    marginRight: '10px',
+                    fontWeight: '600',
+                    minWidth: '20px'
+                  }}>{i + 1}.</span>
+                  {step}
+                </div>
+              ))}
+              <div style={{
+                marginTop: '24px',
+                padding: '16px',
+                background: 'rgba(34, 197, 94, 0.1)',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: '#22c55e',
+                textAlign: 'center'
+              }}>
+                Work moved to real-time exception handling
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom insight */}
+          <div style={{
+            marginTop: '32px',
+            textAlign: 'center',
+            padding: '20px',
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '8px'
+          }}>
+            <p style={{
+              fontSize: '14px',
+              color: '#888',
+              margin: 0,
+              lineHeight: '1.6'
+            }}>
+              The work didn't disappear—it moved from <span style={{ color: '#ef4444' }}>month-end firefighting</span> to{' '}
+              <span style={{ color: '#22c55e' }}>real-time exception handling</span>, where problems are smaller and context is fresh.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProofFirstDemo;

@@ -1,0 +1,701 @@
+import React, { useState } from 'react';
+
+const STAGES = {
+  DRAFT: 'draft',
+  FUNDED: 'funded', 
+  ACCEPTED: 'accepted',
+  DELIVERED: 'delivered',
+  DISPUTED: 'disputed',
+  RELEASED: 'released'
+};
+
+const formatCurrency = (amount) => 
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+const formatDate = (date) => 
+  new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+const EventEntry = ({ event }) => {
+  const icons = {
+    commitment_created: '◯',
+    commitment_funded: '●',
+    commitment_accepted: '◐',
+    delivery_confirmed: '◑',
+    payment_released: '◉',
+    dispute_opened: '⊘'
+  };
+  
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '12px',
+      padding: '12px 0',
+      borderBottom: '1px solid rgba(63, 63, 70, 0.5)'
+    }}>
+      <span style={{ color: '#fbbf24', fontSize: '18px', marginTop: '2px' }}>
+        {icons[event.type] || '○'}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: '#e4e4e7', fontSize: '14px' }}>{event.description}</div>
+        <div style={{ color: '#71717a', fontSize: '12px', marginTop: '4px', fontFamily: 'monospace' }}>
+          {event.timestamp}
+        </div>
+      </div>
+      <div style={{ color: '#52525b', fontSize: '12px', fontFamily: 'monospace' }}>
+        {event.hash?.slice(0, 8)}...
+      </div>
+    </div>
+  );
+};
+
+const StatusBadge = ({ stage }) => {
+  const configs = {
+    [STAGES.DRAFT]: { bg: '#27272a', color: '#a1a1aa', border: 'none' },
+    [STAGES.FUNDED]: { bg: 'rgba(120, 53, 15, 0.5)', color: '#fbbf24', border: '1px solid #92400e' },
+    [STAGES.ACCEPTED]: { bg: 'rgba(6, 78, 59, 0.5)', color: '#34d399', border: '1px solid #065f46' },
+    [STAGES.DELIVERED]: { bg: 'rgba(30, 58, 138, 0.5)', color: '#60a5fa', border: '1px solid #1e40af' },
+    [STAGES.DISPUTED]: { bg: 'rgba(127, 29, 29, 0.5)', color: '#f87171', border: '1px solid #991b1b' },
+    [STAGES.RELEASED]: { bg: '#3f3f46', color: '#d4d4d8', border: 'none' }
+  };
+  
+  const labels = {
+    [STAGES.DRAFT]: 'Draft',
+    [STAGES.FUNDED]: 'Funded',
+    [STAGES.ACCEPTED]: 'Active',
+    [STAGES.DELIVERED]: 'Pending Release',
+    [STAGES.DISPUTED]: 'Disputed',
+    [STAGES.RELEASED]: 'Complete'
+  };
+  
+  const config = configs[stage];
+  
+  return (
+    <span style={{
+      padding: '4px 12px',
+      borderRadius: '4px',
+      fontSize: '12px',
+      fontWeight: 500,
+      letterSpacing: '0.05em',
+      textTransform: 'uppercase',
+      backgroundColor: config.bg,
+      color: config.color,
+      border: config.border
+    }}>
+      {labels[stage]}
+    </span>
+  );
+};
+
+const CommitmentCard = ({ commitment, onAction, userRole }) => {
+  const canAccept = userRole === 'seller' && commitment.stage === STAGES.FUNDED;
+  const canDeliver = userRole === 'seller' && commitment.stage === STAGES.ACCEPTED;
+  const canConfirm = userRole === 'buyer' && commitment.stage === STAGES.DELIVERED;
+  const canDispute = userRole === 'buyer' && commitment.stage === STAGES.DELIVERED;
+  
+  const sectionStyle = {
+    padding: '24px',
+    borderBottom: '1px solid #27272a'
+  };
+  
+  const labelStyle = {
+    color: '#71717a',
+    fontSize: '11px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: '4px'
+  };
+  
+  return (
+    <div style={{
+      backgroundColor: '#18181b',
+      border: '1px solid #27272a',
+      borderRadius: '8px',
+      overflow: 'hidden'
+    }}>
+      {/* Header */}
+      <div style={{ ...sectionStyle, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ ...labelStyle, marginBottom: '8px' }}>COMMITMENT</div>
+          <h2 style={{ fontSize: '20px', color: '#f4f4f5', fontWeight: 500, margin: 0 }}>
+            {commitment.title}
+          </h2>
+        </div>
+        <StatusBadge stage={commitment.stage} />
+      </div>
+      
+      {/* Terms */}
+      <div style={{ ...sectionStyle }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div>
+            <div style={labelStyle}>Resource</div>
+            <div style={{ color: '#e4e4e7' }}>{commitment.resource}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Quantity</div>
+            <div style={{ color: '#e4e4e7' }}>{commitment.quantity}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Delivery By</div>
+            <div style={{ color: '#e4e4e7' }}>{formatDate(commitment.deliveryDate)}</div>
+          </div>
+          <div>
+            <div style={labelStyle}>Total Value</div>
+            <div style={{ color: '#fbbf24', fontWeight: 500 }}>{formatCurrency(commitment.amount)}</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Parties */}
+      <div style={{ ...sectionStyle, backgroundColor: 'rgba(24, 24, 27, 0.5)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div>
+            <div style={{ ...labelStyle, marginBottom: '8px' }}>Buyer</div>
+            <div style={{ color: '#d4d4d8', fontSize: '14px' }}>{commitment.buyer}</div>
+            <div style={{ color: '#52525b', fontSize: '12px', fontFamily: 'monospace', marginTop: '4px' }}>
+              {commitment.buyerWallet?.slice(0, 16)}...
+            </div>
+          </div>
+          <div>
+            <div style={{ ...labelStyle, marginBottom: '8px' }}>Seller</div>
+            <div style={{ color: '#d4d4d8', fontSize: '14px' }}>{commitment.seller || '—'}</div>
+            {commitment.sellerWallet && (
+              <div style={{ color: '#52525b', fontSize: '12px', fontFamily: 'monospace', marginTop: '4px' }}>
+                {commitment.sellerWallet?.slice(0, 16)}...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Escrow */}
+      <div style={sectionStyle}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={labelStyle}>Escrow</div>
+            <div style={{ color: '#e4e4e7', fontSize: '18px', fontWeight: 500 }}>
+              {commitment.stage === STAGES.DRAFT ? '—' : formatCurrency(commitment.amount)}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={labelStyle}>Held In</div>
+            <div style={{ color: '#a1a1aa', fontSize: '14px', fontFamily: 'monospace' }}>CAST Escrow</div>
+          </div>
+        </div>
+        
+        {/* Progress */}
+        <div style={{
+          marginTop: '16px',
+          height: '4px',
+          backgroundColor: '#27272a',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            height: '100%',
+            background: 'linear-gradient(to right, #f59e0b, #fbbf24)',
+            transition: 'width 0.5s ease',
+            width: commitment.stage === STAGES.RELEASED ? '100%' : 
+                   commitment.stage === STAGES.DELIVERED ? '75%' :
+                   commitment.stage === STAGES.ACCEPTED ? '50%' :
+                   commitment.stage === STAGES.FUNDED ? '25%' : '0%'
+          }} />
+        </div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginTop: '8px',
+          fontSize: '12px',
+          color: '#52525b'
+        }}>
+          <span>Funded</span>
+          <span>Accepted</span>
+          <span>Delivered</span>
+          <span>Released</span>
+        </div>
+      </div>
+      
+      {/* Actions */}
+      {(canAccept || canDeliver || canConfirm || canDispute) && (
+        <div style={{ padding: '24px', backgroundColor: 'rgba(9, 9, 11, 0.5)' }}>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {canAccept && (
+              <button 
+                onClick={() => onAction('accept')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Accept Commitment
+              </button>
+            )}
+            {canDeliver && (
+              <button 
+                onClick={() => onAction('deliver')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Mark Delivered
+              </button>
+            )}
+            {canConfirm && (
+              <button 
+                onClick={() => onAction('confirm')}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  backgroundColor: '#d97706',
+                  color: 'white',
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Confirm & Release Payment
+              </button>
+            )}
+            {canDispute && (
+              <button 
+                onClick={() => onAction('dispute')}
+                style={{
+                  padding: '12px 16px',
+                  backgroundColor: '#27272a',
+                  color: '#d4d4d8',
+                  fontWeight: 500,
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Open Dispute
+              </button>
+            )}
+          </div>
+          {commitment.stage === STAGES.DELIVERED && userRole === 'buyer' && (
+            <div style={{ marginTop: '12px', textAlign: 'center', color: '#71717a', fontSize: '12px' }}>
+              Auto-release in 47:23:15 if no dispute
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CreateCommitmentForm = ({ onSubmit }) => {
+  const [form, setForm] = useState({
+    title: 'H100 Compute Block',
+    resource: 'NVIDIA H100 80GB',
+    quantity: '1,000 GPU-hours',
+    amount: 2500,
+    deliveryDate: '2025-01-15',
+    seller: ''
+  });
+  
+  const inputStyle = {
+    width: '100%',
+    backgroundColor: '#27272a',
+    border: '1px solid #3f3f46',
+    borderRadius: '4px',
+    padding: '12px 16px',
+    color: '#e4e4e7',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  };
+  
+  const labelStyle = {
+    display: 'block',
+    color: '#a1a1aa',
+    fontSize: '14px',
+    marginBottom: '8px'
+  };
+  
+  return (
+    <div style={{
+      backgroundColor: '#18181b',
+      border: '1px solid #27272a',
+      borderRadius: '8px',
+      padding: '24px'
+    }}>
+      <h2 style={{ fontSize: '18px', color: '#f4f4f5', fontWeight: 500, margin: '0 0 24px 0' }}>
+        New Commitment
+      </h2>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div>
+          <label style={labelStyle}>Title</label>
+          <input
+            type="text"
+            value={form.title}
+            onChange={e => setForm({...form, title: e.target.value})}
+            style={inputStyle}
+          />
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <label style={labelStyle}>Resource Type</label>
+            <select
+              value={form.resource}
+              onChange={e => setForm({...form, resource: e.target.value})}
+              style={inputStyle}
+            >
+              <option>NVIDIA H100 80GB</option>
+              <option>NVIDIA A100 80GB</option>
+              <option>NVIDIA H200</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Quantity</label>
+            <input
+              type="text"
+              value={form.quantity}
+              onChange={e => setForm({...form, quantity: e.target.value})}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <label style={labelStyle}>Total Amount (USD)</label>
+            <input
+              type="number"
+              value={form.amount}
+              onChange={e => setForm({...form, amount: parseInt(e.target.value)})}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Deliver By</label>
+            <input
+              type="date"
+              value={form.deliveryDate}
+              onChange={e => setForm({...form, deliveryDate: e.target.value})}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+        
+        <div>
+          <label style={labelStyle}>Seller Email (optional)</label>
+          <input
+            type="email"
+            value={form.seller}
+            onChange={e => setForm({...form, seller: e.target.value})}
+            placeholder="seller@gpuprovider.com"
+            style={{...inputStyle, color: form.seller ? '#e4e4e7' : '#52525b'}}
+          />
+        </div>
+        
+        <div style={{ paddingTop: '16px', borderTop: '1px solid #27272a' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ color: '#a1a1aa' }}>Amount to escrow</span>
+            <span style={{ color: '#fbbf24', fontSize: '20px', fontWeight: 500 }}>
+              {formatCurrency(form.amount)}
+            </span>
+          </div>
+          <button
+            onClick={() => onSubmit(form)}
+            style={{
+              width: '100%',
+              padding: '16px',
+              backgroundColor: '#d97706',
+              color: 'white',
+              fontWeight: 500,
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Create & Fund Commitment
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EventLedger = ({ events }) => (
+  <div style={{
+    backgroundColor: '#18181b',
+    border: '1px solid #27272a',
+    borderRadius: '8px'
+  }}>
+    <div style={{
+      padding: '16px',
+      borderBottom: '1px solid #27272a',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}>
+      <h3 style={{ margin: 0, color: '#d4d4d8', fontWeight: 500 }}>Event Ledger</h3>
+      <span style={{ color: '#52525b', fontSize: '12px', fontFamily: 'monospace' }}>
+        {events.length} events
+      </span>
+    </div>
+    <div style={{ padding: '16px', maxHeight: '400px', overflowY: 'auto' }}>
+      {events.length === 0 ? (
+        <div style={{ color: '#52525b', fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
+          No events yet
+        </div>
+      ) : (
+        events.map((event, i) => <EventEntry key={i} event={event} />)
+      )}
+    </div>
+  </div>
+);
+
+const ShareLink = ({ commitmentId }) => {
+  const [copied, setCopied] = useState(false);
+  const link = `cast.finance/c/${commitmentId}`;
+  
+  const copy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <div style={{
+      backgroundColor: '#18181b',
+      border: '1px solid #27272a',
+      borderRadius: '8px',
+      padding: '16px'
+    }}>
+      <div style={{ color: '#a1a1aa', fontSize: '14px', marginBottom: '8px' }}>
+        Share with seller
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{
+          flex: 1,
+          backgroundColor: '#27272a',
+          borderRadius: '4px',
+          padding: '8px 12px',
+          color: '#d4d4d8',
+          fontSize: '14px',
+          fontFamily: 'monospace',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {link}
+        </div>
+        <button
+          onClick={copy}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#3f3f46',
+            color: '#e4e4e7',
+            fontSize: '14px',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default function CastMVP() {
+  const [view, setView] = useState('create');
+  const [commitment, setCommitment] = useState(null);
+  const [events, setEvents] = useState([]);
+  
+  const generateHash = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  
+  const addEvent = (type, description) => {
+    setEvents(prev => [{
+      type,
+      description,
+      timestamp: new Date().toISOString(),
+      hash: generateHash()
+    }, ...prev]);
+  };
+  
+  const handleCreate = (form) => {
+    const newCommitment = {
+      id: generateHash().slice(0, 8),
+      ...form,
+      stage: STAGES.FUNDED,
+      buyer: 'you@company.com',
+      buyerWallet: '0x' + generateHash(),
+      seller: form.seller || null,
+      sellerWallet: null,
+      createdAt: new Date().toISOString()
+    };
+    
+    setCommitment(newCommitment);
+    addEvent('commitment_created', `Commitment created for ${form.quantity} of ${form.resource}`);
+    addEvent('commitment_funded', `${formatCurrency(form.amount)} deposited to escrow`);
+    setView('buyer');
+  };
+  
+  const handleAction = (action) => {
+    if (action === 'accept') {
+      setCommitment(prev => ({
+        ...prev,
+        stage: STAGES.ACCEPTED,
+        seller: 'seller@gpuprovider.com',
+        sellerWallet: '0x' + generateHash()
+      }));
+      addEvent('commitment_accepted', 'Seller accepted commitment terms');
+    }
+    
+    if (action === 'deliver') {
+      setCommitment(prev => ({ ...prev, stage: STAGES.DELIVERED }));
+      addEvent('delivery_confirmed', 'Seller marked delivery complete');
+    }
+    
+    if (action === 'confirm') {
+      setCommitment(prev => ({ ...prev, stage: STAGES.RELEASED }));
+      addEvent('payment_released', `${formatCurrency(commitment.amount)} released to seller`);
+    }
+    
+    if (action === 'dispute') {
+      setCommitment(prev => ({ ...prev, stage: STAGES.DISPUTED }));
+      addEvent('dispute_opened', 'Buyer opened dispute on delivery');
+    }
+  };
+  
+  const tabStyle = (active) => ({
+    padding: '6px 12px',
+    borderRadius: '4px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    border: 'none',
+    backgroundColor: active ? '#27272a' : 'transparent',
+    color: active ? '#f4f4f5' : '#71717a'
+  });
+  
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#09090b',
+      color: '#f4f4f5',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      {/* Header */}
+      <header style={{ borderBottom: '1px solid #27272a' }}>
+        <div style={{
+          maxWidth: '1152px',
+          margin: '0 auto',
+          padding: '16px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              background: 'linear-gradient(135deg, #fbbf24, #d97706)',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{ color: '#18181b', fontWeight: 'bold', fontSize: '14px' }}>C</span>
+            </div>
+            <span style={{ color: '#f4f4f5', fontWeight: 600, letterSpacing: '-0.01em' }}>CAST</span>
+            <span style={{ color: '#52525b', fontSize: '14px', marginLeft: '8px' }}>
+              Coordination & Settlement
+            </span>
+          </div>
+          
+          {commitment && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setView('buyer')} style={tabStyle(view === 'buyer')}>
+                Buyer View
+              </button>
+              <button onClick={() => setView('seller')} style={tabStyle(view === 'seller')}>
+                Seller View
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+      
+      {/* Main */}
+      <main style={{ maxWidth: '1152px', margin: '0 auto', padding: '32px 24px' }}>
+        {view === 'create' ? (
+          <div style={{ maxWidth: '512px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <h1 style={{ fontSize: '24px', color: '#f4f4f5', fontWeight: 500, margin: '0 0 8px 0' }}>
+                Create a Commitment
+              </h1>
+              <p style={{ color: '#71717a', margin: 0 }}>
+                Define terms, fund escrow, share with seller
+              </p>
+            </div>
+            <CreateCommitmentForm onSubmit={handleCreate} />
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <CommitmentCard 
+                commitment={commitment}
+                onAction={handleAction}
+                userRole={view}
+              />
+              {view === 'buyer' && commitment?.stage === STAGES.FUNDED && !commitment.seller && (
+                <ShareLink commitmentId={commitment.id} />
+              )}
+            </div>
+            <div>
+              <EventLedger events={events} />
+            </div>
+          </div>
+        )}
+      </main>
+      
+      {/* Footer */}
+      <footer style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        borderTop: '1px solid #27272a',
+        backgroundColor: 'rgba(9, 9, 11, 0.9)',
+        backdropFilter: 'blur(8px)'
+      }}>
+        <div style={{
+          maxWidth: '1152px',
+          margin: '0 auto',
+          padding: '12px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '12px',
+          color: '#52525b'
+        }}>
+          <span>MVP Prototype — Transaction Surface + Payment Control</span>
+          <span>Events are generated natively as actions occur</span>
+        </div>
+      </footer>
+    </div>
+  );
+}

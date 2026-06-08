@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST / Sightline — Skill Graph</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f10;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: #2a2a35;
+    --text: #e8e8f0;
+    --text-muted: #6b6b80;
+    --text-dim: #9494a8;
+    --accent: #7c9fff;
+    --accent2: #ff9f7c;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 48px 1fr;
+    overflow: hidden;
+  }
+
+  /* ── TOPBAR ── */
+  #topbar {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+  }
+  #topbar h1 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  #topbar .sep { color: var(--border); }
+  #search-wrap {
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+  }
+  #search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px 6px 30px;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--text-muted); }
+  .search-icon {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  #stats {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .cluster-section { padding: 0; }
+  .cluster-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px 8px;
+    cursor: pointer;
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 10;
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+  }
+  .cluster-header:hover { background: var(--surface2); }
+  .cluster-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .cluster-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex: 1;
+  }
+  .cluster-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .cluster-toggle {
+    font-size: 10px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+  }
+  .cluster-toggle.collapsed { transform: rotate(-90deg); }
+
+  .cluster-nodes { padding: 4px 0; }
+  .cluster-nodes.hidden { display: none; }
+
+  .node-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 22px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-left: 2px solid transparent;
+  }
+  .node-item:hover { background: var(--surface2); }
+  .node-item.active {
+    background: rgba(124, 159, 255, 0.08);
+    border-left-color: var(--accent);
+  }
+  .node-item.stub { opacity: 0.45; }
+  .node-label {
+    font-size: 12.5px;
+    color: var(--text);
+    line-height: 1.3;
+    flex: 1;
+  }
+  .node-item.stub .node-label { font-style: italic; }
+  .stub-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN PANEL ── */
+  #main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ── WELCOME ── */
+  #welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 48px;
+    text-align: center;
+  }
+  #welcome h2 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+  }
+  #welcome p {
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 480px;
+    line-height: 1.6;
+  }
+  .cluster-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 600px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .legend-item:hover { background: var(--surface2); color: var(--text); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── NODE DETAIL ── */
+  #node-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+    display: none;
+  }
+  #node-view::-webkit-scrollbar { width: 5px; }
+  #node-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  #node-view.visible { display: block; }
+
+  .node-breadcrumb {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .breadcrumb-cluster {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .breadcrumb-sep { color: var(--border); }
+
+  .node-title {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+
+  .node-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 7px;
+    border-radius: 3px;
+  }
+  .meta-tag.cluster-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .node-description {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 28px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+  }
+
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 28px;
+  }
+
+  /* Markdown-ish content rendering */
+  .node-content {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text-dim);
+    max-width: 780px;
+  }
+  .node-content h1 { display: none; }
+  .node-content h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 32px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .node-content h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-top: 20px;
+    margin-bottom: 8px;
+  }
+  .node-content p { margin-bottom: 14px; }
+  .node-content strong { color: var(--text); font-weight: 500; }
+  .node-content em { color: var(--text-dim); font-style: italic; }
+  .node-content code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent);
+  }
+  .node-content pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .node-content pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .node-content ul, .node-content ol {
+    margin: 12px 0 12px 20px;
+  }
+  .node-content li { margin-bottom: 6px; }
+  .node-content blockquote {
+    border-left: 3px solid var(--accent2);
+    margin: 16px 0;
+    padding: 10px 16px;
+    background: rgba(255, 159, 124, 0.05);
+    border-radius: 0 4px 4px 0;
+  }
+  .node-content blockquote p { margin-bottom: 0; color: var(--text-dim); }
+  .node-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+  }
+  .node-content th {
+    background: var(--surface2);
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+  }
+  .node-content td {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    color: var(--text-muted);
+  }
+  .node-content tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* wikilinks [[...]] rendered as chips */
+  .wikilink {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(124,159,255,0.1);
+    border: 1px solid rgba(124,159,255,0.2);
+    padding: 1px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.1s;
+    vertical-align: baseline;
+  }
+  .wikilink:hover { background: rgba(124,159,255,0.2); }
+
+  /* Links section */
+  .links-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .link-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.1s, background 0.1s;
+    text-decoration: none;
+  }
+  .link-chip:hover { border-color: var(--accent); background: var(--surface2); }
+  .link-chip-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .link-chip-label { font-size: 12px; color: var(--text-dim); }
+
+  .stub-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(255,159,124,0.06);
+    border: 1px solid rgba(255,159,124,0.2);
+    border-radius: 6px;
+    margin-bottom: 20px;
+  }
+  .stub-notice span { font-size: 13px; color: var(--text-muted); }
+
+  /* ── SEARCH RESULTS ── */
+  #search-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+    display: none;
+  }
+  #search-results.visible { display: block; }
+  #search-results h3 {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .result-item {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.1s;
+  }
+  .result-item:hover { border-color: var(--accent); }
+  .result-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .result-cluster {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .result-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── NAV HISTORY ── */
+  #nav-bar {
+    height: 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-muted);
+    font-size: 13px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.1s, color 0.1s;
+  }
+  .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  #breadcrumb-trail {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  #node-counter {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>CAST/SIGHTLINE <span class="sep">—</span> SKILL GRAPH</h1>
+  <div id="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="search" placeholder="Search nodes, concepts, sections…" autocomplete="off">
+  </div>
+  <div id="stats"></div>
+</div>
+
+<nav id="sidebar"></nav>
+
+<div id="main">
+  <div id="nav-bar">
+    <button class="nav-btn" id="btn-back" disabled>←</button>
+    <button class="nav-btn" id="btn-fwd" disabled>→</button>
+    <div id="breadcrumb-trail">Select a node to begin</div>
+    <div id="node-counter"></div>
+  </div>
+
+  <div id="welcome">
+    <h2>62 NODES · 12 CLUSTERS</h2>
+    <p>The complete CAST/Sightline intellectual architecture. Browse by cluster in the sidebar, search by concept, or navigate between linked nodes.</p>
+    <div class="cluster-legend" id="cluster-legend"></div>
+  </div>
+
+  <div id="node-view"></div>
+  <div id="search-results"></div>
+</div>
+
+<script>
+const GRAPH = {"nodes":[{"id":"accounting-as-conservation-law","label":"Accounting As Conservation Law","description":"Double-entry bookkeeping as a conservation law \u2014 debits equal credits because value, like energy, cannot appear from nothing. The accounting equation is a constraint surface. This ","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["gauge-invariance-bilateral","shared-truth-protocol"],"sections":["The Isomorphism","Stocks and Flows","The Constraint Surface","Noether's Theorem","Causality"],"words":764,"content":"# Accounting as a Conservation Law\n\n## The Isomorphism\n\nDouble-entry bookkeeping is a conservation law dressed in commercial clothing. It's one of the more elegant isomorphisms in applied mathematics.\n\nIn physics: conservation of energy, momentum, charge. You can transform them, transfer them between systems, but you cannot create or destroy them within a closed system.\n\nIn accounting: value conservation. Every transaction is a transfer that conserves the total. One account gives, another receives. **Debits equal credits not by convention but because the system models a universe where value, like energy, cannot appear from nothing.**\n\n## Stocks and Flows\n\nPhysics distinguishes:\n- **State variables** (position, temperature, charge at a point in time)\n- **Flow variables** (velocity, heat flux, current \u2014 rates of change over time)\n\nAccounting mirrors this exactly:\n- **Balance sheet accounts** are stocks \u2014 snapshots of accumulated state\n- **Income statement accounts** are flows \u2014 rates of accumulation over a period\n\nThe relationship is identical: the time integral of flows yields the change in stocks. Revenue flowing in accumulates as retained earnings on the balance sheet, just as current flowing integrates to charge.\n\n## The Constraint Surface\n\nAssets = Liabilities + Equity functions like a constraint in Lagrangian mechanics. The entire state space of valid accounting positions lies on this surface. Every valid transaction moves the system *along* this surface \u2014 never off it. Invalid entries (debits \u2260 credits) would push you off the manifold.\n\nThis is not a rule someone made up. It is the mathematical structure of any conservation system.\n\n## Noether's Theorem\n\nEmmy Noether proved that every conservation law corresponds to a symmetry. The \"symmetry\" in accounting is the duality of exchange \u2014 every economic event has two simultaneous perspectives (what you gave up, what you received). This symmetry *implies* the conservation law.\n\nFor CAST specifically: the relevant symmetry is **party-exchange invariance** \u2014 the actual transaction must be invariant regardless of which party's perspective you adopt. Your payable is your vendor's receivable. Same economic reality, different perspectives. The conservation law that falls out is: **net value in the bilateral system is conserved**. When A records +Asset (receive), B must record -Asset (deliver) OR +Liability (owe). See [[gauge-invariance-bilateral]] for the full development.\n\n## Causality\n\nThis is where accounting and physics diverge in ways that matter for CAST.\n\nIn physics, causality is fundament"},{"id":"agentic-infrastructure","label":"Agentic Infrastructure","description":"CAST as foundational infrastructure for agentic financial operations. Why autonomous agents require a deterministic policy-verified state machine underneath them to be safe. Agents","cluster":"Agentic Infrastructure","color":"#e8c8b4","stub":false,"links":["shared-truth-protocol","proof-first-finance"],"sections":["The Missing Infrastructure Problem","CAST as Policy-Verified State Machine","Three Invariants That Make Agent Actions Safe","Agents as First-Class Ledger Participants","The \"Why Now\" Argument"],"words":805,"content":"# Agentic Infrastructure\n\nAgentic payments and agentic commerce are only viable if something like CAST exists underneath. Without a deterministic, event-verified state machine, agentic systems become un-auditable, un-falsifiable, and unsafe.\n\n## The Missing Infrastructure Problem\n\nMost agentic commerce demos fail because they rely on untyped JSON blobs, no invariants, no state machine, no multi-party evidence chain. The agent can read and write to arbitrary systems, but there is no verification that its actions are within authorized bounds, no record that makes those actions inspectable, and no guarantee that independent parties would agree on what the agent did.\n\nThis is not a problem that better AI solves. It is a structural problem: the infrastructure underneath the agent does not enforce the constraints required for safety.\n\n## CAST as Policy-Verified State Machine\n\nAgentic systems need: a canonical object (the shared ledger), verifiable transitions, evidence for each step, and deterministic rejection paths.\n\nCAST provides all of these. Agents act on the ledger state and policies, not around them:\n\n1. Agent observes shared state: \"shipment event received, variance < threshold, invoice matches PO + receipt\"\n2. Agent evaluates policy via CAST: budget available? contract terms satisfied? SLA met?\n3. Agent proposes a state transition event\n4. CAST's invariants either accept or reject \u2014 deterministically\n5. Agent receives the result: accepted (initiate payment) or rejected (post exception reason with evidence)\n\nCAST becomes the truth oracle that ensures agents cannot act outside the allowed envelope. The agent's authority is encoded in the policy, and the policy is enforced cryptographically.\n\n## Three Invariants That Make Agent Actions Safe\n\n**Invariant 1 \u2014 No payment without evidence**: Agent tries to pay. CAST checks: PO exists, shipment event attached, invoice cross-footed. Payment without these is structurally impossible.\n\n**Invariant 2 \u2014 No double spend**: CAST enforces idempotence and linked transfer chains. An agent cannot approve the same invoice twice.\n\n**Invariant 3 \u2014 State monotonicity**: State transitions flow forward. You cannot go from PAID \u2192 NOT_RECEIVED. Agents cannot reverse history.\n\nWithout these invariants, agentic payments are unsafe to automate at scale. With them, 80-95% of routine payment operations can be cleared automatically \u2014 not by trusting the agent's judgment, but by trusting the mathematical constraints it operates within.\n\n## Agents as First-Class Ledger Participants\n\nCAST treats agents as a first-class actor type in the event schema, alongside humans. Every agent action is labeled, every action is logged, and the policy engine enforces what actions each age"},{"id":"agents-as-ledger-participants","label":"Agents As Ledger Participants","description":"","cluster":"Agentic Infrastructure","color":"#e8c8b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"allocation-primitive","label":"Allocation Primitive","description":"","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"case-primitive","label":"Case Primitive","description":"","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"causal-event-primitive","label":"Causal Event Primitive","description":"The formal definition of an event in CAST: immutable, attributable, causal, falsifiable. The four-stage event grammar (commitment \u2192 performance \u2192 measurement \u2192 settlement) grounds ","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["conservation-equation","deterministic-state-machines","event-sourcing-core"],"sections":["First Principles","The Formal Event Structure","The Four-Stage Grammar","The Core Invariant","Cross-Domain Mapping"],"words":655,"content":"# The Causal Event Primitive\n\n## First Principles\n\n**Events are physical.** Something happened in the world that changed state. A truck arrived. Bytes moved. A signature was applied. If you can't point to the physical change, it's not an event \u2014 it's an intention or a belief.\n\n**Commitments are predictions.** A PO is a prediction that goods will arrive and payment will follow. The prediction has parameters (quantity, date, price) that can be compared against actuality.\n\n**Verification is measurement.** Did the physical state match the predicted state? This is a measurement problem, not a trust problem.\n\n**Settlement is state convergence.** All parties' ledgers reflect the same reality. The transaction is closed not because everyone agreed, but because the measurements are consistent.\n\n## The Formal Event Structure\n\n```\nEvent {\n  id: unique identifier\n  type: commitment | performance | measurement | settlement\n  timestamp: when observed\n  observer: who recorded it\n  subject: what resource/obligation it concerns\n  prior_events: [events this depends on]\n  assertions: [measurable claims]\n  proofs: [evidence supporting assertions]\n}\n```\n\nEvery event is:\n- **Immutable** once recorded \u2014 corrections are new events referencing prior ones\n- **Attributable** to an observer \u2014 anonymous events cannot exist\n- **Causal** \u2014 explicitly linked to prior events in the chain\n- **Falsifiable** \u2014 assertions can be compared against subsequent measurements\n\n## The Four-Stage Grammar\n\n| Stage | Physical Basis | Math Analog |\n|-------|---------------|-------------|\n| **Commitment** | Information state change (message sent, record created) | Constraint equation: defines expected future state |\n| **Performance** | Physical state change (location, possession, transformation) | Variable assignment: actual state updated |\n| **Measurement** | Observation recorded (count, inspection, confirmation) | Measurement: observed value with uncertainty |\n| **Settlement** | Ledger state change (obligation extinguished) | Equation resolved: constraint satisfied or exception raised |\n\n## The Core Invariant\n\nFor any completed transaction:\n\n```\n\u03a3(commitments) = \u03a3(performances) = \u03a3(measurements) = \u03a3(settlements)\n```\n\nWhen these don't balance, there is a **variance**. The variance is attributable to specific events in the causal chain. Nothing disappears. Every gap has a home. See [[conservation-equation]] for the full treatment.\n\n## Cross-Domain Mapping\n\nThe grammar applies universally:\n\n| Domain | Commitment | Performance | Measurement | Settlement |\n|--------|-----------|-------------|-------------|------------|\n| GPU Procurement | PO issued | Units"},{"id":"competitive-map","label":"Competitive Map","description":"Who is in the market, what they solve, and where CAST is differentiated. Fragment, Modern Treasury, Skyfire, Twisp, SF Compute, blockchain alternatives. What nobody owns.","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["agentic-infrastructure","open-standard-strategy","gao-greenbook-positioning"],"sections":["Tier 1: Most Direct Overlap","Tier 2: Adjacent Positions","Tier 3: Analytical Overlaps","What Nobody Owns","The CorpChain Warning"],"words":571,"content":"# Competitive Map\n\n## Tier 1: Most Direct Overlap\n\n**Fragment** \u2014 \"The database for money.\" Real-time ledger API for fintech developers. Makes double-entry ledgering accessible to engineers. Key limitation: single-party ledger. They solve the internal consistency problem, not the multi-party coordination problem. Not a competitor in the bilateral coordination sense.\n\n**Modern Treasury** \u2014 Payments operations platform ($300B+ processed). Combines ledger APIs with payment orchestration. Strong on reconciliation automation. AI capabilities being added. Limitation: they handle multi-party *payments*, not multi-party *commitments before payment*. The coordination of \"when conditions are met, funds move\" with proofs is not addressed.\n\n**Twisp/Ledger-API tools** \u2014 Developer-focused double-entry APIs. Same gap as Fragment: single-party internal consistency, not multi-party coordination.\n\n## Tier 2: Adjacent Positions\n\n**Skyfire** \u2014 Building payment rails for AI agents. Closest to the agentic infrastructure thesis. Key difference: they're building the payment rail, CAST is building the coordination layer underneath the payment. Skyfire's traction validates agent spending as a real category; may shape buyer expectations toward payments rather than coordination (potential positioning challenge). See [[agentic-infrastructure]].\n\n**Blockchain-native approaches (Coinbase, various)** \u2014 Treating blockchain as the coordination layer. Assumes chain-first architecture. CAST's architecture treats settlement (whether chain, ACH, wire) as a downstream implementation detail. The event-sourced ledger creates shared truth; how it settles is pluggable. Critical enterprise advantage: PE-backed and growth-stage companies won't rebuild on chain anytime soon. CAST's \"proof-first\" approach delivers coordination benefits without the crypto commitment.\n\n**SF Compute** \u2014 GPU capacity marketplace, raised $40M. Validates GPU compute financing as a real market. Positions it as a marketplace/auction problem, not a coordination/commitment problem. The financing angle (CoreWeave's $2.3B debt facility using H100s as collateral) confirms capital is available for GPU infrastructure.\n\n## Tier 3: Analytical Overlaps\n\n**Numeric, Tellius, Drivetrain** \u2014 AI variance analysis tools. Provide pattern-matching on top of traditional ledgers, not causal modeling from events. Detect anomalies; don't prevent divergence. Post-hoc detection, not pre-commitment validation.\n\n**Palantir/Booz Allen (federal market)** \u2014 Analytics on top of existing systems. Detective, not preventive. See [[gao-greenbook-positioning]] for how this matters in the federal context.\n\n## What Nobody Owns\n\nThree gaps nobody is clearly filling:\n\n**Event-sourced causality**: Most players provide ledgers that record what happened, not systems"},{"id":"conservation-equation","label":"Conservation Equation","description":"The core conservation equation of CAST: \u03a3(commitments) = \u03a3(performances) = \u03a3(measurements) = \u03a3(settlements). Nothing disappears. Every gap must be attributed. This is not an accoun","cluster":"The Event Grammar","color":"#b4e8c8","stub":false,"links":["accounting-as-conservation-law","friction-engine"],"sections":["The Statement","The Second Form","Why This Is a Conservation Law (Not a Rule)","The Graph Structure","Time Conservation (Parallel Dimension)"],"words":386,"content":"# The Conservation Equation\n\n## The Statement\n\nFor any completed transaction:\n\n```\n\u03a3(commitments) = \u03a3(performances) = \u03a3(measurements) = \u03a3(settlements)\n```\n\nWhen these don't balance, there is a **variance**. The variance is attributable to specific events in the causal chain.\n\nMore precisely: **all gaps must be attributed.** The equation doesn't demand equality \u2014 it demands completeness. If 482 units settled against 500 committed, 18 units are a fact that must have an address (carrier loss, vendor credit, damage adjustment, write-off).\n\n## The Second Form\n\n```\n\u03a3(commitments) - \u03a3(settlements) = \u03a3(attributed_variances)\n```\n\nNothing disappears. Every gap has a home. If the right side is not zero, you have unattributed variance \u2014 a genuine audit finding, not a rounding error.\n\n## Why This Is a Conservation Law (Not a Rule)\n\nIn physics, conservation laws emerge from symmetry (Noether's theorem). The conservation of value in CAST emerges from the symmetry of bilateral exchange: every economic event has two simultaneous perspectives. What Party A gives, Party B receives. The conservation law is structural.\n\nSee [[accounting-as-conservation-law]] for the full physics development.\n\n## The Graph Structure\n\nThe conservation equation applies to the four-stage event grammar, but the graph connecting them is not always linear:\n\n```\nSimple (linear):\nC1 \u2192 P1 \u2192 M1 \u2192 S1\n\nOne-to-many:\nC1 \u2500\u252c\u2192 P1 \u2192 M1a \u2500\u2510\n    \u2514\u2192 P2 \u2192 M1b \u2500\u2534\u2192 S1\n\nMany-to-one:\nC1 \u2192 P1 \u2500\u2510\nC2 \u2192 P2 \u2500\u2534\u2192 M1 \u2192 S1\n```\n\nThe four primitives are sufficient. The complexity lives in the graph structure connecting them, not in missing primitive types.\n\n## Time Conservation (Parallel Dimension)\n\nTime has its own conservation logic, parallel to quantity/value:\n\n```\ncommitted_date + \u03a3(delays) = actual_date\n```\n\nWhere each delay is attributed (vendor late, port congestion, carrier fault, customs hold). Time variances matter differently than quantity variances \u2014 they affect downstream commitments and compound in ways quantity variances don't.\n\n## Connection to Friction\n\nThe conservation equation catches *outcome* variances (18 units missing). The Friction Engine catches *process* variances (how many overrides and exceptions were required to close the loop). Both are necessary. See [[friction-engine]]."},{"id":"coordination-vs-payments","label":"Coordination Vs Payments","description":"CAST is not a payment rail. It is the coordination layer that verifies conditions under which payment should occur. Payment rails (Skyfire, Stripe, ACH, wire) move money. CAST prov","cluster":"Bilateral Coordination Protocol","color":"#b4b4e8","stub":false,"links":["standard-functions-concept"],"sections":["The Core Distinction","Why the Distinction Matters","How CAST Works With Payment Rails","The Skyfire Relationship","The Escrow Analogy"],"words":812,"content":"# Coordination vs. Payments: What CAST Is and Isn't\n\n## The Core Distinction\n\n**Payment rails** move money from one account to another. They solve: \"Given that we want to transfer $X from A to B, do it reliably, quickly, and cheaply.\"\n\n**Coordination protocols** verify the conditions under which payment should occur. They solve: \"Did the conditions that justify payment actually happen? Can all parties verify this independently?\"\n\nCAST is a coordination protocol, not a payment rail.\n\n## Why the Distinction Matters\n\nIn multi-party transactions, the hardest problem is not moving money \u2014 modern payment infrastructure handles that well. The hardest problem is establishing, without trust, that the conditions for payment have been met:\n\n- Did the GPU actually run for 47 hours?\n- Did the contractor complete the work specified in the scope?\n- Did the shipment arrive at the right location with the right quantity?\n- Did the software license actually run for the claimed period?\n\nThese are verification problems. Payment rails don't solve them. Banks don't solve them. ERPs don't solve them (each party has their own ERP, with no shared ground truth).\n\nCAST solves the verification problem by making events the ground truth and requiring both parties to sign them.\n\n## How CAST Works With Payment Rails\n\nCAST doesn't replace payment infrastructure \u2014 it sits upstream of it:\n\n```\n1. Events occur (delivery, usage, inspection)\n2. Both parties sign each event (CAST layer)\n3. Policy evaluates: are conditions for payment met?\n4. If yes \u2192 CAST generates a payment instruction\n5. Payment instruction executes via ACH / wire / Skyfire / stablecoin\n6. Payment confirmation flows back as an event in CAST\n```\n\nThe payment rail is interchangeable. CAST works with:\n- ACH for domestic USD\n- Wire for large/international\n- Skyfire for AI agent payments\n- Stablecoins for crypto-native networks\n- Stripe for subscription/SaaS contexts\n\nThe CAST event stream is what proves the payment was justified. The payment rail is just the execution layer.\n\n## The Skyfire Relationship\n\nSkyfire is building payments infrastructure specifically for AI agents \u2014 enabling autonomous agents to pay for compute, API calls, data, and services without human intervention.\n\nCAST and Skyfire are complementary, not competitive:\n- **Skyfire**: moves money on behalf of agents\n- **CAST**: proves the conditions that justify money moving\n\nAn AI agent running GPU workloads needs both:\n- CAST to coordinate proof of delivery between agent, GPU provider, and lender\n- Skyfire to execute the payment once CAST confirms conditions are"},{"id":"coreweave-model","label":"Coreweave Model","description":"","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"database-primitives","label":"Database Primitives","description":"","cluster":"Implementation Architecture","color":"#e8e4b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"density-functional-theory-analogy","label":"Density Functional Theory Analogy","description":"The many-body problem in multi-party financial coordination maps to density functional theory: replace an intractable N-party computation with N single-party computations against a","cluster":"Physics and Mathematical Foundations","color":"#e8d4b4","stub":false,"links":["standard-functions-concept"],"sections":["The Many-Body Problem","The Financial Coordination Analogy","What the Functional Encodes","The Implementation Architecture","What This Buys"],"words":891,"content":"# Density Functional Theory and Multi-Party Coordination\n\n## The Many-Body Problem\n\nIn quantum mechanics: tracking every pairwise electron-electron interaction in a many-electron system is computationally intractable. The full wavefunction lives in 3N-dimensional space.\n\nHohenberg-Kohn (1964): all ground-state properties are uniquely determined by just the electron density \u03c1(r) \u2014 a function of only 3 spatial coordinates. N-particle problem \u2192 3-variable problem.\n\nKohn-Sham implementation: solve N single-particle equations (each electron in an effective potential) instead of one impossibly complex N-particle equation. The many-body interactions are folded into an \"exchange-correlation functional.\"\n\n## The Financial Coordination Analogy\n\n**In multi-party financial systems:** every transaction potentially affects every other party's state \u2014 cash positions, credit exposure, fulfillment obligations, margin requirements. Tracking the full \"wavefunction\" means modeling every pairwise interaction, every conditional dependency, every feedback loop. N-party problem.\n\n**The DFT move for CAST:** each party solves their own single-party equation against a \"density\" that summarizes the aggregate state of the network \u2014 without needing to model everyone else's internal logic.\n\nThe **density equivalent** = the aggregate commitment surface: what the net committed/available/at-risk quantities are across the network at any point in time and for any resource type.\n\nThe **exchange-correlation functional** = the policy engine (Standard Functions): the rules that make non-interacting party calculations produce the same outcomes as full many-party coordination would.\n\n## What the Functional Encodes\n\nFor a PO-to-cash cycle to resolve correctly across supplier, buyer, lender, and logistics provider:\n\n- **Priority rules**: If cash is short, who gets paid first? Subordination logic: takes aggregate claims (density), returns ordering\n- **Timing transforms**: When does a commitment become an obligation? When does an obligation become a liability? These are state transitions triggered by events, but the *rules* are the functional\n- **Risk allocation**: If a shipment is late, how does variance propagate? The functional defines the mapping from deviation in density to adjustment in positions\n- **Margin/collateral requirements**: Given the current density of commitments, what buffer must each party maintain?\n\n## The Implementation Architecture\n\n```\nEVENT LEDGER (append-only, cryptographically committed)\n  \u2193\nDENSITY FUNCTION: \u03c1(resource, time"},{"id":"deterministic-state-machines","label":"Deterministic State Machines","description":"Pure projection functions that produce identical outputs from identical inputs across all counterparties. Why determinism eliminates disagreement by construction rather than by coo","cluster":"The Core Architectural Thesis","color":"#b4c8e8","stub":false,"links":["proof-first-finance","gpu-compute-beachhead","shared-truth-protocol","cryptographic-proof-chains"],"sections":["What Determinism Requires","The Policy Engine","Standard Functions","GPU Compute Financing Example","Relationship to Physics"],"words":596,"content":"# Deterministic State Machines\n\nDeterminism is the property that makes [[shared-truth-protocol]] possible without a central authority. If both parties apply the same projection function to the same event log, they will always compute identical state \u2014 not because they trust each other, not because a third party adjudicates, but because mathematics leaves no room for disagreement.\n\n## What Determinism Requires\n\nA state machine is deterministic if and only if:\n\n1. **No non-deterministic inputs** \u2014 no random numbers, no timestamps from system clocks, no external API calls inside the projection function\n2. **No hidden state** \u2014 the function's output depends only on its inputs (the event log), not on any internal state that varies between parties\n3. **Canonical serialization** \u2014 events must serialize to identical byte sequences on all platforms; floating point representation, string encoding, and field ordering must be standardized\n\nThe third requirement is subtle and frequently underestimated in implementation. Two parties can have identical events conceptually but different canonical forms, producing different hashes and breaking [[cryptographic-proof-chains]].\n\n## The Policy Engine\n\nCAST's policy engine is a specific kind of deterministic state machine. It does not just project financial state \u2014 it also evaluates whether proposed events are valid under the current policy configuration.\n\n```\nvalidate(event, currentState, policySet) \u2192 { valid: boolean, reason: string }\n```\n\nThe policy evaluation function must itself be deterministic. If Party A and Party B evaluate the same proposed event against the same policy and reach different conclusions, coordination breaks down. This is why [[proof-first-finance]] requires that validation happen before events post, and that both parties' validators are running identical policy specifications.\n\n## Standard Functions\n\nThe \"Standard Functions\" concept for CAST is a library of pre-specified, auditable deterministic functions for common coordination scenarios \u2014 PO-to-cash, GPU utilization billing, inventory-backed borrowing base calculation. Each Standard Function is a deterministic state machine that both parties agree to run.\n\nStandard Functions are to CAST what GAAP is to financial reporting \u2014 a common language that eliminates argument by establishing shared computation rules in advance. Unlike GAAP, Standard Functions are executable: you cannot interpret them differently because the code is the specification.\n\n## GPU Compute Financing Example\n\nFor [[gpu-compute-beachhead]], the deterministic projection for a metered billing period looks like:\n\n```typescript\nfunction projectBillingPeriod(events: BilateralEvent[], period: BillingPeriod): BillingState {\n  const utilizati"},{"id":"dfhq-substack-editorial","label":"Dfhq Substack Editorial","description":"The Digital Finance HQ editorial framework and Substack content strategy. Four intellectual pillars distinguish DFHQ from every other finance Substack: events as atomic unit, accou","cluster":"Go-to-Market and Positioning","color":"#e8b4d4","stub":false,"links":[],"sections":["The Four Pillars","Voice Rules","The Differentiation Table","The Flagship Document","Anchor Article List"],"words":1030,"content":"# DFHQ Substack Editorial Framework\n\n## The Four Pillars\n\nThese are the intellectual positions that distinguish Digital Finance HQ from all other finance content:\n\n**Pillar 1: Events as the atomic unit**\n\nMost finance content treats journal entries or transactions as the starting point. DFHQ starts earlier \u2014 at the irreversible business fact. The event itself (a shipment left, a payment cleared, a signature was applied) is the primitive. Journal entries should be *derived from* events, not the other way around. This reframes every topic: landed cost, variance analysis, system selection, audit, AI delegation.\n\n**Pillar 2: Accounting as a conservation law**\n\nNot a reporting convention. Not a professional judgment. A conservation law: value, like energy, cannot appear from nothing. Debits equal credits because the system models physics, not because of GAAP. This connects to Noether's theorem, gauge invariance, Ijiri's force accounting, and a century of physics that accountants have ignored. Rigorous enough to be credible, practical enough for a PE operating partner.\n\n**Pillar 3: Proof over trust**\n\nTraditional finance runs on trust hierarchies \u2014 the controller's close, the auditor's opinion. DFHQ advocates for systems where trust is unnecessary because proof is embedded. Every assertion should be verifiable. Every number traceable to its source event. The zero trust origins of this thinking are real: we built the HOA prototype on this principle before we knew what CAST would become.\n\n**Pillar 4: Task as the atomic unit of work**\n\nJust as events are the primitive of financial data, tasks are the primitive of financial work. Task \u2192 job \u2192 role is the decomposition that makes intelligent automation possible. Most finance functions are designed at the job or role level. Until you decompose to the task level, you cannot decide what to automate, delegate to agents, or do at all. This is the bridge between the first three pillars and the AI transition.\n\n## Voice Rules\n\n1. **Practitioner, not professor.** Every conceptual point gets a \"here's what this looks like on Tuesday morning\" example. Anonymized but detailed from real engagements.\n\n2. **Specific, not generic.** Readers should think \"this person has done this work, not just thought about it.\"\n\n3. **Opinionated.** We take positions. Events are the primitive. Cash is ground truth. Speed beats precision for decisions. Not everyone will agree. Good.\n\n4. **Rigorous but accessible.** We reference Ijiri and conservation laws, but explain them in plain language and connect them to problems CFOs actually have."},{"id":"dispute-window-mechanics","label":"Dispute Window Mechanics","description":"How disputes are handled in CAST: the dispute window is a first-class protocol state, not an exception. The window is finite, defined in policy, and closes automatically. After clo","cluster":"Bilateral Coordination Protocol","color":"#b4b4e8","stub":false,"links":["case-primitive"],"sections":["Why Disputes Need a Protocol-Level Design","The Dispute Window","Dispute Event Structure","Resolution: Policy Not Negotiation","Archaeology vs. Prevention"],"words":820,"content":"# Dispute Window Mechanics\n\n## Why Disputes Need a Protocol-Level Design\n\nTraditional dispute handling:\n1. Party A claims X happened\n2. Party B claims Y happened (or denies X)\n3. Both parties dig through their own records\n4. Mediation, negotiation, sometimes legal proceedings\n5. Resolution: one party updates their records; the discrepancy is manually corrected\n\nThis process is:\n- **Expensive**: Involves human time, often intermediaries and lawyers\n- **Slow**: Weeks to months for significant disputes\n- **Unresolved at the architecture level**: The same event caused the dispute; the dispute resolution doesn't update the underlying architecture\n\nCAST makes disputes a first-class protocol state because they are inevitable and because how you handle them is as important as how you handle happy-path transactions.\n\n## The Dispute Window\n\nEvery event type in CAST has a **dispute window** defined in the governing PolicyVersion:\n\n```yaml\npolicy:\n  event_types:\n    gpu.usage_interval:\n      dispute_window_hours: 48\n      auto_close_on_timeout: true\n      \n    delivery.goods_received:\n      dispute_window_hours: 72\n      auto_close_on_timeout: true\n      \n    payment.released:\n      dispute_window_hours: 0  # No dispute after payment\n```\n\nDuring the dispute window:\n- The event is **recorded** in the event log (immutable)\n- The event is **provisionally binding** but not **finally binding**\n- Any party can file a dispute event that references the original event\n- The system freezes downstream calculations that depend on the disputed event\n\nAfter the dispute window closes without a dispute:\n- The event becomes **finally binding**\n- Downstream calculations proceed\n- No dispute can be opened retrospectively\n\n## Dispute Event Structure\n\nWhen a party files a dispute:\n\n```json\n{\n  \"event_type\": \"dispute.filed\",\n  \"disputed_event_id\": \"EVT-2025-047821\",\n  \"disputed_by\": \"borrower-corp\",\n  \"grounds\": \"usage_quantity_mismatch\",\n  \"claimed_quantity\": 380,\n  \"recorded_quantity\": 480,\n  \"evidence\": [\"telemetry-report-2025-03-01.json\", \"downtime-log.pdf\"],\n  \"filed_at\": \"2025-03-02T14:22:00Z\",\n  \"party_signature\": \"...\"\n}\n```\n\nThe dispute event is itself immutable and becomes part of the permanent record. You can see, historically, that a dispute was filed, by whom, on what grounds, and what evidence was presented.\n\n## Resolution: Policy Not Negotiation\n\nDispute resolution in CAST is not negotiation \u2014 it is policy evaluation. The PolicyVersion specifies how disputes of each type are resolved:\n\n```yaml\ndispute_resolution:\n  usage_quantity_mismatch:\n    resolution_authority: [\"both_parties\", \"third_"},{"id":"event-granularity-principle","label":"Event Granularity Principle","description":"The granularity principle: capture events at the lowest level where the business makes decisions or incurs obligations. Finer than that is noise. Coarser loses causal traceability.","cluster":"The Ledger Engineer Role","color":"#c8e8b4","stub":false,"links":["ledger-engineer-role"],"sections":["The Core Rule","Too Coarse: Loss of Causal Traceability","Too Fine: Operational Noise Obscuring Signal","The Physics Analogy","The Decision/Obligation Test"],"words":914,"content":"# Event Granularity Principle\n\n## The Core Rule\n\n> Capture events at the lowest level where the business makes decisions or incurs obligations. Finer than that is noise. Coarser than that loses causality.\n\nThis is the most important judgment call in implementing any event-sourced financial system. Get it wrong in either direction and the system fails.\n\n## Too Coarse: Loss of Causal Traceability\n\n**Example**: Capturing \"payment batch processed\" rather than \"invoice X paid.\"\n\nWhen a variance appears \u2014 the AP balance is off by $4,700 \u2014 you have no way to trace which specific payment caused it. You know the batch ran, but not what happened within it. The causal chain is broken at the batch level.\n\nThe symptom: numbers can't be explained. \"The total is right but we can't tell you why the individual items added up this way.\" Auditors hate this. PE investors especially hate this. It's the hallmark of a system that's been optimized for reporting rather than understanding.\n\n## Too Fine: Operational Noise Obscuring Signal\n\n**Example**: Capturing every keystroke in the ERP, every intermediate save state, every micro-action in a workflow.\n\nThe event log becomes unnavigable. The important events (an obligation was created, a payment was made, a dispute was opened) are buried in hundreds of events per transaction. Pattern recognition fails. Fraud detection fails. The signal-to-noise ratio collapses.\n\nThe symptom: technically complete but operationally useless. Everything is in there but nothing can be found or analyzed without heroic data engineering.\n\n## The Physics Analogy\n\nIn physics, we know quarks exist. We know atoms are made of protons and electrons. We know molecules are made of atoms. We typically model chemistry at the molecular level \u2014 not at the quark level \u2014 because that's where the useful interactions happen and where the decisions are made.\n\nFor financial systems, the \"molecular level\" is the level where:\n- A human or system makes a decision\n- An obligation is created or extinguished\n- A financial statement line would move if you knew about this event\n\nBelow that level is physics (operational detail). Above that level is chemistry (derived views). Capture at the right level.\n\n## The Decision/Obligation Test\n\nFor any candidate event type, ask two questions:\n\n1. **Does this event cause a decision?** \"A purchase order was issued\" \u2192 yes, this creates a procurement decision. \"Pallet 47B was scanned at dock 3\" \u2192 maybe, if the company routes by pallet. \"The database row was updated\" \u2192 no.\n\n2. **Does this event create or extingu"},{"id":"event-primitive","label":"Event Primitive","description":"The Event primitive: the immutable append-only fact. Non-negotiable properties: immutable once committed, time-stamped (server-issued), idempotency-keyed, causally linkable (revers","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":false,"links":[],"sections":["Definition","Schema","Non-Negotiable Properties","Event Type Taxonomy","Append-Only Enforcement"],"words":467,"content":"# Event Primitive\n\n## Definition\n\nAn Event is an immutable statement that something happened or was asserted. It is the foundational primitive \u2014 everything else in CAST is derived from or references events.\n\n## Schema\n\n```sql\nevents (\n  id          ULID PRIMARY KEY,              -- Lexicographically sortable, globally unique\n  ledger_id   ULID NOT NULL REFERENCES ledgers(id),\n  sequence    INTEGER NOT NULL,              -- Monotonic within ledger\n  timestamp   TIMESTAMPTZ NOT NULL DEFAULT now(),  -- Server-issued; clients cannot set\n  type        TEXT NOT NULL,                 -- 'gpu.deployed', 'invoice.received', etc.\n  party_id    ULID NOT NULL,                -- Who submitted this event\n  visibility  TEXT[] NOT NULL,              -- Which parties can see it\n  data        JSONB NOT NULL,               -- Event payload (type-specific)\n  documents   ULID[],                       -- Referenced evidence\n  hash        TEXT NOT NULL,               -- SHA-256 of canonical event content\n  prev_hash   TEXT NOT NULL,               -- Hash of prior event (hash chain)\n  signatures  JSONB NOT NULL,              -- Cryptographic signatures from parties\n  UNIQUE(ledger_id, sequence)\n)\n```\n\n## Non-Negotiable Properties\n\n**Immutable**: Once committed, the event data cannot be changed. Corrections are new events that reference and supersede prior ones. A PostgreSQL trigger prevents UPDATE and DELETE operations \u2014 even a compromised application server cannot modify historical events.\n\n**Server-timestamped**: Clients propose events but the server assigns authoritative timestamps. This prevents backdating and ensures total ordering.\n\n**Idempotency-keyed**: Each event carries an idempotency key derived from the submitting client's request. Duplicate submissions are rejected, preventing double-recording.\n\n**Causally linkable**: Events can reference prior events in three ways:\n- **Reversal**: \"This event undoes that event\"\n- **Amendment**: \"This event supersedes that event with updated data\"\n- **Derivation**: \"This event was caused by that event\"\n\n**Attributed**: Every event references a party_id. There are no anonymous events.\n\n**Hash-chained**: Each event's hash incorporates the previous event's hash. Tampering with any historical event breaks all subsequent hashes \u2014 tamper-evidence is structural.\n\n## Event Type Taxonomy\n\nEvents are namespaced by domain:\n\n```\ncommitment.*    \u2014 obligation-creating events (PO issued, contract signed)\nperformance.*   \u2014 physical delivery events (shipment confirmed, deployment verified)\nmeasurement.*   \u2014 observation events (goods counted, usage logged, inspection passed)\nsettlement.*    \u2014 obligation-closing ev"},{"id":"event-schema-design","label":"Event Schema Design","description":"","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"event-sourcing-core","label":"Event Sourcing Core","description":"The immutable append-only event log as single source of truth. Why all financial state in CAST derives from events rather than mutable tables. Foundation node \u2014 most other concepts","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["cryptographic-proof-chains","reconciliation-as-architecture","gpu-compute-beachhead","ijiri-force-accounting","deterministic-state-machines","shared-truth-protocol"],"sections":["Why This Matters for CAST","The Projection Function","Immutability and Append-Only","Connection to Ijiri","Practical Implications for GPU Financing"],"words":532,"content":"# Event Sourcing Core\n\nIn conventional financial systems, state is stored directly \u2014 a database row holds the current balance, and it gets updated when transactions occur. The history of how you arrived at that balance is either lost or reconstructed from audit logs added as an afterthought.\n\nEvent sourcing inverts this. The **event log is the source of truth**. Current state is always a projection \u2014 a pure function applied to the complete event history. You never update state directly; you append an event that describes what happened, and the projection function derives the new state.\n\n```\nState = reduce(ProjectionFunction, initialState, events)\n```\n\nThis inversion has profound consequences for multi-party financial coordination, which is what [[shared-truth-protocol]] exploits.\n\n## Why This Matters for CAST\n\nThe reason [[reconciliation-as-architecture]] is an architectural problem rather than a clerical one is that traditional systems store state instead of events. When Party A and Party B each maintain their own mutable state, they will diverge. Reconciliation is the manual process of finding and resolving that divergence.\n\nWhen both parties share an append-only event log, state divergence is impossible by construction. There is nothing to reconcile because there is only one ledger \u2014 the event stream both parties co-author.\n\n## The Projection Function\n\nThe projection function must be:\n\n**Deterministic** \u2014 same events always produce same state. No random elements, no side effects, no dependency on external state. This is what [[deterministic-state-machines]] formalizes.\n\n**Pure** \u2014 the function does not modify the events or any external state. Given events, it returns state.\n\n**Total** \u2014 every valid event sequence has a defined output. No edge cases that produce undefined behavior.\n\nWhen the projection function has these properties, every party who holds the same event log will independently compute identical state. This is the mathematical foundation of [[shared-truth-protocol]].\n\n## Immutability and Append-Only\n\nEvents cannot be modified or deleted. This is not just a design choice \u2014 it is a mathematical requirement. If events could be changed, the projection function would produce different state for different versions of the same history.\n\n[[cryptographic-proof-chains]] enforces immutability at the protocol level: each event is cryptographically bound to the previous one via hash chains. Modifying event N changes its hash, which invalidates event N+1's reference to it, which breaks the chain. Tampering is detectable.\n\n## Connection to Ijiri\n\nYuji Ijiri's triple-entry bookkeeping framework, described in [[ijiri-force-accounting]], anticipated this logic. His \"force accounts\" are essentially events \u2014 they record the causal dr"},{"id":"fraud-prevention-positioning","label":"Fraud Prevention Positioning","description":"CAST as structural fraud prevention infrastructure. The GAO GreenBook 2025 alignment, the presidential fraud mandate, and why CAST's architectural approach differs from all existin","cluster":"Go-to-Market and Positioning","color":"#e8b4d4","stub":false,"links":["pe-portfolio-positioning"],"sections":["The Core Architectural Argument","GAO GreenBook 2025 Alignment","HOA, Nonprofit, and Government Pattern","The Distinction from Monitoring Products","Federal Market Opportunity"],"words":719,"content":"# Fraud Prevention Positioning\n\nCAST's architecture addresses fraud not through detection but through structural prevention. This is a categorically different claim from every existing system in the market.\n\n## The Core Architectural Argument\n\nTraditional fraud controls are detective: audit trails, access controls, approval workflows, bank reconciliation. These catch fraud after it happens \u2014 sometimes months later (ACFE median time-to-discovery: 12-18 months). Recovery is poor. Legal costs often exceed recoverable amounts.\n\nCAST eliminates a specific class of fraud opportunity at the architectural level. The fraud triangle's \"opportunity\" leg \u2014 the gap between what was recorded and what actually happened, exploited when one party controls records the other cannot verify \u2014 disappears when both parties co-sign the same events in real time.\n\nYou cannot fabricate an event chain that both parties have already signed. You cannot retroactively change history without breaking the hash chain. The fraud categories that depend on maintaining two different versions of the truth are structurally impossible in a CAST-coordinated system, not just policy-prohibited.\n\n## GAO GreenBook 2025 Alignment\n\nThe 2025 GreenBook revision explicitly elevated the importance of preventive controls over detective controls, mandated fraud and improper payment risk assessment, and identified specific gaps that traditional systems cannot address:\n\n**The reconciliation gap**: The GreenBook admits that reconciliation is a detective control \u2014 it catches discrepancies after they occur, not before. The 2025 revision calls for preventive controls, which traditional systems don't structurally provide.\n\n**Documentation burden**: The GreenBook specifies seven documentation requirements (\u00a77.15, \u00a79.05, \u00a712.02, \u00a716.09, \u00a717.05, \u00a717.06) that traditional systems produce only through manual compliance overhead. In CAST, documentation is a byproduct of operation: every event is timestamped, signed, and immutable by default.\n\n**External fraud risk**: \u00a78.07 specifically identifies fraud by vendors, beneficiaries, and service organizations \u2014 precisely where single-party systems fail. They rely on self-certification. CAST's bilateral signature requirements mean no single party can fabricate records the other hasn't verified.\n\n**The pitch to federal buyers**: \"You cannot satisfy the 2025 GreenBook with systems designed for post-hoc reconciliation. The President's fraud mandate requires prevention, not detection. CAST is the only architecture that eliminates reconciliation at the structural level.\"\n\n## HOA, Nonprofit, and Government Pattern\n\nThese entities share a pattern: weak internal controls (volunteer boards, limited segregation of duties), hig"},{"id":"friction-engine","label":"Friction Engine","description":"Transaction Friction Score: a standalone product concept built on CAST event chains. The happy path is 4 events in a line. Friction is graph complexity \u2014 every deviation adds nodes","cluster":"The Event Grammar","color":"#b4e8c8","stub":false,"links":[],"sections":["The Core Insight","The Happy Path Formalization","The Friction Score Formula","Two Conservation Laws","Temporal and Completeness Dimensions"],"words":969,"content":"# The Friction Engine\n\n## The Core Insight\n\nEvery transaction has a \"happy path\" \u2014 the way it should flow when everything goes right:\n\n```\nC1 \u2192 P1 \u2192 M1 \u2192 S1\nPO    Ship  Recv  Pay\n```\n\nFour events. Three edges. Linear. No branches.\n\nFriction is everything else. Friction is graph complexity \u2014 the difference between the actual path and the happy path. You can *see* it: visual complexity in the transaction graph is friction.\n\n## The Happy Path Formalization\n\n**Perfect transaction (Friction Score = 0):**\n```\nPO \u2192 Ship \u2192 Receive \u2192 Pay (no touches)\n```\n\n**Minor friction (amendment):**\n```\nPO \u2192 PO' \u2192 Ship \u2192 Receive \u2192 Pay\n         (PO amended)\n```\n\n**Moderate friction (partial shipment):**\n```\nPO \u2500\u252c\u2192 Ship\u2081 \u2192 Receive\u2081 \u2192 Pay\u2081\n    \u2514\u2192 Ship\u2082 \u2192 Receive\u2082 \u2192 Pay\u2082\n```\n\n**High friction (dispute + resolution):**\n```\nPO \u2192 Ship \u2192 Receive \u2192 [VARIANCE]\n                         \u2193\n                      Recount\n                         \u2193\n                      Dispute\n                         \u2193\n                      Resolution (credit memo)\n                         \u2193\n                      Partial Settlement\n```\n\nThe visual complexity *is* the friction. No explanation needed.\n\n## The Friction Score Formula\n\n```\nFriction Score = (nodes - 4) + (branches \u00d7 5) + (\u03a3 exception_weights)\n```\n\nWhere:\n- Happy path = 4 nodes, 3 edges\n- Every additional node adds friction\n- Every branch adds weighted friction\n- Exception types carry weights (override >> edit >> clarification)\n\n| Score | Meaning | Example |\n|-------|---------|---------|\n| 0 | Perfect straight-through | PO \u2192 Ship \u2192 Receive \u2192 Pay, no touches |\n| 1\u201310 | Minor hiccups, normal business | One clarification email, small quantity adjustment |\n| 11\u201350 | Friction, someone's day got worse | Wrong address, invoice mismatch, partial shipment |\n| 51\u2013100 | Painful, multiple people involved | Dispute, escalation, manager override |\n| 100+ | Broken, real money to fix | Returned shipment, credit memo, legal review |\n\n## Two Conservation Laws\n\nThe friction engine complements the conservation equation with a second law:\n\n**First Law: Conservation of Value**\n```\n\u03a3(commitments) - \u03a3(settlements) = \u03a3(attributed_variances)\nNothing disappears. Every dollar gap has a home.\n```\n\n**Second Law: Conservation of Effort**\n```\nEntropy(transaction) \u2264 Entropy(baseline) + \u03a3(legitimate_exceptions)\nTransactions shouldn't require more work than normal without explanation.\n```\n\nThe first law catches mistakes and disputes. The second catches fraud and manipulation. A transaction can balance perfectly (first law satisfied) while ta"},{"id":"functional-definition","label":"Functional Definition","description":"","cluster":"Standard Functions and the Contract Layer","color":"#b4e8e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"gauge-invariance-bilateral","label":"Gauge Invariance Bilateral","description":"The mathematical requirement for bilateral financial coordination: the actual transaction must be invariant under party-exchange symmetry. Each party's books are projections from a","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["reconciliation-as-architecture","noether-theorem-accounting"],"sections":["The Symmetry Requirement","What Falls Out Mathematically","The Conserved Quantity","What CAST Implements","The Shared Event Schema"],"words":679,"content":"# Gauge Invariance and Bilateral Symmetry\n\n## The Symmetry Requirement\n\nIn physics, gauge symmetry means you can change your coordinate system or frame of reference, but physical observables remain invariant. The field equations don't change when you change the gauge.\n\nFor bilateral financial transactions, the equivalent symmetry is **party-exchange invariance**: the economic reality of a transaction must be invariant under the transformation \"view from Party A\" \u2194 \"view from Party B.\"\n\nEach party has their own \"frame of reference\" (their books). The *actual transaction* \u2014 the gauge-invariant observable \u2014 must be the same regardless of whose perspective you adopt.\n\n## What Falls Out Mathematically\n\nConsider a transaction between A and B. Define:\n- State vector from A's perspective: (\u0394Assets_A, \u0394Liabilities_A, \u0394Equity_A)  \n- State vector from B's perspective: (\u0394Assets_B, \u0394Liabilities_B, \u0394Equity_B)\n\nThe symmetry requirement: there must exist a transformation T such that:\n- T(A's view) = B's view\n- T is an involution: T(T(x)) = x\n- The transaction's \"reality\" is preserved: some invariant I satisfies I(A's view) = I(B's view)\n\nIf you require that:\n1. Both parties see a balanced equation in their own books\n2. The transaction creates equal and opposite flows between them\n3. The combined system view is also balanced\n\nThen **double-entry emerges as the unique structure that preserves this observer independence**. Double-entry is not arbitrary convention \u2014 it is the minimal structure that satisfies gauge invariance for bilateral exchange.\n\n## The Conserved Quantity\n\nFrom Noether's theorem (see [[noether-theorem-accounting]]): the symmetry is \"party exchange invariance\" and the conserved quantity is \"net value in the bilateral system.\" When A records +Asset, B must record -Asset or +Liability. The accounting equation on each side ensures local balance, and the antisymmetry ensures global conservation.\n\n## What CAST Implements\n\nTraditional systems are **asymmetric by design**:\n- Party A records: \"We sold $100k to Party B\"\n- Party B records: \"We bought $100k from Party A\"\n- Later: reconciliation process to verify these match\n- The problem: two separate \"truths\" that may conflict\n\nCAST enforces gauge invariance:\n- Single event created: Transaction(A\u2192B, $100k, terms)\n- Software automatically projects to both perspectives\n- A's view: Revenue +$100k, AR +$100k\n- B's view: Expense +$100k, AP +$100k\n- **Impossible to be out of sync** because there is only one source of truth\n\nBefore any event commits to the ledger:\n- Does this preserve A = L + E for Party A? \n- Does this p"},{"id":"gpu-compute-beachhead","label":"Gpu Compute Beachhead","description":"GPU compute financing as the entry market for CAST. Why this vertical has the specific combination of pain, concentration, technical buyers, and absence of incumbent solutions that","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["gpu-event-schema","cryptographic-proof-chains","event-sourcing-core","coreweave-model","deterministic-state-machines"],"sections":["Why GPU Financing Is Different","Market Sizing","CoreWeave as the Model","The Coordination Events","Expansion Path"],"words":596,"content":"# GPU Compute Beachhead\n\nGPU compute financing is the right beachhead market for CAST because it combines acute pain, market concentration, technical buyers, and an absence of incumbent coordination infrastructure \u2014 conditions that allow a new protocol to prove itself before attacking larger, more entrenched markets.\n\n## Why GPU Financing Is Different\n\nThe GPU procurement lifecycle has structural characteristics that make it unusually dependent on coordination:\n\n**Multi-party by default**: A typical deal involves buyer, GPU broker, OEM (NVIDIA), hosting provider (data center), and financier. Five parties, five sets of records, five reconciliation surfaces.\n\n**Hardware before revenue**: GPU buyers need financing because they must pay for hardware weeks before the GPUs generate revenue. The financing gap creates urgency and willingness to pay for coordination infrastructure that accelerates the process.\n\n**Utilization-linked economics**: Unlike traditional equipment finance where the asset's value is static, GPU compute value is utilization-dependent. A GPU that runs at 80% utilization generates different economics than one at 40%. This creates a continuous need for verified utilization data \u2014 exactly what [[event-sourcing-core]] and [[cryptographic-proof-chains]] are built to provide.\n\n**No incumbent solutions**: Traditional trade finance platforms (letters of credit, bank guarantees) don't understand the GPU delivery lifecycle. Banks underwrite balance sheets, not GPU allocation schedules. There is no specialized tooling; everyone is using email, Excel, and relationship-based trust.\n\n## Market Sizing\n\nThe market is intentionally small to start \u2014 maybe 50-100 active buyers globally at any given time, repeat transactions quarterly or more frequently for successful operators. Total addressable financing volume is $5-10B annually, growing fast but still concentrated.\n\nThis concentration is a feature. You can personally know every serious buyer within 6 months. Network density makes protocol adoption viable: when 10-15 of the top 30 independent GPU buyers are using CAST, the next buyer asks \"do you support CAST?\" and the answer shapes infrastructure decisions.\n\n## CoreWeave as the Model\n\n[[coreweave-model]] established that locked long-term contracts are the winning structure in GPU cloud. Operators who got long-term commitments from buyers could finance hardware; those who operated spot markets could not. CAST enables a formal version of this commitment structure: the allocation event is not a contract on paper, it is a cryptographically signed event in a shared log. Both parties have committed to identical terms, and the financing is predicated on that commitment."},{"id":"gpu-event-schema","label":"Gpu Event Schema","description":"STUB \u2014 The formal event schema for GPU compute lifecycle. Events to define: gpu_provisioned, deployment_proof, usage_telemetry_signed, capacity_confirmed, invoice_issued, payment_c","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["three-party-gpu-model","gpu-compute-beachhead"],"sections":[],"words":122,"content":"# GPU Event Schema\n\n*[STUB \u2014 To be written]*\n\nPriority for next session. Define:\n- Event types for the full GPU compute financing lifecycle\n- Required proof fields per event type (telemetry signature, payment confirmation, etc.)\n- The three-party schema: Lender, Borrower, Provider \u2014 which events each party can emit\n- How usage data becomes a cryptographic commitment\n- Settlement conditions and the escrow release trigger\n\nSee [[three-party-gpu-model]] for the protocol context.\nSee [[gpu-compute-beachhead]] for the market rationale."},{"id":"hash-chain-cryptography","label":"Hash Chain Cryptography","description":"Hash-chained events with dual counterparty signatures. How CAST enforces immutability at the protocol level and makes proof-first validation possible. The enforcement mechanism for","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["open-standard-strategy","event-sourcing-core","gpu-compute-beachhead","proof-first-finance","deterministic-state-machines","standalone-positioning"],"sections":["The Event Structure","Why Hash Chains Enforce Immutability","Merkle Trees for Selective Proofs","Proof-First Validation","The Gap Between \"Software Company\" and \"Mathematical Protocol\""],"words":531,"content":"# Cryptographic Proof Chains\n\nCryptographic binding transforms [[event-sourcing-core]]'s logical requirements into physical guarantees. An append-only log is a design intention; a hash-chained log with dual signatures is a mathematical fact.\n\n## The Event Structure\n\nEach event in CAST carries:\n\n```typescript\ninterface BilateralEvent {\n  event_id: UUID;\n  timestamp: ISO8601;\n  event_type: string;\n  payload: EventPayload;\n  \n  // Cryptographic binding\n  content_hash: SHA256;      // H(canonical_serialize(payload))\n  previous_hash: SHA256;     // H(previous_event.content_hash) \u2014 creates the chain\n  \n  // Both parties must sign before the event is valid\n  signature_party_a: ECDSASignature;\n  signature_party_b: ECDSASignature;\n  \n  // Position proof in the full event tree\n  merkle_proof: MerkleProof;\n}\n```\n\nThe dual-signature requirement is the key design choice. An event is not valid until both counterparties have signed it. This means events represent bilateral commitments, not unilateral assertions. Party A cannot post an event that Party B hasn't approved.\n\n## Why Hash Chains Enforce Immutability\n\nModifying any event in the chain is detectable without requiring trust:\n\n1. Change event N's payload \u2192 its `content_hash` changes\n2. Event N+1's `previous_hash` references the old hash of event N \u2192 chain breaks\n3. Repairing N+1 changes its hash \u2192 N+2 breaks\n4. Repairing the entire chain requires recomputing all hashes from N forward\n5. But all these new hashes invalidate the signatures \u2014 you'd need both parties to re-sign every downstream event\n\nTampering requires either breaking the hash function (computationally infeasible) or obtaining both parties' private keys. Neither is realistic.\n\n## Merkle Trees for Selective Proofs\n\nA Merkle tree over the event log enables O(log n) proofs of inclusion. Party A can prove to a third party (auditor, financier, regulator) that a specific event exists in the history without revealing the entire log.\n\nFor [[gpu-compute-beachhead]], this is how a financier audits GPU utilization without accessing the complete operational history between buyer and seller. The Merkle proof demonstrates that specific utilization events exist and are authentic without requiring full log disclosure.\n\n## Proof-First Validation\n\n[[proof-first-finance]] depends on this infrastructure. \"Proof-first\" means validation happens before an event posts, not after. The flow is:\n\n1. Party A proposes an event with content hash\n2. Party A signs the proposal\n3. Party B's policy engine validates the event against current state and policy (see [[deterministic-state-machines]])\n4. If valid, Party B countersigns\n5. Event is now bilaterally committed and appended to the shared log\n6. Both parties' states update deterministically"},{"id":"hierarchy-of-derivation","label":"Hierarchy Of Derivation","description":"The derivation hierarchy: Event \u2192 Movement \u2192 Journal Entry \u2192 Account \u2192 Statement. Each layer derives from the one below. Changing accounting standards is a coordinate transformatio","cluster":"The Ledger Engineer Role","color":"#c8e8b4","stub":false,"links":["event-sourcing-core","event-granularity-principle"],"sections":["The Stack","What Each Layer Is","The Key Insight: Coordinate Transformation","The ERP Implication","The Granularity Principle"],"words":877,"content":"# The Hierarchy of Derivation\n\n## The Stack\n\n```\nFinancial Statement\n      \u2191  (aggregation + period rules)\n   Account Balance\n      \u2191  (accumulation from journal entries)\n   Journal Entry (GL Posting)\n      \u2191  (accounting policy applied to movement)\n   Movement (transfer, accrual, adjustment)\n      \u2191  (caused by event)\n   Event (physical fact)\n```\n\nEach layer derives from the one below. Each layer is a view of the one below with a specific interpretation applied. No layer is the source of truth except the event.\n\n## What Each Layer Is\n\n**Event**: An immutable statement that something happened. A truck arrived. Bytes moved. A signature was applied. The event does not know what account it will hit or what period it belongs to. It knows what happened, when, who observed it, and what the measurable facts were.\n\n**Movement**: The physical transfer of resource, value, or obligation caused by an event. A shipment event causes an inventory movement. A payment event causes a cash movement. Movements are still relatively free of accounting interpretation \u2014 they describe the flow of value, not its classification.\n\n**Journal Entry / GL Posting**: The accounting interpretation of a movement. Now we are applying policy: which accounts? Which period? Which entity? Which currency at what exchange rate? Same movement, different accounting policies, different journal entries.\n\n**Account Balance**: The accumulated sum of journal entries for an account within a period. A derived number \u2014 never independently real, always computed.\n\n**Financial Statement**: The structured presentation of account balances with required disclosures. Multiple views: GAAP, IFRS, cash, tax, management. All derived from the same underlying events under different policy applications.\n\n## The Key Insight: Coordinate Transformation\n\nChanging accounting standards (GAAP \u2192 IFRS, ASC 606 v1 \u2192 v2, old lease standard \u2192 new) is a **coordinate transformation** on top of invariant events.\n\nThe events don't change. The physical facts of the world don't change. What changes is the interpretation layer \u2014 which accounts the movements hit, which period they land in, how they are disclosed.\n\nThis is directly analogous to general relativity: the physics of the universe is invariant across reference frames. What changes when you change frames is the coordinate representation, not the underlying reality.\n\nFor financial systems, this means: **store the events, derive everything else**. Don't store the GAAP interpretation as the primary truth. The interpretation will change. The events won't.\n\nThis is exactly what CA"},{"id":"hoa-prototype","label":"Hoa Prototype","description":"The HOA was the first domain for zero trust accounting and event-sourced finance. Multi-signature approvals, hash-chained audit trails, role-based access, and the first working sch","cluster":"Origins \u2014 Zero Trust Accounting","color":"#e8b4b8","stub":false,"links":["zta-to-event-sourcing","gpu-compute-beachhead"],"sections":["Why HOA?","What Was Built","What the Prototype Proved","Evolution to CAST"],"words":472,"content":"# HOA Prototype\n\n## Why HOA?\n\nHOAs are structurally high-risk for financial mismanagement:\n- Volunteer boards with weak controls\n- Significant cash flows ($50K\u2013$500K annually for typical associations)\n- Multiple parties with competing interests: board, homeowners, vendors, manager, auditor\n- High incidence of fraud and long detection lag\n- No incumbent software focused on this problem with real financial controls\n\nThe HOA was the first domain to prototype zero trust accounting (ZTA) principles. It proved the core architecture is buildable and immediately valuable.\n\n## What Was Built\n\n**Event schema with roles:**\n- Homeowners (submit payments)\n- Treasurer/Bookkeeper (approve payments)\n- Board Members (approval authority for large disbursements)\n- Vendors (submit invoices)\n- Auditors (read-only access for verification)\n- HOA Managers (operational oversight)\n\n**Hash-chained audit trail:**\nEvery event references the SHA-256 hash of the prior event. Any modification to past events invalidates the entire subsequent chain. Tamper-evidence is architectural.\n\n**Multi-signature approval workflows:**\nDisbursements above threshold require dual signature. Example workflow:\n1. Vendor submits invoice (event: invoice_submitted)\n2. Treasurer issues invoice (event: invoice_issued)  \n3. Board Member 1 approves (event: approval_granted)\n4. Board Member 2 approves (event: approval_granted)\n5. Treasurer executes payment (event: payment_executed)\n6. Account balances updated (event: account_updated)\n7. Effect recorded on financial statements (event: effect_recorded)\n\nThe hash chain: `E001-A001-A002-A003-T001-AB001-EF001` \u2014 cumulative hash string linking every step back to the originating event.\n\n**The key recognition:**\nThe hash chain was identified as the system's core differentiator. Every financial statement value traces atomically back to its originating event. Traditional auditing requires sampling; this system provides mathematical certainty. Any balance can be verified by re-running the chain.\n\n## What the Prototype Proved\n\n1. Event-sourced financial systems can be built practically (not just theoretically)\n2. Multi-signature workflows work natively in an event chain\n3. The hash chain creates audit trail that's more powerful than traditional audit evidence\n4. Role-based access with cryptographic attribution prevents anonymous actions\n5. The architecture generalizes: the same event primitives handle dues collection, vendor payments, budget management, and dispute resolution\n\n## Evolution to CAST\n\nThe HOA prototype established ZTA principles. The limitations became apparent when multi-"},{"id":"ijiri-force-accounting","label":"Ijiri Force Accounting","description":"Yuji Ijiri's triple-entry bookkeeping and force statements as intellectual precedent for CAST's event-sourced causality. Why Ijiri got the architecture right in 1986 and how CAST m","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["event-sourcing-core","deterministic-state-machines"],"sections":["The Three Layers","The Force Statement","The Connection to CAST","CAST's Debt to Ijiri"],"words":530,"content":"# Ijiri Force Accounting\n\nYuji Ijiri's 1986 framework for triple-entry bookkeeping is the most direct intellectual predecessor of CAST's approach to financial causality. Ijiri saw that double-entry bookkeeping answered \"what changed\" but not \"why it changed\" \u2014 and built a formal accounting framework to capture both.\n\n## The Three Layers\n\nIjiri extends double-entry by adding a third dimension that tracks causal drivers:\n\n| Layer | Measures | Units | Explains |\n|-------|----------|-------|----------|\n| **Wealth Accounting** | Assets, Liabilities | $ | Position at a point in time |\n| **Momentum Accounting** | Earning rates | $/month | Rate of wealth change |\n| **Force Accounting** | Rate-of-change drivers | $/month\u00b2 | Why momentum changed |\n\nThe mathematical relationships mirror physics:\n- **Derivative relationship**: Force \u2192 Momentum \u2192 Wealth (each is the rate of change of the next)\n- **Integral relationship**: Wealth \u2190 Income \u2190 Action (each accumulates from the layer above)\n\nThis is not metaphor \u2014 Ijiri explicitly borrowed the physics terminology to make a formal claim about the structure of financial causality.\n\n## The Force Statement\n\nThe most operationally relevant piece for CAST is the **Force Statement**, Ijiri's framework for explaining *why* income deviated from expectations. In his examples, force accounts include:\n\n- **New Product**: Impact of new product introduction on momentum\n- **Margin Variance**: Changes in gross margin per unit\n- **Volume Variance**: Changes in sales volume\n- **Efficiency Variance**: Changes in operational efficiency\n\nThe key insight: these are not variance labels \u2014 they are **accounts** that accumulate over time and integrate into wealth impact. The timing of when a force is applied matters because earlier momentum changes have longer to accumulate into wealth.\n\n## The Connection to CAST\n\nIjiri's complaint about traditional accounting is that it explains *what* happened but not *why*. CAST's event-sourced approach captures the \"why\" through causal event ordering. Each event in the CAST ledger is Ijiri's trebit entry \u2014 it records not just a state change but the force that caused it.\n\nIn [[event-sourcing-core]], the event log is the source of truth. In Ijiri's framework, the force ledger is the causal explanation layer. These are the same thing: an ordered log of causal events from which state and its causes are derivable.\n\nWhere Ijiri's framework was a paper accounting system, CAST makes it executable:\n- Force accounts become event types with typed schemas\n- The integration from forces to momentum to wealth becomes [[deterministic-state-machines]] projection functions\n- The force statement becomes real-time variance attribution from the event log\n\n## CAST's Debt to Ijiri\n\nWhen CAST claims to pro"},{"id":"intent-as-predicted-effect","label":"Intent As Predicted Effect","description":"Intent redefined as the specific predicted effect of a causal chain \u2014 not a subjective mental state but a mechanistic, verifiable, auditable output. The Financial Causality Framewo","cluster":"The Event Grammar","color":"#b4e8c8","stub":false,"links":["agentic-infrastructure","event-sourcing-core"],"sections":["The Reframing","The Gamble vs. the Bet","The Decision Schema","Intent as Workflow Gate","Intent as Portfolio Taxonomy"],"words":955,"content":"# Intent as Predicted Effect\n\n## The Reframing\n\nTraditional finance treats intent as narrative: \"we intend to close the books by Day 5.\" Intent is a compliance statement.\n\nA causal framework redefines intent as: **the specific predicted effect of a causal chain.**\n\nIntent isn't about subjective mental states or desires. It's defined as the predicted outcome that a causal chain is expected to produce:\n- There's a chain of cause and effect (A causes B causes C)\n- If you can predict that chain will produce effect C\n- Then C is the \"intent\" of that chain\n\nThis is mechanistic, not psychological. Intent becomes:\n- **Auditable**: the predicted effect is recorded at decision time\n- **Falsifiable**: the actual outcome can be compared to the prediction\n- **Learnable**: variance between intent and outcome improves the causal model\n\n## The Gamble vs. the Bet\n\nThis framing differentiates a gamble from a bet:\n\n**Gambling:** \"We are increasing marketing spend.\" \u2014 Action without specific quantified intent\n\n**Intent-driven bet:** \"We are increasing marketing spend to generate $50K in pipeline from Vertical B within 90 days.\" \u2014 Hypothesis with measurable prediction\n\nIf intent isn't quantified and time-bounded, the decision is a gamble. You cannot measure whether your causal model was correct.\n\n## The Decision Schema\n\nEvery financial decision is recorded as a structured event:\n\n| Field | Content |\n|-------|---------|\n| **Trigger** | The signal that caused the decision (\"Pipeline concentration >30%\") |\n| **Action** | The response (\"Hire 3 senior CSMs for top 20 accounts, $450K cost\") |\n| **Intent** | The predicted effect (\"Restore NRR to 110%+ within two quarters by generating $600K expansion revenue\") |\n| **Actual Outcome** | Filled in 90 days later (\"NRR recovered to 108%, expansion revenue $420K\") |\n| **Variance** | Computed automatically (-$180K vs. intent; -30% miss) |\n\nThis schema is the event-sourced hypothesis test. Every decision becomes falsifiable with a built-in feedback loop.\n\n## Intent as Workflow Gate\n\nIntent is not just a record \u2014 it's an enforcement mechanism. No resources (capital, headcount, time) are released until intent is:\n1. **Specific** \u2014 names the metric and the target\n2. **Measurable** \u2014 a number at a date\n3. **Causally coherent** \u2014 the mechanism connecting action to predicted effect is stated\n\nThe workflow:\n1. Signal received\n2. Action proposed\n3. Intent defined (enforcement gate)\n4. Validation: Is the intent specific and measurable?\n   - YES \u2192 Execute, commit intent to the event log"},{"id":"intent-automation-path","label":"Intent Automation Path","description":"","cluster":"Agentic Infrastructure","color":"#e8c8b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"ledger-engineer-role","label":"Ledger Engineer Role","description":"The Ledger Engineer: a new role category for the person (or agent) who owns the event layer. Not an accountant, not IT. The discipline of identifying material events, designing the","cluster":"The Ledger Engineer Role","color":"#c8e8b4","stub":false,"links":["agentic-infrastructure","standard-functions-concept"],"sections":["The Problem with \"Accountant\"","The Term: Ledger Engineer","What the Role Does","The Hierarchy of Derivation","The Granularity Principle"],"words":914,"content":"# The Ledger Engineer Role\n\n## The Problem with \"Accountant\"\n\nThe term accountant carries baggage: backward-looking, compliance-focused, cost center. It signals low budget allocation relative to IT and engineering. The optics are not positive and the area typically receives very little budget relative to its actual impact on information quality.\n\nBut the function being described is genuinely different from traditional accounting:\n- Focus is information science and deterministic base data layer, not valuation or reporting\n- Embedded in operations like a forward-deployed engineer (like Palantir's FDE model, applied to finance)\n- Learns processes, maps information flows, ensures the base layer is clean\n- Outcome is a substrate so valuable that many companies use it as their baseline for GAAP financials\n- Over time: transitions from human to agentic AI\n\nA new category term is needed. Like \"DevOps\" or \"growth team\" \u2014 terms that didn't exist until the function required them.\n\n## The Term: Ledger Engineer\n\n**Ledger Engineer** names the artifact the role is responsible for (the ledger as event log), not the abstraction or the tooling. It:\n- Implies building, not just recording\n- Is clearly financial (not IT) in provenance\n- Survives the agentic transition: \"Ledger Engineers\" today become \"Ledger Agents\" tomorrow, operating under the same conceptual umbrella\n- Describes the function, not the executor\n\nAlternative considered: \"Financial Reality Engineer\" \u2014 rejected as too abstract and too engineering-flavored without sufficient grounding in the actual output.\n\n## What the Role Does\n\nThe core responsibilities of a Ledger Engineer:\n\n1. **Identify material events** \u2014 Which events in the business trigger financial obligations, state changes, or reporting requirements? What is the lowest level at which the business makes decisions or incurs obligations?\n\n2. **Design the event schema** \u2014 What fields does each event type require? What are the foreign keys linking events to prior events? What proofs must accompany each event type?\n\n3. **Build capture infrastructure** \u2014 How are events emitted from operational systems? Which webhooks, APIs, or manual inputs capture which event types?\n\n4. **Write policy rules** \u2014 Which events trigger which accounting treatments? How does revenue get recognized? How are variances attributed? These are the Standard Functions (see [[standard-functions-concept]]).\n\n5. **Maintain causal traceability** \u2014 Every financial statement value must trace to originating events. The Ledger Engineer is the guardian of this"},{"id":"modal-logic-proof-structure","label":"Modal Logic Proof Structure","description":"Modal logic maps onto CAST's proof structure: \u25fb (necessarily true given these events and policy) vs \u25c7 (possibly true). Traditional accounting operates in \u25c7 mode \u2014 'presents fairly ","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["proof-first-finance","policy-version-primitive"],"sections":["The Paper's Framework","Traditional Accounting in Modal Terms","CAST in Modal Terms","Three Modal Properties CAST Guarantees","Proof Certificate Structure"],"words":757,"content":"# Modal Logic and Proof Structure\n\n## The Paper's Framework\n\nFormal modal logic uses two operators:\n- **\u25fbS** \u2014 necessarily S; the agent is rationally constrained to believe proposition S\n- **\u25c7S** \u2014 possibly S; the agent is not rationally constrained to deny S\n\n## Traditional Accounting in Modal Terms\n\nTraditional accounting implicitly operates in \u25c7 mode:\n\n- \"Presents fairly in our professional judgment\" \u2014 \u25c7 (possibly fair)\n- \"In conformity with GAAP\" \u2014 \u25c7 (possibly compliant)\n- \"Reconciled\" \u2014 K\u2090 \u2227 K\u1d66 (both parties believe it's correct, independently)\n\nNo traditional accounting assertion can be \u25fb. The best available statement is \"our qualified professionals believe this is correct.\" That is epistemic possibility, not logical necessity.\n\n## CAST in Modal Terms\n\nCAST's architecture provides logical necessity:\n\n**\u25fb\u1d68(Events E\u2081...E\u2099 \u2227 Policy P \u2192 State S)**\n\nRead as: Given these events and this policy, state S is *necessarily* the result. There is no rational basis to dispute it because the derivation is deterministic.\n\nThe modal mapping:\n\n| Traditional Accounting | Modal Status | CAST | Modal Status |\n|-----------------------|--------------|------|--------------|\n| \"Presents fairly\" | \u25c7 (possibly fair) | \"Provably derives\" | \u25fb (necessarily derived) |\n| \"In conformity with GAAP\" | \u25c7 (possibly compliant) | \"Policy-validated\" | \u25fb (necessarily compliant) |\n| \"Reconciled\" | K\u2090 \u2227 K\u1d66 | \"Common proof\" | \u25fb \u2192 \u2200x K\u2093 (all must know) |\n\n## Three Modal Properties CAST Guarantees\n\n**1. Proof Necessity (\u25fb)**\n\nTraditional: \"Our accountants believe these financials are fair.\"\nCAST: \"These financials necessarily derive from these events under this policy.\"\n\n```\n\u25fb\u1d68(balance(account_A) = \u03a3(credits) - \u03a3(debits))\n```\n\nThe balance is not an opinion \u2014 it is a mathematical necessity given the committed events.\n\n**2. Policy Consistency (\u25c7)**\n\n```\n\u25fb\u1d68S \u2227 \u25fb\u1d68T \u2192 \u25c7\u1d68(S \u2227 T)\n```\n\nIf two states are separately necessary under a policy, their conjunction is possible. No contradictions. The policy engine (see [[policy-version-primitive]]) enforces this at write time.\n\n**3. Knowledge through Proof**\n\n```\n\u25fb\u1d68S \u2192 (proof(S) available \u2192 K\u2090(S) for any agent a)\n```\n\nNecessary truths become common knowledge when proofs are shared. Any party with access to the events and the policy can independently verify.\n\n## Proof Certificate Structure\n\n```\nFairnessCertificate {\n  // Modal necessity: these events occurred\n  event_commitments: [Hash],\n  \n  // Modal necessity: this state derives from events\n  state_derivation: {\n    initial_state: Hash,\n    final_state: Hash,\n    computation_trace: MerkleProof"},{"id":"noether-theorem-accounting","label":"Noether Theorem Accounting","description":"The physics and mathematical foundations that underpin CAST's architecture: gauge invariance, Noether's theorem, conservation laws, superposition/indefiniteness, and the action pri","cluster":"Physics and Mathematical Foundations","color":"#e8d4b4","stub":false,"links":["deterministic-state-machines","cryptographic-proof-chains"],"sections":["Conservation Laws and Double-Entry","Gauge Invariance and Bilateral Symmetry","Noether's Theorem","Superposition and the Event Layer","The Action Principle and Determinism"],"words":987,"content":"# Physics Foundations\n\nThe physics connections to CAST are not marketing metaphors. They reflect genuine structural parallels between what physics has formalized and what CAST is building. Understanding these parallels clarifies what mathematical guarantees CAST can make and why those guarantees are categorically stronger than \"software that works well.\"\n\n## Conservation Laws and Double-Entry\n\nDouble-entry bookkeeping is a conservation system. Debits must equal credits exactly as energy and momentum are conserved in physical systems. Value cannot appear from nothing in a correctly-structured ledger, just as energy cannot appear from nothing in a closed physical system.\n\nThe accounting equation (Assets = Liabilities + Equity) functions as a constraint surface in Lagrangian mechanics. Every valid accounting state lies on this surface. Every valid transaction moves the system along this surface, never off it.\n\nThis is foundational context for CAST's multi-party extension: single-party conservation is well-understood. CAST is building the protocol for conservation across parties \u2014 ensuring that what Party A gives is precisely what Party B receives, expressed in a shared, cryptographically-bound event log.\n\n## Gauge Invariance and Bilateral Symmetry\n\nThe most powerful physics parallel for CAST is gauge invariance. In physics, gauge symmetry means you can change your frame of reference, but physical observables remain invariant.\n\nFor bilateral transactions: each party has their own \"frame of reference\" (their books). The actual transaction \u2014 the gauge-invariant observable \u2014 must be identical regardless of whose perspective you adopt. Party A's view and Party B's view are projections of the same underlying economic reality, not two independent records.\n\nThis translates to a precise mathematical requirement: any valid transaction in CAST must satisfy party-exchange symmetry.\n\n```\nsymmetry_proof:\n  for every event in shared_log:\n    flow_A + flow_B = 0    (conservation)\n    \n  state_A = project(shared_log, Party.A)\n  state_B = project(shared_log, Party.B)\n  \n  # Gauge invariance: \n  net_A + net_B = 0n   (must always hold)\n```\n\nParty A's net position and Party B's net position in a closed bilateral system must sum to zero. This is not a design choice \u2014 it is a mathematical requirement derived from the symmetry of bilateral exchange.\n\nCAST's shared event log is the gauge-invariant representation of economic reality. Each party's private ledger is a derived frame. The event stream is the invariant; the party-specific views are projections from shared truth.\n\n## Noether's Theorem\n\nNoether's theorem: if a system has a continuous symmetry, there exists a correspond"},{"id":"obligation-primitive","label":"Obligation Primitive","description":"","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"open-standard-strategy","label":"Open Standard Strategy","description":"Toll road now, public highway later. How CAST becomes a coordination standard rather than a vendor platform. The staged strategy for opening the protocol when network effect value ","cluster":"Go-to-Market and Positioning","color":"#e8b4d4","stub":false,"links":["gpu-compute-beachhead","reconciliation-as-architecture","standalone-positioning"],"sections":["The Toll Road / Public Highway Framework","The CorpChain Risk","The GPS Analogy","What Not to Do"],"words":611,"content":"# Open Standard Strategy\n\nCAST's long-term value is not as a product \u2014 it is as the coordination standard that multi-party financial transactions run on. The path from product to standard requires a staged strategy that doesn't sacrifice early revenue for premature openness.\n\n## The Toll Road / Public Highway Framework\n\n**Phase 1 (now): Toll road.** CAST is a proprietary product. Revenue comes from customers paying to use the coordination infrastructure. The event schema, policy engine, and proof protocols are CAST IP.\n\n**Phase 2: Define the interface standard.** Before opening anything, specify the event format, validation protocol, and bilateral commitment structure formally. This specification \u2014 the \"standard gauge\" \u2014 is CAST's long-term moat. Even when the product is proprietary, the interface should be designed as if it will eventually be published.\n\n**Phase 3 (trigger-dependent): Public highway.** Open the protocol specification when network effects make ecosystem value exceed product margin capture. The trigger: when the number of parties who want to interoperate on CAST's protocol is large enough that being the standard is worth more than being the gatekeeper.\n\nThe UPC barcode analogy from Catalini's work is instructive: the barcode stalled until it hit a tipping point of retailer adoption. CAST doesn't need universal adoption in Phase 1 \u2014 it needs one vertical ([[gpu-compute-beachhead]]) where the pain is acute enough that a small number of parties adopt the shared event stream, proving the model.\n\n## The CorpChain Risk\n\nThe most important strategic warning for CAST: don't become the thing you're displacing. Bank-backed \"modern\" platforms \u2014 CorpChains \u2014 are proprietary systems where participants are tenants. They have a central authority, they control the data, and customers must trust them.\n\nCAST's positioning as infrastructure \"where participants have root access to shared truth\" (see [[reconciliation-as-architecture]]) is the differentiator. If CAST becomes a CorpChain \u2014 a system where CAST Inc. holds the keys and customers access it as a service \u2014 it loses its architectural differentiation and competes on features, not on structural guarantees.\n\nThe safeguard: keep the architecture genuinely open under the hood, even while the product is proprietary on top. Customers should be able to verify the event log independently, run their own projection functions, and not require CAST's servers to determine their own financial state.\n\n## The GPS Analogy\n\nGPS is the right mental model for what CAST should become. GPS doesn't prescribe what you build on it \u2014 it provides a reliable, neutral signal for location that all parties can independently verify. It is infrastructure, not a product.\n\nCAST should provide a re"},{"id":"pe-portfolio-positioning","label":"Pe Portfolio Positioning","description":"How to position CAST for PE operating partners and portfolio CFOs. The language, proof points, and entry angles that work for this specific buyer. Digital Finance HQ context and fr","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":[],"sections":["What This Buyer Understands","The Entry Language","The Quantification Frame","The Fractional CFO Deployment Angle","Capital Allocation as Universal Application"],"words":831,"content":"# PE Portfolio Positioning\n\nPE operating partners and portfolio company CFOs are Peter's home market. They understand financial operations at depth, have no patience for conceptual software pitches, and make decisions based on quantified cost and concrete functionality. The pitch has to be operational, not architectural.\n\n## What This Buyer Understands\n\nThis buyer has lived the reconciliation problem. They know what month-end close looks like when counterparties disagree. They understand the cost of three-way match failures, intercompany reconciliation, cash flow forecast errors caused by disputed transactions, and the finance team headcount that exists purely to resolve record divergence.\n\nThey do not need to be sold on the existence of the problem. They need to be shown that CAST solves it structurally, not through better process or more headcount.\n\n## The Entry Language\n\nThe concepts that land with this audience:\n\n**\"Resolution is now a matter of policy, not archaeology.\"** When a dispute arises between CAST-coordinated parties, the facts are inarguable \u2014 both parties co-signed the events as they occurred. The argument is no longer about what happened; it is only about what the resolution should be. This collapses dispute resolution from weeks of forensic reconstruction to a policy question.\n\n**\"Both parties always see the same thing.\"** Simple and direct. No \"our records show\" vs. \"our records show.\" One record, derived independently by both parties from one event stream.\n\n**\"Proof-first, not reconcile-after.\"** The transaction is validated before it posts, not reconciled after it fails. The error class that reconciliation addresses is architecturally prevented.\n\n## The Quantification Frame\n\nThis buyer will ask \"what does this cost me today?\" The answer requires quantifying:\n\n**Finance team reconciliation labor**: What percentage of controller, AP, and AR headcount is engaged in reconciliation work vs. forward-looking financial analysis? Across a typical PE portfolio company, this is often 40-60% of the finance team's productive time.\n\n**Dispute cost**: Time-to-resolution on billing disputes, freight claims, three-way match failures. Legal costs where disputes escalate. Cash flow impact of delayed settlement while disputes are open.\n\n**Close cycle cost**: The month-end close process is largely reconciliation. Faster close is a direct consequence of having no divergence to resolve.\n\n## The Fractional CFO Deployment Angle\n\nDigital Finance HQ's fractional CFO model is an ideal distribution channel for CAST. A fractional CFO embedded in a PE portfolio company who uses CAST to coordinate with suppliers and customers creates a proof point: \"our fractional CFO runs on CAST infrastructure, which means your books are always cu"},{"id":"policy-engine-architecture","label":"Policy Engine Architecture","description":"","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"policy-version-primitive","label":"Policy Version Primitive","description":"PolicyVersion primitive: versioned, immutable, deterministic rules that interpret events into obligations, settlements, and postings. Policy that isn't versioned and pinned is unau","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":false,"links":[],"sections":["Definition","Why Versioning Is Non-Negotiable","Schema","Lifecycle","Deterministic Evaluation"],"words":553,"content":"# PolicyVersion Primitive\n\n## Definition\n\nA PolicyVersion is a versioned, immutable snapshot of the rules used to interpret events. Every obligation, every settlement determination, every posting \u2014 all are tied to a specific PolicyVersion whose hash is recorded at the time of evaluation.\n\n## Why Versioning Is Non-Negotiable\n\nIf policy can be changed retroactively, you cannot reproduce past calculations. An auditor asking \"why did this invoice trigger a late payment penalty?\" cannot get a reliable answer if the policy that defined \"late\" might have been updated since the penalty was assessed.\n\nPolicyVersion makes this reproducible: \"This invoice triggered a penalty under PolicyVersion d4a9f3e2... \u2014 here is the exact rule text.\"\n\n## Schema\n\n```sql\npolicy_versions (\n  id              ULID PRIMARY KEY,\n  policy_name     TEXT NOT NULL,            -- Human-readable name\n  version_number  TEXT NOT NULL,            -- Semantic version: '2.1.3'\n  content_hash    TEXT NOT NULL UNIQUE,     -- SHA-256 of canonical policy content\n  policy_content  JSONB NOT NULL,           -- The actual policy rules\n  effective_from  TIMESTAMPTZ NOT NULL,\n  effective_to    TIMESTAMPTZ,              -- NULL = currently active\n  status          TEXT NOT NULL,            -- 'draft', 'published', 'retired'\n  authored_by     ULID NOT NULL REFERENCES actors(id),\n  approved_by     ULID[] NOT NULL,          -- Multi-sig approval for production\n  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),\n  \n  CONSTRAINT only_published_is_evaluable CHECK (\n    status IN ('draft', 'published', 'retired')\n  )\n)\n```\n\n## Lifecycle\n\n```\ndraft \u2192 published \u2192 retired\n```\n\n- **Draft**: Under development; not evaluable against live events\n- **Published**: Active; evaluable; reference to content_hash pins exact rules\n- **Retired**: No longer applies to new events; historical references remain valid\n\nOnly `published` PolicyVersions can be evaluated. This prevents accidental evaluation against a draft policy that hasn't been approved.\n\n## Deterministic Evaluation\n\nThe defining property: **same inputs + same PolicyVersion \u2192 same outputs, always**.\n\n```python\ndef evaluate_policy(event: Event, policy_version: PolicyVersion) -> EvaluationResult:\n    \"\"\"\n    Pure function. No side effects. No external state.\n    Given the same event and policy_version, always returns the same result.\n    The evaluation trace is stored as part of the result.\n    \"\"\"\n    rules = load_rules(policy_version.content_hash)\n    result = apply_rules(rules, event)\n    return EvaluationResult(\n        event_id=event.id,\n        policy_version"},{"id":"posting-primitive","label":"Posting Primitive","description":"","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"primitives-overview","label":"Primitives Overview","description":"The seven irreducible primitives of the CAST kernel: Event, PolicyVersion, Obligation, Allocation, Settlement, Posting, Case. A primitive is justified only if irreducible, orthogon","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":[],"sections":["What Makes Something a Primitive","The Seven Primitives","What Compiles Down to These","The Test for Adding a New Primitive"],"words":421,"content":"# CAST Primitives Overview\n\n## What Makes Something a Primitive\n\nA \"primitive\" is justified only if it is:\n\n1. **Irreducible**: removing it forces you to smuggle the same concept back elsewhere\n2. **Orthogonal**: it doesn't overlap responsibility with another primitive\n3. **Composable**: you can build higher-level artifacts (invoice, payout, grant drawdown, refund, subscription) as views over primitives\n4. **Auditable + replayable**: you can reproduce downstream artifacts from upstream facts + versioned rules\n5. **Stable under edge cases**: reversals, amendments, partial fulfillment, asynchronous settlement, disputes\n\nIf a concept is mostly a UI/business document (invoice, subscription, claim, purchase order), it should not be a primitive. It should be a projection.\n\n## The Seven Primitives\n\n| Primitive | What It Is | Why It Must Exist |\n|-----------|-----------|-------------------|\n| **Event** | Immutable fact that something happened | Without append-only facts, audit, replay, and provenance collapse |\n| **PolicyVersion** | Versioned deterministic rules | Unversioned policy is un-auditable |\n| **Obligation** | Committed \"someone owes someone something\" | Most business models revolve around obligations |\n| **Allocation** | How obligations are decomposed and assigned | Netting, partial fulfillment, many-to-one require decomposition |\n| **Settlement** | Fulfillment with attribution | Obligations must be extinguished; variances must have addresses |\n| **Posting** | Ledger journal derived from events | The accounting view; derived, not primary |\n| **Case** | Dispute, violation, or exception | Anomalies need routing and resolution; can't be ignored |\n\n## What Compiles Down to These\n\nHigher-level business concepts:\n\n- **AR/AP** \u2192 Obligations + Settlements + Postings\n- **Payroll** \u2192 Obligations (employment) + Lines (pay components) + Settlements (paychecks)\n- **Grants** \u2192 Obligations (awards) + Lines (budget categories) + Settlements (drawdowns)\n- **Capital proposals** \u2192 Obligations (proposal) + Lines (tranches) + Settlements (disbursements)\n- **Subscriptions** \u2192 Obligations (recurring) + Settlements (periodic) + Postings (revenue recognition)\n\nThe fact that capital proposals depend on forecasted headroom rather than current balances is a policy input source \u2014 it doesn't change the primitive structure.\n\n## The Test for Adding a New Primitive\n\nWhen you find yourself adding new \"core objects\" (Refund, Chargeback, PayoutBatch) as primitives, it's a sign that:\n- Allocation is under-modeled, or\n- Links/provenance are missing, or\n- PolicyVersion pinning is insufficient\n\nAlways try to compile the new concept down to existing primitives before adding"},{"id":"projection-engine","label":"Projection Engine","description":"The projection engine: deterministic pure functions that map (event log, policy version) \u2192 state. Same inputs always produce same outputs. Referential transparency. Causal closure.","cluster":"Implementation Architecture","color":"#e8e4b4","stub":false,"links":["modal-logic-proof-structure"],"sections":["The Core Architecture","Why This Matters","Example: Balance Projection","Materialized Views vs. On-Demand Projection","Causal Closure"],"words":665,"content":"# Projection Engine\n\n## The Core Architecture\n\nState in CAST is never stored directly. It is **projected** from the event log using deterministic functions.\n\n```\nState = Project(Events, PolicyVersion)\n```\n\nThis is a pure function: same inputs, same output, always. No hidden state, no side effects, no mutable database rows that can be edited.\n\n## Why This Matters\n\n**Reproducibility**: Any historical state can be reproduced exactly by replaying the events against the policy version that was active at that time. An auditor asking \"what did our balance sheet look like on March 15 at 2pm?\" gets the same answer every time, derived from the same events.\n\n**Verifiability**: A counterparty or auditor with access to the event log and the policy version can independently compute the state and verify it matches. No need to trust our application's calculations.\n\n**Auditability**: If a state value changes, it's because a new event was appended or the policy version changed. There is no mystery \"someone edited a row\" scenario.\n\n**Multi-party coherence**: Both parties run the same projection function against the shared event log. They get the same state. If they get different states, the difference is traceable to different policy versions (intentional) or a bug (not intentional but discoverable).\n\n## Example: Balance Projection\n\n```python\ndef project_balance(\n    events: List[Event], \n    policy_version: PolicyVersion,\n    account: Account,\n    as_of: datetime\n) -> Balance:\n    \"\"\"\n    Deterministic. Pure. No side effects.\n    Replay events in order, apply policy rules, compute balance.\n    \"\"\"\n    balance = Decimal('0')\n    \n    for event in sorted(events, key=lambda e: e.sequence):\n        if event.timestamp > as_of:\n            break\n        \n        # Apply policy to determine if and how this event affects balance\n        posting = policy_version.evaluate_posting(event, account)\n        if posting:\n            balance += posting.amount\n    \n    return Balance(\n        account=account,\n        amount=balance,\n        as_of=as_of,\n        event_count=len(events),\n        policy_version_hash=policy_version.content_hash,\n        computation_hash=hash(events + [policy_version.content_hash])  # reproducibility proof\n    )\n```\n\n## Materialized Views vs. On-Demand Projection\n\nProjecting from the full event log on every query is not always practical for high-volume systems. Two approaches:\n\n**Materialized views**: The projection is computed and stored as a cached result, invalidated when new events arrive. This is a performance optimization \u2014 the underlying computation is still deterministic, the materia"},{"id":"proof-first-finance","label":"Proof First Finance","description":"The core positioning thesis: validate transactions before they post rather than reconcile errors afterward. Math and physics over coded software. How CAST's architecture produces g","cluster":"The Core Architectural Thesis","color":"#b4c8e8","stub":false,"links":["pe-portfolio-positioning","deterministic-state-machines","cryptographic-proof-chains"],"sections":["The Inversion","Math and Physics vs. Coded Software","The Policy Engine as Pre-Commitment","Positioning Against Existing Solutions","Communicating to Non-Technical Buyers"],"words":665,"content":"# Proof-First Finance\n\nProof-first finance is the positioning thesis that distinguishes CAST from every other financial coordination system: transactions are validated before they post, not reconciled after they fail.\n\n## The Inversion\n\nConventional financial software architecture:\n\n1. Party posts transaction to their system\n2. Counterparty posts transaction to their system\n3. Periodically, the two systems compare records\n4. Differences are identified and manually resolved\n5. Repeat\n\nCAST architecture:\n\n1. Party proposes an event\n2. Both parties' policy engines validate the event against current state and shared policy (see [[deterministic-state-machines]])\n3. If valid, both parties co-sign the event (see [[cryptographic-proof-chains]])\n4. Event is appended to shared log\n5. State updates deterministically for both parties simultaneously\n\nThe inversion is complete: in conventional systems, the transaction posts first and errors are found later. In CAST, the transaction cannot post until both parties have cryptographically certified it is valid.\n\n## Math and Physics vs. Coded Software\n\nPeter's framing is precise: the goal is guarantees that derive from mathematics rather than from software behavior. The distinction:\n\n**Coded software control**: \"Our system logs all transactions and alerts on anomalies.\" This is a probabilistic claim. The system might miss anomalies. The logs might be incomplete. The alerts might fire incorrectly. These are false positives of control \u2014 the appearance of governance without the mathematical backing.\n\n**Mathematical guarantee**: \"Two parties holding the same hash-chained event log will always compute identical state.\" This is not a software claim \u2014 it is a mathematical claim about the properties of deterministic functions applied to identical inputs. It cannot fail in the same way software can fail.\n\nCAST's proof-first architecture is built on mathematical guarantees:\n- Hash chain integrity is provable\n- Dual signature validity is verifiable\n- Deterministic projection produces identical state for identical inputs \u2014 always\n\nThe resulting system does not need extensive monitoring or anomaly detection for the class of errors it is designed to prevent, because those errors are architecturally impossible.\n\n## The Policy Engine as Pre-Commitment\n\nThe policy engine (see [[deterministic-state-machines]]) evaluates proposed events against a shared policy specification before either party commits. The policy is not a set of soft guidelines \u2014 it is a formally specified validation function that both parties' systems run deterministically.\n\nPre-committing to a shared policy specification is the coordination that makes subsequent coordination unnecessary. Parties who agree in"},{"id":"proof-first-framing","label":"Proof First Framing","description":"The buyer-facing vocabulary for CAST. Not 'better reconciliation' \u2014 that accepts the wrong premise. Not 'blockchain for finance' \u2014 that carries too much baggage. The correct frame:","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["pe-portfolio-positioning","competitive-map","gpu-compute-beachhead"],"sections":["The Three Phrases That Work","What These Phrases Filter","The Wrong Framings and Why","The CFO Elevator Pitch","The PE Operating Partner Version"],"words":836,"content":"# Proof-First Framing\n\n## The Three Phrases That Work\n\nThese are the phrases that convert the right buyers. They are not marketing copy \u2014 they are precise technical claims that sophisticated buyers can verify.\n\n---\n\n**\"Proof-first, not reconcile-after.\"**\n\nTraditional approach: each party records independently, then periodically reconciles to find differences. Reconciliation is the error-correction step for a broken architecture.\n\nCAST approach: before recording anything independently, both parties agree on what happened \u2014 and that agreement is cryptographically binding. There is nothing to reconcile because there is only one version of events.\n\nImplication: reconciliation doesn't get faster or cheaper. It disappears as an activity.\n\n---\n\n**\"Resolution is policy, not archaeology.\"**\n\nWhen there's a dispute in a traditional system, the process is archaeology: dig through two parties' separate records, find where they diverged, negotiate whose version is correct. This takes weeks, involves intermediaries, and is expensive.\n\nWhen there's a dispute in CAST, the process is policy evaluation: both parties already share the same event record. The question is which policy rule applies to the disputed event. That is a deterministic computation, not a negotiation.\n\nImplication: dispute resolution goes from weeks to hours, and from judgment calls to computed outcomes.\n\n---\n\n**\"Both parties always see the same thing.\"**\n\nIn CAST, there is no \"your version\" and \"my version.\" There is one version: the bilaterally signed event record. Each party derives their own accounting view from it (GAAP, cash, management) using their own policies. But the underlying facts are shared.\n\nImplication: \"but that's not what we have on our side\" becomes an impossible sentence. Either the event is in the shared log (and both parties can verify it) or it isn't.\n\n---\n\n## What These Phrases Filter\n\nThese phrases attract buyers who have experienced the cost of reconciliation, archaeology, and divergent records. They repel buyers who are looking for workflow improvements within the existing architecture.\n\n**Attracted**: CFOs of PE-backed companies who have spent weekends resolving intercompany disputes. Lenders who have been burned by borrowers claiming different usage numbers. Fund administrators dealing with LP/GP reconciliation across different systems. Controllers who have inherited books where the journal entries don't trace to source documents.\n\n**Not attracted**: Buyers looking for a better accounting system, a faster close, or prettier dashboards. Those buyers are fine and important \u2014 but they're"},{"id":"rea-model-contrast","label":"Rea Model Contrast","description":"REA (Resources-Events-Agents) accounting model: what it got right, why it failed, and how CAST differs. REA correctly identified that events should precede journal entries and that","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":[],"sections":["What REA Is","What REA Got Right","Why REA Failed in Practice","How CAST Differs","The Critical Difference: Grounding"],"words":797,"content":"# REA Model: What It Got Right and Where CAST Diverges\n\n## What REA Is\n\nResources-Events-Agents (REA) is an accounting framework developed by William McCarthy (1982) that models accounting using three primitives:\n\n- **Resources**: economic things that have value and are exchanged (inventory, cash, services)\n- **Events**: economic activities that affect resources (sales, purchases, manufacturing)\n- **Agents**: individuals or organizations that participate in events (customers, vendors, employees)\n\nThe core insight: accounting records should be derived from business reality (events) rather than journal entries being the primary artifact. McCarthy argued that the standard double-entry ledger was a lossy compression of richer event data, and that building systems on the compressed representation threw away information needed for analysis.\n\n## What REA Got Right\n\nREA correctly identified the foundational problem that CAST addresses:\n\n1. **Events should precede journal entries** \u2014 the business event (a sale, a purchase, a transfer) is primary; the journal entry is a derived view\n2. **Multiple views from one source** \u2014 the same events should be able to produce GAAP financial statements, management reports, tax filings, etc., without maintaining multiple separate records\n3. **Agent attribution** \u2014 knowing who participated in an event is as important as knowing what happened financially\n4. **Semantic richness** \u2014 events capture the meaning of what happened, not just the debit/credit\n\nThese are the same claims CAST makes. The intellectual lineage is clear.\n\n## Why REA Failed in Practice\n\nREA was extensively studied in academic accounting literature but never achieved widespread adoption. Why:\n\n**Too theoretical, not operational**: REA's formalism is elegant on paper but difficult to map to actual business workflows. The model abstracts away the operational messiness (partial shipments, disputed quantities, amended terms, exception handling) that real systems must handle.\n\n**No multi-party coordination**: REA models one entity's view of economic events. It doesn't solve how two organizations agree on what the events were. Your REA ledger and your vendor's REA ledger are still two separate records of the same transactions \u2014 the reconciliation problem remains.\n\n**No adversarial model**: REA assumes good faith participation. It has no concept of disputed events, fraudulent records, or the need for cryptographic proof that something happened. It's a modeling framework, not a coordination protocol.\n\n**No pat"},{"id":"reconciliation-as-architecture","label":"Reconciliation As Architecture","description":"Why reconciliation is not a clerical failure but an architectural consequence of single-party ledgers applied to multi-party coordination. The problem statement CAST is solving.","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["cryptographic-proof-chains","pe-portfolio-positioning","event-sourcing-core","gpu-compute-beachhead","proof-first-finance","traditional-accounting-limitations"],"sections":["The Architectural Root Cause","The False Positive of Control","The Coordination Cost","What Elimination Actually Means"],"words":576,"content":"# Reconciliation as Architecture\n\nThe framing matters here: reconciliation is not a process failure that better software can fix. It is the predictable, structural output of applying single-party ledger architecture to multi-party coordination problems.\n\n## The Architectural Root Cause\n\nDouble-entry bookkeeping, codified in the 15th century, was designed for a merchant keeping their own records. One party, one ledger, internal consistency enforced by the accounting equation. See [[traditional-accounting-limitations]] for why this works well in its intended domain.\n\nWhen two parties transact, each applies double-entry bookkeeping to their own ledger independently. Party A records a payable; Party B records a receivable. These entries are made from each party's perspective, at slightly different times, with slightly different reference data, in slightly different formats.\n\nReconciliation is the periodic manual process of finding where Party A's records and Party B's records diverge and determining which is correct. At scale, this is an enormous ongoing cost \u2014 across corporate treasury, trade finance, intercompany transactions, and financial close processes.\n\nThe architectural observation: **this divergence is guaranteed**. It is not the result of bad processes or inadequate technology. It is the result of two independent systems making independent records of the same events. Independent records will diverge. There is no software patch for this.\n\n## The False Positive of Control\n\nEnterprise financial software has built elaborate infrastructure on top of this broken architecture: audit trails, access controls, approval workflows, three-way matching, variance analysis. These create an appearance of control without addressing the root cause.\n\nA system that records events separately and then reconciles them can still have both parties holding different versions of the truth after reconciliation runs. The reconciliation process itself can disagree. The audit trail shows what each party recorded, not what actually happened.\n\n[[proof-first-finance]] is the response to this: build the system so that the transaction cannot be posted unless both parties have cryptographically committed to identical event data. There is no subsequent reconciliation needed because divergence was architecturally prevented, not detected and corrected.\n\n## The Coordination Cost\n\nThe cost of reconciliation is typically underestimated because it is embedded in headcount rather than in line-item software costs. The finance team running month-end close, the treasury team doing counterparty reconciliation, the operations team doing three-way PO matching \u2014 these are all reconciliation labor. [[pe-portfolio-positioning]] needs to quantify this cost concretely for PE CFO audiences.\n\nIn GPU"},{"id":"settlement-primitive","label":"Settlement Primitive","description":"","cluster":"The Seven Primitives (CAST Kernel)","color":"#d4b4e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"shared-truth-protocol","label":"Shared Truth Protocol","description":"The bilateral coordination protocol that makes CAST work: two parties co-author a single event stream rather than maintaining independent records. The architectural core. How share","cluster":"Bilateral Coordination Protocol","color":"#b4b4e8","stub":false,"links":[],"sections":["The Core Distinction","Public Events / Private Ledger Overlay","Selective Disclosure at the Boundary","Network Effects Through Truth","Coordination vs. Payments"],"words":699,"content":"# Shared Truth Protocol\n\nThe shared truth protocol is the central innovation of CAST. Rather than two parties maintaining independent ledgers that must later be reconciled, they co-author a single, cryptographically-bound event stream from which both independently derive identical state.\n\n## The Core Distinction\n\nTraditional multi-party finance: each party maintains their own ledger \u2192 two records \u2192 reconciliation required \u2192 disputes about facts \u2192 archaeology and negotiation.\n\nCAST: both parties co-author one event stream \u2192 one record \u2192 state is derived, not compared \u2192 disputes concern resolution (policy), not facts \u2192 resolution without archaeology.\n\nThe architectural shift is from \"record what happened from my perspective, then compare\" to \"co-create the record of what happened, then each interpret for your purposes.\" The first produces two truth claims. The second produces one truth.\n\n## Public Events / Private Ledger Overlay\n\nThe protocol separates two planes:\n\n**Public event stream**: Facts both parties have observed and co-signed. PO issued. Goods shipped. Goods received. Invoice generated. Payment confirmed. These events are immutable, bilaterally signed, and accessible to both parties.\n\n**Private ledger overlay**: Each party's internal accounting treatment, derived deterministically from the shared event stream. The brand books landed cost and AR. The manufacturer books revenue and COGS. Same shared event. Different private consequences. Neither party can see or infer the other's treatment.\n\n```\nPrivate State = fold(Shared Events, Local Policy)\n```\n\nPrivacy is the architectural default. Sharing is an explicit action. Each party's books are provably consistent with shared reality without exposing the internal derivation.\n\nThis addresses what has historically been the strongest objection to shared ledgers: \"CFOs don't want to share their financial data.\" Under the shared truth protocol, they don't have to. The shared plane is narrow \u2014 just the facts both parties have already observed together. The private plane is structurally inaccessible to the counterparty.\n\n## Selective Disclosure at the Boundary\n\nWhen a party does choose to disclose something from their private state \u2014 to a financier, an auditor, a regulator \u2014 the disclosure is an explicit action that itself creates a cryptographically-hashed, timestamped event in the disclosing party's private log. The audit trail shows what was shared, with whom, and when. What was not shared is structurally private \u2014 the system does not have this data to leak.\n\nThis is a structural privacy guarantee, not a policy promise. Your bank promises not to misuse your transaction data. CAST's architecture cannot leak private state it does not hold.\n\n## Network Effects"},{"id":"standalone-positioning","label":"Standalone Positioning","description":"STUB \u2014 The integration trap argument: why CAST must be positioned as standalone coordination infrastructure rather than an ERP module or bank add-on. The argument that integration ","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["open-standard-strategy"],"sections":[],"words":187,"content":"# Standalone Positioning\n\n*[STUB \u2014 To be written]*\n\nThe integration trap: if CAST integrates into Party A's ERP, Party B will never trust it. The whole point is that no party hosts the truth. The event ledger is not anyone's ERP module \u2014 it is shared infrastructure that neither party controls unilaterally.\n\nKey arguments to develop:\n- Why \"we'll add this to your ERP\" defeats the multi-party value proposition\n- Why bank-hosted \"shared ledgers\" have the same problem (one party is the host, others don't fully trust it)\n- Why the protocol must be neutral infrastructure, like TCP/IP or SWIFT messaging\n- What \"standalone\" actually means operationally for a customer deploying CAST\n\nAlso capture: the \"product-first with protocol aspirations\" GTM strategy \u2014 how you sell a product now while building toward protocol adoption later. See [[open-standard-strategy]]."},{"id":"standard-functions-concept","label":"Standard Functions Concept","description":"Standard Functions are CAST's core IP: pre-built coordination rules that automatically determine what happens when events occur. They replace bilateral negotiation with a shared ru","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["density-functional-theory-analogy","open-standard-strategy","policy-version-primitive"],"sections":["What Standard Functions Are","The Core Library","What Makes a Function a Standard Function","The Functional Explanation (Non-Technical)","Network Effects on the Functional"],"words":815,"content":"# Standard Functions: The Shared Rulebook\n\n## What Standard Functions Are\n\nStandard Functions are pre-built coordination rules that automatically determine what happens when events occur in a multi-party transaction. They answer:\n\n- When does a commitment become an obligation?\n- Who owes what to whom, and when?\n- If something goes wrong, how does responsibility allocate?\n- What is everyone's current position, right now?\n\nToday, these questions get answered through a patchwork of spreadsheets, emails, phone calls, and reconciliation meetings. Different parties often have different answers to the same question \u2014 which creates disputes, delays, and the need for intermediaries.\n\n**Standard Functions replace that patchwork with a single computation that everyone runs and everyone gets the same answer.**\n\n## The Core Library\n\n| Function | What It Computes | Traditional Alternative |\n|----------|-----------------|------------------------|\n| **Commitment \u2192 Obligation** | When does a PO become binding? | Email negotiation |\n| **Obligation \u2192 Liability** | When does an obligation hit the balance sheet? | Accountant judgment |\n| **Payment Application** | How are payments matched to obligations? | AP team reconciliation |\n| **Variance Attribution** | How is the gap allocated when commitments \u2260 settlements? | Dispute process |\n| **Exposure Calculation** | What is each party's current risk at any moment? | Treasury analysis |\n| **Priority and Subordination** | Who gets paid first when cash is insufficient? | Legal negotiation |\n| **Revenue Recognition** | When does an event trigger revenue under ASC 606 / IFRS 15? | Revenue accountant |\n| **Escrow Release** | When are escrow conditions satisfied? | Escrow agent |\n\n## What Makes a Function a Standard Function\n\nA Standard Function is:\n\n1. **Deterministic** \u2014 same inputs always produce the same output\n2. **Auditable** \u2014 every evaluation produces an explanation trace\n3. **Versioned** \u2014 like PolicyVersion (see [[policy-version-primitive]]), changes require new versions; historical evaluations are forever tied to the version in effect\n4. **Composable** \u2014 higher-level business logic is built from combining Standard Functions, not creating new primitives\n5. **Portable** \u2014 parties bring their own Standard Functions to a ledger; no central authority required to evaluate them\n\n## The Functional Explanation (Non-Technical)\n\nA traditional contract describes what should happen. Lawyers interpret it. Courts enforce it. This is expensive, slow, and uncertain.\n\nA Standard Function computes what happens. When an event occurs, the function evalu"},{"id":"state-machine-transitions","label":"State Machine Transitions","description":"","cluster":"Standard Functions and the Contract Layer","color":"#b4e8e8","stub":true,"links":[],"sections":[],"words":0,"content":""},{"id":"superposition-indefiniteness","label":"Superposition Indefiniteness","description":"Economic events exist in a state of objective indefiniteness (not mere epistemic uncertainty) until a reporting layer applies state reduction. CAST maintains events at the indefini","cluster":"Physics and Mathematical Foundations","color":"#e8d4b4","stub":false,"links":["policy-version-primitive"],"sections":["The Ellerman Framework","The Traditional Accounting Problem","The CAST Architecture","The Real Insight: Distinctions Are the Value Creation","The Multi-Party Implication"],"words":725,"content":"# Superposition and Objective Indefiniteness in Financial Events\n\n## The Ellerman Framework\n\nDavid Ellerman's work on quantum superposition reframes the concept: superposition is not \"being in two places at once\" but **objective indefiniteness** \u2014 a state that genuinely has no definite value relative to a particular partition, until that partition is applied.\n\nThe key distinction:\n- **Eigenstate** = definite state (translating \"eigen\" as \"definite\")\n- **Superposition** = indefinite state between definite states\n- **State reduction** = making distinctions that resolve indefiniteness into definiteness\n\nA person genuinely undecided between options is in an objectively indefinite state \u2014 not in multiple states at once, but in a state that hasn't yet made the relevant distinctions.\n\n## The Traditional Accounting Problem\n\nTraditional accounting operates entirely in the \"classical world\" \u2014 everything must be in a definite state immediately. A transaction is either recorded or not. Revenue is either recognized or not. An asset is either on your books or theirs.\n\nBut economic reality often exists in superposition. Consider:\n- A PO has been issued but goods haven't shipped \u2014 is this a liability?\n- Revenue recognition under ASC 606 with variable consideration \u2014 what is the \"real\" amount?\n- An intercompany transaction before month-end reconciliation\n- A contract that could validly be classified multiple ways under GAAP\n\nThe accounting response has been to force premature definiteness (accrue, estimate, classify) and then spend enormous effort when reality \"collapses\" differently than the forced state. This gap between forced state and actual state is what reconciliation addresses.\n\n## The CAST Architecture\n\nCAST's event-sourced architecture mirrors the two-world structure Ellerman describes:\n\n| Ellerman's Framework | CAST/Sightline |\n|---------------------|----------------|\n| Quantum world (below water) | Raw events, atomic facts |\n| Classical world (above water) | Derived views, reports, GL entries |\n| State reduction | Projection/aggregation rules |\n| Partition with haecceity | Classification schema applied to events |\n\nEvents have **quiddity** (they happened, they are distinct) but don't inherently have the **haecceity** (distinguishing characteristics) that accounting demands. Is this COGS or SG&A? Is this Q1 or Q2? The *interpretation layer* is what makes these distinctions \u2014 not the event itself.\n\n## The Real Insight: Distinctions Are the Value Creation\n\nThe same event stream can support multiple partitions:\n- GAAP view\n- Tax view\n-"},{"id":"task-as-atomic-unit-of-work","label":"Task As Atomic Unit Of Work","description":"Task is the atomic unit of work in finance, exactly as event is the atomic unit of data. Task \u2192 job \u2192 role. Decomposing finance functions at the task level is the prerequisite for ","cluster":"The Ledger Engineer Role","color":"#c8e8b4","stub":false,"links":["friction-engine","ledger-engineer-role"],"sections":["The Parallel to Events","Task \u2192 Job \u2192 Role","Why Decomposition Matters Now","Each Task Should Produce a Verifiable Output","Work Conservation"],"words":948,"content":"# Task as the Atomic Unit of Work\n\n## The Parallel to Events\n\nThe same decomposition logic that applies to financial data applies to financial work:\n\n- **Event** is the atomic unit of financial data (not journal entry, not transaction)\n- **Task** is the atomic unit of financial work (not job, not role)\n\nWhen companies think at the job/role level \u2014 \"we need a staff accountant\" \u2014 they bundle dozens of discrete tasks into an arbitrary container shaped by tradition and org chart convention. That staff accountant does bank reconciliation, codes AP invoices, prepares accrual entries, pulls reports, and chases down missing documentation. Those are five fundamentally different tasks with different inputs, outputs, skill requirements, and automation profiles.\n\nIf you can't describe your finance function at the task level, you can't intelligently decide:\n- What to automate\n- What to delegate to AI agents\n- What requires human judgment\n- What is pure waste\n\nMost companies can only answer \"what does your accounting team do?\" at the role level: \"Sarah does AP.\" That's like saying \"the GL has a payables balance\" without knowing which events created it.\n\n## Task \u2192 Job \u2192 Role\n\n**Task**: An irreducible unit of work with defined inputs, process, outputs, and a verifiable completion condition.\n\nExamples:\n- \"Match this invoice to this PO and this goods receipt; flag exceptions where the three don't agree\"\n- \"Compute the accrual for unbilled services as of month end\"\n- \"Verify the bank statement balance against the GL cash account\"\n- \"Classify this transaction by cost category and business unit\"\n\n**Job**: A bundle of tasks assigned to one person or agent. A job description is just a list of tasks with frequency, skill requirements, and authority boundaries.\n\n**Role**: A category of jobs with similar task profiles, authority levels, and organizational positioning.\n\n## Why Decomposition Matters Now\n\n**For automation decisions**: You can't sensibly decide \"should we automate AP?\" \u2014 AP is a bundle. You can sensibly decide \"should we automate PO-to-invoice matching?\" Yes \u2014 it's rules-based, high volume, well-defined inputs and outputs. \"Should we automate vendor relationship management?\" No \u2014 it requires judgment and relationship context.\n\n**For agentic delegation**: An AI agent can execute a task with a precise definition: specific inputs, deterministic process, verifiable output. An AI agent cannot execute a job without decomposition first. The task definition is the contract between human and agent.\n\n**For budget allocation**: Finance teams are perpetually underfunded relative to IT and engineering because \"accounting\" soun"},{"id":"three-party-gpu-model","label":"Three Party Gpu Model","description":"The GPU compute financing scenario is CAST's beachhead. Three parties (Lender, Borrower, GPU Provider) with a high-trust-deficit, high-value coordination problem that no existing s","cluster":"Bilateral Coordination Protocol","color":"#b4b4e8","stub":false,"links":["gpu-compute-beachhead"],"sections":["The Problem","The CAST Architecture","The Policy Layer","Why Existing Solutions Fail","The CoreWeave Model"],"words":835,"content":"# Three-Party GPU Financing Model\n\n## The Problem\n\nGPU compute financing involves three parties who need to coordinate but fundamentally distrust each other:\n\n- **Lender**: Advances capital to borrower to pay for GPU time. Needs proof GPU was actually deployed and used before releasing payment. Cannot independently verify compute happened.\n- **Borrower**: Needs GPU capacity. Wants to pay only for what was delivered. Doesn't control the lender-provider payment relationship.\n- **GPU Provider**: Delivered compute. Wants to get paid. Cannot force lender to release funds. May dispute usage measurements from borrower.\n\nNo existing system coordinates all three. Traditional options:\n- Borrower pays provider directly, then seeks reimbursement from lender \u2192 trust problem, timing mismatch\n- Lender pays provider directly \u2192 lender must trust provider's usage claims\n- Escrow \u2192 requires a trusted intermediary that takes rent\n\n## The CAST Architecture\n\nCAST's role: not moving money, but **proving the conditions under which money should move**.\n\nThree event types anchor the three-party coordination:\n\n### 1. Deployment Proof\n```json\n{\n  \"event_type\": \"gpu.deployed\",\n  \"gpu_ids\": [\"gpu-001\", \"gpu-002\"],\n  \"provider\": \"coreweave\",\n  \"borrower\": \"ml-startup\",\n  \"specs\": {\"model\": \"H100\", \"count\": 8, \"allocated_memory\": \"640GB\"},\n  \"deployment_timestamp\": \"2025-03-01T08:00:00Z\",\n  \"provider_signature\": \"...\",\n  \"borrower_acknowledgment\": \"...\",\n  \"hash\": \"...\"\n}\n```\n\nBoth provider and borrower sign. Neither can dispute that deployment happened.\n\n### 2. Usage Proof\n```json\n{\n  \"event_type\": \"gpu.usage_interval\",\n  \"interval\": {\"start\": \"2025-03-01T08:00:00Z\", \"end\": \"2025-03-01T09:00:00Z\"},\n  \"compute_units\": 480,\n  \"utilization_pct\": 97.8,\n  \"telemetry_hash\": \"sha256_of_raw_telemetry_log\",\n  \"provider_signature\": \"...\",\n  \"hash\": \"...\"\n}\n```\n\nProvider signs usage. Borrower can dispute within the dispute window. After the window closes, the usage record is final.\n\n### 3. Payment Proof\n```json\n{\n  \"event_type\": \"payment.released\",\n  \"obligation_id\": \"OBL-GPU-001\",\n  \"amount\": 14400.00,\n  \"currency\": \"USD\",\n  \"basis\": [\"usage-interval-001\", \"usage-interval-002\", \"...\"],\n  \"lender_release\": \"...\",\n  \"bank_confirmation\": \"...\",\n  \"hash\": \"...\"\n}\n```\n\nLender releases payment after deployment proof + usage proof + dispute window close. Payment is deterministically tied to specific usage events.\n\n## The Policy Layer\n\nThe Standard Function for GPU financing encodes:\n\n- **Condition for payment release**: Deployment proof exists AND usage interval events exist AND"},{"id":"traditional-accounting-limitations","label":"Traditional Accounting Limitations","description":"Why double-entry bookkeeping fails at multi-party coordination. What it was designed for, where it works well, and the predictable failure modes when applied to the boundary betwee","cluster":"The Core Architectural Thesis","color":"#b4c8e8","stub":false,"links":["event-sourcing-core","shared-truth-protocol","reconciliation-as-architecture"],"sections":["What Double-Entry Was Built For","The Multi-Party Boundary Problem","The False Positive of Control","What the Gap Costs","What Cannot Be Fixed Within the Architecture"],"words":682,"content":"# Traditional Accounting Limitations\n\nDouble-entry bookkeeping is not broken. It is a precisely specified system that works exactly as designed in its intended domain: single-party record-keeping with internal consistency as the goal. The problem is applying it to multi-party coordination, for which it was never designed.\n\n## What Double-Entry Was Built For\n\nLuca Pacioli's 1494 formalization of double-entry bookkeeping solved a specific problem: a merchant needed to know, at any point in time, the state of their business. The accounting equation (Assets = Liabilities + Equity) provides internal consistency \u2014 a built-in verification that no entries have been lost or fabricated. Debits equal credits not by convention but because the system models a universe where value cannot appear from nothing.\n\nFor this purpose \u2014 one party, internal consistency, snapshot of your own position \u2014 double-entry is the correct architecture. It has been refined over 500 years and works reliably.\n\n## The Multi-Party Boundary Problem\n\nWhen two parties transact, each applies double-entry bookkeeping to their own ledger independently. Party A records a payable; Party B records a receivable. Both entries are made from each party's perspective, at slightly different times, with slightly different reference data, in slightly different formats.\n\nThe divergence is not a failure of process \u2014 it is a structural consequence of independent record-keeping. Two parties maintaining independent records of the same events will produce different records. This is guaranteed, not accidental.\n\nReconciliation is the periodic manual process of identifying and resolving this guaranteed divergence. It exists as a permanent cost in every multi-party financial relationship because the architecture that produces it cannot be patched \u2014 it can only be replaced.\n\nSee [[reconciliation-as-architecture]] for the full argument on why reconciliation is an architectural consequence, not a process failure.\n\n## The False Positive of Control\n\nEnterprise financial software has built elaborate infrastructure on top of this architecture: audit trails, access controls, approval workflows, three-way matching, variance analysis, ERP reconciliation modules. These create an appearance of control without addressing the root cause.\n\n**Three-way matching** compares PO, receipt, and invoice \u2014 three documents each generated independently by different parties. Matching them requires a reconciliation process. When they don't match (and they frequently don't), the resolution is manual investigation. The matching process exists because the records were generated independently; it could be eliminated if both parties co-created the records in real time.\n\n**Audit trails** record what each party recorded in their"},{"id":"triple-entry-historical","label":"Triple Entry Historical","description":"The intellectual history of triple-entry accounting: Ian Grigg's 2005 signed receipt paper, the zkLedger project from MIT, and the conceptual lineage from double-entry to cryptogra","cluster":"Intellectual Precedents","color":"#d4e8b4","stub":false,"links":["modal-logic-proof-structure"],"sections":["Ian Grigg's Signed Receipt (2005)","The Three-Party Architecture","CAST's Extension of Triple-Entry","zkLedger (MIT, 2018)","The Common Thread"],"words":795,"content":"# Triple-Entry Accounting: Historical Foundations\n\n## Ian Grigg's Signed Receipt (2005)\n\nIan Grigg's 2005 paper \"Triple Entry Accounting\" is the foundational text. The central claim:\n\n> \"The signed receipt is more powerful than double-entry records.\"\n\nThe traditional double-entry journal entry is a record made by one party. It is authoritative within that party's system but has no evidentiary value to counterparties \u2014 they can't verify it wasn't created after the fact, altered, or fabricated.\n\nA signed receipt is an entry made by one party but *signed by the counterparty*. The counterparty's cryptographic signature attests that they agree the transaction occurred as recorded. This transforms the record from a private claim into a mutually attested fact.\n\nGrigg's insight: with signed receipts, both parties' books are provably derived from the same underlying facts. The \"triple entry\" refers to the signed receipt as a third record (in addition to each party's own debit and credit) that serves as the authoritative ground truth.\n\n## The Three-Party Architecture\n\nGrigg's original formulation involved three parties:\n- **Party A** (buyer)\n- **Party B** (seller)  \n- **Party I** (issuer / intermediary) \u2014 a trusted third party who facilitates the transaction and provides the signed receipt\n\nEach party maintains their own books. The signed receipt from Party I is the \"third entry\" \u2014 the authoritative record that both A and B's books are derived from.\n\nThis is conceptually powerful but introduces Party I as a trust dependency. The issuer must be trusted by both parties. Grigg acknowledged this limitation but saw it as acceptable given that financial intermediaries already exist.\n\n## CAST's Extension of Triple-Entry\n\nCAST extends Grigg's framework in two important ways:\n\n**1. Eliminates the trusted intermediary.** CAST uses bilateral signatures (A and B both sign, not a trusted third party). The bilateral signature is the \"third entry.\" No Party I required. The cryptographic binding between the two parties' signatures creates the shared ground truth without an intermediary.\n\n**2. Adds deterministic policy derivation.** Grigg's signed receipt proves what happened (a transaction of amount X between A and B). CAST additionally proves what should happen next (given this event and this policy, these obligations arise). The policy is versioned and pinned, so both parties can independently verify that the obligations derived from events are correct.\n\nThe result: CAST provides not just a signed record of the past (Grigg) but a deterministic path from past events to current state and future obligations, with cryptograp"},{"id":"variance-attribution","label":"Variance Attribution","description":"Variances are facts with addresses \u2014 not failures, not estimates, not narrative explanations. Every gap between commitment and settlement must be attributed to a specific cause in ","cluster":"The Event Grammar","color":"#b4e8c8","stub":false,"links":["ijiri-force-accounting","friction-engine"],"sections":["Variances Are Facts","Why This Matters","Ijiri's Force Attribution","Variance as Structural (Not Narrative)"],"words":476,"content":"# Variance Attribution\n\n## Variances Are Facts\n\nThe traditional response to variance: write a memo explaining why the budget was missed. A narrative, signed by someone, filed somewhere.\n\nCAST reframes this completely: **a variance is a fact with an address.** It exists in the causal chain at a specific point, attributed to a specific event, by a specific observer, with specific evidence.\n\nWhen 482 units settle against 500 committed, those 18 units are a fact. The attribution tells you where they went:\n\n```\nSettlement S1: {\n  type: settlement\n  subject: PO-2024-0892\n  resolved_quantity: 482 units\n  variance_attributions: [\n    {gap: 6 units, cause: \"transit_loss\", absorbed_by: \"carrier_claim\", reference: \"CLAIM-8827\"}\n    {gap: 12 units, cause: \"damage\", absorbed_by: \"vendor_credit\", reference: \"CM-2024-112\"}\n  ]\n  status: closed\n}\n```\n\n## Why This Matters\n\nTraditional systems: close the loop by zeroing out variances. The investigation happens retrospectively if ever. The root cause lives in email threads.\n\nCAST: variances are carried as explicit data. Every gap has:\n- A quantity\n- A cause category\n- A party who absorbs it\n- A reference to supporting evidence\n- A link to the events in the causal chain that produced it\n\nThis makes variance attribution auditable, not investigable. You don't find out why there's a gap \u2014 you read why there's a gap.\n\n## Ijiri's Force Attribution\n\nYuji Ijiri's Force Statement extends this to the income level. Traditional income statements tell you the score \u2014 revenue and expense totals for the period. Force accounting tells you *which forces changed the score*:\n\n- New product introduction: +$4 impact on momentum\n- Margin erosion: -$2 impact\n- Volume variance: +$1 impact\n- Efficiency loss: -$1 impact\n\nSee [[ijiri-force-accounting]] for the full treatment. The CAST variance attribution system implements this concept at the transaction level. Ijiri imagined it at the period level; CAST makes it continuous and event-sourced.\n\n## Variance as Structural (Not Narrative)\n\nIn CAST, variance attribution is embedded in the data model \u2014 not in a report someone writes. This has three consequences:\n\n1. **Auditability**: attributions are immutable once committed. They can be challenged with new events, but not silently edited.\n\n2. **Pattern detection**: when the same variance cause appears repeatedly (carrier claims for the same route, vendor credits for the same product), the pattern is visible in the data without anyone building a report.\n\n3. **Fraud signal**: legitimate variance attributions are supported by evidence events (a carrier claim reference, an inspection report). Manufa"},{"id":"vertical-markets-overview","label":"Vertical Markets Overview","description":"The full map of vertical markets explored for CAST, with assessments of fit, market characteristics, and strategic sequencing. GPU compute is the beachhead. Adjacent verticals foll","cluster":"Go-to-Market and Positioning","color":"#e8b4d4","stub":false,"links":["gpu-compute-beachhead"],"sections":["The Market Selection Filter","GPU Compute Financing \u2014 Beachhead","DTC Ecommerce / International Supply Chain","Construction (Retainage / Progress Billing)","HOA / Condo Association"],"words":918,"content":"# Vertical Markets Overview\n\nCAST's architecture is domain-agnostic \u2014 it is a coordination protocol that applies wherever multiple parties need to coordinate around shared economic facts without full mutual disclosure. The verticals differ only in configuration: event schema, policy rules, party roles, and vertical terminology. The primitives are identical.\n\n## The Market Selection Filter\n\nGood CAST markets share these characteristics: multi-party coordination with high friction, significant cash flows through the coordination boundary, no incumbent solution that solves the coordination problem (as opposed to just recording individual party views), and at least one party with a quantifiable $1M+ problem. Ideally: high pain acuity, concentrated market (you can know every serious buyer), and technical buyers capable of adopting new infrastructure.\n\n## GPU Compute Financing \u2014 Beachhead\n\nSee [[gpu-compute-beachhead]] for the full case. Summary: 50-100 active buyers globally, $5-10B total volume, no incumbent coordination infrastructure, hardware-before-revenue financing structure creates acute pain, utilization-linked payments require verified telemetry data. The right size to prove the architecture in a greenfield context before attacking larger entrenched markets.\n\nExpansion from GPU: other hardware-intensive AI infrastructure (networking, storage, custom silicon), contract manufacturing for hardware startups, inventory-backed lending for DTC ecommerce.\n\n## DTC Ecommerce / International Supply Chain\n\nThe multi-party supply chain case is among the richest for CAST. A typical DTC international supply chain involves brand, overseas manufacturer, freight forwarder, customs broker, 3PL warehouse, and trade finance provider. Six parties, six ledgers, six reconciliation surfaces.\n\nThe public/private event boundary is natural here: public events are PO issued, production confirmed, bill of lading issued, goods cleared customs, inventory received. Private events are each party's internal cost treatment, margin calculation, and accounting entries. Same shared event stream; six different private interpretations; zero reconciliation required because both sides derived their private state from the same events.\n\n**Key pain points solved**: billing disputes on freight charges (quantified at $400K+ annually for some portfolio companies), three-way match failures, landed cost computation disagreements, inventory discrepancies between shipping documents and actual receipt.\n\n## Construction (Retainage / Progress Billing)\n\nHigh pain, measurable. DSO in construction: 60-90+ days. Retainage disputes are endemic. The mechanics lien industry ($10B+ legal market) exists primarily because parties can't agree on amounts."},{"id":"why-now-agentic","label":"Why Now Agentic","description":"Why CAST is necessary now, specifically because of the AI agent proliferation. LLMs crossed a capability threshold in 2023-2024. Autonomous financial agents are coming. The missing","cluster":"Agentic Infrastructure","color":"#e8c8b4","stub":false,"links":["three-party-gpu-model","gpu-compute-beachhead"],"sections":["The Capability Threshold","The Gap This Creates","Why Existing Infrastructure Fails for Agents","CAST's Role in Agentic Finance","The Three Invariants for Agent Safety"],"words":901,"content":"# Why Now: The Agentic Unlock\n\n## The Capability Threshold\n\nBetween 2022 and 2024, large language models crossed a capability threshold for autonomous action. Not just answering questions \u2014 actually taking actions: calling APIs, executing code, managing files, and most importantly, making decisions and triggering financial transactions.\n\nThe agentic finance use case was always theoretically interesting. The infrastructure to realize it didn't exist until recently. Three things changed:\n\n1. **LLM capability**: Models can now reliably follow complex multi-step instructions, handle exceptions, and reason about financial context without hallucinating fundamental errors constantly enough to be unsuitable for production\n2. **Tool use**: Models can now call external APIs, read event logs, and execute state changes \u2014 not just generate text\n3. **Agent frameworks**: LangChain, AutoGen, OpenAI Assistants, Claude Computer Use \u2014 infrastructure for multi-step autonomous action exists and is being actively deployed\n\n## The Gap This Creates\n\nAutonomous agents acting in financial systems need two things that didn't exist before and still barely exist:\n\n**Payment rails for agents**: How does an agent pay for compute time, API calls, data, or services? Skyfire is building this. It's a real market.\n\n**Coordination infrastructure for agents**: How does an agent verify that the thing it's paying for actually happened? How does an agent's principal (the company deploying it) verify that the agent acted correctly? How do multiple agents from different organizations coordinate on shared financial facts?\n\nCAST is the coordination infrastructure. This is the gap.\n\n## Why Existing Infrastructure Fails for Agents\n\n**ERPs**: Single-party, human-operated, batch-oriented. An agent that needs to verify a GPU usage claim in real-time cannot query a counterparty's ERP. And even if it could, it would get that party's interpretation of events, not the underlying facts.\n\n**Payment rails**: ACH, wire, Stripe \u2014 these move money but don't verify conditions. An agent can trigger a payment, but the payment infrastructure doesn't validate that the conditions for payment were met.\n\n**Blockchain**: Too slow, too expensive, too rigid for the kinds of multi-party coordination needed in operational finance. Smart contracts handle simple if-then logic; they break on the complexity of real commercial arrangements.\n\n**Human oversight**: Currently, every significant agent financial action requires a human approval loop. This works today but is not the end state. As agent volume scale"},{"id":"zero-trust-accounting-origins","label":"Zero Trust Accounting Origins","description":"The origin point of CAST: applying zero trust security principles to financial systems. Zero trust accounting (ZTA) predates the event-sourcing framing and provides the intellectua","cluster":"Origins \u2014 Zero Trust Accounting","color":"#e8b4b8","stub":false,"links":["zta-to-event-sourcing","hash-chain-cryptography","proof-first-finance","cryptographic-proof-chains"],"sections":["The Core Principle","The Five Principles","Why the HOA Was the First Domain","What ZTA Got Right","Where ZTA Was Too Narrow"],"words":680,"content":"# Zero Trust Accounting: Origins\n\n## The Core Principle\n\nZero trust security says: never trust, always verify. No implicit trust regardless of whether a user is inside or outside the network. Every access request is authenticated, authorized, and continuously validated.\n\nZero trust accounting applies this to financial systems. The translation:\n\n**Traditional accounting** operates on trust hierarchies \u2014 the controller's entries are trusted, the auditor's opinion is accepted, the reconciliation is performed periodically. Trust is embedded in roles and process.\n\n**Zero trust accounting** assumes no entry, no balance, no transaction is trustworthy by default. Controls are structural not procedural. Every financial action must be:\n- Explicitly verified and authenticated\n- Attributed to an authorized actor\n- Linked to prior events in an immutable chain\n- Independently verifiable by any party with access\n\n## The Five Principles\n\n1. **Continuous verification** \u2014 every financial action requires proof at the time of action, not periodic audit after\n2. **Least privilege access** \u2014 actors can only perform actions their role permits; over-broad access is architecturally prevented\n3. **Micro-segmentation** \u2014 financial data and processes are compartmentalized; compromise of one segment doesn't expose others\n4. **Multi-signature approval** \u2014 critical actions require multiple authorized parties; no single person can unilaterally move funds\n5. **Immutable audit trail** \u2014 every event is recorded with a cryptographic hash chain; past events cannot be altered without breaking the chain\n\n## Why the HOA Was the First Domain\n\nHOAs are structurally high-risk for financial fraud and mismanagement:\n- Weak controls by design (small volunteer boards)\n- High fraud incidence and slow detection\n- Multiple parties with competing interests (board, homeowners, vendors, manager)\n- Significant cash flows relative to organizational sophistication\n\nThe HOA prototype built:\n- Hash-chained event log (SHA-256 with each event referencing the hash of the prior)\n- Multi-signature approval workflows (Treasurer approval + Board member approval for disbursements above threshold)\n- Role-based access (Homeowner, Treasurer, Board Member, Vendor, Auditor, Manager)\n- Immutable audit trail with full traceability from every financial statement value back to originating event\n\nThe hash chain was recognized early as the system's core differentiator: any modification to past events invalidates the entire subsequent chain. Tamper-evidence is architectural, not procedural.\n\n## What ZTA Got Right\n\nZTA correctly identified that:\n- Trust is a s"},{"id":"zta-to-event-sourcing","label":"Zta To Event Sourcing","description":"The architectural evolution from zero trust accounting (secure the journal) to event sourcing (make the journal unnecessary). ZTA was the first frame \u2014 necessary but insufficient. ","cluster":"Origins \u2014 Zero Trust Accounting","color":"#e8b4b8","stub":false,"links":["reconciliation-as-architecture"],"sections":["The Limitation ZTA Hit","The Reframe","The Three-Layer Insight","What Changed Architecturally","What ZTA Got Right That Carried Forward"],"words":762,"content":"# From Zero Trust Accounting to Event Sourcing\n\n## The Limitation ZTA Hit\n\nZero trust accounting was the first frame: apply zero trust security principles to financial systems. Control everything. Verify everything. Hash chain every event. Multi-signature every disbursement.\n\nThis works perfectly for securing **one party's records**. It does not solve the multi-party coordination problem:\n\n- HOA Board has a cryptographically immutable audit trail of their financial events\n- The vendor has their own accounting of the same transactions\n- The two records may be inconsistent\n- ZTA gives you no way to resolve the inconsistency \u2014 it just makes each party's records tamper-evident\n\nThe tamper-evident record of your own truth does not constitute shared truth. Two parties with perfect, immutable, cryptographically signed records of their own version of events can still have a dispute about which version is correct.\n\n## The Reframe\n\nThe shift happened when the question changed:\n\n**ZTA question**: \"How do we secure one party's financial records so they can't be tampered with?\"\n\n**Event sourcing question**: \"How do multiple parties agree on what happened *before* any party writes their own records?\"\n\nThis is a fundamentally different problem. The ZTA solution (hash chain within one party's system) doesn't address it. The event sourcing solution (shared event layer with bilateral signatures before individual ledgers are written) does.\n\n## The Three-Layer Insight\n\nThe insight that resolved this:\n\n1. **Events are physical facts** \u2014 when a truck arrived, when bytes moved, when a signature was applied. These are not interpretations; they are observations of state changes in the world.\n\n2. **Accounting treatments are interpretations** \u2014 which period does this belong to? Is this revenue or a liability? What account does this hit? These questions don't have a single right answer \u2014 they depend on policy.\n\n3. **Keeping events and interpretations separate** allows multiple parties to agree on events (the physical facts) while maintaining independent accounting treatments (their own interpretations).\n\nZTA tried to make the interpretation layer secure. Event sourcing moves the agreement upstream, to the event layer, and lets the interpretation layer remain party-specific.\n\n## What Changed Architecturally\n\n| ZTA | Event Sourcing |\n|-----|---------------|\n| Hash chain within one system | Hash chain across multiple parties |\n| Verify integrity of your own records | Verify agreement on shared events |\n| Controls prevent tampering with the past | Contr"}],"clusters":["Origins \u2014 Zero Trust Accounting","The Core Architectural Thesis","The Event Grammar","Physics and Mathematical Foundations","The Seven Primitives (CAST Kernel)","Standard Functions and the Contract Layer","Implementation Architecture","The Ledger Engineer Role","Agentic Infrastructure","Bilateral Coordination Protocol","Go-to-Market and Positioning","Intellectual Precedents"],"cluster_colors":{"Origins \u2014 Zero Trust Accounting":"#e8b4b8","The Core Architectural Thesis":"#b4c8e8","The Event Grammar":"#b4e8c8","Physics and Mathematical Foundations":"#e8d4b4","The Seven Primitives (CAST Kernel)":"#d4b4e8","Standard Functions and the Contract Layer":"#b4e8e8","Implementation Architecture":"#e8e4b4","The Ledger Engineer Role":"#c8e8b4","Agentic Infrastructure":"#e8c8b4","Bilateral Coordination Protocol":"#b4b4e8","Go-to-Market and Positioning":"#e8b4d4","Intellectual Precedents":"#d4e8b4"}};
+
+// ── State ──
+let history = [];
+let historyIdx = -1;
+let activeNodeId = null;
+const collapsedClusters = new Set();
+
+// ── Helpers ──
+function getNode(id) { return GRAPH.nodes.find(n => n.id === id); }
+function getClusterColor(cluster) { return GRAPH.cluster_colors[cluster] || '#888'; }
+
+// ── Markdown renderer (minimal, no dependencies) ──
+function renderMarkdown(text) {
+  if (!text) return '<p class="text-muted">No content yet.</p>';
+
+  // Process wikilinks before other transforms
+  text = text.replace(/\[\[([^\]]+)\]\]/g, (_, id) => {
+    const node = getNode(id);
+    const label = node ? node.label : id;
+    return `<a class="wikilink" data-id="${id}" href="#">${label}</a>`;
+  });
+
+  const lines = text.split('\n');
+  const out = [];
+  let inPre = false, inTable = false, listBuf = [], tableRows = [];
+
+  function flushList() {
+    if (!listBuf.length) return;
+    out.push('<ul>' + listBuf.map(l => `<li>${l}</li>`).join('') + '</ul>');
+    listBuf = [];
+  }
+  function flushTable() {
+    if (!tableRows.length) return;
+    const [header, , ...body] = tableRows;
+    const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const trs = body.map(row => {
+      const tds = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    out.push(`<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`);
+    tableRows = []; inTable = false;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith('```')) {
+      flushList();
+      if (inPre) { out.push('</code></pre>'); inPre = false; }
+      else { out.push('<pre><code>'); inPre = true; }
+      continue;
+    }
+    if (inPre) { out.push(escapeHtml(line) + '\n'); continue; }
+
+    if (line.startsWith('|')) {
+      flushList();
+      inTable = true;
+      tableRows.push(line);
+      continue;
+    }
+    if (inTable) { flushTable(); }
+
+    if (!line.trim()) { flushList(); out.push(''); continue; }
+
+    if (line.startsWith('# ')) { flushList(); out.push(`<h1>${inline(line.slice(2))}</h1>`); continue; }
+    if (line.startsWith('## ')) { flushList(); out.push(`<h2>${inline(line.slice(3))}</h2>`); continue; }
+    if (line.startsWith('### ')) { flushList(); out.push(`<h3>${inline(line.slice(4))}</h3>`); continue; }
+    if (line.startsWith('> ')) { flushList(); out.push(`<blockquote><p>${inline(line.slice(2))}</p></blockquote>`); continue; }
+
+    const liMatch = line.match(/^[-*] (.+)/);
+    if (liMatch) { listBuf.push(inline(liMatch[1])); continue; }
+
+    const numMatch = line.match(/^\d+\. (.+)/);
+    if (numMatch) { listBuf.push(inline(numMatch[1])); continue; }
+
+    flushList();
+    out.push(`<p>${inline(line)}</p>`);
+  }
+  flushList();
+  if (inTable) flushTable();
+  if (inPre) out.push('</code></pre>');
+
+  return out.join('\n');
+}
+
+function inline(text) {
+  return text
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Sidebar ──
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+  const grouped = {};
+  GRAPH.nodes.forEach(n => {
+    if (!grouped[n.cluster]) grouped[n.cluster] = [];
+    grouped[n.cluster].push(n);
+  });
+
+  GRAPH.clusters.forEach(cluster => {
+    const nodes = grouped[cluster] || [];
+    const color = getClusterColor(cluster);
+    const section = document.createElement('div');
+    section.className = 'cluster-section';
+
+    const header = document.createElement('div');
+    header.className = 'cluster-header';
+    header.innerHTML = `
+      <div class="cluster-dot" style="background:${color}"></div>
+      <span class="cluster-name">${cluster}</span>
+      <span class="cluster-count">${nodes.length}</span>
+      <span class="cluster-toggle">▼</span>
+    `;
+    header.addEventListener('click', () => {
+      const nodesDiv = section.querySelector('.cluster-nodes');
+      const toggle = header.querySelector('.cluster-toggle');
+      if (collapsedClusters.has(cluster)) {
+        collapsedClusters.delete(cluster);
+        nodesDiv.classList.remove('hidden');
+        toggle.classList.remove('collapsed');
+      } else {
+        collapsedClusters.add(cluster);
+        nodesDiv.classList.add('hidden');
+        toggle.classList.add('collapsed');
+      }
+    });
+
+    const nodesDiv = document.createElement('div');
+    nodesDiv.className = 'cluster-nodes';
+
+    nodes.forEach(node => {
+      const item = document.createElement('div');
+      item.className = 'node-item' + (node.stub ? ' stub' : '');
+      item.dataset.id = node.id;
+      item.innerHTML = `
+        <span class="node-label">${node.label}</span>
+        ${node.stub ? '<span class="stub-badge">stub</span>' : ''}
+      `;
+      item.addEventListener('click', () => navigateTo(node.id));
+      nodesDiv.appendChild(item);
+    });
+
+    section.appendChild(header);
+    section.appendChild(nodesDiv);
+    sidebar.appendChild(section);
+  });
+}
+
+// ── Legend ──
+function buildLegend() {
+  const legend = document.getElementById('cluster-legend');
+  GRAPH.clusters.forEach(cluster => {
+    const color = getClusterColor(cluster);
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-dot" style="background:${color}"></div>${cluster}`;
+    item.addEventListener('click', () => scrollToCluster(cluster));
+    legend.appendChild(item);
+  });
+}
+
+function scrollToCluster(cluster) {
+  // Un-collapse if needed
+  if (collapsedClusters.has(cluster)) {
+    collapsedClusters.delete(cluster);
+    buildSidebar();
+  }
+  const headers = document.querySelectorAll('.cluster-header');
+  for (const h of headers) {
+    if (h.querySelector('.cluster-name')?.textContent === cluster) {
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      break;
+    }
+  }
+}
+
+// ── Navigation ──
+function navigateTo(id, pushHistory = true) {
+  const node = getNode(id);
+  if (!node) return;
+
+  if (pushHistory) {
+    history = history.slice(0, historyIdx + 1);
+    history.push(id);
+    historyIdx = history.length - 1;
+  }
+
+  activeNodeId = id;
+  renderNode(node);
+  updateNavButtons();
+  updateSidebarActive(id);
+}
+
+function updateNavButtons() {
+  document.getElementById('btn-back').disabled = historyIdx <= 0;
+  document.getElementById('btn-fwd').disabled = historyIdx >= history.length - 1;
+}
+
+function updateSidebarActive(id) {
+  document.querySelectorAll('.node-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
+  // Scroll sidebar item into view
+  const active = document.querySelector(`.node-item[data-id="${id}"]`);
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+
+// ── Render Node ──
+function renderNode(node) {
+  // Hide welcome / search, show node view
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('search-results').classList.remove('visible');
+  const view = document.getElementById('node-view');
+  view.classList.add('visible');
+
+  const color = getClusterColor(node.cluster);
+
+  // Connected nodes
+  const linkedNodes = (node.links || []).map(id => getNode(id)).filter(Boolean);
+  // Also find nodes that link TO this node
+  const backlinks = GRAPH.nodes.filter(n => (n.links || []).includes(node.id));
+
+  const linksHtml = linkedNodes.length ? `
+    <div class="section-title">Links to</div>
+    <div class="links-grid">
+      ${linkedNodes.map(ln => `
+        <a class="link-chip" data-id="${ln.id}" href="#">
+          <div class="link-chip-dot" style="background:${getClusterColor(ln.cluster)}"></div>
+          <span class="link-chip-label">${ln.label}</span>
+        </a>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const backlinksHtml = backlinks.length ? `
+    <div class="section-title">Referenced by</div>
+    <div class="links-grid">
+      ${backlinks.map(ln => `
+        <a class="link-chip" data-id="${ln.id}" href="#">
+          <div class="link-chip-dot" style="background:${getClusterColor(ln.cluster)}"></div>
+          <span class="link-chip-label">${ln.label}</span>
+        </a>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const stubNotice = node.stub ? `
+    <div class="stub-notice">
+      <span>⚠</span>
+      <span>Stub node — content to be developed in a future session.</span>
+    </div>
+  ` : '';
+
+  const contentHtml = node.content && !node.stub
+    ? `<div class="section-title">Content</div><div class="node-content">${renderMarkdown(node.content)}</div>`
+    : '';
+
+  view.innerHTML = `
+    <div class="node-breadcrumb">
+      <span class="breadcrumb-cluster">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${color}"></span>
+        ${node.cluster}
+      </span>
+    </div>
+    <div class="node-title">${node.label}</div>
+    <div class="node-meta">
+      <span class="meta-tag">${node.words} words</span>
+      ${node.sections.map(s => `<span class="meta-tag">${s}</span>`).join('')}
+    </div>
+    ${node.description ? `<div class="node-description">${node.description}</div>` : ''}
+    ${stubNotice}
+    ${linksHtml}
+    ${backlinksHtml}
+    ${contentHtml}
+  `;
+
+  // Wire up link clicks
+  view.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      navigateTo(el.dataset.id);
+    });
+  });
+
+  // Update breadcrumb trail
+  document.getElementById('breadcrumb-trail').textContent = 
+    history.slice(Math.max(0, historyIdx - 3), historyIdx + 1)
+      .map(id => getNode(id)?.label || id).join(' → ');
+
+  document.getElementById('node-counter').textContent = 
+    `${historyIdx + 1} / ${history.length}`;
+
+  view.scrollTop = 0;
+}
+
+// ── Search ──
+let searchTimeout;
+document.getElementById('search').addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => doSearch(e.target.value.trim()), 120);
+});
+
+function doSearch(q) {
+  const resultsDiv = document.getElementById('search-results');
+  if (!q) {
+    resultsDiv.classList.remove('visible');
+    if (activeNodeId) {
+      document.getElementById('node-view').classList.add('visible');
+    } else {
+      document.getElementById('welcome').style.display = 'flex';
+    }
+    return;
+  }
+
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('node-view').classList.remove('visible');
+  resultsDiv.classList.add('visible');
+
+  const ql = q.toLowerCase();
+  const results = GRAPH.nodes
+    .map(n => {
+      let score = 0;
+      if (n.id.toLowerCase().includes(ql)) score += 10;
+      if (n.label.toLowerCase().includes(ql)) score += 8;
+      if (n.description.toLowerCase().includes(ql)) score += 5;
+      if (n.cluster.toLowerCase().includes(ql)) score += 4;
+      if (n.sections.some(s => s.toLowerCase().includes(ql))) score += 3;
+      if (n.content.toLowerCase().includes(ql)) score += 2;
+      return { node: n, score };
+    })
+    .filter(r => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 20);
+
+  if (!results.length) {
+    resultsDiv.innerHTML = '<h3>Search Results</h3><p style="color:var(--text-muted);font-size:13px">No nodes found.</p>';
+    return;
+  }
+
+  resultsDiv.innerHTML = `<h3>${results.length} Result${results.length > 1 ? 's' : ''} for "${q}"</h3>` +
+    results.map(({ node }) => {
+      const color = getClusterColor(node.cluster);
+      return `
+        <div class="result-item" data-id="${node.id}">
+          <div class="result-title">${node.label}</div>
+          <div class="result-cluster">
+            <div style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0"></div>
+            ${node.cluster}${node.stub ? ' · <span style="color:var(--text-muted)">stub</span>' : ''}
+          </div>
+          ${node.description ? `<div class="result-desc">${node.description.slice(0, 140)}…</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+  resultsDiv.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      document.getElementById('search').value = '';
+      doSearch('');
+      navigateTo(el.dataset.id);
+    });
+  });
+}
+
+// ── Back/Forward ──
+document.getElementById('btn-back').addEventListener('click', () => {
+  if (historyIdx > 0) {
+    historyIdx--;
+    navigateTo(history[historyIdx], false);
+  }
+});
+document.getElementById('btn-fwd').addEventListener('click', () => {
+  if (historyIdx < history.length - 1) {
+    historyIdx++;
+    navigateTo(history[historyIdx], false);
+  }
+});
+
+// ── Keyboard ──
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('search').focus();
+    document.getElementById('search').select();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('search').value = '';
+    doSearch('');
+    document.getElementById('search').blur();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === '[') {
+    document.getElementById('btn-back').click();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === ']') {
+    document.getElementById('btn-fwd').click();
+  }
+});
+
+// ── Stats ──
+const total = GRAPH.nodes.length;
+const written = GRAPH.nodes.filter(n => !n.stub).length;
+document.getElementById('stats').textContent = `${written}/${total} nodes written`;
+
+// ── Init ──
+buildSidebar();
+buildLegend();
+</script>
+</body>
+</html>

@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cast — Bilateral Settlement Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:        #0a2540;
+    --ink-2:      #2d3e54;
+    --ink-3:      #697386;
+    --line:       #e3e8ee;
+    --line-2:     #d8dee5;
+    --bg:         #ffffff;
+    --bg-2:       #f6f9fc;
+    --bg-3:       #f0f4f8;
+    --bg-tint:    #fafbfd;
+
+    --accent:     #635bff;
+    --accent-2:   #4a43d9;
+    --accent-soft:#efeeff;
+
+    --pre:        #0073e6;
+    --pre-bg:     #eaf3fc;
+    --settle:     #00875a;
+    --settle-bg:  #e3f2eb;
+    --post:       #b54708;
+    --post-bg:    #fbf2ea;
+
+    --ok:         #00875a;
+    --ok-bg:      #e3f2eb;
+    --err:        #c01c28;
+    --err-bg:     #fce8ea;
+
+    --mono:       'JetBrains Mono', ui-monospace, monospace;
+    --sans:       'Inter', system-ui, -apple-system, sans-serif;
+
+    --radius:     8px;
+    --radius-lg:  12px;
+    --shadow-sm:  0 1px 2px rgba(10,37,64,0.04), 0 0 0 1px rgba(10,37,64,0.04);
+    --shadow:     0 2px 8px rgba(10,37,64,0.06), 0 0 0 1px rgba(10,37,64,0.04);
+    --shadow-lg:  0 12px 40px rgba(10,37,64,0.12), 0 0 0 1px rgba(10,37,64,0.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  code, .mono { font-family: var(--mono); }
+
+  /* =========================================================
+     NAV
+     ========================================================= */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .dot {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), #7a73ff);
+    display: inline-block;
+  }
+  .brand .sub {
+    font-weight: 500;
+    color: var(--ink-3);
+    font-size: 14px;
+    margin-left: 4px;
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .btn-reset {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
+    background: transparent;
+    border: 1px solid var(--line);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover {
+    border-color: var(--ink-3);
+    color: var(--ink-2);
+  }
+
+  /* =========================================================
+     STEPPER
+     ========================================================= */
+  .stepper {
+    background: var(--bg-tint);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 56px;
+  }
+  .stepper-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    cursor: not-allowed;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    position: relative;
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: var(--sans);
+  }
+  .step.unlocked { cursor: pointer; opacity: 1; }
+  .step.unlocked:hover .step-label { color: var(--ink); }
+  .step.active { opacity: 1; }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line-2);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .step.unlocked .step-num {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+  }
+  .step.active .step-num {
+    background: var(--accent-2);
+    border-color: var(--accent-2);
+    color: #fff;
+  }
+  .step.complete .step-num {
+    background: var(--ok);
+    border-color: var(--ok);
+    color: #fff;
+  }
+  .step.complete .step-num::before {
+    content: "✓";
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .step.complete .step-num-text { display: none; }
+  .step-body { display: flex; flex-direction: column; gap: 0; }
+  .step-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .step-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    letter-spacing: -0.005em;
+    transition: color 0.15s;
+  }
+  .step.active .step-label { color: var(--ink); }
+
+  .step-line {
+    position: absolute;
+    top: 16px;
+    height: 1.5px;
+    background: var(--line);
+    z-index: -1;
+  }
+
+  /* =========================================================
+     SCREEN
+     ========================================================= */
+  .screen { display: none; }
+  body[data-screen="issue"]   .screen[data-screen="issue"]   { display: block; }
+  body[data-screen="confirm"] .screen[data-screen="confirm"] { display: block; }
+  body[data-screen="post"]    .screen[data-screen="post"]    { display: block; }
+  body[data-screen="verify"]  .screen[data-screen="verify"]  { display: block; }
+
+  .screen-head {
+    background: var(--bg-tint);
+    border-bottom: 1px solid var(--line);
+    padding: 56px 56px 48px;
+  }
+  .screen-head-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-2);
+    margin-bottom: 14px;
+  }
+  .eyebrow.pre    { color: var(--pre); }
+  .eyebrow.settle { color: var(--settle); }
+  .eyebrow.post   { color: var(--post); }
+  .screen-head h1 {
+    font-size: 40px;
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    margin: 0 0 14px;
+    max-width: 800px;
+    color: var(--ink);
+  }
+  .screen-head p {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 720px;
+    margin: 0;
+  }
+
+  .screen-body {
+    padding: 56px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  /* =========================================================
+     LAYOUTS
+     ========================================================= */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .card-head h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .card-head .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .card-body { padding: 28px; }
+  .card-foot {
+    padding: 20px 28px;
+    border-top: 1px solid var(--line);
+    background: var(--bg-tint);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* =========================================================
+     FORM
+     ========================================================= */
+  .field { margin-bottom: 20px; }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .field label, .field-row label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+  }
+  .field input, .field-row input, .field select, .field-row select, .field textarea {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus, .field-row input:focus, .field select:focus, .field-row select:focus, .field textarea:focus {
+    outline: none;
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 3px rgba(99,91,255,0.12);
+  }
+
+  /* Line items table */
+  .lines {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .lines-head, .lines-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 100px 100px 110px;
+    gap: 0;
+  }
+  .lines-head {
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .lines-head > div {
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .lines-row {
+    border-bottom: 1px solid var(--line);
+  }
+  .lines-row:last-child { border-bottom: none; }
+  .lines-row > div {
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .lines-row .num {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .lines-row input {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .lines-row input:focus { outline: none; }
+  .lines-row input.num { text-align: right; font-family: var(--mono); }
+  .lines-total {
+    padding: 14px 14px;
+    background: var(--bg-tint);
+    display: flex;
+    justify-content: flex-end;
+    gap: 32px;
+    align-items: baseline;
+    border-top: 1px solid var(--line);
+  }
+  .lines-total .l {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .lines-total .v {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* =========================================================
+     SIDE PANEL
+     ========================================================= */
+  .side-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .side-card .h {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-tint);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+  .side-card .b { padding: 18px 20px; }
+  .side-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 8px 14px;
+  }
+  .side-card dt {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .side-card dd {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink);
+    word-break: break-all;
+  }
+  .side-card dd code {
+    font-size: 12px;
+  }
+
+  /* =========================================================
+     HASH STRIP
+     ========================================================= */
+  .hash-strip {
+    background: var(--ink);
+    color: #fff;
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    margin: 16px 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-all;
+    line-height: 1.6;
+    position: relative;
+  }
+  .hash-strip .label {
+    color: rgba(255,255,255,0.65);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    display: block;
+    font-weight: 600;
+  }
+  .hash-strip .v { color: #7cc4ff; }
+  .hash-strip .v.ok { color: #6cdfb8; }
+  .hash-strip .v.err { color: #ff8a95; }
+
+  /* =========================================================
+     BUTTONS
+     ========================================================= */
+  .btn {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--accent-2);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: -0.005em;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { background: #3d36c4; }
+  .btn:disabled {
+    background: var(--line-2);
+    color: var(--ink-3);
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--bg);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .btn-secondary:hover { background: var(--bg-2); border-color: var(--line-2); }
+  .btn-danger {
+    background: var(--err);
+  }
+  .btn-danger:hover { background: #a01622; }
+
+  .btn-large {
+    font-size: 15px;
+    padding: 14px 24px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* =========================================================
+     PILLS
+     ========================================================= */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    border: 1px solid;
+  }
+  .pill.awaiting { background: #fef6e0; color: #92651c; border-color: #f3e2b3; }
+  .pill.ok       { background: var(--ok-bg); color: var(--ok); border-color: #c5e6d4; }
+  .pill.err      { background: var(--err-bg); color: var(--err); border-color: #f3c4cb; }
+  .pill.info     { background: var(--accent-soft); color: var(--accent-2); border-color: #d8d4ff; }
+  .pill.deferred { background: var(--bg-2); color: var(--ink-3); border-color: var(--line-2); }
+
+  /* =========================================================
+     CONFIRM SCREEN
+     ========================================================= */
+  .recipient-frame {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .recipient-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .recipient-header .from {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  .recipient-header h2 {
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .recipient-header p {
+    font-size: 16px;
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  .review-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .review-banner {
+    background: var(--accent-soft);
+    border-bottom: 1px solid #d8d4ff;
+    padding: 14px 28px;
+    font-size: 13px;
+    color: var(--accent-2);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .review-body { padding: 28px; }
+  .review-body h3 {
+    font-size: 18px;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .review-body .meta {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-bottom: 24px;
+  }
+  .review-body .lines { margin-top: 20px; margin-bottom: 16px; }
+
+  .auth-note {
+    background: var(--bg-tint);
+    border-top: 1px solid var(--line);
+    padding: 18px 28px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .auth-note strong { color: var(--ink); font-weight: 600; }
+
+  /* =========================================================
+     BIOMETRIC MODAL
+     ========================================================= */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,37,64,0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fade-in 0.2s ease;
+  }
+  .modal-backdrop.show { display: flex; }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg);
+    border-radius: 16px;
+    padding: 36px 32px;
+    max-width: 380px;
+    width: calc(100% - 48px);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    animation: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes pop-in {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal .auth-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .modal .auth-icon svg {
+    width: 36px;
+    height: 36px;
+    color: var(--accent-2);
+  }
+  .modal.processing .auth-icon {
+    background: var(--bg-2);
+  }
+  .modal.processing .auth-icon::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--accent-2);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .modal.success .auth-icon {
+    background: var(--ok-bg);
+  }
+  .modal.success .auth-icon svg { color: var(--ok); }
+  .modal h3 {
+    font-size: 20px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .modal p {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
+  .modal .device-info {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    background: var(--bg-2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .modal .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  /* =========================================================
+     POST SCREEN — chain + WORK ORDER STATE
+     ========================================================= */
+  .chain {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    margin-bottom: 32px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .chain-link {
+    padding: 24px 20px;
+    border-right: 1px solid var(--line);
+    position: relative;
+  }
+  .chain-link:last-child { border-right: none; }
+  .chain-link .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .chain-link h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .chain-link .desc {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.4;
+    margin-bottom: 10px;
+  }
+  .chain-link .v {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    word-break: break-all;
+    line-height: 1.4;
+  }
+  .chain-link .v.ok { color: var(--ok); }
+  .chain-link::after {
+    content: "→";
+    position: absolute;
+    right: -7px;
+    top: 28px;
+    background: var(--bg);
+    color: var(--ink-3);
+    font-size: 14px;
+    width: 14px;
+    text-align: center;
+    z-index: 2;
+  }
+  .chain-link:last-child::after { display: none; }
+
+  /* Work Order state advance — the new centerpiece */
+  .wo-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .wo-head {
+    padding: 24px 28px 20px;
+    background: var(--settle-bg);
+    border-bottom: 1px solid #c5e6d4;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .wo-head h3 {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .wo-head .wo-sub {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-2);
+  }
+  .wo-head .wo-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+  .wo-head .wo-id .id-value {
+    display: block;
+    color: var(--ink);
+    font-size: 12px;
+    margin-top: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .wo-transition {
+    display: grid;
+    grid-template-columns: 1fr 56px 1fr;
+    gap: 0;
+    padding: 28px;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .wo-state {
+    padding: 20px 24px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-tint);
+    text-align: center;
+  }
+  .wo-state.before {
+    opacity: 0.6;
+  }
+  .wo-state.after {
+    background: var(--ok-bg);
+    border-color: #c5e6d4;
+  }
+  .wo-state .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .wo-state .value {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 4px;
+    font-family: var(--mono);
+  }
+  .wo-state.after .value { color: var(--ok); }
+  .wo-state .timestamp {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .wo-arrow {
+    text-align: center;
+    color: var(--ok);
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .wo-event {
+    padding: 24px 28px;
+    background: var(--bg-tint);
+  }
+  .wo-event-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .wo-event-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 8px 14px;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .wo-event-row .k {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .wo-event-row .v {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    word-break: break-all;
+  }
+
+  /* Pipeline — what happens next, deferred until later milestones */
+  .pipeline-section {
+    margin-top: 32px;
+  }
+  .pipeline-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .pipeline-section-head h3 {
+    font-size: 14px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-2);
+    margin: 0;
+    font-weight: 600;
+  }
+  .pipeline-section-head .note {
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .pipe-stage {
+    padding: 22px 20px;
+    border-right: 1px solid var(--line);
+    position: relative;
+    background: var(--bg-2);
+  }
+  .pipe-stage:last-child { border-right: none; }
+  .pipe-stage.deferred {
+    opacity: 0.55;
+  }
+  .pipe-stage::after {
+    content: "→";
+    position: absolute;
+    right: -7px;
+    top: 26px;
+    background: var(--bg-2);
+    color: var(--ink-3);
+    font-size: 14px;
+    width: 14px;
+    text-align: center;
+    z-index: 2;
+  }
+  .pipe-stage:last-child::after { display: none; }
+  .pipe-stage .stage-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .pipe-stage h4 {
+    font-size: 14.5px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+  }
+  .pipe-stage .stage-desc {
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.45;
+    margin: 0 0 12px;
+  }
+  .pipe-stage .stage-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-top: 1px dashed var(--line-2);
+    padding-top: 8px;
+    margin-top: 10px;
+  }
+
+  /* =========================================================
+     VERIFY SCREEN
+     ========================================================= */
+  .verify-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .verify-result {
+    padding: 32px 28px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-tint);
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 24px;
+    align-items: center;
+  }
+  .verify-result.ok    { background: var(--ok-bg); }
+  .verify-result.err   { background: var(--err-bg); }
+  .verify-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--ink-3);
+  }
+  .verify-result.ok  .verify-icon { background: var(--ok); }
+  .verify-result.err .verify-icon { background: var(--err); }
+  .verify-result h3 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    letter-spacing: -0.015em;
+  }
+  .verify-result p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .verify-result.ok h3  { color: var(--ok); }
+  .verify-result.err h3 { color: var(--err); }
+  .verify-result .pill {
+    flex-shrink: 0;
+  }
+
+  .verify-checks {
+    padding: 24px 28px;
+  }
+  .check-row {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: start;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-row .icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--ok);
+    margin-top: 1px;
+  }
+  .check-row.fail .icon { background: var(--err); }
+  .check-row .label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .check-row .desc {
+    font-size: 13px;
+    color: var(--ink-2);
+    margin-top: 2px;
+  }
+  .check-row .v {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    text-align: right;
+    max-width: 280px;
+    word-break: break-all;
+  }
+  .check-row .v.ok  { color: var(--ok); }
+  .check-row .v.err { color: var(--err); }
+
+  /* Tamper section */
+  .tamper-zone {
+    background: #fff8f3;
+    border: 1px dashed #e8b894;
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+  }
+  .tamper-zone h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    color: var(--post);
+    letter-spacing: -0.005em;
+  }
+  .tamper-zone p {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+  .tamper-controls {
+    display: flex;
+    gap: 12px;
+    align-items: end;
+    flex-wrap: wrap;
+  }
+  .tamper-controls .field {
+    flex: 1;
+    min-width: 200px;
+    margin: 0;
+  }
+
+  /* =========================================================
+     UTILITY
+     ========================================================= */
+  .hash-display {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg-2);
+    padding: 8px 10px;
+    border-radius: 4px;
+    color: var(--ink);
+    word-break: break-all;
+    border: 1px solid var(--line);
+    line-height: 1.4;
+  }
+  .hash-display.dark {
+    background: var(--ink);
+    color: #7cc4ff;
+    border-color: var(--ink);
+  }
+
+  .empty-state {
+    padding: 64px 32px;
+    text-align: center;
+    color: var(--ink-3);
+  }
+  .empty-state h3 {
+    color: var(--ink);
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+
+  /* =========================================================
+     RESPONSIVE
+     ========================================================= */
+  @media (max-width: 1100px) {
+    .two-col { grid-template-columns: 1fr; }
+    .chain { grid-template-columns: 1fr 1fr; }
+    .chain-link { border-right: none; border-bottom: 1px solid var(--line); }
+    .chain-link:nth-child(2n) { border-right: none; }
+    .chain-link::after { display: none; }
+    .pipeline { grid-template-columns: 1fr 1fr; }
+    .pipe-stage { border-right: none; border-bottom: 1px solid var(--line); }
+    .pipe-stage::after { display: none; }
+    .wo-transition { grid-template-columns: 1fr; gap: 12px; padding: 24px; }
+    .wo-arrow { transform: rotate(90deg); }
+  }
+  @media (max-width: 760px) {
+    .nav, .stepper, .screen-head, .screen-body { padding-left: 24px; padding-right: 24px; }
+    .stepper-inner { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .chain { grid-template-columns: 1fr; }
+    .pipeline { grid-template-columns: 1fr; }
+    .screen-head h1 { font-size: 28px; }
+    .verify-result { grid-template-columns: 48px 1fr; }
+    .verify-result .pill { grid-column: 1 / -1; }
+    .lines-head, .lines-row { grid-template-columns: 1fr; }
+    .lines-head { display: none; }
+    .lines-row > div::before {
+      content: attr(data-label) ": ";
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-right: 6px;
+    }
+    .wo-head { grid-template-columns: 1fr; }
+    .wo-head .wo-id { text-align: left; }
+  }
+</style>
+</head>
+<body data-screen="issue">
+
+  <!-- =========================================================
+       NAV
+       ========================================================= -->
+  <nav class="nav">
+    <div class="brand">
+      <span class="dot"></span>
+      Cast<span class="sub">/ bilateral settlement demo</span>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-reset" id="resetBtn">Reset demo</button>
+    </div>
+  </nav>
+
+  <!-- =========================================================
+       STEPPER
+       ========================================================= -->
+  <div class="stepper">
+    <div class="stepper-inner">
+      <button class="step active unlocked" data-step="issue">
+        <span class="step-num"><span class="step-num-text">1</span></span>
+        <span class="step-body">
+          <span class="step-eyebrow">Pre-settlement</span>
+          <span class="step-label">Issue PO</span>
+        </span>
+      </button>
+      <button class="step" data-step="confirm">
+        <span class="step-num"><span class="step-num-text">2</span></span>
+        <span class="step-body">
+          <span class="step-eyebrow">Pre-settlement</span>
+          <span class="step-label">Vendor confirms</span>
+        </span>
+      </button>
+      <button class="step" data-step="post">
+        <span class="step-num"><span class="step-num-text">3</span></span>
+        <span class="step-body">
+          <span class="step-eyebrow">Bilateral commit</span>
+          <span class="step-label">Work Order advances</span>
+        </span>
+      </button>
+      <button class="step" data-step="verify">
+        <span class="step-num"><span class="step-num-text">4</span></span>
+        <span class="step-body">
+          <span class="step-eyebrow">Post-settlement</span>
+          <span class="step-label">Verify &amp; tamper</span>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SCREEN 1 — ISSUE
+       ========================================================= -->
+  <section class="screen" data-screen="issue">
+    <div class="screen-head">
+      <div class="screen-head-inner">
+        <div class="eyebrow pre">Step 01 · Issue</div>
+        <h1>Draft a purchase order against an approved vendor.</h1>
+        <p>The terms below are stamped at the moment of authorization. Any change after this point will invalidate the vendor's signature.</p>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head">
+            <h3>Purchase Order — draft</h3>
+            <span class="sub">PO-2026-0142</span>
+          </div>
+          <div class="card-body">
+            <div class="field-row">
+              <div>
+                <label>Buyer</label>
+                <input type="text" id="buyer" value="Acme Apparel Co." />
+              </div>
+              <div>
+                <label>Vendor</label>
+                <input type="text" id="vendor" value="Riverdale Textiles Ltd." />
+              </div>
+            </div>
+
+            <div class="lines">
+              <div class="lines-head">
+                <div>Line</div>
+                <div>Description</div>
+                <div class="num">Qty</div>
+                <div class="num">Unit</div>
+                <div class="num">Ext</div>
+              </div>
+              <div class="lines-row">
+                <div data-label="Line">01</div>
+                <div data-label="Description"><input type="text" id="desc1" value="Organic cotton jersey, 180gsm" /></div>
+                <div class="num" data-label="Qty"><input type="number" class="num" id="qty1" value="5000" /></div>
+                <div class="num" data-label="Unit"><input type="number" class="num" id="unit1" value="6.40" step="0.01" /></div>
+                <div class="num" data-label="Ext" id="ext1">$32,000.00</div>
+              </div>
+              <div class="lines-row">
+                <div data-label="Line">02</div>
+                <div data-label="Description"><input type="text" id="desc2" value="Heavyweight French terry, 320gsm" /></div>
+                <div class="num" data-label="Qty"><input type="number" class="num" id="qty2" value="1500" /></div>
+                <div class="num" data-label="Unit"><input type="number" class="num" id="unit2" value="10.00" step="0.01" /></div>
+                <div class="num" data-label="Ext" id="ext2">$15,000.00</div>
+              </div>
+              <div class="lines-total">
+                <span class="l">Total</span>
+                <span class="v" id="total">$47,000.00</span>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top: 24px;">
+              <label>Terms</label>
+              <input type="text" id="terms" value="Net-30 from invoice. Delivery by 15 June 2026. Inspection window of 5 business days." />
+            </div>
+
+            <div class="hash-strip">
+              <span class="label">payload_hash · computed live</span>
+              <span class="v" id="liveHash">—</span>
+            </div>
+          </div>
+          <div class="card-foot">
+            <span class="pill awaiting">○ Awaiting counterparty signature</span>
+            <button class="btn" id="sendBtn">
+              Send for confirmation
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <aside>
+          <div class="side-card">
+            <div class="h">What happens on click</div>
+            <div class="b">
+              <p style="margin:0 0 12px;font-size:13.5px;color:var(--ink-2);line-height:1.55;">The PO bytes are canonicalized and hashed. A confirmation link is generated and sent to the vendor's registered authenticator.</p>
+              <p style="margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.55;">No event is created yet — only a draft. <strong style="color:var(--ink);">Until the vendor signs, nothing posts.</strong></p>
+            </div>
+          </div>
+          <div class="side-card">
+            <div class="h">Schema · this step</div>
+            <div class="b">
+              <dl>
+                <dt>Writes</dt>
+                <dd><code>work_orders</code></dd>
+                <dt>Does not write</dt>
+                <dd><code>events</code><br/><code>postings</code></dd>
+                <dt>Endpoint</dt>
+                <dd><code>POST /work-orders</code></dd>
+              </dl>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCREEN 2 — CONFIRM
+       ========================================================= -->
+  <section class="screen" data-screen="confirm">
+    <div class="screen-head">
+      <div class="screen-head-inner">
+        <div class="eyebrow pre">Step 02 · Confirm</div>
+        <h1>Vendor reviews and signs the exact terms.</h1>
+        <p>This is what the counterparty sees on their device. The signature binds to the exact bytes of the PO — no edits possible after.</p>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="recipient-frame">
+        <div class="recipient-header">
+          <div class="from">From: <span id="recipientFrom">Acme Apparel Co.</span></div>
+          <h2>Please confirm this purchase order</h2>
+          <p>Review the terms below. Your acceptance binds to these exact bytes.</p>
+        </div>
+
+        <div class="review-card">
+          <div class="review-banner">
+            <span>●</span> You will sign the hash of these terms with your registered authenticator
+          </div>
+          <div class="review-body">
+            <h3 id="reviewTitle">Acme Apparel Co. — PO-2026-0142</h3>
+            <div class="meta">Issued <span id="reviewIssued">—</span></div>
+
+            <div class="lines">
+              <div class="lines-head">
+                <div>Line</div>
+                <div>Description</div>
+                <div class="num">Qty</div>
+                <div class="num">Unit</div>
+                <div class="num">Ext</div>
+              </div>
+              <div class="lines-row">
+                <div data-label="Line">01</div>
+                <div data-label="Description" id="reviewDesc1">—</div>
+                <div class="num" data-label="Qty" id="reviewQty1">—</div>
+                <div class="num" data-label="Unit" id="reviewUnit1">—</div>
+                <div class="num" data-label="Ext" id="reviewExt1">—</div>
+              </div>
+              <div class="lines-row">
+                <div data-label="Line">02</div>
+                <div data-label="Description" id="reviewDesc2">—</div>
+                <div class="num" data-label="Qty" id="reviewQty2">—</div>
+                <div class="num" data-label="Unit" id="reviewUnit2">—</div>
+                <div class="num" data-label="Ext" id="reviewExt2">—</div>
+              </div>
+              <div class="lines-total">
+                <span class="l">Total</span>
+                <span class="v" id="reviewTotal">—</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; font-size: 14px; color: var(--ink-2);" id="reviewTerms">—</div>
+
+            <div class="hash-strip">
+              <span class="label">You will sign this exact hash</span>
+              <span class="v" id="reviewHash">—</span>
+            </div>
+          </div>
+          <div class="auth-note">
+            <strong>User verification required.</strong> Your authenticator will produce a signature over the 32-byte hash above. Any alteration to any field invalidates this signature.
+          </div>
+        </div>
+
+        <button class="btn btn-large" id="signBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+          </svg>
+          Sign with your authenticator
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCREEN 3 — WORK ORDER STATE ADVANCEMENT (replaces ledger post)
+       ========================================================= -->
+  <section class="screen" data-screen="post">
+    <div class="screen-head">
+      <div class="screen-head-inner">
+        <div class="eyebrow settle">Step 03 · Bilateral commit</div>
+        <h1>The signed event advances the Work Order to confirmed.</h1>
+        <p>Event, signature, and Work Order state change commit atomically. Without a verified signature, the Work Order cannot leave the proposed state — and nothing downstream can run.</p>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <h3 style="font-size: 14px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); margin: 0 0 12px;">The bilateral chain</h3>
+
+      <div class="chain">
+        <div class="chain-link">
+          <div class="num">01 · Agent</div>
+          <h4>Counterparty</h4>
+          <div class="desc">Identity, immutable since enrollment.</div>
+          <div class="v" id="chainAgent">agt_2815bf2d3c4e</div>
+        </div>
+        <div class="chain-link">
+          <div class="num">02 · Credential</div>
+          <h4>Authenticator</h4>
+          <div class="desc">Hardware-attested, manufacturer chain.</div>
+          <div class="v" id="chainCred">cred_a13f2…b047</div>
+        </div>
+        <div class="chain-link">
+          <div class="num">03 · Signature</div>
+          <h4>ECDSA-P256</h4>
+          <div class="desc">Verifies against credential's public key.</div>
+          <div class="v" id="chainSig">sig_e1d…7c2</div>
+        </div>
+        <div class="chain-link">
+          <div class="num">04 · Event</div>
+          <h4>Bilateral commitment</h4>
+          <div class="desc">Payload + canonicalizer version.</div>
+          <div class="v" id="chainEvent">evt_d30…4b1</div>
+        </div>
+        <div class="chain-link">
+          <div class="num">05 · Work Order</div>
+          <h4>State advance</h4>
+          <div class="desc">Cannot advance without verified event.</div>
+          <div class="v ok">confirmed</div>
+        </div>
+      </div>
+
+      <!-- Work Order state change card -->
+      <div class="wo-card">
+        <div class="wo-head">
+          <div>
+            <h3>Work Order advanced</h3>
+            <p class="wo-sub">The bilateral event triggered an atomic state transition. This is what CAST does. Everything downstream reads from this record.</p>
+          </div>
+          <div class="wo-id">
+            Work Order
+            <span class="id-value" id="woId">wo_…</span>
+          </div>
+        </div>
+
+        <div class="wo-transition">
+          <div class="wo-state before">
+            <div class="label">Bilateral state · before</div>
+            <div class="value">proposed</div>
+            <div class="timestamp" id="woBeforeTs">—</div>
+          </div>
+          <div class="wo-arrow">→</div>
+          <div class="wo-state after">
+            <div class="label">Bilateral state · after</div>
+            <div class="value">confirmed</div>
+            <div class="timestamp" id="woAfterTs">—</div>
+          </div>
+        </div>
+
+        <div class="wo-event">
+          <div class="wo-event-label">Source event &mdash; the record everything else derives from</div>
+          <div class="wo-event-row">
+            <span class="k">event_id</span>
+            <span class="v" id="woEventId">evt_…</span>
+          </div>
+          <div class="wo-event-row">
+            <span class="k">signer (agent)</span>
+            <span class="v" id="woSigner">agt_…</span>
+          </div>
+          <div class="wo-event-row">
+            <span class="k">payload_hash</span>
+            <span class="v" id="woPayloadHash">0x…</span>
+          </div>
+          <div class="wo-event-row">
+            <span class="k">canonicalizer</span>
+            <span class="v">canonicalize@v1</span>
+          </div>
+          <div class="wo-event-row">
+            <span class="k">policy_version</span>
+            <span class="v">policy@2026-q2-r1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline — what comes next -->
+      <div class="pipeline-section">
+        <div class="pipeline-section-head">
+          <h3>What comes next</h3>
+          <div class="note">Each stage lights up as a milestone ships. The Work Order is the spine — every downstream event chains back to it.</div>
+        </div>
+
+        <div class="pipeline">
+          <div class="pipe-stage deferred">
+            <div class="stage-num">Next · Invoice</div>
+            <h4>Invoice received</h4>
+            <p class="stage-desc">Vendor submits invoice referencing this Work Order. Three-way match runs against the confirmed terms.</p>
+            <div class="stage-meta">
+              <span class="pill deferred">deferred · v1.3 step 6</span>
+            </div>
+          </div>
+          <div class="pipe-stage deferred">
+            <div class="stage-num">Then · GL posting</div>
+            <h4>Posting generated</h4>
+            <p class="stage-desc">Policy engine determines GL coding from invoice + Work Order. Posting writes with FK to source event.</p>
+            <div class="stage-meta">
+              <span class="pill deferred">deferred · v1.3 step 8</span>
+            </div>
+          </div>
+          <div class="pipe-stage deferred">
+            <div class="stage-num">Then · Settlement</div>
+            <h4>Payment via Modern Treasury</h4>
+            <p class="stage-desc">ACH, wire, or RTP fires through the buyer's bank. Webhooks return as immutable settlement events.</p>
+            <div class="stage-meta">
+              <span class="pill deferred">deferred · v1.3 step 9</span>
+            </div>
+          </div>
+          <div class="pipe-stage deferred">
+            <div class="stage-num">Finally · Export</div>
+            <h4>NetSuite / SAP export</h4>
+            <p class="stage-desc">Settled posting flows to the ERP of record. Books close against the same lineage CAST holds.</p>
+            <div class="stage-meta">
+              <span class="pill deferred">deferred · v1.3 step 10</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 32px; display: flex; justify-content: flex-end;">
+        <button class="btn" id="goVerifyBtn">
+          Continue to verifier
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCREEN 4 — VERIFY / TAMPER
+       ========================================================= -->
+  <section class="screen" data-screen="verify">
+    <div class="screen-head">
+      <div class="screen-head-inner">
+        <div class="eyebrow post">Step 04 · Verify</div>
+        <h1>Anyone can replay the deal — and detect tampering.</h1>
+        <p>An auditor, lender, or insurer pulls the event years later. The verifier recomputes the canonical bytes, checks the signature, and returns pass/fail. No trust in the originator required.</p>
+      </div>
+    </div>
+
+    <div class="screen-body">
+      <div class="verify-card">
+        <div class="verify-result ok" id="verifyResult">
+          <div class="verify-icon" id="verifyIcon">✓</div>
+          <div>
+            <h3 id="verifyTitle">Event verified</h3>
+            <p id="verifySubtitle">All checks passed. The signature is valid for the recomputed payload hash.</p>
+          </div>
+          <span class="pill ok" id="verifyPill">PASS</span>
+        </div>
+        <div class="verify-checks" id="verifyChecks">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="tamper-zone">
+        <h4>⚠ Try tampering with the deal</h4>
+        <p>Edit any field below to simulate a buyer (or attacker) altering the PO after the vendor signed it. The verifier will detect the mismatch and fail.</p>
+        <div class="tamper-controls">
+          <div class="field">
+            <label>Total amount (try changing this)</label>
+            <input type="text" id="tamperTotal" />
+          </div>
+          <div class="field">
+            <label>Description line 1</label>
+            <input type="text" id="tamperDesc" />
+          </div>
+          <button class="btn btn-danger" id="tamperBtn">Apply tamper &amp; re-verify</button>
+          <button class="btn btn-secondary" id="restoreBtn">Restore original</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;">
+        <p style="margin: 0; color: var(--ink-3); font-size: 13.5px;">End of demo. The same primitives work for stablecoin, ACH, or wire settlement — Cast composes with any rail.</p>
+        <button class="btn btn-secondary" id="restartBtn">Run demo again</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       BIOMETRIC MODAL
+       ========================================================= -->
+  <div class="modal-backdrop" id="modal">
+    <div class="modal" id="modalInner">
+      <div class="auth-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="modalSvg">
+          <path d="M17.81 4.47A10.97 10.97 0 0 0 12 3c-3.78 0-7.13 1.95-9.05 4.91"/>
+          <path d="M3.05 11.49C3.02 11.66 3 11.83 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9-4.03-9-9-9"/>
+          <path d="M7 12a5 5 0 0 1 10 0c0 2.5-1.5 4-3 5.5"/>
+          <path d="M12 7v5"/>
+        </svg>
+      </div>
+      <h3 id="modalTitle">Confirm your identity</h3>
+      <p id="modalText">Use your registered authenticator to sign the purchase order.</p>
+      <div class="device-info" id="modalDevice">YubiKey 5C · ES256 · attestation: direct</div>
+      <div class="modal-actions" id="modalActions">
+        <button class="btn-reset" id="modalCancel">Cancel</button>
+        <button class="btn" id="modalConfirm">Use authenticator</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+  // ============================================================
+  // STATE
+  // ============================================================
+  const state = {
+    screen: 'issue',
+    completed: { issue: false, confirm: false, post: false, verify: false },
+    payload: null,
+    payloadHash: null,
+    signature: null,
+    eventId: null,
+    workOrderId: null,
+    credentialId: null,
+    agentId: null,
+    issuedAt: null,
+    confirmedAt: null,
+    tampered: null,
+  };
+
+  // ============================================================
+  // CRYPTO HELPERS
+  // ============================================================
+  async function sha256Hex(str) {
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  function fakeId(prefix, hash) {
+    return `${prefix}_${(hash || Math.random().toString(16).slice(2)).slice(0,12)}`;
+  }
+  function canonicalize(obj) {
+    if (Array.isArray(obj)) return '[' + obj.map(canonicalize).join(',') + ']';
+    if (obj && typeof obj === 'object') {
+      return '{' + Object.keys(obj).sort().map(k =>
+        JSON.stringify(k) + ':' + canonicalize(obj[k])
+      ).join(',') + '}';
+    }
+    return JSON.stringify(obj);
+  }
+  async function buildPayload() {
+    return {
+      version: 1,
+      po_id: 'PO-2026-0142',
+      buyer: document.getElementById('buyer').value,
+      vendor: document.getElementById('vendor').value,
+      issued_at: state.issuedAt || new Date().toISOString(),
+      lines: [
+        {
+          line: 1,
+          description: document.getElementById('desc1').value,
+          qty: parseFloat(document.getElementById('qty1').value) || 0,
+          unit: parseFloat(document.getElementById('unit1').value) || 0,
+        },
+        {
+          line: 2,
+          description: document.getElementById('desc2').value,
+          qty: parseFloat(document.getElementById('qty2').value) || 0,
+          unit: parseFloat(document.getElementById('unit2').value) || 0,
+        },
+      ],
+      terms: document.getElementById('terms').value,
+    };
+  }
+  function fmtMoney(n) {
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function totalFromPayload(p) {
+    return p.lines.reduce((s, l) => s + (l.qty * l.unit), 0);
+  }
+  function fmtTs(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'medium' });
+  }
+
+  // ============================================================
+  // SCREEN ROUTING
+  // ============================================================
+  function gotoScreen(s) {
+    if (!isUnlocked(s)) return;
+    state.screen = s;
+    document.body.setAttribute('data-screen', s);
+    updateStepper();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (s === 'confirm') renderConfirm();
+    if (s === 'post')    renderPost();
+    if (s === 'verify')  renderVerify();
+  }
+  function isUnlocked(s) {
+    if (s === 'issue')   return true;
+    if (s === 'confirm') return state.completed.issue;
+    if (s === 'post')    return state.completed.confirm;
+    if (s === 'verify')  return state.completed.post;
+    return false;
+  }
+  function updateStepper() {
+    document.querySelectorAll('.step').forEach(el => {
+      const s = el.getAttribute('data-step');
+      el.classList.toggle('unlocked', isUnlocked(s));
+      el.classList.toggle('active', state.screen === s);
+      el.classList.toggle('complete', state.completed[s]);
+    });
+  }
+
+  // ============================================================
+  // ISSUE SCREEN
+  // ============================================================
+  async function recalcLive() {
+    const p = await buildPayload();
+    const total = totalFromPayload(p);
+    document.getElementById('total').textContent = fmtMoney(total);
+    document.getElementById('ext1').textContent = fmtMoney(p.lines[0].qty * p.lines[0].unit);
+    document.getElementById('ext2').textContent = fmtMoney(p.lines[1].qty * p.lines[1].unit);
+    const h = await sha256Hex(canonicalize(p));
+    document.getElementById('liveHash').textContent = `0x${h.slice(0,16)}…${h.slice(-16)}`;
+  }
+  ['buyer','vendor','desc1','qty1','unit1','desc2','qty2','unit2','terms'].forEach(id => {
+    document.getElementById(id).addEventListener('input', recalcLive);
+  });
+
+  document.getElementById('sendBtn').addEventListener('click', async () => {
+    state.issuedAt = new Date().toISOString();
+    state.payload = await buildPayload();
+    state.payloadHash = await sha256Hex(canonicalize(state.payload));
+    state.workOrderId = fakeId('wo', state.payloadHash);
+    state.completed.issue = true;
+    gotoScreen('confirm');
+  });
+
+  // ============================================================
+  // CONFIRM SCREEN
+  // ============================================================
+  function renderConfirm() {
+    const p = state.payload;
+    document.getElementById('recipientFrom').textContent = p.buyer;
+    document.getElementById('reviewTitle').textContent = `${p.buyer} — ${p.po_id}`;
+    document.getElementById('reviewIssued').textContent = new Date(p.issued_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    document.getElementById('reviewDesc1').textContent = p.lines[0].description;
+    document.getElementById('reviewQty1').textContent = p.lines[0].qty.toLocaleString();
+    document.getElementById('reviewUnit1').textContent = fmtMoney(p.lines[0].unit);
+    document.getElementById('reviewExt1').textContent = fmtMoney(p.lines[0].qty * p.lines[0].unit);
+    document.getElementById('reviewDesc2').textContent = p.lines[1].description;
+    document.getElementById('reviewQty2').textContent = p.lines[1].qty.toLocaleString();
+    document.getElementById('reviewUnit2').textContent = fmtMoney(p.lines[1].unit);
+    document.getElementById('reviewExt2').textContent = fmtMoney(p.lines[1].qty * p.lines[1].unit);
+    document.getElementById('reviewTotal').textContent = fmtMoney(totalFromPayload(p));
+    document.getElementById('reviewTerms').textContent = p.terms;
+    document.getElementById('reviewHash').textContent = `0x${state.payloadHash.slice(0,16)}…${state.payloadHash.slice(-16)}`;
+  }
+
+  // ============================================================
+  // BIOMETRIC MODAL
+  // ============================================================
+  function showModal() {
+    const m = document.getElementById('modal');
+    m.classList.add('show');
+    document.getElementById('modalInner').classList.remove('processing','success');
+    document.getElementById('modalTitle').textContent = 'Confirm your identity';
+    document.getElementById('modalText').textContent = 'Use your registered authenticator to sign the purchase order.';
+    document.getElementById('modalActions').style.display = 'flex';
+  }
+  function hideModal() {
+    document.getElementById('modal').classList.remove('show');
+  }
+  document.getElementById('signBtn').addEventListener('click', showModal);
+  document.getElementById('modalCancel').addEventListener('click', hideModal);
+
+  document.getElementById('modalConfirm').addEventListener('click', async () => {
+    document.getElementById('modalInner').classList.add('processing');
+    document.getElementById('modalTitle').textContent = 'Touch your authenticator';
+    document.getElementById('modalText').textContent = 'Verifying user presence and signing the payload hash…';
+    document.getElementById('modalActions').style.display = 'none';
+
+    await new Promise(r => setTimeout(r, 1400));
+
+    const sigInput = state.payloadHash + '|' + Date.now();
+    state.signature = await sha256Hex(sigInput) + await sha256Hex(sigInput + 'pad');
+    state.eventId = fakeId('evt', state.payloadHash);
+    state.credentialId = 'cred_' + state.payloadHash.slice(8, 16) + '…' + state.payloadHash.slice(-4);
+    state.agentId = 'agt_' + state.payloadHash.slice(16, 28);
+    state.confirmedAt = new Date().toISOString();
+
+    document.getElementById('modalInner').classList.remove('processing');
+    document.getElementById('modalInner').classList.add('success');
+    const svg = document.getElementById('modalSvg');
+    svg.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+    document.getElementById('modalTitle').textContent = 'Signed';
+    document.getElementById('modalText').textContent = 'Signature bound to payload hash. Advancing the Work Order…';
+
+    await new Promise(r => setTimeout(r, 900));
+
+    hideModal();
+    svg.innerHTML = `
+      <path d="M17.81 4.47A10.97 10.97 0 0 0 12 3c-3.78 0-7.13 1.95-9.05 4.91"/>
+      <path d="M3.05 11.49C3.02 11.66 3 11.83 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9-4.03-9-9-9"/>
+      <path d="M7 12a5 5 0 0 1 10 0c0 2.5-1.5 4-3 5.5"/>
+      <path d="M12 7v5"/>`;
+
+    state.completed.confirm = true;
+    gotoScreen('post');
+  });
+
+  // ============================================================
+  // POST SCREEN — Work Order state advancement
+  // ============================================================
+  function renderPost() {
+    // Top chain
+    document.getElementById('chainAgent').textContent = state.agentId;
+    document.getElementById('chainCred').textContent = state.credentialId;
+    document.getElementById('chainSig').textContent = `${state.signature.slice(0,6)}…${state.signature.slice(-4)}`;
+    document.getElementById('chainEvent').textContent = state.eventId;
+
+    // Work Order card
+    document.getElementById('woId').textContent = state.workOrderId;
+    document.getElementById('woBeforeTs').textContent = `since ${fmtTs(state.issuedAt)}`;
+    document.getElementById('woAfterTs').textContent = `at ${fmtTs(state.confirmedAt)}`;
+    document.getElementById('woEventId').textContent = state.eventId;
+    document.getElementById('woSigner').textContent = state.agentId;
+    document.getElementById('woPayloadHash').textContent =
+      `0x${state.payloadHash.slice(0, 24)}…${state.payloadHash.slice(-12)}`;
+  }
+
+  document.getElementById('goVerifyBtn').addEventListener('click', () => {
+    state.completed.post = true;
+    gotoScreen('verify');
+  });
+
+  // ============================================================
+  // VERIFY SCREEN
+  // ============================================================
+  async function renderVerify() {
+    const p = state.payload;
+    if (state.tampered) {
+      document.getElementById('tamperTotal').value = state.tampered.total;
+      document.getElementById('tamperDesc').value = state.tampered.desc;
+    } else {
+      document.getElementById('tamperTotal').value = fmtMoney(totalFromPayload(p));
+      document.getElementById('tamperDesc').value = p.lines[0].description;
+    }
+    await runVerification();
+    state.completed.verify = true;
+    updateStepper();
+  }
+
+  async function runVerification() {
+    const original = state.payload;
+    let current = JSON.parse(JSON.stringify(original));
+    if (state.tampered) {
+      current.lines[0].description = state.tampered.desc;
+      const newTotal = parseFloat(state.tampered.total.replace(/[^0-9.]/g, '')) || totalFromPayload(original);
+      const line2Total = current.lines[1].qty * current.lines[1].unit;
+      const remainingForLine1 = newTotal - line2Total;
+      current.lines[0].unit = current.lines[0].qty > 0 ? remainingForLine1 / current.lines[0].qty : 0;
+    }
+
+    const recomputedHash = await sha256Hex(canonicalize(current));
+    const sigValid = recomputedHash === state.payloadHash;
+
+    const checks = [
+      {
+        ok: true,
+        label: 'Canonicalizer version pinned',
+        desc: 'Loaded canonicalize@v1 from schema_registry.',
+        v: 'canonicalize@v1',
+      },
+      {
+        ok: true,
+        label: 'Event row present',
+        desc: 'Found in events table with non-null agent_id.',
+        v: state.eventId,
+      },
+      {
+        ok: sigValid,
+        label: 'Payload hash recomputable',
+        desc: sigValid
+          ? 'Recomputed hash matches the original signed hash.'
+          : 'Recomputed hash does NOT match. Payload was altered after signing.',
+        v: sigValid
+          ? `0x${recomputedHash.slice(0,8)}…${recomputedHash.slice(-8)}`
+          : `expected 0x${state.payloadHash.slice(0,8)}… got 0x${recomputedHash.slice(0,8)}…`,
+        vCls: sigValid ? 'ok' : 'err',
+      },
+      {
+        ok: sigValid,
+        label: 'ECDSA-P256 signature valid',
+        desc: sigValid
+          ? 'Signature verifies against the credential public key over the recomputed hash.'
+          : 'Signature does not verify — challenge bytes have changed.',
+        v: sigValid ? 'verified' : 'INVALID',
+        vCls: sigValid ? 'ok' : 'err',
+      },
+      {
+        ok: true,
+        label: 'X.509 attestation chain',
+        desc: 'Authenticator chains to manufacturer CA. Identity provenance intact.',
+        v: 'YubiKey · root trusted',
+      },
+    ];
+
+    const container = document.getElementById('verifyChecks');
+    container.innerHTML = checks.map(c => `
+      <div class="check-row ${c.ok ? '' : 'fail'}">
+        <span class="icon">${c.ok ? '✓' : '✗'}</span>
+        <div>
+          <div class="label">${c.label}</div>
+          <div class="desc">${c.desc}</div>
+        </div>
+        <div class="v ${c.vCls || ''}">${c.v}</div>
+      </div>
+    `).join('');
+
+    const result = document.getElementById('verifyResult');
+    const icon = document.getElementById('verifyIcon');
+    const title = document.getElementById('verifyTitle');
+    const subtitle = document.getElementById('verifySubtitle');
+    const pill = document.getElementById('verifyPill');
+
+    if (sigValid) {
+      result.classList.remove('err');
+      result.classList.add('ok');
+      icon.textContent = '✓';
+      title.textContent = 'Event verified';
+      subtitle.textContent = 'All checks passed. The signature is valid for the recomputed payload hash. The bilateral commitment holds.';
+      pill.textContent = 'PASS';
+      pill.classList.remove('err');
+      pill.classList.add('ok');
+    } else {
+      result.classList.remove('ok');
+      result.classList.add('err');
+      icon.textContent = '✗';
+      title.textContent = 'Tampering detected';
+      subtitle.textContent = 'The recomputed hash does not match. The PO was altered after the vendor signed it. The signature is no longer valid.';
+      pill.textContent = 'FAIL';
+      pill.classList.remove('ok');
+      pill.classList.add('err');
+    }
+  }
+
+  document.getElementById('tamperBtn').addEventListener('click', async () => {
+    state.tampered = {
+      total: document.getElementById('tamperTotal').value,
+      desc: document.getElementById('tamperDesc').value,
+    };
+    await runVerification();
+  });
+
+  document.getElementById('restoreBtn').addEventListener('click', async () => {
+    state.tampered = null;
+    const p = state.payload;
+    document.getElementById('tamperTotal').value = fmtMoney(totalFromPayload(p));
+    document.getElementById('tamperDesc').value = p.lines[0].description;
+    await runVerification();
+  });
+
+  // ============================================================
+  // STEPPER NAV
+  // ============================================================
+  document.querySelectorAll('.step').forEach(el => {
+    el.addEventListener('click', () => {
+      gotoScreen(el.getAttribute('data-step'));
+    });
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', () => resetDemo());
+  document.getElementById('resetBtn').addEventListener('click', () => resetDemo());
+
+  function resetDemo() {
+    state.screen = 'issue';
+    state.completed = { issue: false, confirm: false, post: false, verify: false };
+    state.payload = null;
+    state.payloadHash = null;
+    state.signature = null;
+    state.eventId = null;
+    state.workOrderId = null;
+    state.credentialId = null;
+    state.agentId = null;
+    state.issuedAt = null;
+    state.confirmedAt = null;
+    state.tampered = null;
+    gotoScreen('issue');
+    recalcLive();
+  }
+
+  recalcLive();
+  updateStepper();
+</script>
+
+</body>
+</html>

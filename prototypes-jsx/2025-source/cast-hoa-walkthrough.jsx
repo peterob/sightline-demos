@@ -1,0 +1,308 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+
+var C = { board:"#E8553A", residents:"#2D7FF9", vendor:"#18A86B", mgmt:"#9B6FE8", system:"#F5A623", both:"#8B95A5", sightline:"#F5A623" };
+var P = { board:{n:"HOA Board",r:"Fiduciary"}, residents:{n:"Residents",r:"Principals / Owners"}, vendor:{n:"Vendor",r:"Service Provider"}, mgmt:{n:"Mgmt Company",r:"Property Manager"}, system:{n:"CAST Protocol",r:"Shared Ledger"}, both:{n:"All Parties",r:"Multi-Sig"}, sightline:{n:"Sightline",r:"Platform Operator"} };
+var L = { BUDGET_RATIFIED:"Budget Ratified", ASSESSMENTS_COLLECTED:"Assessments Collected", VENDOR_CONTRACT:"Vendor Contract Awarded", WORK_COMPLETED:"Work Completed & Inspected", INVOICE_DERIVED:"Invoice Derived", PAYMENT_APPROVED:"Payment Approved (Dual-Sig)", PAYMENT_EXECUTED:"Payment Executed", VENDOR_DETAIL_CHANGE:"Vendor Change BLOCKED", VIEW_ACCESS_GRANTED:"View Access Granted", EMERGENCY_WORK_ORDER:"Emergency Work Order", RETROACTIVE_APPROVAL:"Retroactive Resident Vote", QUARTERLY_REPORT:"Q1 Financial Report" };
+
+function fd(n){return "$"+Number(n).toLocaleString("en-US",{minimumFractionDigits:0,maximumFractionDigits:0});}
+function ft(iso){var d=new Date(iso);return d.toLocaleDateString("en-US",{month:"short",day:"numeric"})+" "+d.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false});}
+
+function getAmt(d){return d.amount||d.totalAssessments||d.collected||d.annualAmount||d.totalDisbursements||null;}
+
+function renderVal(k,v){
+  if(v==null)return "-";
+  if(typeof v==="boolean")return v?"Yes":"No";
+  if(Array.isArray(v))return v.join(", ");
+  if(typeof v==="object")return JSON.stringify(v);
+  var kl=(k||"").toLowerCase();
+  if(typeof v==="number"){
+    if(kl.indexOf("rate")>=0&&v<1)return (v*100).toFixed(1)+"%";
+    if(kl.indexOf("amount")>=0||kl.indexOf("cost")>=0||kl.indexOf("budget")>=0||kl.indexOf("spend")>=0||kl.indexOf("collected")>=0||kl.indexOf("balance")>=0||kl.indexOf("bid")>=0||kl.indexOf("remaining")>=0||kl.indexOf("expense")>=0||kl.indexOf("contribution")>=0||kl.indexOf("disbursement")>=0||kl.indexOf("assessment")>=0||k==="amount")return fd(v);
+  }
+  return String(v);
+}
+
+function vc(k,v){
+  var kl=(k||"").toLowerCase();
+  if(kl.indexOf("amount")>=0||kl.indexOf("cost")>=0||kl.indexOf("budget")>=0||kl.indexOf("spend")>=0||kl.indexOf("balance")>=0||kl.indexOf("collected")>=0||kl.indexOf("remaining")>=0||kl.indexOf("expense")>=0||kl.indexOf("contribution")>=0||kl.indexOf("disbursement")>=0)return"#F5A623";
+  if(kl.indexOf("blocked")>=0||kl.indexOf("high")>=0||kl.indexOf("flagged")>=0)return"#E8553A";
+  if(kl.indexOf("hash")>=0)return"#9B6FE8";
+  if(kl.indexOf("pass")>=0||v===true)return"#18A86B";
+  return"#E8E8ED";
+}
+
+var mono="'IBM Plex Mono',monospace";
+
+var EV=[
+  {id:"H001",ts:"2025-12-15T18:00:00Z",tp:"BUDGET_RATIFIED",pa:"both",vi:["board","residents"],d:{budgetYear:"2026",totalAssessments:1000000,operatingBudget:850000,reserveContribution:150000,homesCount:300,monthlyPerHome:277.78,ratifiedBy:"Annual Meeting Vote",voteTally:"214 yes / 61 no / 25 abstain",meetingMinutesHash:"m1a2b3c4d5"},h:"h1a001",ph:"000000",si:["board.sig","resident-vote.certified.sig"]},
+  {id:"H002",ts:"2026-01-01T00:00:01Z",tp:"ASSESSMENTS_COLLECTED",pa:"system",vi:["board","residents"],d:{period:"Q1 2026",expected:250000,collected:243750,collectionRate:0.975,delinquentAccounts:8,delinquentAmount:6250,depositVerification:"bank-auto-reconcile"},h:"h2b002",ph:"h1a001",si:["mgmt.auto.sig","bank.auto.sig"]},
+  {id:"H003",ts:"2026-01-10T10:00:00Z",tp:"VENDOR_CONTRACT",pa:"board",vi:["board","residents","vendor"],d:{vendorName:"Greenfield Landscaping LLC",contractId:"VND-2026-001",service:"Full grounds maintenance",annualAmount:96000,monthlyAmount:8000,term:"12 months",procurementMethod:"3-bid competitive",bidsReceived:3,lowestBid:96000,highestBid:142000,selectedReason:"Lowest qualified bid",insuranceVerified:true,licenseVerified:true},h:"h3c003",ph:"h2b002",si:["board-president.sig","board-treasurer.sig","greenfield.sig"]},
+  {id:"H004",ts:"2026-01-31T17:00:00Z",tp:"WORK_COMPLETED",pa:"vendor",vi:["board","residents","vendor"],d:{contractId:"VND-2026-001",vendorName:"Greenfield Landscaping LLC",period:"January 2026",servicesPerformed:"Weekly mowing x4, hedge trimming, irrigation check",completionPhotos:12,photoHashBundle:"ph:4a:b7:c3:d9:e2",inspectedBy:"Site Manager - Dave Torres",inspectionDate:"2026-01-30"},h:"h4d004",ph:"h3c003",si:["greenfield.sig","site-manager.sig"]},
+  {id:"H005",ts:"2026-02-01T09:00:00Z",tp:"INVOICE_DERIVED",pa:"system",vi:["board","residents","vendor"],d:{contractId:"VND-2026-001",invoiceId:"INV-GF-2026-01",vendorName:"Greenfield Landscaping LLC",period:"January 2026",contractMonthlyRate:8000,amount:8000,budgetLineItem:"Landscaping",yearToDateSpend:8000,budgetRemaining:88000},h:"h5e005",ph:"h4d004",si:["system.auto.sig"],pc:["H001 > H003 > H004 > H005"]},
+  {id:"H006",ts:"2026-02-02T11:30:00Z",tp:"PAYMENT_APPROVED",pa:"board",vi:["board","residents","vendor"],d:{invoiceId:"INV-GF-2026-01",amount:8000,approver1:"Sarah Kim, President",approver2:"Tom Reeves, Treasurer",approvalMethod:"Dual-sig required over $2500",budgetCheck:"PASS",vendorMatch:"PASS",duplicateCheck:"PASS"},h:"h6f006",ph:"h5e005",si:["board-president.sig","board-treasurer.sig"]},
+  {id:"H007",ts:"2026-02-03T08:00:00Z",tp:"PAYMENT_EXECUTED",pa:"system",vi:["board","residents","vendor"],d:{invoiceId:"INV-GF-2026-01",amount:8000,payee:"Greenfield Landscaping LLC",method:"ACH",bankRef:"ACH-20260203-8847",executedBy:"System auto after dual approval",bankAccountBalance:235750},h:"h7a007",ph:"h6f006",si:["system.auto.sig","bank.auto.sig"]},
+  {id:"H008",ts:"2026-02-15T14:22:00Z",tp:"VENDOR_DETAIL_CHANGE",pa:"vendor",vi:["board","residents","vendor"],d:{vendorName:"Greenfield Landscaping LLC",changeType:"Bank account update",requestedBy:"Email: greenfield-billing@gmail.com",flaggedRisk:"HIGH - non-verified email, non-local bank",verificationStatus:"BLOCKED - requires verified confirmation",boardNotified:true,residentsNotified:true},h:"h8b008",ph:"h7a007",si:["system.auto.sig"]},
+  {id:"H-AC1",ts:"2026-02-20T19:00:00Z",tp:"VIEW_ACCESS_GRANTED",pa:"residents",vi:["board","residents","sightline"],d:{grantedTo:"Sightline",grantedBy:"Resident Vote (Feb meeting)",scope:"All financial events FY2026",purpose:"Independent financial oversight",expiry:"2026-12-31",revocable:true,voteResult:"189 yes / 34 no"},h:"hac1c9",ph:"h8b008",si:["resident-vote.certified.sig"]},
+  {id:"H009",ts:"2026-03-05T07:15:00Z",tp:"EMERGENCY_WORK_ORDER",pa:"board",vi:["board","residents","vendor","sightline"],d:{workOrderId:"WO-EMER-001",description:"Main line break - Building C flooding",vendor:"Apex Plumbing Services",estimatedCost:18500,authorization:"Board President - bylaws 7.3",normalThreshold:10000,requiresRetroactiveVote:true,damagePhotos:8,photoHash:"ep:3b:c8:d1:f5:a2"},h:"h9d009",ph:"hac1c9",si:["board-president.sig","apex-plumbing.sig"]},
+  {id:"H010",ts:"2026-03-06T16:30:00Z",tp:"WORK_COMPLETED",pa:"vendor",vi:["board","residents","vendor","sightline"],d:{workOrderId:"WO-EMER-001",vendorName:"Apex Plumbing Services",description:"Main line repair - pressure tested",actualCost:16750,underEstimateBy:1750,completionPhotos:14,photoHash:"ap:7c:d2:e8:f1:b4",inspectedBy:"Board VP - Jorge Mendez"},h:"h10e10",ph:"h9d009",si:["apex-plumbing.sig","board-vp.sig"]},
+  {id:"H011",ts:"2026-03-07T09:00:00Z",tp:"INVOICE_DERIVED",pa:"system",vi:["board","residents","vendor","sightline"],d:{workOrderId:"WO-EMER-001",invoiceId:"INV-AP-EMER-001",vendorName:"Apex Plumbing Services",amount:16750,budgetLineItem:"Emergency Reserves",reserveBudgetRemaining:133250,retroactiveApprovalRequired:true},h:"h11f11",ph:"h10e10",si:["system.auto.sig"],pc:["H001 > H009 > H010 > H011"]},
+  {id:"H012",ts:"2026-03-15T19:00:00Z",tp:"RETROACTIVE_APPROVAL",pa:"residents",vi:["board","residents","sightline"],d:{invoiceId:"INV-AP-EMER-001",amount:16750,voteType:"Retroactive - emergency over $10K",voteTally:"241 yes / 12 no / 47 abstain",approved:true,meetingDate:"2026-03-15",meetingMinutesHash:"mm:8a:b4:c7:d2:e9"},h:"h12a12",ph:"h11f11",si:["resident-vote.certified.sig","board-president.sig"]},
+  {id:"H013",ts:"2026-04-01T10:00:00Z",tp:"QUARTERLY_REPORT",pa:"system",vi:["board","residents","sightline"],d:{period:"Q1 2026",assessmentsCollected:243750,totalDisbursements:56750,operatingExpenses:40000,reserveExpenses:16750,bankBalance:187000,delinquencies:8,fraudAlertsTriggered:1,fraudAlertDetails:"Vendor bank change blocked (H008)",allPaymentsProvenanced:true},h:"h13b13",ph:"h12a12",si:["system.auto.sig","bank.auto.sig"]},
+];
+
+var ST=[
+  {ph:"context",ti:"The Problem",su:"300 families. $1M per year. Almost no accountability.",na:"A homeowner pays $278/month in HOA assessments. That money flows to a board of volunteer neighbors who hire vendors, write checks, and reconcile the bank accounts. The same people who authorize spending also control the books. This is the structural condition that enables fraud, and it is the default for over 370,000 HOAs in the United States.",sq:null,wc:null,hl:[],fo:null,va:"residents"},
+  {ph:"budget",ti:"The Budget",su:"Residents vote - but what exactly did they approve?",na:"At the annual meeting, residents ratify a $1M budget: $850K operating, $150K to reserves. 214 yes, 61 no, 25 abstain. The board now has authority to spend.",sq:{t:"Today: The budget disappears into a folder",it:["The board presents a budget. Residents vote on a total number.","The budget document lives on the management company server - if it exists in detail.","Residents have no real-time visibility into spending vs. budget throughout the year.","By month 8, nobody remembers what was approved. 'We are within budget.' No way to verify.","The approved budget and actual spending exist in different systems with no structural link."]},wc:{t:"The budget is the first event in the chain - everything traces back to it",de:"H001 is the ratified budget - signed by both the board and a certified resident vote. Every future expenditure references a budget line item. Notice the vote tally and the operating/reserve split. This is the root of every provenance chain."},hl:["H001"],fo:"H001",va:"residents"},
+  {ph:"collection",ti:"Collecting Assessments",su:"$243,750 collected in Q1 - verified against the bank.",na:"300 homes at $278/month should produce $250,000 per quarter. Q1 comes in at $243,750 with 8 delinquent accounts.",sq:{t:"Today: Deposits go into a black box",it:["Homeowners pay via check, ACH, or portal. Money flows into a board-controlled account.","Residents never see a verified deposit confirmation.","In documented fraud cases, board members diverted assessments into personal accounts for months.","Bank reconciliation is done by the same people who deposit the money."]},wc:{t:"Every deposit is bank-verified and visible to residents",de:"H002 is auto-generated: assessments collected, bank deposit verified, delinquencies identified. Co-signed by the management system and the bank. Residents see $243,750 hit the account. No human typed this."},hl:["H002"],fo:"H002",va:"residents"},
+  {ph:"vendor",ti:"Hiring the Vendor",su:"$96K landscaping contract - was it really the best bid?",na:"The board awards a $96,000 annual landscaping contract to Greenfield Landscaping. Three bids received. Lowest qualified bid selected.",sq:{t:"Today: Vendor selection is opaque and ripe for kickbacks",it:["The board solicits bids - or claims to. Residents never see competing bids.","A board member's brother-in-law gets the contract. Other bids may be fabricated.","Common fraud: a board member creates a shell company and awards it contracts.","No structural mechanism requires competitive bidding or bid disclosure."]},wc:{t:"Procurement is on-chain - bids, rationale, and contract terms",de:"H003 shows: 3 bids ($96K to $142K), lowest qualified bid selected, insurance and license verified. Signed by both board officers and the vendor. Every resident can see the bid comparison."},hl:["H003"],fo:"H003",va:"residents"},
+  {ph:"work",ti:"The Work Gets Done",su:"January landscaping - inspected, photographed, signed.",na:"Greenfield completes January work. The site manager inspects and confirms. This is what makes the invoice possible.",sq:{t:"Today: Was the work actually done?",it:["The vendor says they did the work. The board says they verified. Residents guess.","No timestamped photos, no inspection record.","Fraud scenario: vendors bill for work not performed, board approves for a cut.","A resident complaint gets: 'the vendor was here Tuesday.' No evidence either way."]},wc:{t:"Work completion is attested by the vendor, verified by inspection",de:"H004: vendor attests with 12 completion photos (hash-bundled). Site manager inspects and co-signs. Without this event, no invoice can be derived. The evidence is visible to all 300 residents."},hl:["H004","H005"],fo:"H004",va:"residents"},
+  {ph:"payment",ti:"Paying the Bill",su:"$8,000 - dual approval, full provenance, real-time visibility.",na:"The invoice derives from verified work. Dual-sig approval. Auto-execution. This is exactly where fraud happens in traditional HOAs - and where CAST makes it structurally impossible.",sq:{t:"Today: The treasurer writes checks to themselves",it:["The treasurer reviews and approves invoices - often alone.","The same person who approves also reconciles the bank statement.","Classic fraud: treasurer creates fictitious vendor, invoices monthly, approves own invoices, hides it in reconciliation.","One documented case: $400,000 embezzled over 6 years using exactly this method.","Residents get an annual summary - 12 months later - with no transaction detail."]},wc:{t:"Dual-signature approval, automated checks, real-time resident visibility",de:"H005: invoice derived from work, not created by anyone. H006: dual board signatures required over $2,500. System checks budget compliance, vendor details, duplicates. H007: payment executes only after dual approval. Residents see every step. The treasurer cannot pay themselves because invoices must trace to verified work."},hl:["H005","H006","H007"],fo:"H006",va:"residents"},
+  {ph:"fraud",ti:"Fraud Blocked",su:"Someone tries to redirect vendor payments. The system says no.",na:"An email from greenfield-billing@gmail.com requests a bank account change to a non-local institution. In a traditional HOA, this works. Here, it cannot.",sq:{t:"Today: The email scam that works shockingly often",it:["A manager receives: 'We changed our bank account. Please update payment details.'","The manager updates the file. Next month $8,000 goes to a fraudster.","By the time anyone notices - when the real vendor calls - the money is gone.","Business email compromise: the FBI reports $2.7B in annual losses.","No structural verification for bank changes. The email looks right, so the change is made."]},wc:{t:"Blocked, flagged, and recorded - board and residents both notified",de:"H008: auto-flagged HIGH RISK - email domain does not match verified vendor, bank is non-local. Payment BLOCKED. Board AND residents notified. The fraud attempt itself is an immutable ledger event - evidence, not just a blocked transaction."},hl:["H008"],fo:"H008",va:"residents"},
+  {ph:"emergency",ti:"The Emergency",su:"A $16,750 pipe burst - handled transparently under pressure.",na:"Building C main line breaks. The board president authorizes emergency repairs under bylaw 7.3. Legitimate - but exactly the kind of expense that gets abused.",sq:{t:"Today: Emergency bypasses all controls",it:["Board member declares emergency. Calls their preferred plumber - possibly a kickback partner.","Work done without competitive bidding. Invoice at whatever amount.","Residents learn weeks later: 'Emergency plumbing: $16,750.' No photos, no details.","No mechanism for retroactive accountability. Money spent, check cleared."]},wc:{t:"Emergency authority with retroactive accountability built in",de:"H009: work order cites bylaw authority, flags threshold, includes damage photos. H010: vendor completes at $16,750 (under estimate) with photos and on-site inspection. H011: invoice derives from work order. H012: residents vote retroactively with access to every photo, cost, and the full provenance chain."},hl:["H009","H010","H011","H012"],fo:"H009",va:"residents"},
+  {ph:"transparency",ti:"Radical Transparency",su:"The Q1 report writes itself - the ledger IS the report.",na:"At quarter end, the financial report is computed from the event chain. Every number is provable. The fraud alert is there. The emergency is there. Everything is there.",sq:{t:"Today: The annual report is a work of fiction",it:["Year-end summary prepared by the same management company that handled transactions.","Vague categories: 'Maintenance: $340,000.' Which vendors? What work?","Reserves especially opaque. '$150K contributed' - but is the money actually there?","When fraud is discovered, the typical embezzlement has been running 3-5 years."]},wc:{t:"The report is a computation - every line item links to proof",de:"H013: $243,750 collected (bank-verified), $56,750 disbursed (all provenanced), 1 fraud alert triggered and blocked. Every vendor payment links to contract, work completion, and inspection. The report is not prepared. It is a view over the shared ledger."},hl:["H013"],fo:"H013",va:"residents"},
+  {ph:"sovereignty",ti:"Data Sovereignty",su:"The residents money, the residents data, the residents choice.",na:"The HOA financial data belongs to the residents - they paid for every transaction in it. CAST makes this ownership architectural, not aspirational. Sightline operates the platform on a ledger it cannot read unless the residents vote to grant access.",sq:{t:"Today: Boards treat financial data as their property",it:["Residents request records. Boards delay, redact, or refuse.","Management company software stores all data. Switching managers means data loss.","Information asymmetry between board and residents is the single largest fraud enabler."]},wc:{t:"Visibility is a right, not a request",de:"H-AC1: residents vote to grant Sightline advisory access. Their choice - by vote, scoped, time-limited, revocable. Every financial event has residents in the visibility manifest. Toggle Viewing As to see each perspective."},hl:["H-AC1"],fo:"H-AC1",va:"sightline"},
+  {ph:"thesis",ti:"Why We Are Building This",su:"Proof over trust. For everyone - starting where it is needed most.",na:"75 million Americans live in HOA communities with almost no structural accountability for how their money is spent. We provide CAST to HOAs at low cost because these residents deserve the same proof-based coordination we build for GPU compute financing and enterprise B2B. The architecture is identical. The principle is identical. Every dollar traceable from origin to disbursement, visible to the people whose money it is. This is who we are: transparent, proof-based, logic-based. We build trust infrastructure by demonstrating it where trust is most broken.",sq:null,wc:null,hl:[],fo:null,va:"residents"},
+];
+
+var NS=ST.length;
+
+function EvCard(props){
+  var ev=props.ev;if(!ev)return null;
+  var sel=props.sel,hlt=props.hlt;
+  var pi=P[ev.pa]||{n:"?",r:""};
+  var col=C[ev.pa]||"#666";
+  var blk=ev.tp==="VENDOR_DETAIL_CHANGE";
+  var acc=ev.tp.indexOf("VIEW_ACCESS")>=0;
+  var emer=ev.tp.indexOf("EMERGENCY")>=0;
+  var vote=ev.tp==="RETROACTIVE_APPROVAL"||ev.tp==="BUDGET_RATIFIED";
+  var amt=getAmt(ev.d);
+  var lbl=L[ev.tp]||ev.tp;
+  var pfx=blk?"[BLOCKED] ":acc?"[ACCESS] ":emer?"[EMERGENCY] ":vote?"[VOTE] ":"";
+  var bc=hlt?"#F5A623":blk?"#E8553A":acc?"#F5A623":"rgba(255,255,255,0.08)";
+  return(
+    <div onClick={props.onClick} style={{padding:"12px 14px",cursor:"pointer",position:"relative",background:sel?"rgba(255,255,255,0.06)":hlt?"rgba(245,166,35,0.04)":"transparent",borderLeft:"2px solid "+bc,borderBottom:"1px solid rgba(255,255,255,0.04)"}}>
+      <div style={{position:"absolute",left:-5,top:16,width:8,height:8,borderRadius:"50%",background:blk?"#E8553A":acc?"#F5A623":col,border:sel?"2px solid #fff":"2px solid #0D1117",zIndex:2}}/>
+      <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+            <span style={{fontSize:9,fontFamily:mono,color:"rgba(255,255,255,0.25)",letterSpacing:1}}>{ev.id}</span>
+            <span style={{fontSize:9,color:blk?"#E8553A":acc?"#F5A623":col,fontWeight:600,textTransform:"uppercase"}}>{blk?"FRAUD ALERT":acc?"ACCESS CTRL":pi.n}</span>
+          </div>
+          <div style={{fontSize:12,fontWeight:600,color:blk?"#E8553A":acc?"#F5A623":"#E8E8ED"}}>{pfx}{lbl}</div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:2}}>{ft(ev.ts)}</div>
+          <div style={{display:"flex",gap:2,marginTop:5}}>{ev.vi.map(function(pk){return <span key={pk} style={{width:4,height:4,borderRadius:"50%",background:C[pk]||"#666",opacity:0.6}}/>;})}</div>
+        </div>
+        {amt!=null&&<div style={{fontSize:12,fontWeight:700,color:blk?"#E8553A":"#E8E8ED",fontFamily:mono,whiteSpace:"nowrap"}}>{fd(amt)}</div>}
+      </div>
+    </div>
+  );
+}
+
+function EvDetail(props){
+  var ev=props.ev,viewAs=props.viewAs;
+  if(!ev)return <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",color:"rgba(255,255,255,0.15)",fontSize:13,padding:40,textAlign:"center"}}>Select an event to inspect provenance and visibility</div>;
+  var pi=P[ev.pa]||{n:"?",r:""};
+  var col=C[ev.pa]||"#666";
+  var acc=ev.tp.indexOf("VIEW_ACCESS")>=0;
+  var blk=ev.tp==="VENDOR_DETAIL_CHANGE";
+  var hasSL=ev.vi.indexOf("sightline")>=0;
+  var hasRes=ev.vi.indexOf("residents")>=0;
+  var lbl=L[ev.tp]||ev.tp;
+  var entries=[];
+  var keys=Object.keys(ev.d);
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i];var v=ev.d[k];
+    if(typeof v==="object"&&v!==null&&!Array.isArray(v))continue;
+    entries.push({k:k,v:v});
+  }
+  return(
+    <div style={{padding:"18px 22px",overflowY:"auto",height:"100%"}}>
+      <div style={{marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+          <span style={{width:10,height:10,borderRadius:"50%",background:blk?"#E8553A":col}}/>
+          <span style={{fontSize:11,color:blk?"#E8553A":col,fontWeight:600,textTransform:"uppercase"}}>{pi.n} - {pi.r}</span>
+        </div>
+        <h2 style={{fontSize:18,fontWeight:700,margin:0,marginBottom:6,fontFamily:"Georgia,serif",color:blk?"#E8553A":acc?"#F5A623":"#E8E8ED"}}>{lbl}</h2>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.35)"}}>{ft(ev.ts)}</div>
+      </div>
+      <div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",padding:14,marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+          <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:600}}>Who Can See This</span>
+          <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:hasSL?"rgba(245,166,35,0.12)":hasRes?"rgba(45,127,249,0.12)":"rgba(232,85,58,0.12)",color:hasSL?"#F5A623":hasRes?"#2D7FF9":"#E8553A",fontWeight:600}}>{hasSL?"+ SIGHTLINE":hasRes?"RESIDENTS SEE":"RESTRICTED"}</span>
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{ev.vi.map(function(pk){
+          var info=P[pk]||{n:pk};var me=pk===viewAs;var sl=pk==="sightline";
+          return <div key={pk} style={{display:"flex",alignItems:"center",gap:5,background:me?"rgba(255,255,255,0.08)":sl?"rgba(245,166,35,0.08)":"rgba(255,255,255,0.03)",border:"1px solid "+(me?"rgba(255,255,255,0.15)":sl?"rgba(245,166,35,0.2)":"rgba(255,255,255,0.06)"),borderRadius:5,padding:"5px 8px"}}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:C[pk]||"#666"}}/>
+            <span style={{fontSize:10,fontWeight:600,color:"#E8E8ED"}}>{info.n}</span>
+            {me&&<span style={{fontSize:7,background:"rgba(255,255,255,0.1)",color:"#E8E8ED",padding:"1px 4px",borderRadius:2,fontWeight:700}}>YOU</span>}
+            {sl&&<span style={{fontSize:7,background:"rgba(245,166,35,0.15)",color:"#F5A623",padding:"1px 4px",borderRadius:2,fontWeight:700}}>GRANTED</span>}
+          </div>;
+        })}</div>
+      </div>
+      <div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",padding:14,marginBottom:14}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:600,marginBottom:8}}>Hash Chain</div>
+        <div style={{fontFamily:mono,fontSize:11,color:"rgba(255,255,255,0.45)"}}>
+          <span style={{background:"rgba(255,255,255,0.04)",padding:"2px 8px",borderRadius:4,border:"1px solid rgba(255,255,255,0.08)"}}>prev: {ev.ph}</span>
+          <span style={{margin:"0 6px",color:"rgba(255,255,255,0.12)"}}>{">"}</span>
+          <span style={{background:"rgba(255,255,255,0.04)",padding:"2px 8px",borderRadius:4,border:"1px solid rgba(255,255,255,0.08)"}}>this: {ev.h}</span>
+        </div>
+      </div>
+      <div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",padding:14,marginBottom:14}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:600,marginBottom:8}}>Signatures ({ev.si.length})</div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{ev.si.map(function(sig,idx){
+          var isA=sig.indexOf("auto")>=0||sig.indexOf("certified")>=0||sig.indexOf("bank")>=0;
+          return <span key={idx} style={{background:isA?"rgba(155,111,232,0.1)":"rgba(45,127,249,0.1)",border:"1px solid "+(isA?"rgba(155,111,232,0.25)":"rgba(45,127,249,0.25)"),borderRadius:3,padding:"2px 7px",fontSize:10,color:isA?"#B89AEF":"#6BA3F9",fontFamily:mono}}>{sig}</span>;
+        })}</div>
+      </div>
+      {ev.pc&&<div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(245,166,35,0.15)",padding:14,marginBottom:14}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:600,marginBottom:8}}>Provenance Chain</div>
+        {ev.pc.map(function(ch,i){return <div key={i} style={{fontFamily:mono,fontSize:11,color:"rgba(255,255,255,0.55)",lineHeight:1.8}}>{ch}</div>;})}
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:6,fontStyle:"italic"}}>Every dollar traces to the ratified budget and verified work.</div>
+      </div>}
+      <div style={{background:"rgba(255,255,255,0.02)",borderRadius:8,border:"1px solid rgba(255,255,255,0.06)",padding:14}}>
+        <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:1,fontWeight:600,marginBottom:8}}>Event Data</div>
+        {entries.map(function(e){return <div key={e.k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,0.03)",gap:10}}>
+          <span style={{fontSize:10,color:"rgba(255,255,255,0.3)",fontFamily:mono,flexShrink:0}}>{e.k}</span>
+          <span style={{fontSize:11,textAlign:"right",wordBreak:"break-all",maxWidth:"65%",color:vc(e.k,e.v)}}>{renderVal(e.k,e.v)}</span>
+        </div>;})}
+      </div>
+    </div>
+  );
+}
+
+function Narr(props){
+  var s=ST[props.idx];if(!s)return null;
+  return(
+    <div style={{padding:"24px 28px",overflowY:"auto",height:"100%"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+        <span style={{fontSize:10,fontFamily:mono,color:"rgba(255,255,255,0.2)",letterSpacing:1}}>{String(props.idx+1).padStart(2,"0")} / {NS}</span>
+        <span style={{color:"rgba(255,255,255,0.15)"}}>|</span>
+        <span style={{fontSize:10,color:"#F5A623",fontWeight:600,textTransform:"uppercase",letterSpacing:1}}>{s.ph}</span>
+      </div>
+      <h1 style={{fontSize:26,fontWeight:700,color:"#E8E8ED",margin:0,marginBottom:6,fontFamily:"Georgia,serif",lineHeight:1.2}}>{s.ti}</h1>
+      <p style={{fontSize:14,color:"rgba(255,255,255,0.4)",margin:0,marginBottom:20,lineHeight:1.5,fontWeight:500}}>{s.su}</p>
+      <p style={{fontSize:13,color:"rgba(255,255,255,0.6)",margin:0,marginBottom:24,lineHeight:1.8}}>{s.na}</p>
+
+      {s.sq!=null&&<div style={{background:"rgba(255,80,80,0.04)",border:"1px solid rgba(255,80,80,0.12)",borderRadius:10,padding:"18px 20px",marginBottom:20}}>
+        <div style={{fontSize:10,color:"rgba(255,80,80,0.6)",fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Without CAST</div>
+        <div style={{fontSize:13,fontWeight:600,color:"#E8E8ED",marginBottom:12,lineHeight:1.4}}>{s.sq.t}</div>
+        {s.sq.it.map(function(item,i){return <div key={i} style={{display:"flex",gap:10,marginBottom:8}}>
+          <span style={{fontSize:11,color:"rgba(255,80,80,0.35)",fontFamily:mono,width:14,textAlign:"right",flexShrink:0}}>{i+1}.</span>
+          <span style={{fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.6}}>{item}</span>
+        </div>;})}
+      </div>}
+
+      {s.wc!=null&&<div style={{background:"rgba(24,168,107,0.04)",border:"1px solid rgba(24,168,107,0.15)",borderRadius:10,padding:"18px 20px"}}>
+        <div style={{fontSize:10,color:"#18A86B",fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>With CAST</div>
+        <div style={{fontSize:13,fontWeight:600,color:"#E8E8ED",marginBottom:10,lineHeight:1.4}}>{s.wc.t}</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",lineHeight:1.8}}>{s.wc.de}</div>
+        {s.hl.length>0&&<div style={{marginTop:14,paddingTop:12,borderTop:"1px solid rgba(24,168,107,0.1)"}}>
+          <span style={{fontSize:9,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1,fontWeight:600}}>Proof events: </span>
+          {s.hl.map(function(eid,i){return <span key={eid} style={{fontSize:11,fontFamily:mono,color:"#F5A623",marginLeft:i?6:4}}>{eid}</span>;})}
+        </div>}
+      </div>}
+
+      {s.ph==="thesis"&&<div style={{marginTop:12,padding:"20px 24px",background:"rgba(245,166,35,0.05)",border:"1px solid rgba(245,166,35,0.2)",borderRadius:10}}>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {["Proof over trust","Budget-to-disbursement trace","Dual-signature enforcement","Fraud blocked structurally","Resident visibility by default","Emergency accountability","Data sovereignty","75M Americans served"].map(function(tag,i){
+            return <span key={i} style={{fontSize:10,padding:"4px 10px",borderRadius:4,background:"rgba(245,166,35,0.08)",border:"1px solid rgba(245,166,35,0.15)",color:"#F5A623",fontWeight:500}}>{tag}</span>;
+          })}
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+export default function App(){
+  var ss=useState(0);var step=ss[0];var setStep=ss[1];
+  var es=useState(null);var selEv=es[0];var setSelEv=es[1];
+  var vs=useState("residents");var viewAs=vs[0];var setViewAs=vs[1];
+  var listRef=useRef(null);
+
+  var cur=ST[step]||ST[0];
+  var show=cur.hl.length>0||cur.ph==="thesis";
+
+  useEffect(function(){
+    if(cur.fo){
+      for(var i=0;i<EV.length;i++){if(EV[i].id===cur.fo){setSelEv(EV[i]);break;}}
+    }else{setSelEv(null);}
+    if(cur.va)setViewAs(cur.va);
+  },[step]);
+
+  useEffect(function(){
+    if(listRef.current&&cur.fo){
+      var el=listRef.current.querySelector("[data-eid='"+cur.fo+"']");
+      if(el)el.scrollIntoView({behavior:"smooth",block:"center"});
+    }
+  },[step]);
+
+  useEffect(function(){
+    function hk(e){
+      if(e.key==="ArrowRight"){e.preventDefault();setStep(function(p){return Math.min(NS-1,p+1);});}
+      if(e.key==="ArrowLeft"){e.preventDefault();setStep(function(p){return Math.max(0,p-1);});}
+    }
+    window.addEventListener("keydown",hk);
+    return function(){window.removeEventListener("keydown",hk);};
+  },[]);
+
+  return(
+    <div style={{fontFamily:"'DM Sans',Helvetica,sans-serif",background:"#0D1117",color:"#E8E8ED",height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+
+      <div style={{padding:"10px 20px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:17,fontWeight:700,letterSpacing:3,color:"#F5A623",fontFamily:mono}}>CAST</span>
+          <span style={{color:"rgba(255,255,255,0.08)"}}>|</span>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.3)"}}>HOA Shared Ledger</span>
+          <span style={{color:"rgba(255,255,255,0.08)"}}>|</span>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.2)"}}>300 Homes - $1M/yr</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:9,color:"rgba(255,255,255,0.2)"}}>VIEWING AS</span>
+          <div style={{display:"flex",gap:2,background:"rgba(255,255,255,0.04)",borderRadius:6,padding:2}}>
+            {[{k:"residents",l:"Resident",c:"#2D7FF9"},{k:"board",l:"Board",c:"#E8553A"},{k:"vendor",l:"Vendor",c:"#18A86B"},{k:"sightline",l:"Sightline",c:"#F5A623"}].map(function(p){
+              return <button key={p.k} onClick={function(){setViewAs(p.k);}} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 9px",borderRadius:4,border:"none",cursor:"pointer",fontSize:10,fontWeight:600,background:viewAs===p.k?"rgba(255,255,255,0.1)":"transparent",color:viewAs===p.k?p.c:"rgba(255,255,255,0.25)"}}>
+                <span style={{width:5,height:5,borderRadius:"50%",background:viewAs===p.k?p.c:"rgba(255,255,255,0.12)"}}/>{p.l}
+              </button>;
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div style={{height:2,background:"rgba(255,255,255,0.04)",flexShrink:0}}>
+        <div style={{height:"100%",background:"#F5A623",width:((step+1)/NS*100)+"%",transition:"width 0.4s"}}/>
+      </div>
+
+      <div style={{flex:1,display:"flex",overflow:"hidden"}}>
+        <div style={{width:show?420:600,flexShrink:0,borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{flex:1,overflowY:"auto"}}><Narr idx={step}/></div>
+          <div style={{padding:"12px 24px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+            <button onClick={function(){setStep(function(p){return Math.max(0,p-1);});}} style={{padding:"8px 20px",borderRadius:6,border:"1px solid rgba(255,255,255,0.1)",background:"transparent",color:step===0?"rgba(255,255,255,0.15)":"rgba(255,255,255,0.5)",cursor:step===0?"default":"pointer",fontSize:12,fontWeight:600}}>Prev</button>
+            <div style={{display:"flex",gap:4}}>{ST.map(function(_,i){return <button key={i} onClick={function(){setStep(i);}} style={{width:i===step?20:6,height:6,borderRadius:3,border:"none",cursor:"pointer",background:i===step?"#F5A623":i<step?"rgba(245,166,35,0.3)":"rgba(255,255,255,0.1)",transition:"all 0.3s"}}/>;})}</div>
+            <button onClick={function(){setStep(function(p){return Math.min(NS-1,p+1);});}} style={{padding:"8px 20px",borderRadius:6,border:"none",background:step===NS-1?"rgba(255,255,255,0.05)":"#F5A623",color:step===NS-1?"rgba(255,255,255,0.15)":"#0D1117",cursor:step===NS-1?"default":"pointer",fontSize:12,fontWeight:700}}>Next</button>
+          </div>
+        </div>
+
+        {show&&<div style={{width:300,flexShrink:0,borderRight:"1px solid rgba(255,255,255,0.06)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+          <div style={{padding:"8px 14px",borderBottom:"1px solid rgba(255,255,255,0.04)",fontSize:10,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1.5,fontWeight:700,flexShrink:0}}>HOA Ledger</div>
+          <div ref={listRef} style={{flex:1,overflowY:"auto"}}>{EV.map(function(ev){
+            return <div key={ev.id} data-eid={ev.id}><EvCard ev={ev} sel={selEv!=null&&selEv.id===ev.id} hlt={cur.hl.indexOf(ev.id)>=0} onClick={function(){setSelEv(ev);}}/></div>;
+          })}</div>
+        </div>}
+
+        {show&&<div style={{flex:1,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"8px 18px",borderBottom:"1px solid rgba(255,255,255,0.04)",fontSize:10,color:"rgba(255,255,255,0.25)",textTransform:"uppercase",letterSpacing:1.5,fontWeight:700,flexShrink:0}}>Event Inspector</div>
+          <div style={{flex:1,overflowY:"auto"}}><EvDetail ev={selEv} viewAs={viewAs}/></div>
+        </div>}
+      </div>
+
+      <div style={{padding:"6px 20px",borderTop:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.15)",fontFamily:mono}}>{EV.length} events | 1 fraud blocked | chain verified</span>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.2)"}}>Arrow keys to navigate</span>
+      </div>
+
+      <style>{"::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:2px}*{box-sizing:border-box}"}</style>
+    </div>
+  );
+}

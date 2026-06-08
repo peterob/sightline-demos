@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline - Ecommerce Supply Chain Prototype</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a1a1a1; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // ============================================
+    // MOCK DATA - Ecommerce Supply Chain
+    // ============================================
+    
+    const vendors = [
+      {
+        id: 'VND-001',
+        name: 'Luminaire Factory Co.',
+        category: 'Lighting Fixtures',
+        country: 'China',
+        paymentTerms: 'Net 30',
+        trustScore: 94
+      },
+      {
+        id: 'VND-002', 
+        name: 'HomeStyle Textiles',
+        category: 'Soft Goods',
+        country: 'Vietnam',
+        paymentTerms: 'Net 45',
+        trustScore: 87
+      },
+      {
+        id: 'VND-003',
+        name: 'Pacific Freight 3PL',
+        category: '3PL/Fulfillment',
+        country: 'USA',
+        paymentTerms: 'Net 15',
+        trustScore: 91
+      }
+    ];
+
+    const purchaseOrders = [
+      {
+        id: 'PO-2025-0847',
+        vendor: 'Luminaire Factory Co.',
+        vendorId: 'VND-001',
+        items: [
+          { sku: 'LMP-BRS-001', name: 'Brass Arc Floor Lamp', qtyOrdered: 200, unitCost: 85.00, qtyReceived: 192, qtyDamaged: 3 },
+          { sku: 'LMP-BLK-002', name: 'Matte Black Table Lamp', qtyOrdered: 350, unitCost: 42.00, qtyReceived: 350, qtyDamaged: 0 },
+          { sku: 'CHN-GLD-003', name: 'Gold Pendant Chandelier', qtyOrdered: 75, unitCost: 220.00, qtyReceived: 75, qtyDamaged: 2 }
+        ],
+        totalOrdered: 48350.00,
+        status: 'VARIANCE_OPEN',
+        orderDate: '2025-01-10',
+        expectedDate: '2025-02-15',
+        receivedDate: '2025-02-18'
+      },
+      {
+        id: 'PO-2025-0852',
+        vendor: 'HomeStyle Textiles',
+        vendorId: 'VND-002',
+        items: [
+          { sku: 'CUS-VLV-010', name: 'Velvet Throw Pillow 18"', qtyOrdered: 500, unitCost: 12.50, qtyReceived: 500, qtyDamaged: 0 },
+          { sku: 'BLK-LIN-011', name: 'Linen Duvet Cover Queen', qtyOrdered: 150, unitCost: 65.00, qtyReceived: 150, qtyDamaged: 0 }
+        ],
+        totalOrdered: 16000.00,
+        status: 'ACTIVE',
+        orderDate: '2025-01-15',
+        expectedDate: '2025-02-20',
+        receivedDate: '2025-02-19'
+      },
+      {
+        id: 'PO-2025-0861',
+        vendor: 'Luminaire Factory Co.',
+        vendorId: 'VND-001',
+        items: [
+          { sku: 'LMP-WHT-004', name: 'White Ceramic Table Lamp', qtyOrdered: 400, unitCost: 38.00, qtyReceived: null, qtyDamaged: null }
+        ],
+        totalOrdered: 15200.00,
+        status: 'PENDING_SHIPMENT',
+        orderDate: '2025-02-01',
+        expectedDate: '2025-03-10',
+        receivedDate: null
+      }
+    ];
+
+    const fulfillmentOrders = [
+      {
+        id: 'FO-2025-12847',
+        customerId: 'CUST-8834',
+        customerName: 'Sarah Mitchell',
+        items: [
+          { sku: 'LMP-BRS-001', name: 'Brass Arc Floor Lamp', qty: 1, price: 249.00 },
+          { sku: 'CUS-VLV-010', name: 'Velvet Throw Pillow 18"', qty: 2, price: 34.99 }
+        ],
+        subtotal: 318.98,
+        shipping: 0,
+        total: 318.98,
+        status: 'SHIPPED',
+        orderDate: '2025-02-20',
+        shipDate: '2025-02-21',
+        carrier: 'UPS Ground',
+        tracking: '1Z999AA10123456784'
+      },
+      {
+        id: 'FO-2025-12852',
+        customerId: 'CUST-9921',
+        customerName: 'Marcus Chen',
+        items: [
+          { sku: 'CHN-GLD-003', name: 'Gold Pendant Chandelier', qty: 1, price: 549.00 },
+          { sku: 'LMP-BLK-002', name: 'Matte Black Table Lamp', qty: 2, price: 89.00 }
+        ],
+        subtotal: 727.00,
+        shipping: 0,
+        total: 727.00,
+        status: 'PROCESSING',
+        orderDate: '2025-02-22',
+        shipDate: null,
+        carrier: null,
+        tracking: null
+      },
+      {
+        id: 'FO-2025-12855',
+        customerId: 'CUST-7762',
+        customerName: 'Jennifer Adams',
+        items: [
+          { sku: 'BLK-LIN-011', name: 'Linen Duvet Cover Queen', qty: 1, price: 159.00 }
+        ],
+        subtotal: 159.00,
+        shipping: 12.99,
+        total: 171.99,
+        status: 'VARIANCE_FLAGGED',
+        orderDate: '2025-02-21',
+        shipDate: '2025-02-22',
+        carrier: 'FedEx Home',
+        tracking: '794644790301',
+        variance: {
+          type: 'WRONG_ITEM_SHIPPED',
+          reported: 'Customer received CUS-VLV-010 instead of BLK-LIN-011',
+          claimAmount: 159.00
+        }
+      }
+    ];
+
+    const initialEvents = [
+      // PO-2025-0847 Lifecycle
+      { id: 'evt_001', timestamp: '2025-01-10T09:00:00Z', type: 'PO_CREATED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', vendor: 'Luminaire Factory Co.', totalValue: 48350.00, lineItems: 3, expectedShip: '2025-02-10' }, signature: '0x7a3f...e821', verified: true },
+      { id: 'evt_002', timestamp: '2025-01-10T14:30:00Z', type: 'PO_ACKNOWLEDGED', party: 'seller', partyName: 'Luminaire Factory Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', confirmedShipDate: '2025-02-12', productionStatus: 'SCHEDULED' }, signature: '0x9b2c...f912', verified: true },
+      { id: 'evt_003', timestamp: '2025-02-12T08:00:00Z', type: 'SHIPMENT_DISPATCHED', party: 'seller', partyName: 'Luminaire Factory Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', carrier: 'Maersk', container: 'MSKU1234567', eta: '2025-02-18', totalCartons: 47 }, signature: '0x4d1a...b334', verified: true },
+      { id: 'evt_004', timestamp: '2025-02-18T14:00:00Z', type: 'SHIPMENT_RECEIVED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', receivedAt: 'Pacific Freight 3PL - Ontario, CA', cartonsReceived: 47, receivedBy: 'J. Martinez' }, signature: '0x2e8f...c445', verified: true },
+      { id: 'evt_005', timestamp: '2025-02-18T16:30:00Z', type: 'RECEIVING_COMPLETED', party: '3pl', partyName: 'Pacific Freight 3PL', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', 'LMP-BRS-001': { ordered: 200, received: 192, damaged: 3 }, 'LMP-BLK-002': { ordered: 350, received: 350, damaged: 0 }, 'CHN-GLD-003': { ordered: 75, received: 75, damaged: 2 } }, signature: '0x8c3b...d556', verified: true },
+      { id: 'evt_006', timestamp: '2025-02-18T17:00:00Z', type: 'VARIANCE_FLAGGED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', varianceType: 'QUANTITY_SHORT', sku: 'LMP-BRS-001', ordered: 200, received: 192, shortfall: 8, valueLost: 680.00, evidence: '3PL receiving report attached' }, signature: '0x5f2d...e667', verified: true },
+      { id: 'evt_007', timestamp: '2025-02-18T17:05:00Z', type: 'VARIANCE_FLAGGED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0847',
+        data: { poId: 'PO-2025-0847', varianceType: 'DAMAGED_GOODS', skus: ['LMP-BRS-001', 'CHN-GLD-003'], totalDamaged: 5, valueLost: 695.00, evidence: 'Photos uploaded to shared drive' }, signature: '0x6e3a...f778', verified: true },
+
+      // PO-2025-0852 Lifecycle (clean)
+      { id: 'evt_008', timestamp: '2025-01-15T10:00:00Z', type: 'PO_CREATED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', vendor: 'HomeStyle Textiles', totalValue: 16000.00, lineItems: 2, expectedShip: '2025-02-15' }, signature: '0x3c1d...a921', verified: true },
+      { id: 'evt_009', timestamp: '2025-01-15T22:00:00Z', type: 'PO_ACKNOWLEDGED', party: 'seller', partyName: 'HomeStyle Textiles', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', confirmedShipDate: '2025-02-14', productionStatus: 'IN_STOCK' }, signature: '0x8e4f...b832', verified: true },
+      { id: 'evt_010', timestamp: '2025-02-14T06:00:00Z', type: 'SHIPMENT_DISPATCHED', party: 'seller', partyName: 'HomeStyle Textiles', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', carrier: 'DHL Express', awb: '1234567890', eta: '2025-02-19', totalCartons: 12 }, signature: '0x2f5a...c743', verified: true },
+      { id: 'evt_011', timestamp: '2025-02-19T11:00:00Z', type: 'SHIPMENT_RECEIVED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', receivedAt: 'Pacific Freight 3PL - Ontario, CA', cartonsReceived: 12, receivedBy: 'M. Thompson' }, signature: '0x9a3b...d854', verified: true },
+      { id: 'evt_012', timestamp: '2025-02-19T14:00:00Z', type: 'RECEIVING_COMPLETED', party: '3pl', partyName: 'Pacific Freight 3PL', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', 'CUS-VLV-010': { ordered: 500, received: 500, damaged: 0 }, 'BLK-LIN-011': { ordered: 150, received: 150, damaged: 0 }, status: 'COMPLETE_NO_VARIANCE' }, signature: '0x4b6c...e965', verified: true },
+      { id: 'evt_013', timestamp: '2025-02-19T14:30:00Z', type: 'PO_CLOSED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: 'PO-2025-0852',
+        data: { poId: 'PO-2025-0852', status: 'COMPLETE', totalInvoiced: 16000.00, variance: 0 }, signature: '0x5c7d...f076', verified: true },
+
+      // Fulfillment Order with 3PL variance
+      { id: 'evt_014', timestamp: '2025-02-21T09:00:00Z', type: 'ORDER_PLACED', party: 'buyer', partyName: 'Jennifer Adams', orderId: 'FO-2025-12855',
+        data: { orderId: 'FO-2025-12855', items: [{ sku: 'BLK-LIN-011', qty: 1 }], total: 171.99 }, signature: '0x6d8e...g187', verified: true },
+      { id: 'evt_015', timestamp: '2025-02-21T10:30:00Z', type: 'ORDER_ALLOCATED', party: '3pl', partyName: 'Pacific Freight 3PL', orderId: 'FO-2025-12855',
+        data: { orderId: 'FO-2025-12855', allocatedFrom: 'BIN-A4-23', picker: 'T. Williams' }, signature: '0x7e9f...h298', verified: true },
+      { id: 'evt_016', timestamp: '2025-02-22T08:00:00Z', type: 'ORDER_SHIPPED', party: '3pl', partyName: 'Pacific Freight 3PL', orderId: 'FO-2025-12855',
+        data: { orderId: 'FO-2025-12855', carrier: 'FedEx Home', tracking: '794644790301', weight: '4.2 lbs' }, signature: '0x8f0a...i309', verified: true },
+      { id: 'evt_017', timestamp: '2025-02-25T14:00:00Z', type: 'VARIANCE_FLAGGED', party: 'customer', partyName: 'Jennifer Adams', orderId: 'FO-2025-12855',
+        data: { orderId: 'FO-2025-12855', varianceType: 'WRONG_ITEM_SHIPPED', expected: 'BLK-LIN-011', received: 'CUS-VLV-010', claimAmount: 159.00, evidence: 'Photo of received item uploaded' }, signature: '0x9g1b...j410', verified: true },
+    ];
+
+    // Historical reconciliation data
+    const historicalData = {
+      beforeSightline: {
+        period: 'Q4 2024',
+        hoursSpentReconciling: 84,
+        poVariancesDiscovered: 12,
+        poVariancesValue: 18400,
+        fulfillmentErrors: 34,
+        fulfillmentErrorsCost: 8200,
+        avgResolutionDays: 18,
+        chargebacksLost: 4200
+      },
+      withSightline: {
+        period: 'Q1 2025 (to date)',
+        hoursSpentReconciling: 8,
+        poVariancesDiscovered: 18,
+        poVariancesValue: 26750,
+        fulfillmentErrors: 31,
+        fulfillmentErrorsCost: 2100,
+        avgResolutionDays: 3.2,
+        chargebacksLost: 340
+      }
+    };
+
+    // Cash flow / inventory data
+    const cashFlowData = {
+      weeks: [
+        { week: 'Feb 3-9', committed: 0, received: 0, invoiced: 0, customerRevenue: 42380 },
+        { week: 'Feb 10-16', committed: 48350, received: 0, invoiced: 0, customerRevenue: 38920 },
+        { week: 'Feb 17-23', committed: 16000, received: 64350, invoiced: 62975, customerRevenue: 51200 },
+        { week: 'Feb 24-Mar 2', committed: 15200, received: 0, invoiced: 0, customerRevenue: 44800 },
+      ]
+    };
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+    const formatNumber = (n) => new Intl.NumberFormat('en-US').format(n);
+    const formatDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const formatPercent = (n) => `${(n * 100).toFixed(1)}%`;
+
+    const eventStyles = {
+      PO_CREATED: { bg: '#dbeafe', border: '#3b82f6', icon: '📋' },
+      PO_ACKNOWLEDGED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+      SHIPMENT_DISPATCHED: { bg: '#fef3c7', border: '#f59e0b', icon: '🚢' },
+      SHIPMENT_RECEIVED: { bg: '#e0e7ff', border: '#6366f1', icon: '📦' },
+      RECEIVING_COMPLETED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+      VARIANCE_FLAGGED: { bg: '#fee2e2', border: '#ef4444', icon: '⚠' },
+      VARIANCE_RESOLVED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+      PO_CLOSED: { bg: '#d1fae5', border: '#10b981', icon: '✓' },
+      ORDER_PLACED: { bg: '#dbeafe', border: '#3b82f6', icon: '🛒' },
+      ORDER_ALLOCATED: { bg: '#fef3c7', border: '#f59e0b', icon: '📍' },
+      ORDER_SHIPPED: { bg: '#e0e7ff', border: '#6366f1', icon: '📬' },
+      PAYMENT_RECEIVED: { bg: '#d1fae5', border: '#10b981', icon: '💰' }
+    };
+
+    // ============================================
+    // COMPONENTS
+    // ============================================
+
+    function StatusBadge({ status }) {
+      const statusConfig = {
+        DRAFT: { bg: '#f3f4f6', text: '#6b7280', label: 'Draft' },
+        PENDING_SHIPMENT: { bg: '#fef3c7', text: '#92400e', label: 'Pending Ship' },
+        IN_TRANSIT: { bg: '#dbeafe', text: '#1e40af', label: 'In Transit' },
+        ACTIVE: { bg: '#d1fae5', text: '#065f46', label: 'Complete' },
+        VARIANCE_OPEN: { bg: '#fee2e2', text: '#991b1b', label: 'Variance' },
+        SHIPPED: { bg: '#d1fae5', text: '#065f46', label: 'Shipped' },
+        PROCESSING: { bg: '#fef3c7', text: '#92400e', label: 'Processing' },
+        VARIANCE_FLAGGED: { bg: '#fee2e2', text: '#991b1b', label: 'Issue' }
+      };
+      const config = statusConfig[status] || statusConfig.DRAFT;
+      
+      return (
+        <span style={{
+          padding: '4px 10px',
+          borderRadius: '9999px',
+          fontSize: '11px',
+          fontWeight: '600',
+          backgroundColor: config.bg,
+          color: config.text,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
+        }}>
+          {config.label}
+        </span>
+      );
+    }
+
+    function MetricCard({ label, value, subtext, trend, variant = 'default', large = false }) {
+      const variants = {
+        default: { bg: '#ffffff', border: '#e5e7eb' },
+        success: { bg: '#f0fdf4', border: '#86efac' },
+        warning: { bg: '#fffbeb', border: '#fcd34d' },
+        danger: { bg: '#fef2f2', border: '#fca5a5' },
+        info: { bg: '#eff6ff', border: '#93c5fd' }
+      };
+      const v = variants[variant];
+      
+      return (
+        <div style={{
+          backgroundColor: v.bg,
+          border: `1px solid ${v.border}`,
+          borderRadius: '12px',
+          padding: large ? '24px' : '20px',
+          flex: 1,
+          minWidth: large ? '200px' : '140px'
+        }}>
+          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {label}
+          </div>
+          <div style={{ fontSize: large ? '32px' : '24px', fontWeight: '700', color: '#111827', marginBottom: '4px', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            {value}
+            {trend && (
+              <span style={{ 
+                fontSize: '14px', 
+                fontWeight: '500',
+                color: trend > 0 ? '#059669' : trend < 0 ? '#dc2626' : '#6b7280'
+              }}>
+                {trend > 0 ? '↑' : trend < 0 ? '↓' : '→'} {Math.abs(trend)}%
+              </span>
+            )}
+          </div>
+          {subtext && (
+            <div style={{ fontSize: '12px', color: '#9ca3af' }}>{subtext}</div>
+          )}
+        </div>
+      );
+    }
+
+    function ProgressBar({ value, max, color = '#3b82f6', height = 8 }) {
+      const pct = Math.min((value / max) * 100, 100);
+      return (
+        <div style={{ backgroundColor: '#e5e7eb', borderRadius: height/2, height, width: '100%', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: color, height: '100%', width: `${pct}%`, borderRadius: height/2, transition: 'width 0.3s' }} />
+        </div>
+      );
+    }
+
+    function ComparisonBar({ before, after, label, format = 'number', invertColors = false }) {
+      const improvement = before > 0 ? ((before - after) / before) * 100 : 0;
+      const isImproved = invertColors ? after > before : after < before;
+      
+      return (
+        <div style={{ marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>{label}</span>
+            <span style={{ 
+              fontSize: '13px', 
+              fontWeight: '600',
+              color: isImproved ? '#059669' : '#dc2626'
+            }}>
+              {isImproved ? '↓' : '↑'} {Math.abs(improvement).toFixed(0)}%
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>Before</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ flex: 1, backgroundColor: '#fecaca', borderRadius: '4px', height: '24px', display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#991b1b' }}>
+                    {format === 'currency' ? formatCurrency(before) : format === 'hours' ? `${before} hrs` : before}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style={{ color: '#9ca3af', fontSize: '18px' }}>→</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>After</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ flex: 1, backgroundColor: '#bbf7d0', borderRadius: '4px', height: '24px', display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#166534' }}>
+                    {format === 'currency' ? formatCurrency(after) : format === 'hours' ? `${after} hrs` : after}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // RECONCILIATION DASHBOARD (ROI Proof)
+    // ============================================
+
+    function ReconciliationDashboard({ events }) {
+      const before = historicalData.beforeSightline;
+      const after = historicalData.withSightline;
+      
+      const annualizedSavings = {
+        laborHours: (before.hoursSpentReconciling - after.hoursSpentReconciling) * 4,
+        laborDollars: (before.hoursSpentReconciling - after.hoursSpentReconciling) * 4 * 85, // $85/hr for ops staff
+        recoveredVariances: (after.poVariancesValue - before.poVariancesValue) * 4,
+        fulfillmentSavings: (before.fulfillmentErrorsCost - after.fulfillmentErrorsCost) * 4,
+        chargebackSavings: (before.chargebacksLost - after.chargebacksLost) * 4,
+        totalValue: 0
+      };
+      annualizedSavings.totalValue = annualizedSavings.laborDollars + annualizedSavings.recoveredVariances + annualizedSavings.fulfillmentSavings + annualizedSavings.chargebackSavings;
+
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ marginBottom: '32px' }}>
+              <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0, marginBottom: '8px' }}>
+                Supply Chain Reconciliation ROI
+              </h1>
+              <div style={{ color: '#6b7280' }}>
+                Comparing Q4 2024 (manual process) vs Q1 2025 (with Sightline)
+              </div>
+            </div>
+
+            {/* Top-line ROI */}
+            <div style={{
+              background: 'linear-gradient(135deg, #065f46 0%, #047857 100%)',
+              borderRadius: '16px',
+              padding: '32px',
+              marginBottom: '32px',
+              color: 'white'
+            }}>
+              <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Projected Annual Value
+              </div>
+              <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '16px' }}>
+                {formatCurrency(annualizedSavings.totalValue)}
+              </div>
+              <div style={{ display: 'flex', gap: '24px', fontSize: '13px', flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ opacity: 0.7 }}>Labor savings:</span>{' '}
+                  <strong>{formatCurrency(annualizedSavings.laborDollars)}</strong>
+                </div>
+                <div>
+                  <span style={{ opacity: 0.7 }}>Variance recovery:</span>{' '}
+                  <strong>{formatCurrency(annualizedSavings.recoveredVariances)}</strong>
+                </div>
+                <div>
+                  <span style={{ opacity: 0.7 }}>Fulfillment accuracy:</span>{' '}
+                  <strong>{formatCurrency(annualizedSavings.fulfillmentSavings)}</strong>
+                </div>
+                <div>
+                  <span style={{ opacity: 0.7 }}>Chargeback reduction:</span>{' '}
+                  <strong>{formatCurrency(annualizedSavings.chargebackSavings)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Metric comparison cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '32px' }}>
+              <MetricCard
+                label="Hours Reconciling"
+                value={`${after.hoursSpentReconciling} hrs`}
+                subtext={`was ${before.hoursSpentReconciling} hrs/month`}
+                trend={-90}
+                variant="success"
+              />
+              <MetricCard
+                label="PO Variances Caught"
+                value={after.poVariancesDiscovered}
+                subtext={formatCurrency(after.poVariancesValue)}
+                trend={50}
+                variant="success"
+              />
+              <MetricCard
+                label="3PL Error Cost"
+                value={formatCurrency(after.fulfillmentErrorsCost)}
+                subtext={`was ${formatCurrency(before.fulfillmentErrorsCost)}`}
+                trend={-74}
+                variant="success"
+              />
+              <MetricCard
+                label="Avg Resolution Time"
+                value={`${after.avgResolutionDays} days`}
+                subtext={`was ${before.avgResolutionDays} days`}
+                trend={-82}
+                variant="success"
+              />
+            </div>
+
+            {/* Detailed comparisons */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+              {/* Before/After Comparisons */}
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                padding: '24px'
+              }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
+                  Before vs After Sightline
+                </h2>
+                
+                <ComparisonBar 
+                  before={before.hoursSpentReconciling} 
+                  after={after.hoursSpentReconciling} 
+                  label="Monthly Reconciliation Hours"
+                  format="hours"
+                />
+                <ComparisonBar 
+                  before={before.fulfillmentErrorsCost} 
+                  after={after.fulfillmentErrorsCost} 
+                  label="Fulfillment Error Costs"
+                  format="currency"
+                />
+                <ComparisonBar 
+                  before={before.avgResolutionDays} 
+                  after={after.avgResolutionDays} 
+                  label="Days to Resolve Disputes"
+                />
+                <ComparisonBar 
+                  before={before.chargebacksLost} 
+                  after={after.chargebacksLost} 
+                  label="Lost Chargebacks"
+                  format="currency"
+                />
+              </div>
+
+              {/* Recent Variance Activity */}
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                padding: '24px'
+              }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
+                  Active Variances
+                </h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* PO Variance */}
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fca5a5',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>
+                          ⚠ Quantity Short + Damaged
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#7f1d1d' }}>PO-2025-0847 • Luminaire Factory Co.</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>8 units short + 5 damaged (LMP-BRS-001, CHN-GLD-003)</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#991b1b' }}>{formatCurrency(1375.00)}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af' }}>3 days open</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fulfillment Variance */}
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fca5a5',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>
+                          ⚠ Wrong Item Shipped
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#7f1d1d' }}>FO-2025-12855 • Pacific Freight 3PL</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Sent CUS-VLV-010 instead of BLK-LIN-011</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#991b1b' }}>{formatCurrency(159.00)}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af' }}>1 day open</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resolved */}
+                  <div style={{
+                    backgroundColor: '#f0fdf4',
+                    border: '1px solid #86efac',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#166534', marginBottom: '4px' }}>
+                          ✓ Resolved: Late Shipment Credit
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#15803d' }}>PO-2025-0831 • Luminaire Factory Co.</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>2% credit applied for 5-day delay</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#166534' }}>{formatCurrency(890.00)}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af' }}>Recovered</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>Total Recovered (MTD)</span>
+                    <span style={{ fontSize: '20px', fontWeight: '700', color: '#059669' }}>{formatCurrency(8340.00)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // CASH FLOW / INVENTORY VIEW
+    // ============================================
+
+    function CashFlowDashboard({ events }) {
+      const totalOnOrder = purchaseOrders.reduce((sum, po) => sum + po.totalOrdered, 0);
+      const weeklyData = cashFlowData.weeks;
+      
+      const totalReceived = weeklyData.reduce((sum, w) => sum + (w.received || 0), 0);
+      const totalInvoiced = weeklyData.reduce((sum, w) => sum + (w.invoiced || 0), 0);
+      const totalRevenue = weeklyData.reduce((sum, w) => sum + (w.customerRevenue || 0), 0);
+
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            {/* Header */}
+            <div style={{ marginBottom: '32px' }}>
+              <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0, marginBottom: '8px' }}>
+                Cash Flow & Inventory Pipeline
+              </h1>
+              <div style={{ color: '#6b7280' }}>
+                February 2025 • PO to Customer Order Flow
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
+              <MetricCard
+                label="Open PO Value"
+                value={formatCurrency(totalOnOrder)}
+                subtext={`${purchaseOrders.length} active orders`}
+                variant="default"
+                large
+              />
+              <MetricCard
+                label="Received (MTD)"
+                value={formatCurrency(totalReceived)}
+                subtext="Inventory added"
+                variant="success"
+                large
+              />
+              <MetricCard
+                label="Invoiced to Pay"
+                value={formatCurrency(totalInvoiced)}
+                subtext="Vendor payables"
+                variant="warning"
+                large
+              />
+              <MetricCard
+                label="Customer Revenue"
+                value={formatCurrency(totalRevenue)}
+                subtext="Orders shipped (MTD)"
+                variant="info"
+                large
+              />
+            </div>
+
+            {/* Flow Visualization */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              padding: '24px',
+              marginBottom: '32px'
+            }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '24px', color: '#111827' }}>
+                Weekly Cash Flow
+              </h2>
+              
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280' }}>
+                  <span style={{ width: '12px', height: '12px', backgroundColor: '#f59e0b', borderRadius: '2px' }}></span>
+                  PO Committed
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280' }}>
+                  <span style={{ width: '12px', height: '12px', backgroundColor: '#6366f1', borderRadius: '2px' }}></span>
+                  Received
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280' }}>
+                  <span style={{ width: '12px', height: '12px', backgroundColor: '#ef4444', borderRadius: '2px' }}></span>
+                  Invoiced (Payable)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280' }}>
+                  <span style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }}></span>
+                  Customer Revenue
+                </div>
+              </div>
+
+              {/* Bar chart */}
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-end', height: '220px', paddingTop: '20px' }}>
+                {weeklyData.map((week, i) => {
+                  const maxVal = 70000;
+                  const commitHeight = (week.committed / maxVal) * 160;
+                  const receivedHeight = (week.received / maxVal) * 160;
+                  const invoicedHeight = (week.invoiced / maxVal) * 160;
+                  const revenueHeight = (week.customerRevenue / maxVal) * 160;
+                  
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ height: '160px', width: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: '3px' }}>
+                        <div style={{ width: '18px', height: `${commitHeight}px`, backgroundColor: '#f59e0b', borderRadius: '3px 3px 0 0', opacity: 0.8 }} title={`Committed: ${formatCurrency(week.committed)}`} />
+                        <div style={{ width: '18px', height: `${receivedHeight}px`, backgroundColor: '#6366f1', borderRadius: '3px 3px 0 0' }} title={`Received: ${formatCurrency(week.received)}`} />
+                        <div style={{ width: '18px', height: `${invoicedHeight}px`, backgroundColor: '#ef4444', borderRadius: '3px 3px 0 0' }} title={`Invoiced: ${formatCurrency(week.invoiced)}`} />
+                        <div style={{ width: '18px', height: `${revenueHeight}px`, backgroundColor: '#10b981', borderRadius: '3px 3px 0 0' }} title={`Revenue: ${formatCurrency(week.customerRevenue)}`} />
+                      </div>
+                      <div style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280', textAlign: 'center' }}>
+                        {week.week}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Two column layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+              {/* Purchase Orders */}
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                padding: '24px'
+              }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+                  Purchase Orders
+                </h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {purchaseOrders.map(po => {
+                    const received = po.items.reduce((sum, i) => sum + (i.qtyReceived || 0), 0);
+                    const ordered = po.items.reduce((sum, i) => sum + i.qtyOrdered, 0);
+                    const pctComplete = ordered > 0 ? received / ordered : 0;
+                    
+                    return (
+                      <div key={po.id} style={{ 
+                        padding: '16px', 
+                        backgroundColor: '#f9fafb', 
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <div>
+                            <div style={{ fontWeight: '600', color: '#111827', marginBottom: '2px' }}>{po.vendor}</div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>{po.id} • {po.items.length} line items</div>
+                          </div>
+                          <StatusBadge status={po.status} />
+                        </div>
+                        <div style={{ marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                            <span style={{ color: '#6b7280' }}>Receiving Progress</span>
+                            <span style={{ color: '#374151', fontWeight: '500' }}>{received} / {ordered} units</span>
+                          </div>
+                          <ProgressBar value={pctComplete * 100} max={100} color={po.status === 'VARIANCE_OPEN' ? '#f59e0b' : '#10b981'} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9ca3af' }}>
+                          <span>{formatCurrency(po.totalOrdered)}</span>
+                          <span>{po.receivedDate ? `Received ${formatDate(po.receivedDate)}` : `ETA ${formatDate(po.expectedDate)}`}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recent Customer Orders */}
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                padding: '24px'
+              }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>
+                  Recent Customer Orders
+                </h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {fulfillmentOrders.map(order => (
+                    <div key={order.id} style={{ 
+                      padding: '16px', 
+                      backgroundColor: order.status === 'VARIANCE_FLAGGED' ? '#fef2f2' : '#f9fafb', 
+                      borderRadius: '8px',
+                      border: `1px solid ${order.status === 'VARIANCE_FLAGGED' ? '#fca5a5' : '#e5e7eb'}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                        <div>
+                          <div style={{ fontWeight: '600', color: '#111827', marginBottom: '2px', fontSize: '14px' }}>{order.customerName}</div>
+                          <div style={{ fontSize: '12px', color: '#6b7280' }}>{order.id}</div>
+                        </div>
+                        <StatusBadge status={order.status} />
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+                        {order.items.map(i => `${i.qty}× ${i.name}`).join(', ')}
+                      </div>
+                      {order.variance && (
+                        <div style={{ fontSize: '12px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '8px', borderRadius: '4px', marginBottom: '8px' }}>
+                          ⚠ {order.variance.reported}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ color: '#374151', fontWeight: '600' }}>{formatCurrency(order.total)}</span>
+                        <span style={{ color: '#9ca3af' }}>{order.tracking ? `Tracking: ${order.tracking}` : 'Processing'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // BUYER (BRAND) DASHBOARD
+    // ============================================
+
+    function BuyerDashboard({ events, onAddEvent }) {
+      const poEvents = events.filter(e => e.poId === 'PO-2025-0847');
+      const po = purchaseOrders[0];
+      const openVariances = poEvents.filter(e => e.type === 'VARIANCE_FLAGGED');
+      
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  Purchase Order Detail
+                </h1>
+                <StatusBadge status={po.status} />
+              </div>
+              <div style={{ color: '#6b7280' }}>
+                {po.id} • Brand View: <strong>Lumina Home & Co.</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+              <MetricCard label="PO Value" value={formatCurrency(po.totalOrdered)} subtext={`${po.items.length} line items`} />
+              <MetricCard label="Units Ordered" value={formatNumber(po.items.reduce((s,i) => s + i.qtyOrdered, 0))} subtext="Total quantity" />
+              <MetricCard label="Units Received" value={formatNumber(po.items.reduce((s,i) => s + (i.qtyReceived || 0), 0))} subtext={`${po.items.reduce((s,i) => s + (i.qtyDamaged || 0), 0)} damaged`} variant={po.status === 'VARIANCE_OPEN' ? 'warning' : 'success'} />
+              <MetricCard label="Open Variances" value={openVariances.length} subtext={formatCurrency(1375)} variant="danger" />
+            </div>
+
+            {/* Variance Alert */}
+            {openVariances.length > 0 && (
+              <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '12px', padding: '20px', marginBottom: '32px' }}>
+                <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠</span> Open Variances Requiring Resolution
+                </div>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '250px', backgroundColor: 'white', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#991b1b', marginBottom: '4px' }}>Quantity Short</div>
+                    <div style={{ fontSize: '12px', color: '#7f1d1d' }}>LMP-BRS-001: 8 units missing</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#991b1b', marginTop: '8px' }}>{formatCurrency(680)}</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: '250px', backgroundColor: 'white', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#991b1b', marginBottom: '4px' }}>Damaged Goods</div>
+                    <div style={{ fontSize: '12px', color: '#7f1d1d' }}>3× LMP-BRS-001, 2× CHN-GLD-003</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#991b1b', marginTop: '8px' }}>{formatCurrency(695)}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => onAddEvent({ type: 'VARIANCE_RESOLVED', party: 'buyer', partyName: 'Lumina Home & Co.', poId: po.id, data: { poId: po.id, resolution: 'CREDIT_ISSUED', amount: 1375, note: 'Vendor credit memo #CM-4421' } })} style={{ backgroundColor: '#dc2626', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '14px' }}>
+                    Mark All Resolved (Credit Received)
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+              {/* Line Items */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Line Items</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {po.items.map(item => {
+                    const hasVariance = item.qtyReceived < item.qtyOrdered || item.qtyDamaged > 0;
+                    return (
+                      <div key={item.sku} style={{ 
+                        padding: '12px', 
+                        backgroundColor: hasVariance ? '#fef2f2' : '#f9fafb', 
+                        borderRadius: '8px',
+                        border: `1px solid ${hasVariance ? '#fca5a5' : '#e5e7eb'}`
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <div>
+                            <div style={{ fontWeight: '500', color: '#111827', fontSize: '14px' }}>{item.name}</div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>{item.sku}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontWeight: '600', color: '#111827' }}>{formatCurrency(item.unitCost * item.qtyOrdered)}</div>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatCurrency(item.unitCost)}/unit</div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+                          <span style={{ color: '#6b7280' }}>Ordered: <strong style={{ color: '#111827' }}>{item.qtyOrdered}</strong></span>
+                          <span style={{ color: item.qtyReceived < item.qtyOrdered ? '#dc2626' : '#059669' }}>Received: <strong>{item.qtyReceived ?? '—'}</strong></span>
+                          {item.qtyDamaged > 0 && <span style={{ color: '#dc2626' }}>Damaged: <strong>{item.qtyDamaged}</strong></span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Event Log */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px', maxHeight: '600px', overflow: 'auto' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Shared Event Log</h2>
+                <EventLog events={poEvents} perspective="buyer" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // SELLER (VENDOR) DASHBOARD
+    // ============================================
+
+    function SellerDashboard({ events, onAddEvent }) {
+      const poEvents = events.filter(e => e.poId === 'PO-2025-0847');
+      const po = purchaseOrders[0];
+      const openVariances = poEvents.filter(e => e.type === 'VARIANCE_FLAGGED');
+      
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>Sales Order Detail</h1>
+                <StatusBadge status={po.status} />
+              </div>
+              <div style={{ color: '#6b7280' }}>{po.id} • Vendor View: <strong>Luminaire Factory Co.</strong></div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+              <MetricCard label="Order Value" value={formatCurrency(po.totalOrdered)} subtext="Customer: Lumina Home & Co." />
+              <MetricCard label="Units Shipped" value={formatNumber(617)} subtext="47 cartons" variant="success" />
+              <MetricCard label="Delivered" value={formatDate(po.receivedDate)} subtext="3 days late" variant="warning" />
+              <MetricCard label="Claims Filed" value={openVariances.length} subtext={formatCurrency(1375)} variant="danger" />
+            </div>
+
+            {/* Buyer Claims */}
+            {openVariances.length > 0 && (
+              <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '12px', padding: '20px', marginBottom: '32px' }}>
+                <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '12px' }}>⚠ Customer Claims Pending Response</div>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '250px', backgroundColor: 'white', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#92400e', marginBottom: '4px' }}>Quantity Short</div>
+                    <div style={{ fontSize: '12px', color: '#78350f' }}>LMP-BRS-001: Customer claims 8 units missing</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginTop: '8px' }}>{formatCurrency(680)} at risk</div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: '250px', backgroundColor: 'white', borderRadius: '8px', padding: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#92400e', marginBottom: '4px' }}>Damaged Goods</div>
+                    <div style={{ fontSize: '12px', color: '#78350f' }}>5 units reported damaged on arrival</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e', marginTop: '8px' }}>{formatCurrency(695)} at risk</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => onAddEvent({ type: 'VARIANCE_RESOLVED', party: 'seller', partyName: 'Luminaire Factory Co.', poId: po.id, data: { poId: po.id, resolution: 'CREDIT_ISSUED', amount: 1375, creditMemo: 'CM-4421' } })} style={{ backgroundColor: '#f59e0b', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>Issue Credit Memo</button>
+                  <button style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>Request Photos</button>
+                  <button style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>Dispute Claim</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+              {/* Order Summary */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Order Summary</h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {[
+                    ['Customer', 'Lumina Home & Co.'],
+                    ['Order Date', formatDate(po.orderDate)],
+                    ['Ship Date', 'Feb 12, 2025'],
+                    ['Delivery Date', formatDate(po.receivedDate)],
+                    ['Carrier', 'Maersk'],
+                    ['Container', 'MSKU1234567'],
+                    ['Payment Terms', 'Net 30'],
+                    ['Invoice Status', 'Pending Variance Resolution']
+                  ].map(([label, value]) => (
+                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>{label}</span>
+                      <span style={{ color: '#111827', fontSize: '14px', fontWeight: '500' }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Event Log */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px', maxHeight: '500px', overflow: 'auto' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Shared Event Log</h2>
+                <EventLog events={poEvents} perspective="seller" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // 3PL DASHBOARD
+    // ============================================
+
+    function ThreePLDashboard({ events, onAddEvent }) {
+      const allEvents = events.filter(e => e.poId === 'PO-2025-0847' || e.orderId);
+      
+      return (
+        <div style={{ padding: '32px', backgroundColor: '#f0fdf4', minHeight: '100vh' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: '#111827', margin: 0 }}>Fulfillment Operations</h1>
+              </div>
+              <div style={{ color: '#6b7280' }}>
+                3PL View: <strong>Pacific Freight 3PL</strong> • Ontario, CA
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', flexWrap: 'wrap' }}>
+              <MetricCard label="Inbound Received" value="2" subtext="POs this week" variant="info" />
+              <MetricCard label="Units Put Away" value="1,167" subtext="Across 59 cartons" variant="success" />
+              <MetricCard label="Orders Shipped" value="47" subtext="Today" variant="success" />
+              <MetricCard label="Open Issues" value="1" subtext="Wrong item shipped" variant="danger" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+              {/* Inbound */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Recent Inbound</h2>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ padding: '16px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#111827' }}>PO-2025-0847</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>Luminaire Factory Co.</div>
+                      </div>
+                      <StatusBadge status="VARIANCE_OPEN" />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#92400e' }}>
+                      ⚠ Receiving variance: 8 short + 5 damaged
+                    </div>
+                  </div>
+                  
+                  <div style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', color: '#111827' }}>PO-2025-0852</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>HomeStyle Textiles</div>
+                      </div>
+                      <StatusBadge status="ACTIVE" />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#166534' }}>
+                      ✓ Complete - 650 units put away
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Outbound Issues */}
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px' }}>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Outbound Issues</h2>
+                
+                <div style={{ padding: '16px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fca5a5' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '4px' }}>⚠ Wrong Item Shipped</div>
+                      <div style={{ fontSize: '12px', color: '#7f1d1d' }}>FO-2025-12855 • Jennifer Adams</div>
+                    </div>
+                    <StatusBadge status="VARIANCE_FLAGGED" />
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>
+                    Picker: T. Williams • Allocated from BIN-A4-23<br/>
+                    Expected: BLK-LIN-011 (Linen Duvet)<br/>
+                    Shipped: CUS-VLV-010 (Velvet Pillow)
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => onAddEvent({ type: 'VARIANCE_RESOLVED', party: '3pl', partyName: 'Pacific Freight 3PL', orderId: 'FO-2025-12855', data: { orderId: 'FO-2025-12855', resolution: 'RESHIP', newTracking: '794644790445', note: 'Correct item reshipped, return label sent' } })} style={{ backgroundColor: '#dc2626', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '12px' }}>
+                      Confirm Reship Sent
+                    </button>
+                    <button style={{ backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '12px' }}>
+                      View Pick Ticket
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Event Log */}
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px', marginTop: '32px', maxHeight: '400px', overflow: 'auto' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '20px', color: '#111827' }}>Activity Log</h2>
+              <EventLog events={allEvents} perspective="3pl" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // EVENT LOG COMPONENT
+    // ============================================
+
+    function EventLog({ events, perspective }) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {events.slice().reverse().map(event => {
+            const style = eventStyles[event.type] || { bg: '#f3f4f6', border: '#9ca3af', icon: '•' };
+            const isOwnEvent = event.party === perspective;
+            
+            return (
+              <div key={event.id} style={{ backgroundColor: style.bg, borderLeft: `4px solid ${style.border}`, borderRadius: '8px', padding: '16px', opacity: isOwnEvent ? 1 : 0.85 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>{style.icon}</span>
+                    <span style={{ fontWeight: '600', fontSize: '14px', color: '#1f2937' }}>{event.type.replace(/_/g, ' ')}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(event.timestamp)}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>{formatTime(event.timestamp)}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '13px', color: '#4b5563', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: '500' }}>{event.partyName}</span>{isOwnEvent ? ' (you)' : ''}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace', backgroundColor: 'rgba(255,255,255,0.5)', padding: '8px', borderRadius: '4px' }}>
+                  {Object.entries(event.data).slice(0, 6).map(([key, value]) => (
+                    <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
+                      <span style={{ color: '#9ca3af' }}>{key}:</span>
+                      <span style={{ color: '#374151', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {typeof value === 'number' && (key.toLowerCase().includes('value') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('total'))
+                          ? formatCurrency(value)
+                          : typeof value === 'object' 
+                          ? JSON.stringify(value).slice(0, 30) + '...'
+                          : String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: event.verified ? '#10b981' : '#f59e0b', display: 'inline-block' }} />
+                  <span style={{ fontSize: '11px', color: '#6b7280', fontFamily: 'monospace' }}>{event.signature}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ============================================
+    // MAIN APP
+    // ============================================
+
+    function SightlinePrototype() {
+      const [view, setView] = useState('reconciliation');
+      const [events, setEvents] = useState(initialEvents);
+
+      const addEvent = (eventData) => {
+        const newEvent = {
+          id: `evt_${String(events.length + 1).padStart(3, '0')}`,
+          timestamp: new Date().toISOString(),
+          ...eventData,
+          signature: `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`,
+          verified: true
+        };
+        setEvents([...events, newEvent]);
+      };
+
+      const views = [
+        { id: 'reconciliation', label: 'Reconciliation ROI', color: '#059669' },
+        { id: 'cashflow', label: 'Cash Flow', color: '#6366f1' },
+        { id: 'buyer', label: 'Brand View', color: '#3b82f6' },
+        { id: 'seller', label: 'Vendor View', color: '#f59e0b' },
+        { id: '3pl', label: '3PL View', color: '#10b981' }
+      ];
+
+      return (
+        <div>
+          {/* Navigation Header */}
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            backgroundColor: '#1f2937',
+            padding: '12px 32px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: 'white', fontWeight: '700', fontSize: '18px' }}>◈ Sightline</span>
+              <span style={{ color: '#9ca3af', fontSize: '13px' }}>Ecommerce Supply Chain</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '4px', backgroundColor: '#374151', borderRadius: '8px', padding: '4px' }}>
+              {views.map(v => (
+                <button
+                  key={v.id}
+                  onClick={() => setView(v.id)}
+                  style={{
+                    backgroundColor: view === v.id ? v.color : 'transparent',
+                    color: view === v.id ? 'white' : '#9ca3af',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '12px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ color: '#6b7280', fontSize: '12px' }}>
+              {events.length} events • {purchaseOrders.length} POs • {fulfillmentOrders.length} orders
+            </div>
+          </div>
+
+          {/* Dashboard Views */}
+          {view === 'reconciliation' && <ReconciliationDashboard events={events} />}
+          {view === 'cashflow' && <CashFlowDashboard events={events} />}
+          {view === 'buyer' && <BuyerDashboard events={events} onAddEvent={addEvent} />}
+          {view === 'seller' && <SellerDashboard events={events} onAddEvent={addEvent} />}
+          {view === '3pl' && <ThreePLDashboard events={events} onAddEvent={addEvent} />}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<SightlinePrototype />, document.getElementById('root'));
+  </script>
+</body>
+</html>

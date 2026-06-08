@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Financial DVR – iPhone Demo</title>
+  <style>
+    :root{
+      --bg:#0f1220;
+      --panel:#161a2e;
+      --border:#252a45;
+      --muted:#9aa0c3;
+      --okbg:#163d2e; --ok:#6cf2c2;
+      --failbg:#3d1f28; --fail:#ff8c9d;
+      --infobg:#1e2545; --info:#9aa0c3;
+      --shadow: 0 8px 24px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+      margin:0; background:var(--bg); color:#e6e8ef;
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    header{
+      padding:16px 16px 12px;
+      background:linear-gradient(180deg,#161a2e, #12152a);
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:10;
+    }
+    header h1{margin:0; font-size:18px; letter-spacing:.2px}
+    header p{margin:6px 0 0; font-size:13px; color:var(--muted)}
+    .container{padding:14px 14px 28px; max-width:760px; margin:0 auto;}
+
+    .script{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:12px 12px;
+      box-shadow:var(--shadow);
+      margin:14px 0 12px;
+    }
+    .script .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em}
+    .script .line{margin-top:6px; font-size:14px; line-height:1.35}
+
+    .controls{
+      display:flex; gap:10px; align-items:center;
+      margin:10px 0 14px;
+    }
+    .btn{
+      flex:1;
+      appearance:none; border:1px solid var(--border);
+      background:var(--panel);
+      color:#e6e8ef;
+      padding:12px 12px;
+      border-radius:14px;
+      font-size:14px;
+      font-weight:600;
+      box-shadow:var(--shadow);
+      touch-action:manipulation;
+    }
+    .btn.primary{
+      border-color:rgba(108,242,194,.45);
+      box-shadow:0 8px 24px rgba(108,242,194,.12);
+    }
+    .btn:active{transform:scale(.99)}
+
+    .progressRow{
+      display:flex; justify-content:space-between; align-items:center;
+      color:var(--muted);
+      font-size:12px;
+      margin-bottom:10px;
+    }
+    .bar{
+      height:8px; border-radius:999px;
+      background:#0c0f1c; border:1px solid var(--border);
+      overflow:hidden; margin-top:8px;
+    }
+    .bar > div{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg, rgba(108,242,194,.9), rgba(122,162,255,.9));
+      border-radius:999px;
+      transition:width .2s ease;
+    }
+
+    .hint{
+      font-size:12px; color:var(--muted);
+      margin:8px 2px 14px;
+    }
+
+    .cardWrap{
+      position:relative;
+      overflow:hidden;
+      border-radius:16px;
+    }
+    .eventCard{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      box-shadow:var(--shadow);
+      transform:translateX(0);
+      transition:transform .18s ease, border-color .18s ease;
+      will-change:transform;
+      touch-action:pan-y;
+    }
+    .eventCard.active{
+      border-color:rgba(108,242,194,.55);
+      box-shadow:0 10px 28px rgba(108,242,194,.10);
+    }
+    .eventCard h3{margin:0 0 6px; font-size:15px}
+    .meta{font-size:12px; color:var(--muted); margin-bottom:10px}
+    .belief{font-size:14px; line-height:1.35}
+    .section{margin-top:12px; font-size:13px}
+    .section .label{font-weight:700; margin-right:6px}
+
+    .pills{margin-top:10px}
+    .pill{
+      display:inline-block; padding:2px 10px;
+      border-radius:999px; font-size:11px;
+      margin-right:6px; border:1px solid transparent;
+    }
+    .pill.ok{background:var(--okbg); color:var(--ok); border-color:rgba(108,242,194,.25)}
+    .pill.fail{background:var(--failbg); color:var(--fail); border-color:rgba(255,140,157,.25)}
+    .pill.info{background:var(--infobg); color:var(--info); border-color:rgba(154,160,195,.25)}
+
+    details{
+      margin-top:10px;
+      border-top:1px solid rgba(255,255,255,.06);
+      padding-top:10px;
+    }
+    summary{
+      list-style:none;
+      cursor:pointer;
+      font-size:13px;
+      color:#cbd0f2;
+      user-select:none;
+    }
+    summary::-webkit-details-marker{display:none}
+    summary:after{
+      content:"›";
+      float:right;
+      transform:rotate(90deg);
+      transition:transform .12s ease;
+      color:var(--muted);
+    }
+    details[open] summary:after{transform:rotate(-90deg)}
+    .kv{margin-top:8px; color:#d9dcf5; font-size:13px; line-height:1.35}
+    .kv .k{color:var(--muted); font-weight:700}
+
+    footer{
+      text-align:center;
+      font-size:12px;
+      color:#7f86b2;
+      padding:24px 0 36px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Financial DVR</h1>
+  <p>Swipe through belief → evidence → invariant → payment action</p>
+</header>
+
+<div class="container">
+
+  <div class="script">
+    <div class="label">One-sentence demo script</div>
+    <div class="line" id="scriptLine">Loading…</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="prevBtn">Prev</button>
+    <button class="btn primary" id="replayBtn">Replay</button>
+    <button class="btn" id="nextBtn">Next</button>
+  </div>
+
+  <div class="progressRow">
+    <div id="stepText">Step</div>
+    <div id="statusText"></div>
+  </div>
+  <div class="bar"><div id="barFill"></div></div>
+
+  <div class="hint">Tip: swipe the card left/right. Tap "Replay" to auto-walk the proof chain.</div>
+
+  <div class="cardWrap">
+    <div id="card" class="eventCard active"></div>
+  </div>
+
+</div>
+
+<footer>
+  Payment is a state transition gated by invariants.
+</footer>
+
+<script>
+  const timeline = [
+    {
+      t: "2026-01-02 10:00",
+      title: "Initial Belief Created",
+      belief: "PO123 expects 500 units @ $25.",
+      evidence: ["PO.pdf"],
+      policy: null,
+      status: "info",
+      say: "We start with a belief—what we think is true—tied to evidence, not trust."
+    },
+    {
+      t: "2026-01-05 14:12",
+      title: "Shipment Recorded",
+      belief: "Supplier claims 500 units shipped.",
+      evidence: ["ASN.json"],
+      policy: null,
+      status: "info",
+      say: "Now a new event updates the belief: shipment asserted, evidence attached."
+    },
+    {
+      t: "2026-01-08 09:03",
+      title: "Receipt Logged",
+      belief: "Warehouse receives 480 units.",
+      evidence: ["WMS_receipt.csv"],
+      policy: {
+        invariant: "shipped = received + in_transit + damaged + variance",
+        result: "FAIL",
+        action: "BLOCK PAYMENT"
+      },
+      status: "fail",
+      say: "Receipt conflicts with shipment, so the invariant fails and the system blocks payment."
+    },
+    {
+      t: "2026-01-10 16:40",
+      title: "Variance Attributed",
+      belief: "20 units attributed to carrier loss (claim filed).",
+      evidence: ["Carrier_claim.pdf"],
+      policy: {
+        invariant: "shipped = received + in_transit + damaged + variance",
+        result: "PASS",
+        action: "RELEASE PAYMENT (480 × $25)"
+      },
+      status: "ok",
+      say: "Once the missing units are attributed, the invariant passes and payment becomes eligible."
+    },
+    {
+      t: "2026-01-10 16:41",
+      title: "Payment State Transition",
+      belief: "Payable authorized for $12,000 and moves to 'Ready to Send'.",
+      evidence: ["PolicyEngine.hash"],
+      policy: {
+        invariant: "payment_allowed == true",
+        result: "PASS",
+        action: "FUNDS RELEASED"
+      },
+      status: "ok",
+      say: "Finally, money moves only after the proof chain reaches a verified, invariant-safe state."
+    }
+  ];
+
+  let idx = 0;
+  let replayTimer = null;
+
+  const card = document.getElementById("card");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const replayBtn = document.getElementById("replayBtn");
+  const stepText = document.getElementById("stepText");
+  const statusText = document.getElementById("statusText");
+  const barFill = document.getElementById("barFill");
+  const scriptLine = document.getElementById("scriptLine");
+
+  function pillClass(status){
+    if(status === "ok") return "ok";
+    if(status === "fail") return "fail";
+    return "info";
+  }
+
+  function statusLabel(status){
+    if(status === "ok") return "PASS";
+    if(status === "fail") return "FAIL";
+    return "INFO";
+  }
+
+  function render(i){
+    const e = timeline[i];
+    idx = i;
+
+    // progress UI
+    stepText.textContent = `Step ${i+1} of ${timeline.length}`;
+    statusText.innerHTML = `<span class="pill ${pillClass(e.status)}">${statusLabel(e.status)}</span>`;
+    barFill.style.width = `${((i) / (timeline.length-1)) * 100}%`;
+
+    // script line
+    scriptLine.textContent = e.say;
+
+    // card contents
+    const pills = e.policy
+      ? `<span class="pill ${pillClass(e.status)}">${e.policy.result}</span>
+         <span class="pill info">POLICY CHECK</span>`
+      : `<span class="pill info">NO POLICY CHECK</span>`;
+
+    const policyBlock = e.policy ? `
+      <details>
+        <summary>Policy & invariant</summary>
+        <div class="kv"><span class="k">Invariant:</span> ${e.policy.invariant}</div>
+        <div class="kv"><span class="k">Action:</span> ${e.policy.action}</div>
+      </details>
+    ` : `
+      <details>
+        <summary>Policy & invariant</summary>
+        <div class="kv"><span class="k">Invariant:</span> (none evaluated at this step)</div>
+        <div class="kv"><span class="k">Action:</span> (no payment decision yet)</div>
+      </details>
+    `;
+
+    card.classList.add("active");
+    card.innerHTML = `
+      <h3>${e.title}</h3>
+      <div class="meta">${e.t}</div>
+      <div class="belief">${e.belief}</div>
+
+      <div class="pills">${pills}</div>
+
+      <details>
+        <summary>Evidence</summary>
+        <div class="kv"><span class="k">Attached:</span> ${e.evidence.join(", ")}</div>
+        <div class="kv"><span class="k">Source:</span> (sample) ERP/WMS/Carrier/Policy Engine</div>
+      </details>
+
+      ${policyBlock}
+    `;
+  }
+
+  function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+
+  function go(delta){
+    stopReplay();
+    const next = clamp(idx + delta, 0, timeline.length-1);
+    animateSlide(delta);
+    setTimeout(()=>render(next), 80);
+  }
+
+  function animateSlide(delta){
+    // quick nudge animation so swipe/next feels physical
+    card.style.transform = `translateX(${delta>0 ? "-10px" : "10px"})`;
+    setTimeout(()=>{ card.style.transform = "translateX(0)"; }, 120);
+  }
+
+  function stopReplay(){
+    if(replayTimer){
+      clearInterval(replayTimer);
+      replayTimer = null;
+      replayBtn.textContent = "Replay";
+    }
+  }
+
+  function startReplay(){
+    stopReplay();
+    // reset and run forward
+    render(0);
+    replayBtn.textContent = "Stop";
+    replayTimer = setInterval(()=>{
+      if(idx >= timeline.length - 1){
+        stopReplay();
+        return;
+      }
+      go(1);
+    }, 1300);
+  }
+
+  // Buttons
+  prevBtn.addEventListener("click", ()=>go(-1));
+  nextBtn.addEventListener("click", ()=>go(1));
+  replayBtn.addEventListener("click", ()=>{
+    if(replayTimer) stopReplay();
+    else startReplay();
+  });
+
+  // Touch / swipe on the card
+  let startX = 0, startY = 0, tracking = false;
+
+  card.addEventListener("touchstart", (ev)=>{
+    if(!ev.touches || ev.touches.length !== 1) return;
+    tracking = true;
+    startX = ev.touches[0].clientX;
+    startY = ev.touches[0].clientY;
+  }, {passive:true});
+
+  card.addEventListener("touchend", (ev)=>{
+    if(!tracking) return;
+    tracking = false;
+    const touch = (ev.changedTouches && ev.changedTouches[0]) ? ev.changedTouches[0] : null;
+    if(!touch) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    // horizontal swipe threshold; ignore if mostly vertical
+    if(Math.abs(dx) < 40) return;
+    if(Math.abs(dy) > 80) return;
+
+    if(dx < 0) go(1);  // swipe left => next
+    else go(-1);       // swipe right => prev
+  }, {passive:true});
+
+  // Initial render
+  render(0);
+</script>
+
+</body>
+</html>

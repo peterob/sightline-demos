@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SightlinePrototype</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+const { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } = window.Recharts || {};
+
+
+
+
+/*
+ * SIGHTLINE - Complete Clickable Prototype
+ * =========================================
+ * All 8 screens in one interactive prototype:
+ * 1. Desktop Dashboard
+ * 2. Mobile View  
+ * 3. Onboarding Flow (5 steps)
+ * 4. Anomaly Detail
+ * 5. Document Linking
+ * 6. Budget Detail
+ * 7. Settings
+ * 8. User Management
+ */
+
+// ============================================
+// SHARED DATA
+// ============================================
+
+const cashFlowData = [
+  { month: 'Jul', operating: 1850000, reserves: 4200000 },
+  { month: 'Aug', operating: 1720000, reserves: 4150000 },
+  { month: 'Sep', operating: 1680000, reserves: 4100000 },
+  { month: 'Oct', operating: 1890000, reserves: 4050000 },
+  { month: 'Nov', operating: 1950000, reserves: 3850000 },
+  { month: 'Dec', operating: 2100000, reserves: 3710000 },
+];
+
+const transactions = [
+  { id: 1, date: 'Dec 9', fullDate: 'December 9, 2024', vendor: 'Toro Equipment Co.', amount: -47500, flagged: false, hasDoc: true },
+  { id: 2, date: 'Dec 9', fullDate: 'December 9, 2024', vendor: 'ADP Payroll', amount: -198450, flagged: false, hasDoc: true },
+  { id: 3, date: 'Dec 8', fullDate: 'December 8, 2024', vendor: 'Sysco Foods', amount: -34200, flagged: false, hasDoc: true },
+  { id: 4, date: 'Dec 8', fullDate: 'December 8, 2024', vendor: 'Premium Landscaping LLC', amount: -28000, flagged: true, hasDoc: false },
+  { id: 5, date: 'Dec 7', fullDate: 'December 7, 2024', vendor: 'Member Dues', amount: 425000, flagged: false, hasDoc: false },
+];
+
+const budgetData = [
+  { category: 'Payroll & Benefits', budget: 2400000, actual: 2380000, variance: -20000, icon: '👥', subs: [
+    { name: 'Golf Operations', budget: 680000, actual: 695000 },
+    { name: 'F&B Staff', budget: 820000, actual: 805000 },
+    { name: 'Administrative', budget: 420000, actual: 410000 },
+  ]},
+  { category: 'Food & Beverage', budget: 1800000, actual: 1920000, variance: 120000, icon: '🍽️', subs: [
+    { name: 'Food Cost', budget: 720000, actual: 780000 },
+    { name: 'Beverage', budget: 380000, actual: 395000 },
+  ]},
+  { category: 'Golf Course', budget: 950000, actual: 980000, variance: 30000, icon: '⛳', subs: [
+    { name: 'Equipment', budget: 280000, actual: 295000 },
+    { name: 'Chemicals', budget: 180000, actual: 175000 },
+  ]},
+  { category: 'Utilities', budget: 420000, actual: 485000, variance: 65000, icon: '⚡', subs: [
+    { name: 'Electric', budget: 240000, actual: 285000 },
+    { name: 'Water', budget: 95000, actual: 105000 },
+  ]},
+  { category: 'Insurance', budget: 380000, actual: 462000, variance: 82000, icon: '🛡️', subs: [
+    { name: 'Property', budget: 180000, actual: 225000 },
+    { name: 'Liability', budget: 120000, actual: 142000 },
+  ]},
+];
+
+const users = [
+  { id: 1, name: 'James Wilson', email: 'jwilson@palmharbor.club', role: 'Admin', status: 'active', lastSeen: '2h ago', initials: 'JW' },
+  { id: 2, name: 'Margaret Chen', email: 'mchen@email.com', role: 'Treasurer', status: 'active', lastSeen: '1d ago', initials: 'MC' },
+  { id: 3, name: 'Robert Patterson', email: 'rpatterson@email.com', role: 'Board', status: 'active', lastSeen: '3d ago', initials: 'RP' },
+  { id: 4, name: 'Susan Miller', email: 'smiller@email.com', role: 'Board', status: 'pending', lastSeen: 'Pending', initials: 'SM' },
+];
+
+const documents = [
+  { id: 1, name: 'Hartford_Policy.pdf', type: 'Contract', size: '2.4 MB' },
+  { id: 2, name: 'Sysco_Invoice.pdf', type: 'Invoice', size: '156 KB' },
+  { id: 3, name: 'Toro_PO.pdf', type: 'Invoice', size: '89 KB' },
+  { id: 4, name: 'Q3_Audit.pdf', type: 'Audit', size: '4.1 MB' },
+];
+
+const fmt = (v) => Math.abs(v) >= 1e6 ? `$${(v/1e6).toFixed(2)}M` : Math.abs(v) >= 1e3 ? `$${(v/1e3).toFixed(0)}K` : `$${v}`;
+
+// ============================================
+// MAIN APP
+// ============================================
+
+function SightlinePrototype() {
+  const [screen, setScreen] = useState('overview');
+  const [onboardStep, setOnboardStep] = useState(0);
+  const [expandedBudget, setExpandedBudget] = useState(null);
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [mobileTab, setMobileTab] = useState('home');
+  const [notifs, setNotifs] = useState({ anomaly: true, weekly: true, budget: false, large: true });
+
+  const nav = (s) => { setScreen(s); setOnboardStep(0); };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-stone-100 to-stone-200">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;500;600;700&display=swap');
+        * { font-family: 'DM Sans', sans-serif; }
+        .font-display { font-family: 'Fraunces', serif; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); }
+        .card { background: white; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04); }
+        .btn-primary { background: linear-gradient(135deg, #292524, #44403c); color: white; }
+        .severity-high { background: #fef2f2; border-left: 3px solid #ef4444; }
+        .severity-medium { background: #fffbeb; border-left: 3px solid #f59e0b; }
+        .severity-low { background: #f0fdf4; border-left: 3px solid #22c55e; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+        .mobile-frame { width: 375px; height: 812px; border-radius: 44px; border: 8px solid #1a1a1a; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+      `}</style>
+
+      {/* NAV */}
+      <nav className="glass sticky top-0 z-50 border-b border-stone-200/50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-stone-800 to-stone-600 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <span className="font-display text-xl font-semibold text-stone-800">Sightline</span>
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">PROTOTYPE</span>
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { id: 'overview', label: 'Dashboard', icon: '💻' },
+              { id: 'mobile', label: 'Mobile', icon: '📱' },
+              { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
+              { id: 'anomaly', label: 'Anomaly', icon: '⚠️' },
+              { id: 'documents', label: 'Documents', icon: '📎' },
+              { id: 'budget', label: 'Budget', icon: '📊' },
+              { id: 'settings', label: 'Settings', icon: '⚙️' },
+              { id: 'users', label: 'Users', icon: '👥' },
+            ].map(t => (
+              <button key={t.id} onClick={() => nav(t.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${screen === t.id ? 'bg-stone-800 text-white' : 'bg-white text-stone-600 hover:bg-stone-50 shadow-sm'}`}>
+                <span>{t.icon}</span><span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* ===== DASHBOARD ===== */}
+        {screen === 'overview' && (
+          <div className="fade-in space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-stone-800">Palm Harbor Country Club</h1>
+                <p className="text-stone-500 mt-1">Financial Overview · Updated 2 hours ago</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-white font-medium">JW</div>
+            </div>
+
+            <div className="card p-4 border-l-4 border-amber-400 bg-gradient-to-r from-amber-50 to-white cursor-pointer" onClick={() => nav('anomaly')}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">⚠️</div>
+                  <div>
+                    <div className="font-medium text-stone-800">1 transaction requires attention</div>
+                    <div className="text-sm text-stone-500">New vendor payment flagged</div>
+                  </div>
+                </div>
+                <button className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium">Review</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: 'Operating', value: '$2.10M', change: '+7.7%', pos: true },
+                { label: 'Reserves', value: '$3.71M', change: '-$340K', pos: false },
+                { label: 'YTD Variance', value: '+$262K', change: '4.1% over', pos: false },
+                { label: 'Health', value: '72/100', change: 'Good', pos: null },
+              ].map((m, i) => (
+                <div key={i} className="card p-5">
+                  <div className="text-xs text-stone-400 uppercase tracking-wider">{m.label}</div>
+                  <div className="font-display text-2xl font-semibold text-stone-800 mt-1">{m.value}</div>
+                  <div className={`text-sm mt-1 ${m.pos === true ? 'text-emerald-600' : m.pos === false ? 'text-red-600' : 'text-stone-400'}`}>{m.change}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-6">
+              <div className="col-span-2 card p-6">
+                <h3 className="font-display text-lg font-semibold text-stone-800 mb-4">Cash & Reserves Trend</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={cashFlowData}>
+                    <defs>
+                      <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/><stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/></linearGradient>
+                    </defs>
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1e6}M`} />
+                    <Area type="monotone" dataKey="reserves" stroke="#3b82f6" strokeWidth={2} fill="url(#g2)" />
+                    <Area type="monotone" dataKey="operating" stroke="#10b981" strokeWidth={2} fill="url(#g1)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="card p-6">
+                <h3 className="font-display text-lg font-semibold text-stone-800 mb-4">Recent Transactions</h3>
+                <div className="space-y-3">
+                  {transactions.slice(0, 5).map(tx => (
+                    <div key={tx.id} className={`flex justify-between p-2 rounded-lg cursor-pointer hover:bg-stone-50 ${tx.flagged ? 'bg-amber-50' : ''}`} onClick={() => tx.flagged && nav('anomaly')}>
+                      <div>
+                        <div className="text-sm font-medium text-stone-800">{tx.vendor}</div>
+                        <div className="text-xs text-stone-400">{tx.date}</div>
+                      </div>
+                      <div className={`text-sm font-medium ${tx.amount > 0 ? 'text-emerald-600' : 'text-stone-800'}`}>{fmt(tx.amount)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== MOBILE ===== */}
+        {screen === 'mobile' && (
+          <div className="flex justify-center fade-in">
+            <div className="mobile-frame bg-stone-50 relative overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-b-xl z-10" />
+              <div className="h-full overflow-y-auto pt-8 px-4 pb-24">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <div className="text-xs text-stone-400 uppercase">Palm Harbor CC</div>
+                    <h1 className="font-display text-xl font-semibold text-stone-800">Dashboard</h1>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-stone-700 text-white flex items-center justify-center text-sm font-medium">JW</div>
+                </div>
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white mb-4">
+                  <div className="font-medium">Review Required</div>
+                  <div className="text-sm text-white/80">New vendor payment flagged</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="text-xs text-stone-400">Operating</div>
+                    <div className="font-display text-xl font-semibold">$2.10M</div>
+                    <div className="text-xs text-emerald-600">+7.7%</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 shadow-sm">
+                    <div className="text-xs text-stone-400">Reserves</div>
+                    <div className="font-display text-xl font-semibold">$3.71M</div>
+                    <div className="text-xs text-red-600">-$340K</div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-xs text-stone-400">Health Score</div>
+                      <div className="font-display text-3xl font-semibold">72<span className="text-lg text-stone-400">/100</span></div>
+                    </div>
+                    <svg className="w-16 h-16 -rotate-90" viewBox="0 0 36 36">
+                      <path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="#e7e5e4" strokeWidth="3"/>
+                      <path d="M18 2.0845a15.9155 15.9155 0 010 31.831 15.9155 15.9155 0 010-31.831" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="72,100"/>
+                    </svg>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl p-4 shadow-sm">
+                  <div className="text-xs text-stone-400 mb-2">Recent Activity</div>
+                  {transactions.slice(0, 3).map(tx => (
+                    <div key={tx.id} className="flex justify-between py-2 border-b border-stone-100 last:border-0">
+                      <span className="text-sm text-stone-800">{tx.vendor}</span>
+                      <span className="text-sm font-medium">{fmt(tx.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-stone-100 px-4 py-2 pb-6">
+                <div className="flex justify-around">
+                  {['Home', 'Activity', 'Budget', 'More'].map((t, i) => (
+                    <button key={t} className={`text-xs ${i === 0 ? 'text-stone-800 font-medium' : 'text-stone-400'}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== ONBOARDING ===== */}
+        {screen === 'onboarding' && (
+          <div className="max-w-xl mx-auto fade-in">
+            <div className="card overflow-hidden">
+              <div className="h-1 bg-stone-100"><div className="h-full bg-stone-800 transition-all" style={{ width: `${((onboardStep + 1) / 5) * 100}%` }} /></div>
+              <div className="p-8">
+                {onboardStep === 0 && (
+                  <div className="text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-stone-800 flex items-center justify-center mx-auto mb-6 text-2xl">📊</div>
+                    <h1 className="font-display text-2xl font-semibold text-stone-800 mb-2">Welcome to Sightline</h1>
+                    <p className="text-stone-500 mb-6">Financial transparency for your club. Setup takes ~5 minutes.</p>
+                    <div className="text-left space-y-2 mb-6">
+                      {['Connect bank accounts', 'Import budget data', 'Invite your team', 'See insights'].map((s, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-stone-50 rounded-xl">
+                          <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">✓</div>
+                          <span className="text-stone-700 text-sm">{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => setOnboardStep(1)} className="w-full py-3 btn-primary rounded-xl font-medium">Get Started</button>
+                  </div>
+                )}
+                {onboardStep === 1 && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className="text-xs text-stone-400 uppercase mb-1">Step 1 of 4</div>
+                      <h2 className="font-display text-xl font-semibold">About Your Club</h2>
+                    </div>
+                    <div className="space-y-4">
+                      <div><label className="text-sm text-stone-500">Club Name</label><input defaultValue="Palm Harbor Country Club" className="w-full mt-1 px-4 py-2.5 border border-stone-200 rounded-xl" /></div>
+                      <div><label className="text-sm text-stone-500">Club Type</label><select className="w-full mt-1 px-4 py-2.5 border border-stone-200 rounded-xl bg-white"><option>Country Club</option></select></div>
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setOnboardStep(0)} className="px-4 py-2 text-stone-600">Back</button>
+                      <button onClick={() => setOnboardStep(2)} className="flex-1 py-2.5 btn-primary rounded-xl font-medium">Continue</button>
+                    </div>
+                  </div>
+                )}
+                {onboardStep === 2 && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className="text-xs text-stone-400 uppercase mb-1">Step 2 of 4</div>
+                      <h2 className="font-display text-xl font-semibold">Connect Banks</h2>
+                    </div>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-blue-700">T</div>
+                        <div>
+                          <div className="font-medium text-stone-800">Truist ****4521</div>
+                          <div className="text-sm text-emerald-600">Connected</div>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="w-full p-3 border-2 border-dashed border-stone-300 rounded-xl text-stone-600">+ Connect Reserve Account</button>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setOnboardStep(1)} className="px-4 py-2 text-stone-600">Back</button>
+                      <button onClick={() => setOnboardStep(3)} className="flex-1 py-2.5 btn-primary rounded-xl font-medium">Continue</button>
+                    </div>
+                  </div>
+                )}
+                {onboardStep === 3 && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className="text-xs text-stone-400 uppercase mb-1">Step 3 of 4</div>
+                      <h2 className="font-display text-xl font-semibold">Import Data</h2>
+                    </div>
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="text-emerald-600">📄</div>
+                        <div>
+                          <div className="font-medium text-stone-800">2024_Budget.xlsx</div>
+                          <div className="text-sm text-emerald-600">Uploaded</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 border-2 border-dashed border-stone-300 rounded-xl text-center text-stone-500">Drop files or click to upload</div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setOnboardStep(2)} className="px-4 py-2 text-stone-600">Back</button>
+                      <button onClick={() => setOnboardStep(4)} className="flex-1 py-2.5 btn-primary rounded-xl font-medium">Continue</button>
+                    </div>
+                  </div>
+                )}
+                {onboardStep === 4 && (
+                  <div>
+                    <div className="text-center mb-6">
+                      <div className="text-xs text-stone-400 uppercase mb-1">Step 4 of 4</div>
+                      <h2 className="font-display text-xl font-semibold">Invite Team</h2>
+                    </div>
+                    <div className="flex gap-2 mb-4">
+                      <input placeholder="email@example.com" className="flex-1 px-4 py-2 border border-stone-200 rounded-xl" />
+                      <button className="px-4 py-2 btn-primary rounded-xl">Invite</button>
+                    </div>
+                    <div className="space-y-2">
+                      {['Margaret Chen', 'Robert Patterson'].map((n, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-stone-400 text-white flex items-center justify-center text-xs">{n.split(' ').map(x => x[0]).join('')}</div>
+                            <span className="text-sm text-stone-800">{n}</span>
+                          </div>
+                          <span className="text-xs text-stone-500">Board</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setOnboardStep(3)} className="px-4 py-2 text-stone-600">Back</button>
+                      <button onClick={() => nav('overview')} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl font-medium">Launch →</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== ANOMALY ===== */}
+        {screen === 'anomaly' && (
+          <div className="max-w-4xl mx-auto fade-in">
+            <button onClick={() => nav('overview')} className="flex items-center gap-2 text-stone-500 mb-4">← Back</button>
+            <div className="card overflow-hidden">
+              <div className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+                <div className="flex justify-between">
+                  <div>
+                    <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">MEDIUM RISK</span>
+                    <h1 className="font-display text-2xl font-semibold text-stone-800 mt-2">Premium Landscaping LLC</h1>
+                    <p className="text-stone-600">Grounds · December 8, 2024</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-display text-3xl font-semibold">$28,000</div>
+                    <div className="text-amber-600 text-sm">Pending Review</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-3 gap-6">
+                <div className="col-span-2 space-y-4">
+                  <h3 className="font-medium text-stone-800">Risk Flags</h3>
+                  {[
+                    { sev: 'high', title: 'Missing Documentation', desc: 'No contract on file' },
+                    { sev: 'medium', title: 'New Vendor', desc: 'No payment history' },
+                    { sev: 'medium', title: 'Above Average', desc: '2.3x higher than similar vendors' },
+                  ].map((f, i) => (
+                    <div key={i} className={`p-4 rounded-xl severity-${f.sev}`}>
+                      <div className="font-medium text-stone-800">{f.title}</div>
+                      <div className="text-sm text-stone-600">{f.desc}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-amber-50 rounded-xl p-4 text-center border border-amber-100">
+                    <div className="text-xs text-stone-500 uppercase">Risk Score</div>
+                    <div className="font-display text-4xl font-semibold text-amber-600">72</div>
+                    <div className="text-sm text-stone-500">out of 100</div>
+                  </div>
+                  <button className="w-full py-3 btn-primary rounded-xl font-medium">Approve</button>
+                  <button className="w-full py-3 border border-stone-200 rounded-xl font-medium">Request Docs</button>
+                  <button className="w-full py-3 border border-red-200 text-red-600 rounded-xl font-medium">Flag</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DOCUMENTS ===== */}
+        {screen === 'documents' && (
+          <div className="fade-in">
+            <div className="flex justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Document Linking</h1>
+                <p className="text-stone-500">Link invoices to transactions</p>
+              </div>
+              <button className="px-4 py-2 btn-primary rounded-xl font-medium">+ Upload</button>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="card p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Transactions</h3>
+                {transactions.map(tx => (
+                  <div key={tx.id} onClick={() => setSelectedTx(tx.id)} className={`p-3 rounded-xl mb-2 cursor-pointer border-2 ${selectedTx === tx.id ? 'border-stone-800 bg-stone-50' : 'border-transparent hover:bg-stone-50'}`}>
+                    <div className="flex justify-between">
+                      <span className="font-medium text-stone-800">{tx.vendor}</span>
+                      <span className={tx.hasDoc ? 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded' : 'text-xs bg-stone-100 text-stone-500 px-2 py-0.5 rounded'}>{tx.hasDoc ? 'Doc' : 'No doc'}</span>
+                    </div>
+                    <div className="text-sm text-stone-500">{tx.fullDate}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="card p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Documents</h3>
+                {documents.map(d => (
+                  <div key={d.id} className="flex justify-between items-center p-3 border border-stone-200 rounded-xl mb-2 hover:border-blue-300 hover:bg-blue-50 cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${d.type === 'Invoice' ? 'bg-blue-100 text-blue-600' : d.type === 'Contract' ? 'bg-purple-100 text-purple-600' : 'bg-emerald-100 text-emerald-600'}`}>📄</div>
+                      <div>
+                        <div className="text-sm font-medium text-stone-800">{d.name}</div>
+                        <div className="text-xs text-stone-500">{d.type} · {d.size}</div>
+                      </div>
+                    </div>
+                    <button className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-stone-800 text-white text-xs rounded-lg">Link</button>
+                  </div>
+                ))}
+                <div className="mt-4 p-4 border-2 border-dashed border-stone-300 rounded-xl text-center text-stone-500">Drop files to upload</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== BUDGET ===== */}
+        {screen === 'budget' && (
+          <div className="fade-in">
+            <div className="flex justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Budget vs Actual</h1>
+                <p className="text-stone-500">YTD through November 2024</p>
+              </div>
+              <button className="px-4 py-2 btn-primary rounded-xl text-sm font-medium">Export</button>
+            </div>
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              {[{ l: 'Budget', v: '$6.24M' }, { l: 'Actual', v: '$6.50M' }, { l: 'Variance', v: '+$262K', amber: true }, { l: '% Used', v: '104.2%' }].map((s, i) => (
+                <div key={i} className={`card p-4 ${s.amber ? 'bg-amber-50 border border-amber-200' : ''}`}>
+                  <div className="text-xs text-stone-500 uppercase">{s.l}</div>
+                  <div className={`font-display text-xl font-semibold ${s.amber ? 'text-amber-600' : 'text-stone-800'}`}>{s.v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="card overflow-hidden">
+              {budgetData.map((b, i) => (
+                <div key={i} className="border-b border-stone-100 last:border-0">
+                  <div onClick={() => setExpandedBudget(expandedBudget === i ? null : i)} className="p-4 flex items-center justify-between cursor-pointer hover:bg-stone-50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{b.icon}</span>
+                      <div>
+                        <div className="font-medium text-stone-800">{b.category}</div>
+                        <div className="text-sm text-stone-500">{fmt(b.actual)} of {fmt(b.budget)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-32 h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div className={`h-full ${b.variance > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min((b.actual / b.budget) * 100, 100)}%` }} />
+                      </div>
+                      <span className={`w-16 text-right font-medium ${b.variance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{b.variance > 0 ? '+' : ''}{fmt(b.variance)}</span>
+                      <span className={`transition-transform ${expandedBudget === i ? 'rotate-90' : ''}`}>→</span>
+                    </div>
+                  </div>
+                  {expandedBudget === i && (
+                    <div className="px-4 pb-4 bg-stone-50">
+                      {b.subs.map((s, j) => (
+                        <div key={j} className="flex justify-between py-2 border-b border-stone-100 last:border-0 text-sm">
+                          <span className="text-stone-700">{s.name}</span>
+                          <span className={s.actual > s.budget ? 'text-amber-600' : 'text-emerald-600'}>{fmt(s.actual - s.budget)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== SETTINGS ===== */}
+        {screen === 'settings' && (
+          <div className="max-w-3xl mx-auto fade-in">
+            <h1 className="font-display text-2xl font-semibold text-stone-800 mb-6">Settings</h1>
+            <div className="card divide-y divide-stone-100">
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Club Profile</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="text-sm text-stone-500">Name</label><input defaultValue="Palm Harbor CC" className="w-full mt-1 px-3 py-2 border border-stone-200 rounded-xl" /></div>
+                  <div><label className="text-sm text-stone-500">Type</label><select className="w-full mt-1 px-3 py-2 border border-stone-200 rounded-xl bg-white"><option>Country Club</option></select></div>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Notifications</h3>
+                {[{ k: 'anomaly', l: 'Anomaly Alerts' }, { k: 'weekly', l: 'Weekly Summary' }, { k: 'budget', l: 'Budget Alerts' }, { k: 'large', l: 'Large Transactions' }].map(n => (
+                  <div key={n.k} className="flex justify-between items-center py-2">
+                    <span className="text-stone-700">{n.l}</span>
+                    <button onClick={() => setNotifs(p => ({ ...p, [n.k]: !p[n.k] }))} className={`w-10 h-6 rounded-full relative ${notifs[n.k] ? 'bg-emerald-500' : 'bg-stone-300'}`}>
+                      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${notifs[n.k] ? 'left-5' : 'left-1'}`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="p-6">
+                <h3 className="font-medium text-stone-800 mb-4">Banks</h3>
+                <div className="p-3 bg-stone-50 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center font-bold text-blue-700">T</div>
+                    <span className="text-stone-800">Truist ****4521</span>
+                  </div>
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Connected</span>
+                </div>
+              </div>
+              <div className="p-6 bg-red-50">
+                <h3 className="font-medium text-red-800 mb-2">Danger Zone</h3>
+                <button className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm">Delete All Data</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== USERS ===== */}
+        {screen === 'users' && (
+          <div className="max-w-4xl mx-auto fade-in">
+            <div className="flex justify-between mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Team Members</h1>
+                <p className="text-stone-500">Manage access</p>
+              </div>
+              <button className="px-4 py-2 btn-primary rounded-xl font-medium">+ Invite</button>
+            </div>
+            <div className="card p-3 mb-4 flex gap-4 text-sm">
+              <span className="text-stone-500">Roles:</span>
+              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded">Admin</span>
+              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">Treasurer</span>
+              <span className="px-2 py-0.5 bg-stone-100 text-stone-700 rounded">Board</span>
+            </div>
+            <div className="card divide-y divide-stone-100">
+              {users.map(u => (
+                <div key={u.id} className="p-4 flex items-center justify-between hover:bg-stone-50">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${u.role === 'Admin' ? 'bg-purple-600' : u.role === 'Treasurer' ? 'bg-blue-600' : 'bg-stone-600'}`}>{u.initials}</div>
+                    <div>
+                      <div className="font-medium text-stone-800">{u.name}</div>
+                      <div className="text-sm text-stone-500">{u.email}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.role === 'Admin' ? 'bg-purple-100 text-purple-700' : u.role === 'Treasurer' ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-700'}`}>{u.role}</span>
+                    <span className={`text-sm ${u.status === 'pending' ? 'text-amber-600' : 'text-stone-500'}`}>{u.lastSeen}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="card p-6 mt-6">
+              <h3 className="font-medium text-stone-800 mb-4">Recent Activity</h3>
+              {[
+                { u: 'JW', action: 'approved Toro Equipment', time: '2h ago' },
+                { u: 'MC', action: 'viewed Budget report', time: '1d ago' },
+                { u: 'RP', action: 'downloaded Q3 Summary', time: '3d ago' },
+              ].map((a, i) => (
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-xs text-stone-600">{a.u}</div>
+                  <span className="flex-1 text-sm text-stone-700">{a.action}</span>
+                  <span className="text-xs text-stone-400">{a.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(SightlinePrototype));
+</script>
+</body>
+</html>

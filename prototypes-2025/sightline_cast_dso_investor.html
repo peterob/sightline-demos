@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline & CAST - DSO Dental | Investor View</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a12;
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 25px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(123, 92, 255, 0.1) 100%);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            margin-bottom: 25px;
+        }
+        .logo-section h1 { font-size: 1.4rem; color: #00d4ff; letter-spacing: 1px; }
+        .logo-section .tagline { font-size: 0.8rem; color: #888; margin-top: 2px; }
+        .header-meta { text-align: right; font-size: 0.85rem; }
+        .header-meta .period { color: #00d4ff; font-weight: 600; }
+        .header-meta .updated { color: #666; font-size: 0.75rem; }
+        
+        .view-toggle {
+            display: flex; gap: 0; margin-bottom: 25px;
+            background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 4px; width: fit-content;
+        }
+        .view-btn {
+            padding: 10px 24px; border: none; background: transparent;
+            color: #888; font-size: 0.9rem; cursor: pointer; border-radius: 6px; transition: all 0.2s;
+        }
+        .view-btn.active {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #0a0a12; font-weight: 600;
+        }
+        .view-btn:hover:not(.active) { color: #00d4ff; }
+        
+        .kpi-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 25px;
+        }
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px; padding: 18px; position: relative; overflow: hidden;
+        }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        .kpi-card.revenue::before { background: #4caf50; }
+        .kpi-card.expenses::before { background: #f44336; }
+        .kpi-card.ebitda::before { background: #00d4ff; }
+        .kpi-card.cash::before { background: #ffc107; }
+        .kpi-card.ar::before { background: #ce93d8; }
+        .kpi-card.collections::before { background: #4dd0e1; }
+        .kpi-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .kpi-value { font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+        .kpi-variance { font-size: 0.8rem; display: flex; align-items: center; gap: 5px; }
+        .variance-positive { color: #4caf50; }
+        .variance-negative { color: #f44336; }
+        .variance-neutral { color: #888; }
+        .kpi-drill {
+            position: absolute; top: 12px; right: 12px; width: 24px; height: 24px;
+            border-radius: 50%; background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.3);
+            color: #00d4ff; font-size: 0.7rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .kpi-drill:hover { background: rgba(0, 212, 255, 0.2); transform: scale(1.1); }
+        
+        .financials-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        @media (max-width: 1000px) { .financials-grid { grid-template-columns: 1fr; } }
+        
+        .fin-section {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px; overflow: hidden;
+        }
+        .fin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: rgba(0, 212, 255, 0.08);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .fin-header h2 { font-size: 1rem; color: #00d4ff; font-weight: 600; }
+        .fin-header .source-tag {
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 4px;
+            background: rgba(0, 212, 255, 0.15); color: #00d4ff;
+        }
+        
+        .fin-table { width: 100%; border-collapse: collapse; }
+        .fin-table th {
+            text-align: left; padding: 10px 15px; font-size: 0.7rem; color: #666;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); background: rgba(0, 0, 0, 0.2);
+        }
+        .fin-table th:not(:first-child) { text-align: right; }
+        .fin-table td {
+            padding: 10px 15px; font-size: 0.9rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .fin-table td:not(:first-child) { text-align: right; font-family: 'SF Mono', Monaco, monospace; font-size: 0.85rem; }
+        .fin-table tr:hover { background: rgba(0, 212, 255, 0.05); }
+        .fin-table tr.subtotal { background: rgba(255, 255, 255, 0.03); font-weight: 600; }
+        .fin-table tr.subtotal td { border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px; }
+        .fin-table tr.total { background: rgba(0, 212, 255, 0.1); font-weight: 700; }
+        .fin-table tr.total td { border-top: 2px solid rgba(0, 212, 255, 0.3); padding: 14px 15px; color: #00d4ff; }
+        
+        .line-item-name { display: flex; align-items: center; gap: 8px; }
+        .indent-1 { padding-left: 25px !important; }
+        .drill-icon {
+            width: 18px; height: 18px; border-radius: 4px;
+            background: rgba(0, 212, 255, 0.1); border: 1px solid rgba(0, 212, 255, 0.2);
+            color: #00d4ff; font-size: 0.6rem; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            opacity: 0; transition: all 0.2s;
+        }
+        .fin-table tr:hover .drill-icon { opacity: 1; }
+        .drill-icon:hover { background: rgba(0, 212, 255, 0.2); }
+        
+        .variance-cell { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+        .variance-bar { width: 40px; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; }
+        .variance-fill { height: 100%; border-radius: 3px; }
+        .variance-fill.positive { background: #4caf50; }
+        .variance-fill.negative { background: #f44336; }
+        
+        .variance-panel {
+            background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px; margin-bottom: 25px; overflow: hidden;
+        }
+        .variance-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: rgba(123, 92, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .variance-header h2 { font-size: 1rem; color: #b391ff; font-weight: 600; }
+        .variance-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1px; background: rgba(255, 255, 255, 0.05);
+        }
+        .variance-card { background: #0a0a12; padding: 20px; }
+        .variance-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .variance-category { font-size: 0.85rem; color: #ccc; font-weight: 600; }
+        .variance-amount { font-size: 1.1rem; font-weight: 700; font-family: 'SF Mono', Monaco, monospace; }
+        .variance-drivers { margin-top: 12px; }
+        .driver-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.8rem;
+        }
+        .driver-item:last-child { border-bottom: none; }
+        .driver-name { color: #888; display: flex; align-items: center; gap: 6px; }
+        .driver-source { font-size: 0.6rem; padding: 2px 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); }
+        .driver-value { font-family: 'SF Mono', Monaco, monospace; }
+        
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8); z-index: 1000;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #12121a; border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 12px;
+            width: 100%; max-width: 900px; max-height: 80vh; overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 24px; background: rgba(0, 212, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        .modal-header h3 { color: #00d4ff; font-size: 1.1rem; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1); border: none;
+            color: #888; font-size: 1.2rem; cursor: pointer; transition: all 0.2s;
+        }
+        .modal-close:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+        .modal-breadcrumb {
+            padding: 12px 24px; background: rgba(0, 0, 0, 0.3);
+            font-size: 0.8rem; color: #666; display: flex; align-items: center; gap: 8px;
+        }
+        .breadcrumb-item { color: #888; }
+        .breadcrumb-item.active { color: #00d4ff; }
+        .breadcrumb-sep { color: #444; }
+        .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        
+        .drill-table { width: 100%; border-collapse: collapse; }
+        .drill-table th {
+            text-align: left; padding: 10px 12px; font-size: 0.7rem; color: #666;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.2);
+        }
+        .drill-table th:not(:first-child):not(:nth-child(2)) { text-align: right; }
+        .drill-table td { padding: 10px 12px; font-size: 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.03); }
+        .drill-table td:not(:first-child):not(:nth-child(2)) { text-align: right; font-family: 'SF Mono', Monaco, monospace; }
+        .drill-table tr:hover { background: rgba(0, 212, 255, 0.05); }
+        
+        .source-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+        .source-badge.pms { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .source-badge.clearinghouse { background: rgba(33, 150, 243, 0.2); color: #2196f3; }
+        .source-badge.erp { background: rgba(156, 39, 176, 0.2); color: #ce93d8; }
+        .source-badge.bank { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .source-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        
+        .operational-view { display: none; }
+        .operational-view.active { display: block; }
+        .investor-view { display: block; }
+        .investor-view.hidden { display: none; }
+        
+        .practice-breakdown { margin-top: 20px; }
+        .practice-row {
+            display: grid; grid-template-columns: 200px repeat(4, 1fr); gap: 15px; padding: 15px;
+            background: rgba(255, 255, 255, 0.02); border-radius: 8px; margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer;
+        }
+        .practice-row:hover { background: rgba(0, 212, 255, 0.05); border-color: rgba(0, 212, 255, 0.2); }
+        .practice-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .practice-id { font-size: 0.7rem; color: #666; background: rgba(255, 255, 255, 0.1); padding: 2px 6px; border-radius: 3px; }
+        .practice-metric { text-align: right; }
+        .practice-metric-label { font-size: 0.7rem; color: #666; margin-bottom: 4px; }
+        .practice-metric-value { font-family: 'SF Mono', Monaco, monospace; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-section">
+            <h1>SIGHTLINE | CAST</h1>
+            <div class="tagline">DSO Dental — Consolidated Financial View</div>
+        </div>
+        <div class="header-meta">
+            <div class="period">Q1 2026 | January MTD</div>
+            <div class="updated">Last sync: Jan 5, 2026 09:42 AM EST</div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="view-toggle">
+            <button class="view-btn active" data-view="investor">Investor View</button>
+            <button class="view-btn" data-view="operational">Operational Detail</button>
+        </div>
+        
+        <div class="investor-view" id="investor-view">
+            <div class="kpi-row">
+                <div class="kpi-card revenue">
+                    <div class="kpi-drill" onclick="openDrilldown('revenue')">↓</div>
+                    <div class="kpi-label">Net Revenue (MTD)</div>
+                    <div class="kpi-value">$487,250</div>
+                    <div class="kpi-variance variance-positive">
+                        <span>▲ 8.2%</span><span style="color: #666">vs. Budget</span>
+                    </div>
+                </div>
+                <div class="kpi-card expenses">
+                    <div class="kpi-drill" onclick="openDrilldown('expenses')">↓</div>
+                    <div class="kpi-label">Operating Expenses</div>
+                    <div class="kpi-value">$312,400</div>
+                    <div class="kpi-variance variance-negative">
+                        <span>▲ 3.1%</span><span style="color: #666">vs. Budget</span>
+                    </div>
+                </div>
+                <div class="kpi-card ebitda">
+                    <div class="kpi-drill" onclick="openDrilldown('ebitda')">↓</div>
+                    <div class="kpi-label">EBITDA</div>
+                    <div class="kpi-value">$174,850</div>
+                    <div class="kpi-variance variance-positive">
+                        <span>▲ 12.4%</span><span style="color: #666">vs. Budget</span>
+                    </div>
+                </div>
+                <div class="kpi-card cash">
+                    <div class="kpi-drill" onclick="openDrilldown('cash')">↓</div>
+                    <div class="kpi-label">Cash Position</div>
+                    <div class="kpi-value">$892,500</div>
+                    <div class="kpi-variance variance-neutral">
+                        <span>→ Stable</span><span style="color: #666">vs. Prior</span>
+                    </div>
+                </div>
+                <div class="kpi-card ar">
+                    <div class="kpi-drill" onclick="openDrilldown('ar')">↓</div>
+                    <div class="kpi-label">A/R (Insurance)</div>
+                    <div class="kpi-value">$245,800</div>
+                    <div class="kpi-variance variance-negative">
+                        <span>DSO: 42</span><span style="color: #666">Target: 35</span>
+                    </div>
+                </div>
+                <div class="kpi-card collections">
+                    <div class="kpi-drill" onclick="openDrilldown('collections')">↓</div>
+                    <div class="kpi-label">Collection Rate</div>
+                    <div class="kpi-value">94.2%</div>
+                    <div class="kpi-variance variance-positive">
+                        <span>▲ 1.8%</span><span style="color: #666">vs. Prior</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="financials-grid">
+                <div class="fin-section">
+                    <div class="fin-header">
+                        <h2>Income Statement (MTD)</h2>
+                        <span class="source-tag">Consolidated • 3 Practices</span>
+                    </div>
+                    <table class="fin-table">
+                        <thead><tr><th>Line Item</th><th>Actual</th><th>Budget</th><th>Variance</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="line-item-name">Patient Revenue <span class="drill-icon" onclick="openDrilldown('patient-revenue')">↓</span></span></td>
+                                <td>$412,500</td><td>$395,000</td>
+                                <td class="variance-positive"><div class="variance-cell"><span>+$17,500</span><div class="variance-bar"><div class="variance-fill positive" style="width: 70%"></div></div></div></td>
+                            </tr>
+                            <tr>
+                                <td class="indent-1"><span class="line-item-name">Insurance Reimbursements <span class="drill-icon" onclick="openDrilldown('insurance')">↓</span></span></td>
+                                <td>$328,750</td><td>$316,000</td><td class="variance-positive">+$12,750</td>
+                            </tr>
+                            <tr>
+                                <td class="indent-1"><span class="line-item-name">Patient Co-Pay <span class="drill-icon" onclick="openDrilldown('copay')">↓</span></span></td>
+                                <td>$83,750</td><td>$79,000</td><td class="variance-positive">+$4,750</td>
+                            </tr>
+                            <tr><td>Other Revenue</td><td>$74,750</td><td>$55,000</td><td class="variance-positive">+$19,750</td></tr>
+                            <tr class="subtotal"><td><strong>Gross Revenue</strong></td><td><strong>$487,250</strong></td><td><strong>$450,000</strong></td><td class="variance-positive"><strong>+$37,250</strong></td></tr>
+                            <tr>
+                                <td><span class="line-item-name">Staff Payroll <span class="drill-icon" onclick="openDrilldown('payroll')">↓</span></span></td>
+                                <td>($185,400)</td><td>($180,000)</td><td class="variance-negative">-$5,400</td>
+                            </tr>
+                            <tr><td class="indent-1">Dentist Salaries</td><td>($125,000)</td><td>($120,000)</td><td class="variance-negative">-$5,000</td></tr>
+                            <tr><td class="indent-1">Support Staff</td><td>($60,400)</td><td>($60,000)</td><td class="variance-negative">-$400</td></tr>
+                            <tr>
+                                <td><span class="line-item-name">Supplies & Materials <span class="drill-icon" onclick="openDrilldown('supplies')">↓</span></span></td>
+                                <td>($52,000)</td><td>($48,000)</td><td class="variance-negative">-$4,000</td>
+                            </tr>
+                            <tr><td>Facility & Occupancy</td><td>($45,000)</td><td>($45,000)</td><td class="variance-neutral">$0</td></tr>
+                            <tr><td>Equipment & Maintenance</td><td>($30,000)</td><td>($30,000)</td><td class="variance-neutral">$0</td></tr>
+                            <tr class="subtotal"><td><strong>Total Operating Expenses</strong></td><td><strong>($312,400)</strong></td><td><strong>($303,000)</strong></td><td class="variance-negative"><strong>-$9,400</strong></td></tr>
+                            <tr class="total"><td>EBITDA</td><td>$174,850</td><td>$147,000</td><td class="variance-positive">+$27,850</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="fin-section">
+                    <div class="fin-header">
+                        <h2>Cash Flow Statement (MTD)</h2>
+                        <span class="source-tag">Bank Reconciled</span>
+                    </div>
+                    <table class="fin-table">
+                        <thead><tr><th>Line Item</th><th>Actual</th><th>Forecast</th><th>Variance</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Beginning Cash</strong></td><td>$845,000</td><td>$845,000</td><td>—</td></tr>
+                            <tr><td colspan="4" style="padding: 8px 15px; color: #666; font-size: 0.75rem; text-transform: uppercase;">Operating Activities</td></tr>
+                            <tr><td class="indent-1"><span class="line-item-name">Collections - Insurance <span class="drill-icon" onclick="openDrilldown('collections-ins')">↓</span></span></td><td>$298,500</td><td>$285,000</td><td class="variance-positive">+$13,500</td></tr>
+                            <tr><td class="indent-1">Collections - Patient</td><td>$78,200</td><td>$72,000</td><td class="variance-positive">+$6,200</td></tr>
+                            <tr><td class="indent-1"><span class="line-item-name">Payroll Disbursements <span class="drill-icon" onclick="openDrilldown('payroll-cash')">↓</span></span></td><td>($185,400)</td><td>($180,000)</td><td class="variance-negative">-$5,400</td></tr>
+                            <tr><td class="indent-1"><span class="line-item-name">Vendor Payments <span class="drill-icon" onclick="openDrilldown('vendor-pay')">↓</span></span></td><td>($68,800)</td><td>($65,000)</td><td class="variance-negative">-$3,800</td></tr>
+                            <tr class="subtotal"><td><strong>Net Operating Cash Flow</strong></td><td><strong>$122,500</strong></td><td><strong>$112,000</strong></td><td class="variance-positive"><strong>+$10,500</strong></td></tr>
+                            <tr><td colspan="4" style="padding: 8px 15px; color: #666; font-size: 0.75rem; text-transform: uppercase;">Investing Activities</td></tr>
+                            <tr><td class="indent-1">Equipment Purchases</td><td>($75,000)</td><td>($80,000)</td><td class="variance-positive">+$5,000</td></tr>
+                            <tr class="subtotal"><td><strong>Net Investing Cash Flow</strong></td><td><strong>($75,000)</strong></td><td><strong>($80,000)</strong></td><td class="variance-positive"><strong>+$5,000</strong></td></tr>
+                            <tr class="total"><td>Ending Cash Position</td><td>$892,500</td><td>$877,000</td><td class="variance-positive">+$15,500</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="variance-panel">
+                <div class="variance-header">
+                    <h2>Variance Attribution & Root Cause Analysis</h2>
+                    <span class="source-tag" style="background: rgba(123, 92, 255, 0.15); color: #b391ff;">CAST Analytics Engine</span>
+                </div>
+                <div class="variance-grid">
+                    <div class="variance-card">
+                        <div class="variance-card-header">
+                            <div class="variance-category">Revenue Upside</div>
+                            <div class="variance-amount variance-positive">+$37,250</div>
+                        </div>
+                        <div class="variance-drivers">
+                            <div class="driver-item"><span class="driver-name">Higher procedure volume <span class="driver-source">PMS</span></span><span class="driver-value variance-positive">+$22,400</span></div>
+                            <div class="driver-item"><span class="driver-name">Improved payer mix <span class="driver-source">Clearinghouse</span></span><span class="driver-value variance-positive">+$8,100</span></div>
+                            <div class="driver-item"><span class="driver-name">Whitening/cosmetic add-ons <span class="driver-source">PMS</span></span><span class="driver-value variance-positive">+$6,750</span></div>
+                        </div>
+                    </div>
+                    <div class="variance-card">
+                        <div class="variance-card-header">
+                            <div class="variance-category">Expense Overrun</div>
+                            <div class="variance-amount variance-negative">-$9,400</div>
+                        </div>
+                        <div class="variance-drivers">
+                            <div class="driver-item"><span class="driver-name">Overtime hours (Practice 001) <span class="driver-source">Payroll</span></span><span class="driver-value variance-negative">-$5,000</span></div>
+                            <div class="driver-item"><span class="driver-name">Supply cost increase (composites) <span class="driver-source">ERP</span></span><span class="driver-value variance-negative">-$3,200</span></div>
+                            <div class="driver-item"><span class="driver-name">Temp staff coverage <span class="driver-source">Payroll</span></span><span class="driver-value variance-negative">-$1,200</span></div>
+                        </div>
+                    </div>
+                    <div class="variance-card">
+                        <div class="variance-card-header">
+                            <div class="variance-category">Cash Timing Delta</div>
+                            <div class="variance-amount variance-positive">+$15,500</div>
+                        </div>
+                        <div class="variance-drivers">
+                            <div class="driver-item"><span class="driver-name">Faster insurance collections <span class="driver-source">Bank</span></span><span class="driver-value variance-positive">+$13,500</span></div>
+                            <div class="driver-item"><span class="driver-name">Patient payment acceleration <span class="driver-source">PMS</span></span><span class="driver-value variance-positive">+$6,200</span></div>
+                            <div class="driver-item"><span class="driver-name">Delayed equipment delivery <span class="driver-source">ERP</span></span><span class="driver-value variance-positive">+$5,000</span></div>
+                            <div class="driver-item"><span class="driver-name">Higher OpEx disbursements <span class="driver-source">Bank</span></span><span class="driver-value variance-negative">-$9,200</span></div>
+                        </div>
+                    </div>
+                    <div class="variance-card">
+                        <div class="variance-card-header">
+                            <div class="variance-category">A/R Aging Risk</div>
+                            <div class="variance-amount variance-negative">DSO +7 days</div>
+                        </div>
+                        <div class="variance-drivers">
+                            <div class="driver-item"><span class="driver-name">Delta Dental processing delay <span class="driver-source">Clearinghouse</span></span><span class="driver-value">$42,500 aged</span></div>
+                            <div class="driver-item"><span class="driver-name">Cigna claim denials (coding) <span class="driver-source">Clearinghouse</span></span><span class="driver-value">$18,200 pending</span></div>
+                            <div class="driver-item"><span class="driver-name">Patient balances > 60 days <span class="driver-source">PMS</span></span><span class="driver-value">$12,400 at risk</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fin-section">
+                <div class="fin-header">
+                    <h2>Performance by Practice</h2>
+                    <span class="source-tag">Click row to drill into practice detail</span>
+                </div>
+                <div class="practice-breakdown" style="padding: 15px;">
+                    <div class="practice-row" onclick="openDrilldown('practice-001')">
+                        <div class="practice-name">Charleston Main<span class="practice-id">DSO-001</span></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$198,400</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value variance-positive">$72,100</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value">36.3%</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value variance-positive">+8.2%</div></div>
+                    </div>
+                    <div class="practice-row" onclick="openDrilldown('practice-002')">
+                        <div class="practice-name">Summerville<span class="practice-id">DSO-002</span></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$156,200</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value variance-positive">$58,400</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value">37.4%</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value variance-positive">+11.5%</div></div>
+                    </div>
+                    <div class="practice-row" onclick="openDrilldown('practice-003')">
+                        <div class="practice-name">Mt Pleasant<span class="practice-id">DSO-003</span></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$132,650</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value variance-positive">$44,350</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value">33.4%</div></div>
+                        <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value variance-negative">-2.1%</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="operational-view" id="operational-view">
+            <div class="fin-section" style="padding: 40px; text-align: center;">
+                <h2 style="margin-bottom: 15px;">Operational Detail View</h2>
+                <p style="color: #888; margin-bottom: 20px;">This view shows the underlying event-sourced transactions from PMS, Clearinghouse, ERP, and Bank feeds.</p>
+                <p style="color: #666; font-size: 0.9rem;">See the companion <strong>DSO Dental - Operational View</strong> prototype for full transaction-level detail.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Detail View</h3>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-breadcrumb">
+                <span class="breadcrumb-item">Financial Statement</span>
+                <span class="breadcrumb-sep">›</span>
+                <span class="breadcrumb-item active" id="modal-breadcrumb">Detail</span>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+<script>
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const view = btn.dataset.view;
+            document.getElementById('investor-view').classList.toggle('hidden', view !== 'investor');
+            document.getElementById('operational-view').classList.toggle('active', view === 'operational');
+        });
+    });
+    
+    const drilldowns = {
+        'insurance': {
+            title: 'Insurance Reimbursements Detail',
+            breadcrumb: 'Insurance Reimbursements',
+            content: `<table class="drill-table"><thead><tr><th>Payer</th><th>Source</th><th>Claims</th><th>Collected</th><th>Pending</th><th>vs. Budget</th></tr></thead><tbody>
+                <tr><td>Delta Dental</td><td><span class="source-badge clearinghouse"><span class="source-dot"></span>Clearinghouse</span></td><td>142</td><td>$128,400</td><td>$42,500</td><td class="variance-positive">+$8,200</td></tr>
+                <tr><td>Cigna</td><td><span class="source-badge clearinghouse"><span class="source-dot"></span>Clearinghouse</span></td><td>98</td><td>$92,150</td><td>$18,200</td><td class="variance-positive">+$3,100</td></tr>
+                <tr><td>Aetna</td><td><span class="source-badge clearinghouse"><span class="source-dot"></span>Clearinghouse</span></td><td>67</td><td>$58,200</td><td>$8,400</td><td class="variance-positive">+$1,450</td></tr>
+                <tr><td>MetLife</td><td><span class="source-badge clearinghouse"><span class="source-dot"></span>Clearinghouse</span></td><td>45</td><td>$50,000</td><td>$12,100</td><td class="variance-neutral">$0</td></tr>
+                <tr style="background: rgba(0, 212, 255, 0.1); font-weight: 600;"><td>Total</td><td></td><td>352</td><td>$328,750</td><td>$81,200</td><td class="variance-positive">+$12,750</td></tr>
+            </tbody></table>`
+        },
+        'supplies': {
+            title: 'Supplies & Materials Detail',
+            breadcrumb: 'Supplies & Materials',
+            content: `<table class="drill-table"><thead><tr><th>Category</th><th>Source</th><th>Vendor</th><th>Actual</th><th>Budget</th><th>Variance</th></tr></thead><tbody>
+                <tr><td>Composite Resins</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>Henry Schein</td><td>$18,200</td><td>$15,000</td><td class="variance-negative">-$3,200</td></tr>
+                <tr><td>Impression Materials</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>Patterson Dental</td><td>$12,400</td><td>$12,000</td><td class="variance-negative">-$400</td></tr>
+                <tr><td>Disposables (PPE)</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>McKesson</td><td>$8,900</td><td>$9,000</td><td class="variance-positive">+$100</td></tr>
+                <tr><td>Office Supplies</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>Staples</td><td>$4,200</td><td>$4,500</td><td class="variance-positive">+$300</td></tr>
+                <tr><td>Lab Materials</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>Glidewell</td><td>$8,300</td><td>$7,500</td><td class="variance-negative">-$800</td></tr>
+                <tr style="background: rgba(0, 212, 255, 0.1); font-weight: 600;"><td>Total</td><td></td><td></td><td>$52,000</td><td>$48,000</td><td class="variance-negative">-$4,000</td></tr>
+            </tbody></table>
+            <div style="margin-top: 20px; padding: 15px; background: rgba(244, 67, 54, 0.1); border-radius: 8px; border-left: 3px solid #f44336;">
+                <strong style="color: #f44336;">Variance Alert:</strong> <span style="color: #ccc;">Composite resin costs up 21% due to supplier price increase effective Jan 1.</span>
+            </div>`
+        },
+        'practice-001': {
+            title: 'Charleston Main (DSO-001)',
+            breadcrumb: 'Practice 001 Detail',
+            content: `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #666; margin-bottom: 10px; text-transform: uppercase;">Revenue by Procedure</div>
+                    <table class="drill-table" style="font-size: 0.85rem;"><tr><td>Preventive</td><td style="text-align:right">$52,400</td></tr><tr><td>Restorative</td><td style="text-align:right">$68,200</td></tr><tr><td>Endodontics</td><td style="text-align:right">$35,100</td></tr><tr><td>Prosthodontics</td><td style="text-align:right">$28,400</td></tr><tr><td>Cosmetic</td><td style="text-align:right">$14,300</td></tr></table>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                    <div style="font-size: 0.75rem; color: #666; margin-bottom: 10px; text-transform: uppercase;">Operational KPIs</div>
+                    <table class="drill-table" style="font-size: 0.85rem;"><tr><td>Patient Visits</td><td style="text-align:right">412</td></tr><tr><td>New Patients</td><td style="text-align:right">48</td></tr><tr><td>Avg Revenue/Visit</td><td style="text-align:right">$482</td></tr><tr><td>Chair Utilization</td><td style="text-align:right">78%</td></tr><tr><td>Collection Rate</td><td style="text-align:right">95.2%</td></tr></table>
+                </div>
+            </div>
+            <div style="font-size: 0.75rem; color: #666; margin-bottom: 10px; text-transform: uppercase;">Recent Transactions (Event Log)</div>
+            <table class="drill-table"><thead><tr><th>Transaction</th><th>Source</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+                <tr><td>Delta Dental Batch #4521</td><td><span class="source-badge clearinghouse"><span class="source-dot"></span>Clearinghouse</span></td><td>Collection</td><td>$24,850</td><td style="color: #4caf50;">Settled</td></tr>
+                <tr><td>Henry Schein PO #2026-0142</td><td><span class="source-badge erp"><span class="source-dot"></span>ERP</span></td><td>Purchase</td><td>($3,500)</td><td style="color: #ffc107;">Committed</td></tr>
+                <tr><td>Bi-weekly Payroll Run</td><td><span class="source-badge bank"><span class="source-dot"></span>Bank</span></td><td>Disbursement</td><td>($42,200)</td><td style="color: #4caf50;">Settled</td></tr>
+                <tr><td>Patient Co-Pay Batch</td><td><span class="source-badge pms"><span class="source-dot"></span>PMS</span></td><td>Collection</td><td>$8,420</td><td style="color: #4caf50;">Settled</td></tr>
+            </tbody></table>`
+        },
+        'payroll': {
+            title: 'Staff Payroll Detail',
+            breadcrumb: 'Staff Payroll',
+            content: `<table class="drill-table"><thead><tr><th>Category</th><th>Source</th><th>Practice</th><th>Actual</th><th>Budget</th><th>Variance</th></tr></thead><tbody>
+                <tr><td>Dentist Salaries</td><td><span class="source-badge bank"><span class="source-dot"></span>Bank/Payroll</span></td><td>DSO-001</td><td>$48,000</td><td>$45,000</td><td class="variance-negative">-$3,000</td></tr>
+                <tr><td>Dentist Salaries</td><td><span class="source-badge bank"><span class="source-dot"></span>Bank/Payroll</span></td><td>DSO-002</td><td>$42,000</td><td>$40,000</td><td class="variance-negative">-$2,000</td></tr>
+                <tr><td>Dentist Salaries</td><td><span class="source-badge bank"><span class="source-dot"></span>Bank/Payroll</span></td><td>DSO-003</td><td>$35,000</td><td>$35,000</td><td class="variance-neutral">$0</td></tr>
+                <tr><td>Support Staff</td><td><span class="source-badge bank"><span class="source-dot"></span>Bank/Payroll</span></td><td>All</td><td>$60,400</td><td>$60,000</td><td class="variance-negative">-$400</td></tr>
+                <tr style="background: rgba(0, 212, 255, 0.1); font-weight: 600;"><td>Total Payroll</td><td></td><td></td><td>$185,400</td><td>$180,000</td><td class="variance-negative">-$5,400</td></tr>
+            </tbody></table>
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.1); border-radius: 8px; border-left: 3px solid #ffc107;">
+                <strong style="color: #ffc107;">Variance Driver:</strong> <span style="color: #ccc;">$5,000 overtime at Practice 001 due to extended hours for emergency cases.</span>
+            </div>`
+        }
+    };
+    
+    function openDrilldown(type) {
+        const modal = document.getElementById('modal-overlay');
+        const data = drilldowns[type] || { title: `${type} Detail`, breadcrumb: type, content: `<div style="text-align: center; padding: 40px; color: #666;"><p>Drill-down for <strong>${type}</strong> — In production, pulls real-time data from event store.</p></div>` };
+        document.getElementById('modal-title').textContent = data.title;
+        document.getElementById('modal-breadcrumb').textContent = data.breadcrumb;
+        document.getElementById('modal-body').innerHTML = data.content;
+        modal.classList.add('active');
+    }
+    
+    function closeModal() { document.getElementById('modal-overlay').classList.remove('active'); }
+    document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>

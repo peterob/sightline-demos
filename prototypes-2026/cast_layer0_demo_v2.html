@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAST Layer 0 — Buyer · Seller · Verifier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:          #0d0d0d;
+    --ink-2:        #2a2a28;
+    --paper:        #f5f1e8;
+    --paper-2:      #ede8da;
+    --paper-3:      #e1dbc9;
+    --rule:         #1a1a18;
+    --rule-soft:    #b8b09a;
+    --mute:         #6b6557;
+
+    /* Perspective-specific accents. Each view gets its own hue so
+       demo audience knows at a glance which side they are on. */
+    --buyer:        #2d4a6b;       /* cool navy — operational, internal */
+    --buyer-soft:   #d9e1ec;
+    --seller:       #7a4a1f;       /* warm tan — vendor-side */
+    --seller-soft:  #ebe0cf;
+    --verifier:     #a8301a;       /* vermilion — forensic, authoritative */
+    --verifier-soft:#e8d4ce;
+
+    --ok:           #3d5a3a;
+    --mono:         'JetBrains Mono', ui-monospace, monospace;
+    --serif:        'Fraunces', 'Times New Roman', serif;
+    --sans:         'Inter Tight', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 15px;
+    background-image:
+      radial-gradient(rgba(13,13,13,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  /* ==================================================================
+     VIEW GATING
+     ==================================================================
+     Three perspectives, one body attribute. Content blocks are tagged
+     with .view-buyer / .view-seller / .view-verifier; CSS shows only
+     the active one. Dev notes are a separate orthogonal toggle.
+     ================================================================== */
+  .view-buyer, .view-seller, .view-verifier { display: none; }
+  body[data-view="buyer"]    .view-buyer    { display: block; }
+  body[data-view="buyer"]    .view-buyer.inline { display: inline; }
+  body[data-view="seller"]   .view-seller   { display: block; }
+  body[data-view="seller"]   .view-seller.inline { display: inline; }
+  body[data-view="verifier"] .view-verifier { display: block; }
+  body[data-view="verifier"] .view-verifier.inline { display: inline; }
+
+  /* Dev notes default off. When on, the .dev-note blocks appear. */
+  .dev-note { display: none; }
+  body[data-devnotes="on"] .dev-note { display: block; }
+
+  /* Perspective accent token — one line propagates the right color. */
+  body[data-view="buyer"]    { --accent: var(--buyer);    --accent-soft: var(--buyer-soft); }
+  body[data-view="seller"]   { --accent: var(--seller);   --accent-soft: var(--seller-soft); }
+  body[data-view="verifier"] { --accent: var(--verifier); --accent-soft: var(--verifier-soft); }
+
+  /* ---------- Top bar (sticky) ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 48px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--rule);
+  }
+  .topbar .label { color: var(--paper-3); opacity: 0.7; }
+  .topbar .switch {
+    display: inline-flex;
+    justify-self: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .topbar .switch button {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--paper-3);
+    background: transparent;
+    border: none;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    border-right: 1px solid rgba(255,255,255,0.15);
+  }
+  .topbar .switch button:last-child { border-right: none; }
+  .topbar .switch button:hover { color: var(--paper); }
+  body[data-view="buyer"]    .topbar .switch button[data-target="buyer"],
+  body[data-view="seller"]   .topbar .switch button[data-target="seller"],
+  body[data-view="verifier"] .topbar .switch button[data-target="verifier"] {
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .topbar .dev-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--paper-3);
+  }
+  .topbar .dev-toggle input { margin: 0; cursor: pointer; }
+  .topbar .dev-toggle label { cursor: pointer; letter-spacing: 0.12em; }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--rule);
+    padding: 28px 48px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .wordmark em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .masthead .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-2);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .masthead .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .masthead .meta .role {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  .masthead .meta div + div { margin-top: 2px; }
+
+  /* ---------- Sub-rule ---------- */
+  .sub-rule {
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 48px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+  }
+  .sub-rule .accent { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Overview ---------- */
+  .overview {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 56px;
+  }
+  .overview .lede {
+    font-family: var(--serif);
+    font-size: 28px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .overview .lede .drop {
+    font-size: 64px;
+    line-height: 0.8;
+    float: left;
+    margin: 6px 10px 0 0;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .overview .deck {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .overview .deck strong { color: var(--ink); }
+  .overview .deck p + p { margin-top: 10px; }
+
+  /* ---------- Scene ---------- */
+  .scene {
+    padding: 48px 48px 56px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 32px;
+  }
+  .scene-number {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.85;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+  .scene-number span {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 8px;
+  }
+  .scene-title {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  .scene-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .scene-sub {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 24px;
+    max-width: 62ch;
+  }
+
+  /* ---------- Dev note overlay ---------- */
+  .dev-note {
+    margin-top: 20px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .dev-note h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color: var(--paper-3);
+  }
+  .dev-note dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 4px 16px;
+  }
+  .dev-note dt {
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    padding-top: 2px;
+  }
+  .dev-note dd { margin: 0; word-break: break-word; }
+  .dev-note code {
+    background: rgba(255,255,255,0.1);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* ---------- Document card ---------- */
+  .doc {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    padding: 28px 32px 24px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .doc.accent { border-left: 4px solid var(--accent); }
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .doc-header .kicker {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .doc-header .id {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .doc-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: var(--mute);
+    margin: 0 0 20px;
+  }
+
+  /* ---------- Party grid ---------- */
+  .party-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 18px 0;
+  }
+  .party {
+    border-left: 2px solid var(--rule);
+    padding-left: 12px;
+  }
+  .party.self { border-left-color: var(--accent); }
+  .party .label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--mute);
+    margin-bottom: 2px;
+  }
+  .party.self .label { color: var(--accent); font-weight: 600; }
+  .party .name {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .party .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 2px;
+  }
+
+  /* ---------- Line items ---------- */
+  .line-items {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 0;
+    margin: 16px 0;
+  }
+  .line-items table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .line-items th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    padding: 4px 0 8px;
+  }
+  .line-items td {
+    padding: 5px 0;
+    border-top: 1px dotted var(--rule-soft);
+  }
+  .line-items td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+  }
+  .total-row .lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--mute);
+  }
+  .total-row .val {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .terms {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-style: italic;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--rule-soft);
+    margin-top: 12px;
+  }
+
+  /* ---------- Seal / evidence strip ---------- */
+  .seal-strip {
+    margin-top: 18px;
+    padding: 10px 12px;
+    background: var(--paper-3);
+    border: 1px dashed var(--rule);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .seal-strip .seal-label {
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 9.5px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .seal-strip .seal-val {
+    word-break: break-all;
+    color: var(--ink);
+  }
+  .seal-strip.prose .seal-val {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    word-break: normal;
+  }
+
+  /* ---------- Status pills ---------- */
+  .status-bar {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .pill.awaiting { color: var(--mute); }
+  .pill.active {
+    background: var(--accent);
+    color: var(--paper);
+    border-color: var(--accent);
+  }
+  .pill.posted {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ==================================================================
+     BUYER — SCENE 1: Outbound PO dashboard
+     ================================================================== */
+  .po-dash {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .po-dash .head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper-2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .po-dash .head h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .po-dash .head .new-btn {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+  }
+  .po-dash .head .new-btn:hover { background: var(--accent); }
+  .po-dash table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .po-dash th {
+    text-align: left;
+    padding: 10px 24px;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .po-dash th.num { text-align: right; }
+  .po-dash td {
+    padding: 14px 24px;
+    border-bottom: 1px dotted var(--rule-soft);
+    vertical-align: middle;
+  }
+  .po-dash td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .po-dash tr.highlight td { background: var(--accent-soft); }
+  .po-dash .po-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .po-dash .vendor {
+    font-family: var(--serif);
+    font-weight: 600;
+  }
+  .po-dash .state {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    display: inline-block;
+    border: 1px solid var(--rule);
+  }
+  .po-dash .state.awaiting   { background: var(--paper);    color: var(--mute); }
+  .po-dash .state.confirmed  { background: var(--accent);   color: var(--paper); border-color: var(--accent); }
+  .po-dash .state.posted     { background: var(--ink);      color: var(--paper); border-color: var(--ink); }
+  .po-dash .state.draft      { background: var(--paper-3);  color: var(--ink-2); }
+
+  /* ==================================================================
+     SELLER — SCENE 1: Inbound PO inbox
+     ================================================================== */
+  .inbox {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .inbox .head {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper-2);
+  }
+  .inbox .head h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .inbox .head .deck {
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .inbox .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 16px 24px;
+    border-bottom: 1px dotted var(--rule-soft);
+    gap: 16px;
+    align-items: center;
+  }
+  .inbox .row.action-required {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+  }
+  .inbox .row .from {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mute);
+  }
+  .inbox .row .subject {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .inbox .row .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 2px;
+  }
+  .inbox .row .review-btn {
+    background: var(--accent);
+    color: var(--paper);
+    border: none;
+    padding: 10px 18px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .inbox .row .review-btn:hover { background: var(--ink); }
+  .inbox .row .ghost-btn {
+    background: transparent;
+    color: var(--mute);
+    border: 1px solid var(--rule-soft);
+    padding: 10px 18px;
+    font-family: var(--sans);
+    font-size: 12px;
+    cursor: default;
+  }
+
+  /* ==================================================================
+     VERIFIER — SCENE 1: Archival evidence
+     ================================================================== */
+  .evidence-frame {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+    padding: 28px 32px;
+    position: relative;
+  }
+  .evidence-frame::before {
+    content: 'SEALED EVIDENCE';
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--verifier);
+    border: 1px solid var(--verifier);
+    padding: 2px 8px;
+    transform: rotate(2deg);
+  }
+  .evidence-frame .title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    max-width: 70%;
+  }
+  .evidence-frame .provenance {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    margin-bottom: 20px;
+  }
+  .evidence-frame .prop-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 20px;
+    font-size: 13px;
+    margin-bottom: 18px;
+  }
+  .evidence-frame .prop-grid dt {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mute);
+    padding-top: 3px;
+  }
+  .evidence-frame .prop-grid dd {
+    margin: 0;
+    font-family: var(--serif);
+  }
+  .evidence-frame .prop-grid dd.mono {
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  /* ==================================================================
+     CONFIRMATION CEREMONY (Seller's Scene 2)
+     ================================================================== */
+  .review-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+    font-size: 13px;
+    margin: 18px 0 22px;
+  }
+  .review-grid .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    padding-bottom: 2px;
+  }
+  .review-grid .val {
+    font-family: var(--serif);
+    font-size: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px dotted var(--rule-soft);
+  }
+  .review-grid .val.num { font-variant-numeric: tabular-nums; }
+
+  .binding-box {
+    margin: 22px 0;
+    padding: 16px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+  }
+  .binding-box .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .binding-box .body {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .binding-box .caption {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--mute);
+    margin-top: 8px;
+  }
+
+  .confirm-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 18px;
+    margin-top: 18px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .confirm-btn:hover { background: var(--accent); }
+  .confirm-btn .key-icon {
+    width: 18px;
+    height: 18px;
+    stroke: var(--paper);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  /* ==================================================================
+     BUYER SCENE 2 — Waiting state
+     ================================================================== */
+  .waiting-card {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+    padding: 32px;
+    text-align: center;
+  }
+  .waiting-card .status-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+    margin-right: 8px;
+    animation: pulse 1.6s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.9); }
+    50%      { opacity: 1;   transform: scale(1.15); }
+  }
+  .waiting-card .status-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+  .waiting-card h3 {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 600;
+    margin: 12px 0 6px;
+  }
+  .waiting-card .deck {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--mute);
+    max-width: 50ch;
+    margin: 0 auto 24px;
+  }
+  .waiting-card .track {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+    margin: 24px auto 0;
+    max-width: 500px;
+    background: var(--paper-2);
+  }
+  .waiting-card .track .step {
+    padding: 12px 10px;
+    border-right: 1px solid var(--rule-soft);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mute);
+  }
+  .waiting-card .track .step:last-child { border-right: none; }
+  .waiting-card .track .step.done     { background: var(--paper-3); color: var(--ink); }
+  .waiting-card .track .step.active   { background: var(--accent);  color: var(--paper); }
+  .waiting-card .track .step .time    { display: block; font-size: 9px; margin-top: 3px; opacity: 0.7; }
+  .waiting-card .actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .waiting-card .actions button {
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 8px 14px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .waiting-card .actions button:hover { background: var(--paper-3); }
+  .waiting-card .actions button.danger:hover { background: var(--verifier-soft); color: var(--verifier); }
+
+  /* ==================================================================
+     VERIFIER SCENE 2 — Forensic signature record
+     ================================================================== */
+  .forensic {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    box-shadow: 3px 3px 0 var(--rule);
+    padding: 28px 32px;
+  }
+  .forensic .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--rule);
+    margin-bottom: 22px;
+  }
+  .forensic .tabs .tab {
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    border-right: 1px solid var(--rule-soft);
+  }
+  .forensic .tabs .tab.active {
+    color: var(--ink);
+    font-weight: 600;
+    position: relative;
+  }
+  .forensic .tabs .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0; right: 0;
+    height: 2px;
+    background: var(--verifier);
+  }
+  .forensic dl {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 10px 24px;
+    margin: 0;
+  }
+  .forensic dt {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mute);
+    padding-top: 4px;
+  }
+  .forensic dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-all;
+    line-height: 1.55;
+  }
+  .forensic dd .flag {
+    display: inline-block;
+    background: var(--ok);
+    color: var(--paper);
+    font-size: 9.5px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: var(--mono);
+  }
+  .forensic dd .flag.warn {
+    background: var(--verifier);
+  }
+  .forensic .attestation-chain {
+    margin-top: 22px;
+    padding: 16px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+  .forensic .attestation-chain .ac-title {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .forensic .attestation-chain .ac-deck {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--mute);
+    margin-bottom: 12px;
+  }
+  .forensic .attestation-chain .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .forensic .attestation-chain .ac-step {
+    padding: 10px;
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 10.5px;
+  }
+  .forensic .attestation-chain .ac-step .num {
+    color: var(--verifier);
+    font-weight: 600;
+  }
+  .forensic .attestation-chain .ac-step .what {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    margin: 3px 0;
+    color: var(--ink);
+  }
+
+  /* ==================================================================
+     LEDGER SCENE 3 — GL table
+     ================================================================== */
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 13px;
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+  }
+  .ledger-table thead {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .ledger-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .ledger-table th.num { text-align: right; }
+  .ledger-table td {
+    padding: 12px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--mono);
+    font-size: 12px;
+    vertical-align: top;
+  }
+  .ledger-table td.account {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 13.5px;
+  }
+  .ledger-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+  }
+  .ledger-table td .sub {
+    display: block;
+    color: var(--mute);
+    font-size: 10.5px;
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  /* ==================================================================
+     CHAIN OF EVIDENCE (Verifier's hero component)
+     ================================================================== */
+  .chain {
+    margin-top: 28px;
+    padding: 24px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+  .chain.hero {
+    background: var(--verifier-soft);
+    border: 2px solid var(--verifier);
+    padding: 32px;
+  }
+  .chain-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .chain.hero .chain-title { font-size: 26px; }
+  .chain-deck {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--mute);
+    margin: 0 0 18px;
+    max-width: 60ch;
+  }
+  .chain.hero .chain-deck {
+    color: var(--verifier);
+    font-size: 15px;
+  }
+  .chain-links {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    position: relative;
+  }
+  .link {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    padding: 14px 12px;
+    position: relative;
+  }
+  .chain.hero .link { border-color: var(--verifier); }
+  .link .num {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .link .name {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .link .desc {
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .link .verify-action {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--verifier);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .link + .link::before {
+    content: '→';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--mute);
+  }
+
+  /* ---------- Footer ---------- */
+  .colophon {
+    padding: 36px 48px 48px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: flex;
+    justify-content: space-between;
+    border-top: 2px solid var(--rule);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1100px) {
+    .scene { grid-template-columns: 80px 1fr; }
+    .scene-number { font-size: 72px; }
+    .overview { grid-template-columns: 1fr; gap: 24px; }
+    .chain-links { grid-template-columns: 1fr 1fr; }
+    .link + .link::before { display: none; }
+    .forensic .attestation-chain .steps { grid-template-columns: 1fr; }
+    .waiting-card .track { grid-template-columns: 1fr; }
+    .waiting-card .track .step { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+  }
+  @media (max-width: 680px) {
+    .topbar, .masthead, .sub-rule, .overview, .scene, .colophon {
+      padding-left: 20px; padding-right: 20px;
+    }
+    .topbar {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .topbar .dev-toggle { justify-self: start; }
+    .topbar .switch { justify-self: start; }
+    .scene { grid-template-columns: 1fr; gap: 16px; }
+    .scene-number { font-size: 56px; }
+    .party-grid, .review-grid { grid-template-columns: 1fr; }
+    .inbox .row { grid-template-columns: 1fr; }
+    .forensic dl { grid-template-columns: 1fr; }
+    .evidence-frame .prop-grid { grid-template-columns: 1fr; }
+    .dev-note dl { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body data-view="buyer" data-devnotes="off">
+
+  <!-- =========================================================
+       TOP BAR — perspective + dev notes
+       ========================================================= -->
+  <div class="topbar">
+    <span class="label">Viewing as</span>
+    <div class="switch" role="tablist" aria-label="Choose perspective">
+      <button type="button" data-target="buyer">Buyer</button>
+      <button type="button" data-target="seller">Seller</button>
+      <button type="button" data-target="verifier">Verifier</button>
+    </div>
+    <div class="dev-toggle">
+      <input type="checkbox" id="devnotes" />
+      <label for="devnotes">Show dev notes</label>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MASTHEAD
+       ========================================================= -->
+  <header class="masthead">
+    <div class="wordmark">CAST<em>·L0</em></div>
+    <div class="tagline">
+      <span class="view-buyer inline">What your team issues. What your books record.</span>
+      <span class="view-seller inline">What your customers send. What your AR records.</span>
+      <span class="view-verifier inline">What any third party can independently reconstruct.</span>
+    </div>
+    <div class="meta">
+      <div>
+        <span class="view-buyer inline">Logged in as: <span class="role">M. Chen · Acme Apparel</span></span>
+        <span class="view-seller inline">Logged in as: <span class="role">J. Okafor · Riverdale Textiles</span></span>
+        <span class="view-verifier inline">Credentials: <span class="role">External Auditor · read-only</span></span>
+      </div>
+      <div>20 April 2026</div>
+    </div>
+  </header>
+
+  <div class="sub-rule">
+    <span class="view-buyer inline"><span class="accent">Buyer view</span> · Outbound PO lifecycle</span>
+    <span class="view-seller inline"><span class="accent">Seller view</span> · Inbound PO lifecycle</span>
+    <span class="view-verifier inline"><span class="accent">Verifier view</span> · Evidence, independently replayable</span>
+    <span>Three scenes · One signed chain</span>
+  </div>
+
+  <!-- =========================================================
+       OVERVIEW
+       ========================================================= -->
+  <section class="overview">
+
+    <!-- BUYER lede -->
+    <p class="lede view-buyer">
+      <span class="drop">T</span>his is what your team issues and what your books record. Every PO you send is tracked from draft, to vendor acceptance, to the accrual that hits your GL — supported by evidence your auditor can pull up in seconds.
+    </p>
+
+    <!-- SELLER lede -->
+    <p class="lede view-seller">
+      <span class="drop">T</span>his is what your customers send you, and what your books record on the other side. When a buyer's PO arrives, you review the terms, confirm them, and your AR accrues against a document both sides agreed to in writing.
+    </p>
+
+    <!-- VERIFIER lede -->
+    <p class="lede view-verifier">
+      <span class="drop">T</span>his is the evidence of a single bilateral transaction, presented as any external party — auditor, lender, insurer — would see it. Every claim is independently verifiable from the records alone, without contacting either counterparty.
+    </p>
+
+    <!-- BUYER deck -->
+    <div class="deck view-buyer">
+      <p><strong>Your workflow unchanged, your controls strengthened.</strong> Issue POs the way you already do, against your approved vendor list, within your approval matrix. What's different: every PO your team sends is sealed the moment it's authorized. Nothing posts to the GL until the vendor formally accepts.</p>
+      <p>At month-end, every accrual in your books is supported by a vendor-confirmed PO — the evidence your auditor, your lender, and your board already ask for, produced automatically.</p>
+    </div>
+
+    <!-- SELLER deck -->
+    <div class="deck view-seller">
+      <p><strong>A cleaner inbox and a better set of receivables.</strong> When a customer sends you a PO, you get a single link to review the exact terms. Your acceptance is captured as a legally documented agreement — not an email thread you'll struggle to find in eight months.</p>
+      <p>For your AR: every open receivable is backed by a PO your authorized rep personally accepted. Fewer disputes, cleaner aging, and when a customer goes to their bank, your confirmation is part of their credit package.</p>
+    </div>
+
+    <!-- VERIFIER deck -->
+    <div class="deck view-verifier">
+      <p><strong>Verification without trust.</strong> Given only the database rows, the committed source code, and a standard cryptographic library, any external party can reproduce the signed content byte-for-byte, verify the signature, and walk the attestation chain back to a manufacturer certificate authority.</p>
+      <p>This is the evidence surface that lenders underwrite against, insurers price risk against, and auditors sign off on — without needing to trust the buyer, the seller, or the platform operator.</p>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 1 — ISSUE / INBOX / ARCHIVE
+       ========================================================= -->
+  <section class="scene">
+    <div class="scene-number">
+      01
+      <span class="view-buyer inline">Outbound · Issue</span>
+      <span class="view-seller inline">Inbound · Received</span>
+      <span class="view-verifier inline">Document · Sealed</span>
+    </div>
+
+    <div>
+
+      <!-- ============ BUYER: outbound PO dashboard ============ -->
+      <div class="view-buyer">
+        <h2 class="scene-title">Your outbound POs <em>— issued, tracked, sealed.</em></h2>
+        <p class="scene-sub">Every PO your team issues flows through this board. The system stamps each PO the moment it's authorized — quantity, price, delivery date, payment terms — and watches for the vendor's confirmation. Nothing hits the GL until it's back.</p>
+
+        <div class="po-dash">
+          <div class="head">
+            <h3>Outbound Purchase Orders</h3>
+            <button class="new-btn">+ New PO</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>PO #</th>
+                <th>Vendor</th>
+                <th>Issued</th>
+                <th class="num">Amount</th>
+                <th>State</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="highlight">
+                <td><span class="po-num">PO-2026-0142</span></td>
+                <td class="vendor">Riverdale Textiles Ltd.</td>
+                <td>20 Apr · 14:02</td>
+                <td class="num">$47,000.00</td>
+                <td><span class="state awaiting">Sent, awaiting</span></td>
+                <td style="color:var(--mute);font-size:12px;">Sent to J. Okafor</td>
+              </tr>
+              <tr>
+                <td><span class="po-num">PO-2026-0141</span></td>
+                <td class="vendor">Pacific Packaging Inc.</td>
+                <td>19 Apr · 11:30</td>
+                <td class="num">$8,250.00</td>
+                <td><span class="state confirmed">Confirmed</span></td>
+                <td style="color:var(--mute);font-size:12px;">Ready to post</td>
+              </tr>
+              <tr>
+                <td><span class="po-num">PO-2026-0140</span></td>
+                <td class="vendor">Kestrel Hardware Co.</td>
+                <td>18 Apr · 09:15</td>
+                <td class="num">$14,800.00</td>
+                <td><span class="state posted">Posted to GL</span></td>
+                <td style="color:var(--mute);font-size:12px;">Accrued 18 Apr</td>
+              </tr>
+              <tr>
+                <td><span class="po-num">PO-2026-0139</span></td>
+                <td class="vendor">Meridian Dye Works</td>
+                <td>17 Apr · 16:40</td>
+                <td class="num">$23,100.00</td>
+                <td><span class="state draft">Draft</span></td>
+                <td style="color:var(--mute);font-size:12px;">Not yet sent</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Buyer Scene 01</h4>
+          <dl>
+            <dt>Primary route</dt><dd><code>GET /dashboard/outbound</code></dd>
+            <dt>New PO flow</dt><dd><code>POST /work-orders</code> → canonicalize → hash → persist draft</dd>
+            <dt>Data source</dt><dd><code>work_orders</code> table (not yet <code>events</code>)</dd>
+            <dt>Row state</dt><dd>derived from (sig_received? posted?) — no status column on <code>work_orders</code></dd>
+            <dt>The highlight</dt><dd>PO-0142 is the one that's been sent, waiting — the story we follow through scenes 2 and 3</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ SELLER: inbox ============ -->
+      <div class="view-seller">
+        <h2 class="scene-title">Your inbound POs <em>— one waiting on you.</em></h2>
+        <p class="scene-sub">When a customer sends you a PO, you receive one link. You review the exact terms, then confirm. Your confirmation is the bell that makes the sale real — and the evidence your AR team, your auditor, and your customer's bank can all rely on.</p>
+
+        <div class="inbox">
+          <div class="head">
+            <h3>Inbound Purchase Orders</h3>
+            <div class="deck">1 requires action · 2 confirmed this month · 8 posted YTD</div>
+          </div>
+
+          <div class="row action-required">
+            <div>
+              <div class="from">From: Acme Apparel Co. · M. Chen · today 14:02</div>
+              <div class="subject">PO-2026-0142 — Supply agreement, spring production run</div>
+              <div class="meta">$47,000.00 · Net-30 · Delivery 15 Jun 2026</div>
+            </div>
+            <button class="review-btn">Review &amp; confirm →</button>
+          </div>
+
+          <div class="row">
+            <div>
+              <div class="from">From: Beacon Outfitters · T. Alvarez · 18 Apr 09:10</div>
+              <div class="subject">PO-2026-BO-088 — Heavyweight fleece, Q2 draw</div>
+              <div class="meta">$31,200.00 · Net-45 · Confirmed 18 Apr 11:22</div>
+            </div>
+            <button class="ghost-btn">Confirmed</button>
+          </div>
+
+          <div class="row">
+            <div>
+              <div class="from">From: Northstar Uniforms · K. Lee · 15 Apr 15:30</div>
+              <div class="subject">PO-2026-NS-212 — Cotton twill, spring restock</div>
+              <div class="meta">$18,750.00 · Net-30 · Posted against 16 Apr shipment</div>
+            </div>
+            <button class="ghost-btn">Shipped</button>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Seller Scene 01</h4>
+          <dl>
+            <dt>Route</dt><dd><code>GET /inbox</code> — filter work_orders by counterparty_agent_id</dd>
+            <dt>Action item</dt><dd>PO-0142 has no signature row yet → "Review &amp; confirm" button enabled</dd>
+            <dt>Other rows</dt><dd>Confirmed = has signature; Shipped/Posted = postings exist</dd>
+            <dt>v1 delivery</dt><dd>email with confirmation URL; for demo, it's just this inbox</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ VERIFIER: archival evidence ============ -->
+      <div class="view-verifier">
+        <h2 class="scene-title">The sealed document <em>— exhibit A.</em></h2>
+        <p class="scene-sub">This is the purchase order as sealed evidence. Its contents are cryptographically fingerprinted. A verifier in 2031 can recompute this fingerprint from the raw JSON and the pinned source code, and confirm the bytes have not changed.</p>
+
+        <div class="evidence-frame">
+          <h3 class="title">PO-2026-0142 · Supply agreement, spring production run</h3>
+          <p class="provenance">Issued by agt_cea5831f9712 · recorded 20 Apr 2026 14:02:11 UTC · payload_version 1</p>
+
+          <dl class="prop-grid">
+            <dt>Buyer</dt>
+            <dd>Acme Apparel Co. <span style="font-family:var(--mono); font-size:11px; color:var(--mute);">(agt_cea5831f9712)</span></dd>
+
+            <dt>Seller</dt>
+            <dd>Riverdale Textiles Ltd. <span style="font-family:var(--mono); font-size:11px; color:var(--mute);">(agt_2815bf2d3c4e)</span></dd>
+
+            <dt>Total obligation</dt>
+            <dd>$47,000.00 USD</dd>
+
+            <dt>Terms</dt>
+            <dd>Net-30, delivery 15 June 2026, 5-day inspection window</dd>
+
+            <dt>Document fingerprint</dt>
+            <dd class="mono">0xa7c3e9f24b81d6a0f5e7c29b4d18a6f3e0c7b5d2a4f9e1c8b6d3a5f7e9c1b4d8</dd>
+
+            <dt>Canonicalizer</dt>
+            <dd class="mono">lib/canonicalize.ts @ v1.0.0 · sha256:44a9626a…85b6b81f2</dd>
+          </dl>
+
+          <div class="seal-strip prose" style="margin-top:0;">
+            <span class="seal-label">What a verifier can prove from this record alone</span>
+            <span class="seal-val">
+              Given the JSON payload and the pinned canonicalizer source, the document fingerprint is byte-reproducible. Any change to any field — one dollar, one yard, one day — produces a different fingerprint and invalidates any signature that references this one.
+            </span>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Verifier Scene 01</h4>
+          <dl>
+            <dt>Source rows</dt><dd><code>events</code> (payload, payload_hash, payload_version) + <code>schema_registry</code></dd>
+            <dt>Replay steps</dt><dd>1. checkout repo at <code>canonicalizer_tag</code> · 2. <code>shasum</code> the file, compare to <code>canonicalizer_hash</code> · 3. run <code>hashPayloadV1(payload)</code> · 4. compare to <code>payload_hash</code></dd>
+            <dt>No trust required</dt><dd>steps 1–4 need no access to Acme, Riverdale, or CAST — just the rows and the git tag</dd>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 2 — CONFIRM / CEREMONY / FORENSIC
+       ========================================================= -->
+  <section class="scene">
+    <div class="scene-number">
+      02
+      <span class="view-buyer inline">Outbound · Awaiting</span>
+      <span class="view-seller inline">Inbound · Confirm</span>
+      <span class="view-verifier inline">Signature · Forensic</span>
+    </div>
+
+    <div>
+
+      <!-- ============ BUYER: waiting ============ -->
+      <div class="view-buyer">
+        <h2 class="scene-title">Awaiting the vendor's confirmation. <em>Your team's part is done.</em></h2>
+        <p class="scene-sub">The PO is sealed and sent. Until the vendor accepts, nothing moves on your GL. You can resend, edit, or cancel — but once they confirm, the accrual is supported and posting begins automatically.</p>
+
+        <div class="waiting-card">
+          <div>
+            <span class="status-dot"></span>
+            <span class="status-text">Awaiting vendor confirmation · PO-2026-0142</span>
+          </div>
+          <h3>Sent to Riverdale Textiles Ltd.</h3>
+          <p class="deck">J. Okafor received the confirmation link 12 minutes ago. Average confirmation time for this vendor: 3 hours 40 minutes over the last six POs.</p>
+
+          <div class="track">
+            <div class="step done">Issued<span class="time">14:02 UTC</span></div>
+            <div class="step active">Sent &amp; waiting<span class="time">14:04 UTC</span></div>
+            <div class="step">Vendor confirms<span class="time">—</span></div>
+          </div>
+
+          <div class="actions">
+            <button>Resend link</button>
+            <button>Edit &amp; reissue</button>
+            <button class="danger">Cancel PO</button>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Buyer Scene 02</h4>
+          <dl>
+            <dt>Route</dt><dd><code>GET /work-orders/:id</code> (polls or SSE for sig arrival)</dd>
+            <dt>State check</dt><dd>no row in <code>event_signatures</code> yet → "awaiting" UI</dd>
+            <dt>Cancel path</dt><dd>invalidates the confirmation token; no <code>events</code> row ever created</dd>
+            <dt>Edit &amp; reissue</dt><dd>new <code>work_orders</code> row, new hash, new link — old one dies</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ SELLER: confirmation ceremony ============ -->
+      <div class="view-seller">
+        <h2 class="scene-title">Please review and confirm. <em>Your acceptance seals the agreement.</em></h2>
+        <p class="scene-sub">Review every term below. Confirming binds you, on behalf of Riverdale Textiles, to exactly these terms — and only these. If the buyer later changes any field, your acceptance no longer applies. Your AR team, your bank, and your customer all rely on this record.</p>
+
+        <div class="doc accent">
+          <div class="doc-header">
+            <div class="kicker">Confirmation Requested</div>
+            <div class="id">Ref: cnf_8f3k9p</div>
+          </div>
+
+          <h3 class="doc-title">Confirm PO-2026-0142 from Acme Apparel Co.</h3>
+          <p class="doc-subtitle">Confirming on behalf of <strong>Riverdale Textiles Ltd.</strong> · J. Okafor, authorized rep</p>
+
+          <div class="review-grid">
+            <div><div class="lbl">PO number</div><div class="val">PO-2026-0142</div></div>
+            <div><div class="lbl">Buyer</div><div class="val">Acme Apparel Co.</div></div>
+            <div><div class="lbl">Total amount</div><div class="val num">$47,000.00</div></div>
+            <div><div class="lbl">Terms</div><div class="val">Net-30</div></div>
+            <div><div class="lbl">Delivery date</div><div class="val">15 June 2026</div></div>
+            <div><div class="lbl">Inspection window</div><div class="val">5 business days</div></div>
+          </div>
+
+          <div class="binding-box">
+            <div class="label">You are agreeing to these exact terms</div>
+            <div class="body">
+              Your acceptance will be sealed against a fingerprint of every field above. If the buyer changes any field — one dollar, one yard, one day — the fingerprint won't match, and your acceptance will no longer apply.
+            </div>
+            <div class="caption">This protects both sides. Acme can't edit the PO after you accept. You can't later face disputed terms you never agreed to.</div>
+          </div>
+
+          <button class="confirm-btn">
+            <svg class="key-icon" viewBox="0 0 24 24"><path d="M15 7a4 4 0 1 1-4 4M11 11l-7 7v4h4v-2h2v-2h2l1-1" /></svg>
+            Confirm and accept these terms
+          </button>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Seller Scene 02</h4>
+          <dl>
+            <dt>Begin</dt><dd><code>POST /confirm/:token/begin</code></dd>
+            <dt>Finish</dt><dd><code>POST /confirm/:token/finish</code></dd>
+            <dt>Challenge</dt><dd>= payload_hash (not random!)</dd>
+            <dt>Atomic txn</dt><dd>verify signature → insert <code>events</code> + <code>event_signatures</code> → mark token consumed</dd>
+            <dt>Guards (NN5)</dt><dd>reject fmt='none' at app + DB layer; reject UV=false</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ VERIFIER: forensic ============ -->
+      <div class="view-verifier">
+        <h2 class="scene-title">The signature record <em>— exhibit B.</em></h2>
+        <p class="scene-sub">This is every byte a verifier needs to prove, independently, that Riverdale Textiles agreed to PO-2026-0142's exact terms at a specific moment, using a hardware-attested credential that was registered to them.</p>
+
+        <div class="forensic">
+          <div class="tabs">
+            <div class="tab active">Signature record</div>
+            <div class="tab">Authenticator data</div>
+            <div class="tab">Client data JSON</div>
+          </div>
+
+          <dl>
+            <dt>Signer</dt>
+            <dd>agt_2815bf2d3c4e <span style="color:var(--mute);">(Riverdale Textiles Ltd.)</span></dd>
+
+            <dt>Role</dt>
+            <dd>counterparty</dd>
+
+            <dt>Signed at</dt>
+            <dd>20 April 2026, 14:32:07.428 UTC</dd>
+
+            <dt>Credential ID</dt>
+            <dd>0x4a7f2c91d6e834b5f0c8e2a7…</dd>
+
+            <dt>Attestation format</dt>
+            <dd>packed <span class="flag">VERIFIED</span></dd>
+
+            <dt>User verification</dt>
+            <dd>TRUE <span class="flag">REQUIRED</span></dd>
+
+            <dt>Signature algorithm</dt>
+            <dd>ES256 (ECDSA-P256-SHA256)</dd>
+
+            <dt>Signature (DER)</dt>
+            <dd>0x3045022100e8b4f2a7c9d15e3b8a6f4c2d9e7b1a5f3c8d6e2a4b9f7c5d1e8a3b6f4c2d902201a7f…</dd>
+
+            <dt>Bound payload</dt>
+            <dd>0xa7c3e9f24b81d6a0f5e7c29b4d18a6f3e0c7b5d2a4f9e1c8b6d3a5f7e9c1b4d8 <span style="color:var(--mute);">(= PO-2026-0142)</span></dd>
+
+            <dt>Replay status</dt>
+            <dd>Signature verifies against credential public key <span class="flag">VALID</span></dd>
+          </dl>
+
+          <div class="attestation-chain">
+            <div class="ac-title">Attestation chain · hardware provenance</div>
+            <div class="ac-deck">The credential's origin, verifiable to the manufacturer.</div>
+            <div class="steps">
+              <div class="ac-step">
+                <div class="num">01</div>
+                <div class="what">Credential</div>
+                <0.8>Enrolled 02 Apr 2026 by Riverdale rep</0.8>
+              </div>
+              <div class="ac-step">
+                <div class="num">02</div>
+                <div class="what">Device attestation</div>
+                <div>Signed by manufacturer's batch CA</div>
+              </div>
+              <div class="ac-step">
+                <div class="num">03</div>
+                <div class="what">Root CA</div>
+                <div>Chains to published root cert (FIDO MDS)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Verifier Scene 02</h4>
+          <dl>
+            <dt>Source rows</dt><dd><code>event_signatures</code> + <code>webauthn_credentials</code> + <code>agents</code></dd>
+            <dt>Replay</dt><dd>1. recompute <code>sha256(authenticator_data || sha256(client_data_json))</code> · 2. ECDSA-verify against <code>public_key</code> · 3. confirm <code>challenge</code> in clientDataJSON = <code>payload_hash</code></dd>
+            <dt>Attestation</dt><dd>parse <code>attestation_object</code> (CBOR) → validate x509 chain → check root against FIDO MDS snapshot</dd>
+            <dt>No libraries needed</dt><dd>SHA-256, ECDSA, X.509 — all standard; the rows tell the whole story</dd>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================
+       SCENE 3 — POST / MIRROR POST / CHAIN
+       ========================================================= -->
+  <section class="scene">
+    <div class="scene-number">
+      03
+      <span class="view-buyer inline">Outbound · Posted</span>
+      <span class="view-seller inline">Inbound · Posted</span>
+      <span class="view-verifier inline">Chain · Replay</span>
+    </div>
+
+    <div>
+
+      <!-- ============ BUYER: Acme GL ============ -->
+      <div class="view-buyer">
+        <h2 class="scene-title">The accrual posts <em>— supported by a confirmed PO.</em></h2>
+        <p class="scene-sub">Riverdale's confirmation came in at 14:32. The system immediately posted the accrual: a debit to raw-materials inventory and a credit to your vendor payable. Every line below traces back to PO-2026-0142. When your auditor asks, the answer is one click.</p>
+
+        <div class="doc accent">
+          <div class="doc-header">
+            <div class="kicker">Acme · General Ledger · Accrual</div>
+            <div class="id">JE-2026-04-0618</div>
+          </div>
+
+          <h3 class="doc-title">Accrual · PO-2026-0142 (Riverdale Textiles)</h3>
+          <p class="doc-subtitle">Posted 20 April 2026 14:32 UTC · Supported by vendor-confirmed PO</p>
+
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Dr / Cr</th>
+                <th>Account</th>
+                <th class="num">Debit</th>
+                <th class="num">Credit</th>
+                <th>Support</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Dr</td>
+                <td class="account">acme.inventory.raw_materials<span class="sub">Organic cotton + French terry inbound</span></td>
+                <td class="num">$47,000.00</td>
+                <td class="num">—</td>
+                <td>PO-2026-0142 (confirmed)</td>
+              </tr>
+              <tr>
+                <td>Cr</td>
+                <td class="account">acme.vendor_payable.riverdale<span class="sub">Net-30 obligation</span></td>
+                <td class="num">—</td>
+                <td class="num">$47,000.00</td>
+                <td>PO-2026-0142 (confirmed)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="status-bar" style="margin-top:18px;">
+            <span class="pill posted">● Posted to GL</span>
+            <span class="pill active">● Vendor-confirmed</span>
+            <span class="pill">Support doc: PO-2026-0142</span>
+          </div>
+
+          <div class="seal-strip prose">
+            <span class="seal-label">What this accrual is supported by</span>
+            <span class="seal-val">Confirmed by Riverdale Textiles at 14:32 UTC today, using a verified device registered to J. Okafor. Full acceptance record retained for the life of the audit trail.</span>
+          </div>
+        </div>
+
+        <div class="chain">
+          <h3 class="chain-title">Your audit trail, end-to-end.</h3>
+          <p class="chain-deck">Month-end close, lender reporting, board pack — same five documents, always.</p>
+          <div class="chain-links">
+            <div class="link"><div class="num">01</div><div class="name">GL Entry</div><div class="desc">The accrual in your general ledger.</div></div>
+            <div class="link"><div class="num">02</div><div class="name">Source PO</div><div class="desc">The exact terms you authorized.</div></div>
+            <div class="link"><div class="num">03</div><div class="name">Vendor Acceptance</div><div class="desc">Sealed against the PO.</div></div>
+            <div class="link"><div class="num">04</div><div class="name">Device of Record</div><div class="desc">Vendor's authorized device.</div></div>
+            <div class="link"><div class="num">05</div><div class="name">Vendor Identity</div><div class="desc">The approved vendor on file.</div></div>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Buyer Scene 03</h4>
+          <dl>
+            <dt>Trigger</dt><dd><code>postings_require_signed_event</code></dd>
+            <dt>Txn</dt><dd>same as Scene 02 — event + sig + postings in one commit</dd>
+            <dt>Invariant</dt><dd>NN2 + NN3 enforced at DB layer</dd>
+            <dt>Buyer-side writes</dt><dd><code>postings</code> (×2): Dr Inventory, Cr AP</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ SELLER: Riverdale GL ============ -->
+      <div class="view-seller">
+        <h2 class="scene-title">The receivable posts <em>— same event, mirror entry.</em></h2>
+        <p class="scene-sub">The moment you confirmed, your AR team saw the receivable post: an accounts-receivable debit and a revenue credit (or deferred revenue, depending on delivery). Same bilateral event as Acme's accrual — your mirror image of the same agreement, on your side of the ledger.</p>
+
+        <div class="doc accent">
+          <div class="doc-header">
+            <div class="kicker">Riverdale · General Ledger · Receivable</div>
+            <div class="id">JE-2026-04-0391</div>
+          </div>
+
+          <h3 class="doc-title">Receivable · PO-2026-0142 (Acme Apparel)</h3>
+          <p class="doc-subtitle">Posted 20 April 2026 14:32 UTC · Supported by customer-confirmed PO</p>
+
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Dr / Cr</th>
+                <th>Account</th>
+                <th class="num">Debit</th>
+                <th class="num">Credit</th>
+                <th>Support</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Dr</td>
+                <td class="account">riverdale.ar.acme<span class="sub">Net-30 receivable from Acme Apparel</span></td>
+                <td class="num">$47,000.00</td>
+                <td class="num">—</td>
+                <td>PO-2026-0142 (you confirmed)</td>
+              </tr>
+              <tr>
+                <td>Cr</td>
+                <td class="account">riverdale.revenue.deferred<span class="sub">Spring production run · delivery 15 Jun</span></td>
+                <td class="num">—</td>
+                <td class="num">$47,000.00</td>
+                <td>PO-2026-0142 (you confirmed)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="status-bar" style="margin-top:18px;">
+            <span class="pill posted">● Posted to GL</span>
+            <span class="pill active">● You confirmed · 14:32 UTC</span>
+            <span class="pill">Customer: Acme Apparel Co.</span>
+          </div>
+
+          <div class="seal-strip prose">
+            <span class="seal-label">What this receivable is supported by</span>
+            <span class="seal-val">Your own confirmation of PO-2026-0142, made by J. Okafor at 14:32 UTC using a device registered to Riverdale. When your bank or auditor asks why this receivable exists, the answer is this PO — a document both sides agreed to, in writing.</span>
+          </div>
+        </div>
+
+        <div class="chain">
+          <h3 class="chain-title">Your AR, supported to the bank's satisfaction.</h3>
+          <p class="chain-deck">Every open receivable traces to a customer-confirmed PO. Cleaner aging, fewer disputes, stronger credit package.</p>
+          <div class="chain-links">
+            <div class="link"><div class="num">01</div><div class="name">AR Entry</div><div class="desc">The receivable in your general ledger.</div></div>
+            <div class="link"><div class="num">02</div><div class="name">Customer PO</div><div class="desc">The exact terms you received.</div></div>
+            <div class="link"><div class="num">03</div><div class="name">Your Acceptance</div><div class="desc">Your confirmation, sealed against the PO.</div></div>
+            <div class="link"><div class="num">04</div><div class="name">Device of Record</div><div class="desc">The device you used.</div></div>
+            <div class="link"><div class="num">05</div><div class="name">Customer Identity</div><div class="desc">The buyer on file.</div></div>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Seller Scene 03</h4>
+          <dl>
+            <dt>Mirror entries</dt><dd>seller-side <code>postings</code> (×2): Dr AR, Cr Revenue — same <code>event_id</code></dd>
+            <dt>Implementation</dt><dd>in v1, postings are single-tenant (Acme only). Seller-side mirror is future work; for demo, rendered from the same signed event.</dd>
+            <dt>Architectural point</dt><dd>one bilateral event authorizes postings on both sides — the same FK, used twice</dd>
+          </dl>
+        </div>
+      </div>
+
+      <!-- ============ VERIFIER: hero chain ============ -->
+      <div class="view-verifier">
+        <h2 class="scene-title">The chain, end-to-end <em>— fully replayable.</em></h2>
+        <p class="scene-sub">Given nothing but the database rows and the committed canonicalizer source code, any verifier can walk this chain in five steps, with standard cryptographic primitives and no access to either counterparty or the platform operator.</p>
+
+        <div class="chain hero">
+          <h3 class="chain-title">What a 2031 verifier reconstructs — from raw bytes.</h3>
+          <p class="chain-deck">No trust required. No account at Acme, Riverdale, or CAST needed. Just SHA-256, ECDSA, and X.509.</p>
+
+          <div class="chain-links">
+            <div class="link">
+              <div class="num">01</div>
+              <div class="name">Posting</div>
+              <div class="desc">FK references event. Trigger proves it could not exist without one.</div>
+              <div class="verify-action">→ Replay FK</div>
+            </div>
+            <div class="link">
+              <div class="num">02</div>
+              <div class="name">Event</div>
+              <div class="desc">Canonicalize payload, hash with version prefix, compare to stored hash.</div>
+              <div class="verify-action">→ Replay hash</div>
+            </div>
+            <div class="link">
+              <div class="num">03</div>
+              <div class="name">Signature</div>
+              <div class="desc">ECDSA-verify against credential public key. Challenge = payload hash.</div>
+              <div class="verify-action">→ Replay sig</div>
+            </div>
+            <div class="link">
+              <div class="num">04</div>
+              <div class="name">Credential</div>
+              <div class="desc">Parse attestation object. Validate cert chain to manufacturer root.</div>
+              <div class="verify-action">→ Replay attestation</div>
+            </div>
+            <div class="link">
+              <div class="num">05</div>
+              <div class="name">Agent</div>
+              <div class="desc">Counterparty identity row, immutable since registration.</div>
+              <div class="verify-action">→ Confirm identity</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="evidence-frame" style="margin-top:28px;">
+          <h3 class="title" style="max-width:100%;">What this chain underwrites</h3>
+          <p class="provenance">Why the verifier view matters, commercially.</p>
+          <div style="font-family:var(--serif); font-size:15px; line-height:1.6; color:var(--ink-2);">
+            <p style="margin:0 0 10px;"><strong>For an auditor</strong> — every GL posting has cryptographic support that cannot have been fabricated after the fact. Support documentation is produced automatically, not reconstructed at year-end.</p>
+            <p style="margin:0 0 10px;"><strong>For a lender</strong> — a receivable shown on a borrower's balance sheet can be verified against a counterparty-confirmed PO, with hardware-attested counterparty identity. Borrowing-base diligence becomes a query, not a request.</p>
+            <p style="margin:0;"><strong>For an insurer</strong> — the event chain is an underwritable fact pattern. Loss prevention, dispute defense, and fraud investigation all rest on the same rows.</p>
+          </div>
+        </div>
+
+        <div class="dev-note">
+          <h4>Dev · Verifier Scene 03</h4>
+          <dl>
+            <dt>Source</dt><dd>all five tables: <code>postings</code>, <code>events</code>, <code>event_signatures</code>, <code>webauthn_credentials</code>, <code>agents</code> + <code>schema_registry</code></dd>
+            <dt>Primitives</dt><dd>SHA-256, ECDSA-P256, X.509 chain validation. No proprietary verifier — standard libs only.</dd>
+            <dt>What Layer 2 sells</dt><dd>a hosted replay API that returns pass/fail for any event_id, plus a tamper-evident timestamp</dd>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <span class="view-buyer inline">CAST Layer 0 · buyer view · mockup</span>
+    <span class="view-seller inline">CAST Layer 0 · seller view · mockup</span>
+    <span class="view-verifier inline">CAST Layer 0 · verifier view · mockup</span>
+    <span>Mockup only — Sessions 4–6 will build this</span>
+  </footer>
+
+  <script>
+    (function () {
+      const body = document.body;
+
+      // Perspective toggle
+      const buttons = document.querySelectorAll('.topbar .switch button[data-target]');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-target');
+          if (['buyer','seller','verifier'].includes(target)) {
+            body.setAttribute('data-view', target);
+          }
+        });
+      });
+
+      // Dev notes toggle
+      const dev = document.getElementById('devnotes');
+      dev.addEventListener('change', (e) => {
+        body.setAttribute('data-devnotes', e.target.checked ? 'on' : 'off');
+      });
+    })();
+  </script>
+
+</body>
+</html>

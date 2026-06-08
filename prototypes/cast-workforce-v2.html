@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST | Finance Workforce Planning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15); }
+        .tab-active { border-bottom: 3px solid #0ea5e9; color: #0ea5e9; background: white; }
+        .input-field { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+        .btn-secondary { background: white; color: #475569; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 500; transition: all 0.2s; }
+        .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .complexity-low { background: #dcfce7; color: #166534; }
+        .complexity-medium { background: #dbeafe; color: #1e40af; }
+        .complexity-high { background: #fef3c7; color: #92400e; }
+        .complexity-expert { background: #f3e8ff; color: #6b21a8; }
+        .value-strategic { background: #dbeafe; color: #1e40af; }
+        .value-operational { background: #dcfce7; color: #166534; }
+        .value-admin { background: #fef3c7; color: #92400e; }
+        .value-rework { background: #fee2e2; color: #991b1b; }
+        .risk-high { background: #fee2e2; color: #991b1b; }
+        .risk-medium { background: #fef3c7; color: #92400e; }
+        .risk-low { background: #dcfce7; color: #166534; }
+        .peak-month { background: #dbeafe; color: #1e40af; }
+        .peak-quarter { background: #fef3c7; color: #92400e; }
+        .peak-year { background: #fee2e2; color: #991b1b; }
+        .peak-audit { background: #f3e8ff; color: #6b21a8; }
+        .utilization-good { color: #16a34a; }
+        .utilization-warning { color: #d97706; }
+        .utilization-critical { color: #dc2626; }
+        .variance-over { color: #dc2626; background: #fef2f2; }
+        .variance-under { color: #16a34a; background: #f0fdf4; }
+        .variance-on { color: #3b82f6; background: #eff6ff; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container-sm { position: relative; height: 250px; width: 100%; }
+        .task-row { transition: all 0.15s; }
+        .task-row:hover { background: #f8fafc; }
+        .domain-ap { border-left: 4px solid #3b82f6; }
+        .domain-ar { border-left: 4px solid #10b981; }
+        .domain-gl { border-left: 4px solid #f59e0b; }
+        .domain-fp { border-left: 4px solid #8b5cf6; }
+        .domain-other { border-left: 4px solid #64748b; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: white; border-radius: 16px; max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .drop-zone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; transition: all 0.2s; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #0ea5e9; background: #f0f9ff; }
+        .scenario-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #e2e8f0; outline: none; }
+        .scenario-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #0ea5e9; cursor: pointer; }
+        .insight-card { border-radius: 12px; padding: 1rem; }
+        .insight-critical { background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 1px solid #fecaca; }
+        .insight-warning { background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 1px solid #fcd34d; }
+        .insight-success { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #86efac; }
+        .insight-info { background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #93c5fd; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <header class="gradient-header text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center"><span class="text-xl font-bold">C</span></div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Finance Workforce Planning</h1>
+                        <p class="text-sky-200 text-sm">Capacity • Risk • Cost • Scenarios</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-white/20 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-sky-200">Team</p>
+                        <p class="text-lg font-bold" id="header-team-count">0</p>
+                    </div>
+                    <div class="bg-white/20 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-sky-200">Tasks</p>
+                        <p class="text-lg font-bold" id="header-task-count">0</p>
+                    </div>
+                    <div class="bg-white/20 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-sky-200">Hrs/Mo</p>
+                        <p class="text-lg font-bold" id="header-hours">0</p>
+                    </div>
+                    <div class="bg-white/20 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-sky-200">Risk Tasks</p>
+                        <p class="text-lg font-bold text-red-300" id="header-risk">0</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex gap-1 mt-5 -mb-5 overflow-x-auto">
+                <button onclick="showTab('team')" id="tab-team" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 tab-active whitespace-nowrap">Team</button>
+                <button onclick="showTab('tasks')" id="tab-tasks" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Tasks</button>
+                <button onclick="showTab('analysis')" id="tab-analysis" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Analysis</button>
+                <button onclick="showTab('risk')" id="tab-risk" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🚨 Risk</button>
+                <button onclick="showTab('peak')" id="tab-peak" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">📅 Peak Periods</button>
+                <button onclick="showTab('value')" id="tab-value" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">💎 Value</button>
+                <button onclick="showTab('unit')" id="tab-unit" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">💰 Unit Cost</button>
+                <button onclick="showTab('scenario')" id="tab-scenario" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">🔮 Scenarios</button>
+                <button onclick="showTab('export')" id="tab-export" class="tab-btn px-4 py-2.5 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 whitespace-nowrap">Export</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Tab: Team -->
+        <section id="content-team" class="tab-content">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Team Structure</h2>
+                        <p class="text-slate-600">Define your finance team. Sample data pre-loaded.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadSampleData()" class="btn-secondary text-sm">🔄 Reset</button>
+                        <button onclick="openAddMemberModal()" class="btn-primary">+ Add Member</button>
+                    </div>
+                </div>
+                <div id="team-list" class="space-y-3"></div>
+            </div>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="glass-card rounded-xl p-4 border border-slate-200"><p class="text-sm text-slate-500">Total FTEs</p><p class="text-2xl font-bold text-slate-800" id="setup-total-fte">0</p></div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200"><p class="text-sm text-slate-500">Annual Cost</p><p class="text-2xl font-bold text-slate-800" id="setup-total-cost">$0</p></div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200"><p class="text-sm text-slate-500">Capacity</p><p class="text-2xl font-bold text-slate-800" id="setup-total-capacity">0 hrs/mo</p></div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200"><p class="text-sm text-slate-500">Avg Utilization</p><p class="text-2xl font-bold" id="setup-avg-util">0%</p></div>
+            </div>
+        </section>
+
+        <!-- Tab: Tasks -->
+        <section id="content-tasks" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-slate-800">Task Entry</h2>
+                </div>
+                <div class="bg-sky-50 border border-sky-200 rounded-lg p-3 mb-4 text-sm">
+                    <strong>Enhanced Fields:</strong> Each task now includes Actual/Goal time, Value classification, Peak periods, and calculates unit cost automatically.
+                </div>
+                <div class="flex items-center gap-4 mb-6">
+                    <select id="task-member-select" onchange="loadMemberTasks()" class="input-field flex-1 max-w-xs"><option value="">-- Select Member --</option></select>
+                    <button onclick="openAddTaskModal()" class="btn-primary" id="add-task-btn" disabled>+ Add Task</button>
+                </div>
+                <div id="member-task-summary" class="hidden mb-6">
+                    <div class="bg-slate-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div><h3 class="font-semibold text-slate-800" id="selected-member-name">-</h3><p class="text-sm text-slate-500" id="selected-member-role">-</p></div>
+                            <div class="flex gap-4 text-center">
+                                <div><p class="text-xl font-bold text-slate-800" id="member-task-count">0</p><p class="text-xs text-slate-500">Tasks</p></div>
+                                <div><p class="text-xl font-bold text-sky-600" id="member-hours-month">0</p><p class="text-xs text-slate-500">Actual</p></div>
+                                <div><p class="text-xl font-bold text-emerald-600" id="member-goal-hours">0</p><p class="text-xs text-slate-500">Goal</p></div>
+                                <div><p class="text-xl font-bold" id="member-utilization">0%</p><p class="text-xs text-slate-500">Util</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="member-tasks-list" class="space-y-2"><div class="text-center py-8 text-slate-400">Select a team member</div></div>
+            </div>
+        </section>
+
+        <!-- Tab: Analysis -->
+        <section id="content-analysis" class="tab-content hidden">
+            <div class="grid grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Actual Hrs</p><p class="text-lg font-bold text-slate-800" id="analysis-total-hours">0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Goal Hrs</p><p class="text-lg font-bold text-emerald-600" id="analysis-goal-hours">0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Variance</p><p class="text-lg font-bold" id="analysis-variance">0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Capacity</p><p class="text-lg font-bold text-slate-800" id="analysis-capacity">0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Utilization</p><p class="text-lg font-bold" id="analysis-utilization">0%</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">$/Hour</p><p class="text-lg font-bold text-slate-800" id="analysis-cost-hour">$0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Mo Cost</p><p class="text-lg font-bold text-slate-800" id="analysis-monthly-cost">$0</p></div>
+                <div class="stat-card glass-card rounded-xl p-3 border border-slate-200"><p class="text-xs text-slate-500">Tasks</p><p class="text-lg font-bold text-slate-800" id="analysis-task-count">0</p></div>
+            </div>
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <div class="glass-card rounded-xl p-5 border border-slate-200"><h3 class="font-semibold mb-3">Hours by Domain</h3><div class="chart-container"><canvas id="domainHoursChart"></canvas></div></div>
+                <div class="glass-card rounded-xl p-5 border border-slate-200"><h3 class="font-semibold mb-3">Team Utilization</h3><div class="chart-container"><canvas id="teamUtilChart"></canvas></div></div>
+            </div>
+            <div class="glass-card rounded-xl p-5 border border-slate-200">
+                <h3 class="font-semibold mb-3">Individual Workload</h3>
+                <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50"><tr><th class="text-left py-2 px-3">Name</th><th class="text-left py-2 px-3">Role</th><th class="text-center py-2 px-3">Tasks</th><th class="text-center py-2 px-3">Actual</th><th class="text-center py-2 px-3">Goal</th><th class="text-center py-2 px-3">Var</th><th class="text-center py-2 px-3">Util</th><th class="text-center py-2 px-3">Status</th></tr></thead>
+                    <tbody id="team-utilization-table" class="divide-y divide-slate-100"></tbody>
+                </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Risk (Key Person Dependency) -->
+        <section id="content-risk" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">🚨 Key Person Risk Analysis</h2>
+                <p class="text-slate-600 mb-4">Identifies tasks performed by only one person — single points of failure that create risk if that person is unavailable.</p>
+                
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="insight-card insight-critical">
+                        <p class="text-2xl font-bold" id="risk-high-count">0</p>
+                        <p class="text-sm">High Risk Tasks</p>
+                        <p class="text-xs text-slate-500">Only 1 person</p>
+                    </div>
+                    <div class="insight-card insight-warning">
+                        <p class="text-2xl font-bold" id="risk-medium-count">0</p>
+                        <p class="text-sm">Medium Risk</p>
+                        <p class="text-xs text-slate-500">2 people</p>
+                    </div>
+                    <div class="insight-card insight-success">
+                        <p class="text-2xl font-bold" id="risk-low-count">0</p>
+                        <p class="text-sm">Low Risk</p>
+                        <p class="text-xs text-slate-500">3+ people</p>
+                    </div>
+                </div>
+
+                <h3 class="font-semibold mb-3">High Risk Tasks (Single Point of Failure)</h3>
+                <div id="high-risk-tasks" class="space-y-2 mb-6"></div>
+
+                <h3 class="font-semibold mb-3">Risk by Person</h3>
+                <p class="text-sm text-slate-500 mb-3">People who are the sole performer of critical tasks:</p>
+                <div id="risk-by-person" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Peak Periods -->
+        <section id="content-peak" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">📅 Peak Period Planning</h2>
+                <p class="text-slate-600 mb-4">Shows workload during critical periods: Month-End, Quarter-End, Year-End, and Audit Season. Tasks tagged with peak periods are assumed to require 50% more time during those periods.</p>
+                
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="insight-card insight-info">
+                        <p class="text-sm font-medium">Month-End Close</p>
+                        <p class="text-2xl font-bold" id="peak-month-hours">0</p>
+                        <p class="text-xs text-slate-500">additional hours</p>
+                    </div>
+                    <div class="insight-card insight-warning">
+                        <p class="text-sm font-medium">Quarter-End</p>
+                        <p class="text-2xl font-bold" id="peak-quarter-hours">0</p>
+                        <p class="text-xs text-slate-500">additional hours</p>
+                    </div>
+                    <div class="insight-card insight-critical">
+                        <p class="text-sm font-medium">Year-End</p>
+                        <p class="text-2xl font-bold" id="peak-year-hours">0</p>
+                        <p class="text-xs text-slate-500">additional hours</p>
+                    </div>
+                    <div class="insight-card" style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 1px solid #d8b4fe;">
+                        <p class="text-sm font-medium">Audit Season</p>
+                        <p class="text-2xl font-bold" id="peak-audit-hours">0</p>
+                        <p class="text-xs text-slate-500">additional hours</p>
+                    </div>
+                </div>
+
+                <h3 class="font-semibold mb-3">Workload by Period</h3>
+                <div class="chart-container mb-6">
+                    <canvas id="peakChart"></canvas>
+                </div>
+
+                <h3 class="font-semibold mb-3">Who's Overloaded During Close?</h3>
+                <p class="text-sm text-slate-500 mb-3">Team members projected to exceed 90% utilization during month-end:</p>
+                <div id="peak-overload" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Value Classification -->
+        <section id="content-value" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">💎 Value Classification</h2>
+                <p class="text-slate-600 mb-4">Categorizes work by value: Strategic (high-value analysis & decisions), Operational (necessary routine), Administrative (low-value overhead), and Rework (fixing errors).</p>
+                
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="insight-card insight-info">
+                        <p class="text-sm font-medium">Strategic</p>
+                        <p class="text-2xl font-bold" id="value-strategic-hours">0</p>
+                        <p class="text-xs text-slate-500" id="value-strategic-pct">0% of time</p>
+                    </div>
+                    <div class="insight-card insight-success">
+                        <p class="text-sm font-medium">Operational</p>
+                        <p class="text-2xl font-bold" id="value-operational-hours">0</p>
+                        <p class="text-xs text-slate-500" id="value-operational-pct">0% of time</p>
+                    </div>
+                    <div class="insight-card insight-warning">
+                        <p class="text-sm font-medium">Administrative</p>
+                        <p class="text-2xl font-bold" id="value-admin-hours">0</p>
+                        <p class="text-xs text-slate-500" id="value-admin-pct">0% of time</p>
+                    </div>
+                    <div class="insight-card insight-critical">
+                        <p class="text-sm font-medium">Rework</p>
+                        <p class="text-2xl font-bold" id="value-rework-hours">0</p>
+                        <p class="text-xs text-slate-500" id="value-rework-pct">0% of time</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Time by Value Category</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="valueTimeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Cost by Value Category</h3>
+                        <div class="chart-container-sm">
+                            <canvas id="valueCostChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-amber-800 mb-2">💡 Optimization Opportunity</h4>
+                    <p class="text-sm text-amber-700" id="value-opportunity">Loading...</p>
+                </div>
+
+                <h3 class="font-semibold mb-3">Administrative & Rework Tasks (Reduction Targets)</h3>
+                <div id="low-value-tasks" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Unit Cost -->
+        <section id="content-unit" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">💰 Cost per Transaction</h2>
+                <p class="text-slate-600 mb-4">Unit economics for each task — enables benchmarking, ROI calculations, and identifying expensive processes.</p>
+                
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="insight-card insight-info">
+                        <p class="text-sm font-medium">Avg Cost/Transaction</p>
+                        <p class="text-2xl font-bold" id="unit-avg-cost">$0</p>
+                    </div>
+                    <div class="insight-card insight-critical">
+                        <p class="text-sm font-medium">Highest Unit Cost</p>
+                        <p class="text-2xl font-bold" id="unit-max-cost">$0</p>
+                    </div>
+                    <div class="insight-card insight-success">
+                        <p class="text-sm font-medium">Lowest Unit Cost</p>
+                        <p class="text-2xl font-bold" id="unit-min-cost">$0</p>
+                    </div>
+                    <div class="insight-card insight-warning">
+                        <p class="text-sm font-medium">Total Transactions/Mo</p>
+                        <p class="text-2xl font-bold" id="unit-total-vol">0</p>
+                    </div>
+                </div>
+
+                <h3 class="font-semibold mb-3">Unit Cost by Task (Sorted by Cost)</h3>
+                <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50"><tr><th class="text-left py-2 px-3">Task</th><th class="text-left py-2 px-3">Owner</th><th class="text-right py-2 px-3">Volume/Mo</th><th class="text-right py-2 px-3">Min/Item</th><th class="text-right py-2 px-3">$/Hour</th><th class="text-right py-2 px-3">Cost/Transaction</th><th class="text-right py-2 px-3">Total Cost/Mo</th></tr></thead>
+                    <tbody id="unit-cost-table" class="divide-y divide-slate-100"></tbody>
+                </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Scenario Modeling -->
+        <section id="content-scenario" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-2">🔮 Scenario Modeling</h2>
+                <p class="text-slate-600 mb-4">"What if" analysis — model the impact of headcount changes, efficiency improvements, or volume growth.</p>
+                
+                <div class="grid grid-cols-3 gap-6 mb-6">
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">👥 Headcount Change</h3>
+                        <p class="text-sm text-slate-500 mb-2">Add or remove FTEs</p>
+                        <input type="range" id="scenario-headcount" class="scenario-slider" min="-3" max="3" value="0" step="0.5" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-slate-400 mt-1"><span>-3 FTE</span><span id="scenario-headcount-val" class="font-semibold text-slate-800">0</span><span>+3 FTE</span></div>
+                    </div>
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">⚡ Efficiency Improvement</h3>
+                        <p class="text-sm text-slate-500 mb-2">Reduce task times</p>
+                        <input type="range" id="scenario-efficiency" class="scenario-slider" min="0" max="50" value="0" step="5" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-slate-400 mt-1"><span>0%</span><span id="scenario-efficiency-val" class="font-semibold text-slate-800">0%</span><span>50%</span></div>
+                    </div>
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">📈 Volume Growth</h3>
+                        <p class="text-sm text-slate-500 mb-2">Transaction volume change</p>
+                        <input type="range" id="scenario-volume" class="scenario-slider" min="-25" max="50" value="0" step="5" oninput="updateScenario()">
+                        <div class="flex justify-between text-xs text-slate-400 mt-1"><span>-25%</span><span id="scenario-volume-val" class="font-semibold text-slate-800">0%</span><span>+50%</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 text-white rounded-xl p-6 mb-6">
+                    <h3 class="font-semibold mb-4">Scenario Impact</h3>
+                    <div class="grid grid-cols-5 gap-4 text-center">
+                        <div>
+                            <p class="text-slate-400 text-xs">Hours/Mo</p>
+                            <p class="text-sm text-slate-400" id="scenario-hours-before">0</p>
+                            <p class="text-xl font-bold" id="scenario-hours-after">0</p>
+                            <p class="text-xs" id="scenario-hours-delta">-</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Capacity</p>
+                            <p class="text-sm text-slate-400" id="scenario-cap-before">0</p>
+                            <p class="text-xl font-bold" id="scenario-cap-after">0</p>
+                            <p class="text-xs" id="scenario-cap-delta">-</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Utilization</p>
+                            <p class="text-sm text-slate-400" id="scenario-util-before">0%</p>
+                            <p class="text-xl font-bold" id="scenario-util-after">0%</p>
+                            <p class="text-xs" id="scenario-util-delta">-</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">Monthly Cost</p>
+                            <p class="text-sm text-slate-400" id="scenario-cost-before">$0</p>
+                            <p class="text-xl font-bold" id="scenario-cost-after">$0</p>
+                            <p class="text-xs" id="scenario-cost-delta">-</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs">$/Transaction</p>
+                            <p class="text-sm text-slate-400" id="scenario-unit-before">$0</p>
+                            <p class="text-xl font-bold" id="scenario-unit-after">$0</p>
+                            <p class="text-xs" id="scenario-unit-delta">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scenario-insight" class="insight-card insight-info">
+                    <h4 class="font-semibold">📊 Scenario Analysis</h4>
+                    <p class="text-sm mt-1">Adjust the sliders above to model different scenarios.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Export -->
+        <section id="content-export" class="tab-content hidden">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="glass-card rounded-xl p-6 border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4">Export</h2>
+                    <div class="space-y-3">
+                        <button onclick="exportFullJSON()" class="btn-primary w-full">📊 Full JSON Package</button>
+                        <button onclick="exportTeamCSV()" class="btn-secondary w-full">👥 Team CSV</button>
+                        <button onclick="exportTasksCSV()" class="btn-secondary w-full">📋 Tasks CSV (All Fields)</button>
+                        <button onclick="exportSummary()" class="btn-secondary w-full">📑 Executive Summary</button>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-slate-200">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4">Import</h2>
+                    <div class="drop-zone" ondrop="handleJSONDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <p class="text-slate-500 mb-2">Drag & drop JSON</p>
+                        <input type="file" id="json-file-input" accept=".json" onchange="handleJSONUpload(event)" class="hidden">
+                        <button onclick="document.getElementById('json-file-input').click()" class="btn-secondary text-sm">Choose File</button>
+                    </div>
+                    <button onclick="loadSampleData()" class="btn-secondary w-full mt-4">🔄 Load Sample Data</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Member Modal -->
+    <div id="add-member-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-4">Add Team Member</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Name *</label><input type="text" id="member-name" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Role *</label><input type="text" id="member-role" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Domain</label>
+                    <select id="member-domain" class="input-field w-full"><option value="ap">Accounts Payable</option><option value="ar">Accounts Receivable</option><option value="gl">General Ledger</option><option value="fp">FP&A</option><option value="other">Other</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">FTE</label><input type="number" id="member-fte" class="input-field w-full" value="1.0" step="0.1"></div>
+                <div><label class="block text-sm font-medium mb-1">Salary</label><input type="number" id="member-salary" class="input-field w-full" value="65000" step="1000"></div>
+                <div><label class="block text-sm font-medium mb-1">Manager</label><input type="text" id="member-manager" class="input-field w-full"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddMemberModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveMember()" class="btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-2">Add Task</h3>
+            <p class="text-sm text-slate-500 mb-4">For: <span id="task-modal-member-name" class="font-medium">-</span></p>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Job Category *</label><input type="text" id="task-job" class="input-field w-full" placeholder="e.g., Invoice Processing"></div>
+                <div><label class="block text-sm font-medium mb-1">Task Name *</label><input type="text" id="task-name" class="input-field w-full" placeholder="e.g., Match invoice to PO"></div>
+                <div><label class="block text-sm font-medium mb-1">Frequency</label>
+                    <select id="task-frequency" class="input-field w-full"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Volume/Period</label><input type="number" id="task-volume" class="input-field w-full" value="10"></div>
+                <div><label class="block text-sm font-medium mb-1">Actual Min/Item</label><input type="number" id="task-time" class="input-field w-full" value="15"></div>
+                <div><label class="block text-sm font-medium mb-1">Goal Min/Item</label><input type="number" id="task-goal-time" class="input-field w-full" value="10"></div>
+                <div><label class="block text-sm font-medium mb-1">Value Classification</label>
+                    <select id="task-value" class="input-field w-full"><option value="operational">Operational</option><option value="strategic">Strategic</option><option value="admin">Administrative</option><option value="rework">Rework</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Complexity</label>
+                    <select id="task-complexity" class="input-field w-full"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="expert">Expert</option></select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium mb-1">Peak Periods (when does this spike?)</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-month" class="rounded"> Month-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-quarter" class="rounded"> Quarter-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-year" class="rounded"> Year-End</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-audit" class="rounded"> Audit</label>
+                    </div>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Systems</label><input type="text" id="task-systems" class="input-field w-full" placeholder="e.g., NetSuite, Excel"></div>
+                <div><label class="block text-sm font-medium mb-1">Notes</label><input type="text" id="task-notes" class="input-field w-full"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddTaskModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveTask()" class="btn-primary">Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA ====================
+        let teamMembers = [];
+        let tasks = [];
+        
+        // Chart instances
+        let domainChart = null;
+        let utilChart = null;
+        let peakChartInstance = null;
+        let valueTimeChartInstance = null;
+        let valueCostChartInstance = null;
+        
+        const domainLabels = {ap:'Accounts Payable',ar:'Accounts Receivable',gl:'General Ledger',fp:'FP&A',other:'Other'};
+        const domainColors = {ap:'#3b82f6',ar:'#10b981',gl:'#f59e0b',fp:'#8b5cf6',other:'#64748b'};
+        const valueLabels = {strategic:'Strategic',operational:'Operational',admin:'Administrative',rework:'Rework'};
+        const valueColors = {strategic:'#3b82f6',operational:'#10b981',admin:'#f59e0b',rework:'#ef4444'};
+        const freqMult = {daily:22,weekly:4.33,monthly:1,quarterly:0.33};
+
+        // ==================== SAMPLE DATA ====================
+        const sampleData = {
+            teamMembers: [
+                {id:0,name:'Sarah Chen',role:'AP Manager',domain:'ap',fte:1,salary:78000,manager:'CFO'},
+                {id:1,name:'Michael Torres',role:'AP Specialist',domain:'ap',fte:1,salary:56000,manager:'Sarah Chen'},
+                {id:2,name:'Jennifer Walsh',role:'AP Clerk',domain:'ap',fte:1,salary:48000,manager:'Sarah Chen'},
+                {id:3,name:'Amanda Rodriguez',role:'AR Manager',domain:'ar',fte:1,salary:75000,manager:'CFO'},
+                {id:4,name:'James Wilson',role:'AR Specialist',domain:'ar',fte:1,salary:54000,manager:'Amanda Rodriguez'},
+                {id:5,name:'Robert Martinez',role:'Controller',domain:'gl',fte:1,salary:145000,manager:'CFO'},
+                {id:6,name:'Emily Thompson',role:'Senior Accountant',domain:'gl',fte:1,salary:85000,manager:'Robert Martinez'},
+                {id:7,name:'Chris Anderson',role:'Staff Accountant',domain:'gl',fte:1,salary:62000,manager:'Robert Martinez'},
+                {id:8,name:'Kevin Brown',role:'Financial Analyst',domain:'fp',fte:1,salary:82000,manager:'CFO'}
+            ],
+            tasks: [
+                // AP - Sarah (Manager)
+                {id:0,memberId:0,job:'Invoice Processing',name:'Review/approve exceptions',frequency:'daily',volume:12,time:10,goalTime:8,value:'strategic',complexity:'high',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:1,memberId:0,job:'Invoice Processing',name:'Approve large invoices >$10K',frequency:'daily',volume:5,time:8,goalTime:5,value:'strategic',complexity:'medium',peakPeriods:[],systems:'NetSuite',notes:''},
+                {id:2,memberId:0,job:'Vendor Management',name:'Handle vendor escalations',frequency:'daily',volume:3,time:20,goalTime:15,value:'strategic',complexity:'high',peakPeriods:[],systems:'Email',notes:''},
+                {id:3,memberId:0,job:'Team Management',name:'Team meetings',frequency:'weekly',volume:4,time:45,goalTime:45,value:'operational',complexity:'medium',peakPeriods:[],systems:'Zoom',notes:''},
+                // AP - Michael (Specialist)
+                {id:4,memberId:1,job:'Invoice Processing',name:'Match invoices to PO',frequency:'daily',volume:35,time:6,goalTime:4,value:'operational',complexity:'low',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:5,memberId:1,job:'Invoice Processing',name:'Route for approval',frequency:'daily',volume:30,time:3,goalTime:2,value:'admin',complexity:'low',peakPeriods:[],systems:'NetSuite',notes:''},
+                {id:6,memberId:1,job:'Invoice Processing',name:'Research discrepancies',frequency:'daily',volume:8,time:18,goalTime:12,value:'rework',complexity:'medium',peakPeriods:['month'],systems:'NetSuite, Email',notes:''},
+                {id:7,memberId:1,job:'Payment Processing',name:'Prepare payment batch',frequency:'weekly',volume:1,time:90,goalTime:60,value:'operational',complexity:'medium',peakPeriods:['month'],systems:'NetSuite, Bank',notes:''},
+                // AP - Jennifer (Clerk)
+                {id:8,memberId:2,job:'Data Entry',name:'Enter invoices',frequency:'daily',volume:45,time:5,goalTime:3,value:'admin',complexity:'low',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:9,memberId:2,job:'Data Entry',name:'Scan and attach docs',frequency:'daily',volume:45,time:2,goalTime:1,value:'admin',complexity:'low',peakPeriods:[],systems:'Scanner',notes:''},
+                {id:10,memberId:2,job:'Filing',name:'Organize files',frequency:'daily',volume:1,time:30,goalTime:15,value:'admin',complexity:'low',peakPeriods:[],systems:'',notes:''},
+                // AR - Amanda (Manager)
+                {id:11,memberId:3,job:'Collections',name:'Review aging report',frequency:'daily',volume:1,time:30,goalTime:20,value:'strategic',complexity:'medium',peakPeriods:['month','quarter'],systems:'NetSuite',notes:''},
+                {id:12,memberId:3,job:'Collections',name:'Handle escalated issues',frequency:'daily',volume:4,time:25,goalTime:20,value:'strategic',complexity:'high',peakPeriods:['quarter'],systems:'Phone',notes:''},
+                {id:13,memberId:3,job:'Credit Management',name:'Review credit applications',frequency:'weekly',volume:3,time:30,goalTime:25,value:'strategic',complexity:'high',peakPeriods:[],systems:'Credit reports',notes:''},
+                // AR - James (Specialist)
+                {id:14,memberId:4,job:'Cash Application',name:'Apply payments',frequency:'daily',volume:50,time:3,goalTime:2,value:'operational',complexity:'low',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:15,memberId:4,job:'Cash Application',name:'Research unapplied',frequency:'daily',volume:8,time:15,goalTime:10,value:'rework',complexity:'medium',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:16,memberId:4,job:'Collections',name:'Collection calls',frequency:'daily',volume:20,time:6,goalTime:5,value:'operational',complexity:'medium',peakPeriods:['quarter'],systems:'Phone',notes:''},
+                // GL - Robert (Controller)
+                {id:17,memberId:5,job:'Month-End Close',name:'Review journal entries',frequency:'monthly',volume:60,time:8,goalTime:6,value:'strategic',complexity:'high',peakPeriods:['month','quarter','year'],systems:'NetSuite',notes:''},
+                {id:18,memberId:5,job:'Month-End Close',name:'BS recon review',frequency:'monthly',volume:25,time:15,goalTime:12,value:'strategic',complexity:'expert',peakPeriods:['month','quarter','year'],systems:'Excel',notes:''},
+                {id:19,memberId:5,job:'Month-End Close',name:'Flux analysis',frequency:'monthly',volume:1,time:180,goalTime:120,value:'strategic',complexity:'expert',peakPeriods:['month','quarter'],systems:'Excel',notes:''},
+                {id:20,memberId:5,job:'Audit',name:'Auditor requests',frequency:'quarterly',volume:20,time:60,goalTime:45,value:'operational',complexity:'high',peakPeriods:['audit'],systems:'Various',notes:''},
+                // GL - Emily (Sr Accountant)
+                {id:21,memberId:6,job:'Reconciliation',name:'Bank reconciliation',frequency:'monthly',volume:5,time:40,goalTime:30,value:'operational',complexity:'medium',peakPeriods:['month'],systems:'Bank, NetSuite',notes:''},
+                {id:22,memberId:6,job:'Reconciliation',name:'Balance sheet recons',frequency:'monthly',volume:35,time:20,goalTime:15,value:'operational',complexity:'medium',peakPeriods:['month','quarter'],systems:'Excel',notes:''},
+                {id:23,memberId:6,job:'Journal Entries',name:'Complex JEs',frequency:'monthly',volume:15,time:25,goalTime:20,value:'operational',complexity:'high',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:24,memberId:6,job:'Intercompany',name:'IC reconciliation',frequency:'monthly',volume:1,time:180,goalTime:120,value:'operational',complexity:'high',peakPeriods:['month','quarter'],systems:'Excel',notes:''},
+                // GL - Chris (Staff)
+                {id:25,memberId:7,job:'Journal Entries',name:'Standard JEs',frequency:'monthly',volume:30,time:12,goalTime:8,value:'operational',complexity:'low',peakPeriods:['month'],systems:'NetSuite',notes:''},
+                {id:26,memberId:7,job:'Journal Entries',name:'Accruals',frequency:'monthly',volume:20,time:15,goalTime:10,value:'operational',complexity:'medium',peakPeriods:['month','quarter'],systems:'NetSuite',notes:''},
+                {id:27,memberId:7,job:'Reconciliation',name:'Credit card recon',frequency:'monthly',volume:8,time:35,goalTime:25,value:'operational',complexity:'medium',peakPeriods:['month'],systems:'Card portals',notes:''},
+                {id:28,memberId:7,job:'Expense Reports',name:'Review expenses',frequency:'weekly',volume:25,time:8,goalTime:5,value:'admin',complexity:'low',peakPeriods:[],systems:'Concur',notes:''},
+                // FP&A - Kevin
+                {id:29,memberId:8,job:'Reporting',name:'Monthly package',frequency:'monthly',volume:1,time:720,goalTime:480,value:'strategic',complexity:'high',peakPeriods:['month','quarter'],systems:'Excel, PPT',notes:''},
+                {id:30,memberId:8,job:'Reporting',name:'Weekly flash',frequency:'weekly',volume:1,time:90,goalTime:60,value:'operational',complexity:'medium',peakPeriods:[],systems:'Excel',notes:''},
+                {id:31,memberId:8,job:'Analysis',name:'Ad-hoc analysis',frequency:'weekly',volume:4,time:75,goalTime:60,value:'strategic',complexity:'high',peakPeriods:['quarter'],systems:'Excel, SQL',notes:''},
+                {id:32,memberId:8,job:'Budgeting',name:'Budget vs actual',frequency:'monthly',volume:1,time:300,goalTime:200,value:'strategic',complexity:'high',peakPeriods:['month'],systems:'Excel',notes:''},
+                {id:33,memberId:8,job:'Forecasting',name:'Rolling forecast',frequency:'monthly',volume:1,time:240,goalTime:180,value:'strategic',complexity:'high',peakPeriods:['quarter'],systems:'Excel',notes:''}
+            ]
+        };
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => { 
+            loadSampleData(); 
+        });
+
+        function loadSampleData() {
+            teamMembers = JSON.parse(JSON.stringify(sampleData.teamMembers));
+            tasks = JSON.parse(JSON.stringify(sampleData.tasks));
+            refreshAll();
+        }
+
+        function refreshAll() {
+            renderTeamList(); 
+            updateSetupStats(); 
+            populateMemberSelect(); 
+            updateHeaderStats();
+            document.getElementById('member-tasks-list').innerHTML = '<div class="text-center py-8 text-slate-400">Select a team member</div>';
+            document.getElementById('member-task-summary').classList.add('hidden');
+        }
+
+        // ==================== TABS ====================
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el=>el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('tab-active'));
+            document.getElementById('content-'+id).classList.remove('hidden');
+            document.getElementById('tab-'+id).classList.add('tab-active');
+            
+            // Render tab-specific content
+            setTimeout(() => {
+                if(id==='analysis') renderAnalysis();
+                if(id==='risk') renderRisk();
+                if(id==='peak') renderPeak();
+                if(id==='value') renderValue();
+                if(id==='unit') renderUnitCost();
+                if(id==='scenario') updateScenario();
+            }, 50);
+        }
+
+        // ==================== CALCULATIONS ====================
+        function calcHours(t) { return (t.volume * t.time / 60) * (freqMult[t.frequency] || 1); }
+        function calcGoalHours(t) { return (t.volume * (t.goalTime || t.time) / 60) * (freqMult[t.frequency] || 1); }
+        function calcMonthlyVolume(t) { return t.volume * (freqMult[t.frequency] || 1); }
+        function memberHours(mid) { return tasks.filter(t=>t.memberId===mid).reduce((s,t)=>s+calcHours(t),0); }
+        function memberGoalHours(mid) { return tasks.filter(t=>t.memberId===mid).reduce((s,t)=>s+calcGoalHours(t),0); }
+        function utilClass(u) { return u<70?'utilization-good':u<90?'utilization-warning':'utilization-critical'; }
+        function varClass(v) { return v>0?'variance-over':v<0?'variance-under':'variance-on'; }
+
+        // ==================== TEAM ====================
+        function openAddMemberModal() { document.getElementById('add-member-modal').classList.remove('hidden'); ['member-name','member-role','member-manager'].forEach(id=>document.getElementById(id).value=''); document.getElementById('member-domain').value='ap'; document.getElementById('member-fte').value='1.0'; document.getElementById('member-salary').value='65000'; }
+        function closeAddMemberModal() { document.getElementById('add-member-modal').classList.add('hidden'); }
+        function saveMember() {
+            const name=document.getElementById('member-name').value.trim(), role=document.getElementById('member-role').value.trim();
+            if(!name||!role){alert('Name and role required');return;}
+            const newId = teamMembers.length>0?Math.max(...teamMembers.map(m=>m.id))+1:0;
+            teamMembers.push({id:newId,name,role,domain:document.getElementById('member-domain').value,fte:parseFloat(document.getElementById('member-fte').value)||1,salary:parseFloat(document.getElementById('member-salary').value)||0,manager:document.getElementById('member-manager').value.trim()});
+            closeAddMemberModal(); refreshAll();
+        }
+        function deleteMember(id) { if(!confirm('Delete?'))return; teamMembers=teamMembers.filter(m=>m.id!==id); tasks=tasks.filter(t=>t.memberId!==id); refreshAll(); }
+
+        function renderTeamList() {
+            const c=document.getElementById('team-list');
+            if(!teamMembers.length){c.innerHTML='<div class="text-center py-8 text-slate-400">No team members</div>';return;}
+            c.innerHTML = teamMembers.map(m=>{
+                const hrs=memberHours(m.id), cap=m.fte*160, util=cap>0?Math.round(hrs/cap*100):0, tc=tasks.filter(t=>t.memberId===m.id).length;
+                const riskTasks = tasks.filter(t=>t.memberId===m.id && tasks.filter(t2=>t2.name===t.name).length===1).length;
+                return `<div class="border rounded-lg p-3 domain-${m.domain} flex justify-between items-center"><div><h4 class="font-semibold">${m.name}</h4><p class="text-sm text-slate-500">${m.role}</p></div><div class="flex items-center gap-4 text-sm"><span>${tc} tasks</span><span>${Math.round(hrs)} hrs</span><span class="${utilClass(util)}">${util}%</span>${riskTasks>0?`<span class="risk-high px-2 py-1 rounded text-xs">${riskTasks} sole owner</span>`:''}<span>$${(m.salary/1000).toFixed(0)}k</span><button onclick="deleteMember(${m.id})" class="text-red-500">🗑️</button></div></div>`;
+            }).join('');
+        }
+
+        function updateSetupStats() {
+            const fte=teamMembers.reduce((s,m)=>s+m.fte,0), cost=teamMembers.reduce((s,m)=>s+m.salary,0), cap=fte*160;
+            const totalHrs = tasks.reduce((s,t)=>s+calcHours(t),0);
+            const avgUtil = cap>0?Math.round(totalHrs/cap*100):0;
+            document.getElementById('setup-total-fte').textContent=fte.toFixed(1);
+            document.getElementById('setup-total-cost').textContent='$'+cost.toLocaleString();
+            document.getElementById('setup-total-capacity').textContent=Math.round(cap)+' hrs/mo';
+            document.getElementById('setup-avg-util').textContent=avgUtil+'%';
+            document.getElementById('setup-avg-util').className='text-2xl font-bold '+utilClass(avgUtil);
+        }
+
+        function updateHeaderStats() {
+            document.getElementById('header-team-count').textContent=teamMembers.length;
+            document.getElementById('header-task-count').textContent=tasks.length;
+            document.getElementById('header-hours').textContent=Math.round(tasks.reduce((s,t)=>s+calcHours(t),0));
+            const highRisk = tasks.filter(t => tasks.filter(t2=>t2.name===t.name).length===1).length;
+            document.getElementById('header-risk').textContent=highRisk;
+        }
+
+        // ==================== TASKS ====================
+        function populateMemberSelect() { document.getElementById('task-member-select').innerHTML='<option value="">-- Select Member --</option>'+teamMembers.map(m=>`<option value="${m.id}">${m.name}</option>`).join(''); }
+
+        function loadMemberTasks() {
+            const mid=parseInt(document.getElementById('task-member-select').value), btn=document.getElementById('add-task-btn'), sum=document.getElementById('member-task-summary'), list=document.getElementById('member-tasks-list');
+            if(isNaN(mid)){btn.disabled=true;sum.classList.add('hidden');list.innerHTML='<div class="text-center py-8 text-slate-400">Select a team member</div>';return;}
+            btn.disabled=false; sum.classList.remove('hidden');
+            const m=teamMembers.find(x=>x.id===mid), mt=tasks.filter(t=>t.memberId===mid), hrs=memberHours(mid), goalHrs=memberGoalHours(mid), cap=m.fte*160, util=cap>0?Math.round(hrs/cap*100):0;
+            document.getElementById('selected-member-name').textContent=m.name;
+            document.getElementById('selected-member-role').textContent=m.role;
+            document.getElementById('member-task-count').textContent=mt.length;
+            document.getElementById('member-hours-month').textContent=Math.round(hrs);
+            document.getElementById('member-goal-hours').textContent=Math.round(goalHrs);
+            document.getElementById('member-utilization').textContent=util+'%';
+            document.getElementById('member-utilization').className='text-xl font-bold '+utilClass(util);
+            if(!mt.length){list.innerHTML='<div class="text-center py-8 text-slate-400">No tasks</div>';return;}
+            list.innerHTML = mt.map(t=>{
+                const h=calcHours(t),gh=calcGoalHours(t),v=h-gh;
+                const peakTags = (t.peakPeriods && t.peakPeriods.length > 0) ? t.peakPeriods.map(p=>`<span class="peak-${p} px-1.5 py-0.5 rounded text-xs">${p}</span>`).join('') : '';
+                return `<div class="task-row border rounded-lg p-3 flex justify-between items-center"><div><p class="font-medium">${t.name}</p><p class="text-xs text-slate-500">${t.job} • ${t.volume}×${t.time}min ${t.frequency}</p><div class="flex gap-1 mt-1">${peakTags}<span class="value-${t.value} px-1.5 py-0.5 rounded text-xs">${t.value}</span></div></div><div class="text-right"><p class="font-semibold">${h.toFixed(1)} hrs <span class="text-emerald-600 text-sm">(${gh.toFixed(1)})</span></p><button onclick="deleteTask(${t.id})" class="text-red-400 text-sm">✕</button></div></div>`;
+            }).join('');
+        }
+
+        function openAddTaskModal() { 
+            const mid=document.getElementById('task-member-select').value;if(!mid)return; 
+            const m=teamMembers.find(x=>x.id===parseInt(mid)); 
+            document.getElementById('task-modal-member-name').textContent=m.name; 
+            document.getElementById('add-task-modal').classList.remove('hidden'); 
+            ['task-job','task-name','task-systems','task-notes'].forEach(id=>document.getElementById(id).value=''); 
+            document.getElementById('task-frequency').value='daily'; 
+            document.getElementById('task-volume').value='10'; 
+            document.getElementById('task-time').value='15'; 
+            document.getElementById('task-goal-time').value='10'; 
+            document.getElementById('task-value').value='operational';
+            document.getElementById('task-complexity').value='low';
+            ['peak-month','peak-quarter','peak-year','peak-audit'].forEach(id=>document.getElementById(id).checked=false);
+        }
+        function closeAddTaskModal() { document.getElementById('add-task-modal').classList.add('hidden'); }
+        function saveTask() {
+            const mid=parseInt(document.getElementById('task-member-select').value), job=document.getElementById('task-job').value.trim(), name=document.getElementById('task-name').value.trim();
+            if(!job||!name){alert('Job and task name required');return;}
+            const peaks = [];
+            if(document.getElementById('peak-month').checked) peaks.push('month');
+            if(document.getElementById('peak-quarter').checked) peaks.push('quarter');
+            if(document.getElementById('peak-year').checked) peaks.push('year');
+            if(document.getElementById('peak-audit').checked) peaks.push('audit');
+            const newId=tasks.length>0?Math.max(...tasks.map(t=>t.id))+1:0;
+            tasks.push({id:newId,memberId:mid,job,name,frequency:document.getElementById('task-frequency').value,volume:parseInt(document.getElementById('task-volume').value)||1,time:parseInt(document.getElementById('task-time').value)||1,goalTime:parseInt(document.getElementById('task-goal-time').value)||1,value:document.getElementById('task-value').value,complexity:document.getElementById('task-complexity').value,peakPeriods:peaks,systems:document.getElementById('task-systems').value.trim(),notes:document.getElementById('task-notes').value.trim()});
+            closeAddTaskModal(); loadMemberTasks(); renderTeamList(); updateHeaderStats();
+        }
+        function deleteTask(id) { tasks=tasks.filter(t=>t.id!==id); loadMemberTasks(); renderTeamList(); updateHeaderStats(); }
+
+        // ==================== ANALYSIS ====================
+        function renderAnalysis() {
+            const hrs=tasks.reduce((s,t)=>s+calcHours(t),0), goalHrs=tasks.reduce((s,t)=>s+calcGoalHours(t),0), variance=hrs-goalHrs;
+            const cap=teamMembers.reduce((s,m)=>s+m.fte*160,0), util=cap>0?Math.round(hrs/cap*100):0;
+            const cost=teamMembers.reduce((s,m)=>s+m.salary,0), cph=hrs>0?(cost/12)/hrs:0;
+            document.getElementById('analysis-total-hours').textContent=Math.round(hrs);
+            document.getElementById('analysis-goal-hours').textContent=Math.round(goalHrs);
+            document.getElementById('analysis-variance').textContent=(variance>0?'+':'')+Math.round(variance);
+            document.getElementById('analysis-variance').className='text-lg font-bold '+varClass(variance);
+            document.getElementById('analysis-capacity').textContent=Math.round(cap);
+            document.getElementById('analysis-utilization').textContent=util+'%';
+            document.getElementById('analysis-utilization').className='text-lg font-bold '+utilClass(util);
+            document.getElementById('analysis-cost-hour').textContent='$'+cph.toFixed(2);
+            document.getElementById('analysis-monthly-cost').textContent='$'+Math.round(hrs*cph).toLocaleString();
+            document.getElementById('analysis-task-count').textContent=tasks.length;
+            renderDomainChart(); 
+            renderUtilChart(); 
+            renderUtilTable();
+        }
+
+        function renderDomainChart() {
+            const byDom={};
+            tasks.forEach(t=>{
+                const m=teamMembers.find(x=>x.id===t.memberId);
+                if(m){byDom[m.domain]=(byDom[m.domain]||0)+calcHours(t);}
+            });
+            const ctx=document.getElementById('domainHoursChart').getContext('2d');
+            if(domainChart) domainChart.destroy();
+            domainChart=new Chart(ctx,{
+                type:'bar',
+                data:{
+                    labels:Object.keys(byDom).map(d=>domainLabels[d]),
+                    datasets:[{data:Object.values(byDom).map(v=>Math.round(v)),backgroundColor:Object.keys(byDom).map(d=>domainColors[d])}]
+                },
+                options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+            });
+        }
+
+        function renderUtilChart() {
+            const data=teamMembers.map(m=>({name:m.name,util:Math.round(memberHours(m.id)/(m.fte*160)*100)||0}));
+            const ctx=document.getElementById('teamUtilChart').getContext('2d');
+            if(utilChart) utilChart.destroy();
+            utilChart=new Chart(ctx,{
+                type:'bar',
+                data:{
+                    labels:data.map(d=>d.name),
+                    datasets:[{data:data.map(d=>d.util),backgroundColor:data.map(d=>d.util<70?'#22c55e':d.util<90?'#f59e0b':'#ef4444')}]
+                },
+                options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{max:120}},plugins:{legend:{display:false}}}
+            });
+        }
+
+        function renderUtilTable() {
+            document.getElementById('team-utilization-table').innerHTML = teamMembers.map(m=>{
+                const tc=tasks.filter(t=>t.memberId===m.id).length,hrs=memberHours(m.id),goalHrs=memberGoalHours(m.id),cap=m.fte*160,util=cap>0?Math.round(hrs/cap*100):0,variance=hrs-goalHrs;
+                const st=util<70?'✅':util<90?'⚠️':'🔴';
+                return `<tr><td class="py-2 px-3 font-medium">${m.name}</td><td class="py-2 px-3">${m.role}</td><td class="py-2 px-3 text-center">${tc}</td><td class="py-2 px-3 text-center">${Math.round(hrs)}</td><td class="py-2 px-3 text-center text-emerald-600">${Math.round(goalHrs)}</td><td class="py-2 px-3 text-center"><span class="px-2 py-1 rounded text-xs ${varClass(variance)}">${variance>0?'+':''}${Math.round(variance)}</span></td><td class="py-2 px-3 text-center ${utilClass(util)}">${util}%</td><td class="py-2 px-3 text-center">${st}</td></tr>`;
+            }).join('');
+        }
+
+        // ==================== RISK ====================
+        function renderRisk() {
+            const taskCounts = {};
+            tasks.forEach(t => { taskCounts[t.name] = (taskCounts[t.name] || 0) + 1; });
+            
+            const highRisk = tasks.filter(t => taskCounts[t.name] === 1);
+            const medRisk = tasks.filter(t => taskCounts[t.name] === 2);
+            const lowRisk = tasks.filter(t => taskCounts[t.name] >= 3);
+
+            document.getElementById('risk-high-count').textContent = highRisk.length;
+            document.getElementById('risk-medium-count').textContent = medRisk.length;
+            document.getElementById('risk-low-count').textContent = lowRisk.length;
+
+            document.getElementById('high-risk-tasks').innerHTML = highRisk.length > 0 ? highRisk.sort((a,b)=>calcHours(b)-calcHours(a)).slice(0,15).map(t => {
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                return `<div class="flex justify-between items-center p-3 border border-red-200 rounded-lg bg-red-50"><div><p class="font-medium">${t.name}</p><p class="text-sm text-slate-500">${t.job} • <strong class="text-red-600">Only: ${m?.name}</strong></p></div><div class="text-right"><p class="font-semibold">${calcHours(t).toFixed(1)} hrs/mo</p></div></div>`;
+            }).join('') : '<p class="text-slate-500">No high-risk tasks! All tasks have backup coverage.</p>';
+
+            const riskByPerson = {};
+            highRisk.forEach(t => {
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                if(m) {
+                    if(!riskByPerson[m.id]) riskByPerson[m.id] = {member:m, tasks:[], hours:0};
+                    riskByPerson[m.id].tasks.push(t);
+                    riskByPerson[m.id].hours += calcHours(t);
+                }
+            });
+
+            document.getElementById('risk-by-person').innerHTML = Object.values(riskByPerson).sort((a,b)=>b.hours-a.hours).map(p => 
+                `<div class="flex justify-between items-center p-3 border rounded-lg"><div><p class="font-semibold">${p.member.name}</p><p class="text-sm text-slate-500">${p.member.role}</p></div><div class="text-right"><p class="text-red-600 font-bold">${p.tasks.length} sole-owner tasks</p><p class="text-sm text-slate-500">${Math.round(p.hours)} hrs/mo at risk</p></div></div>`
+            ).join('') || '<p class="text-slate-500">No key-person risks identified.</p>';
+        }
+
+        // ==================== PEAK PERIODS ====================
+        function renderPeak() {
+            const peakHours = {month:0, quarter:0, year:0, audit:0};
+            
+            tasks.forEach(t => {
+                const taskHrs = calcHours(t);
+                const peaks = t.peakPeriods || [];
+                if(peaks.includes('month')) peakHours.month += taskHrs * 0.5;
+                if(peaks.includes('quarter')) peakHours.quarter += taskHrs * 0.5;
+                if(peaks.includes('year')) peakHours.year += taskHrs * 0.5;
+                if(peaks.includes('audit')) peakHours.audit += taskHrs * 0.5;
+            });
+
+            document.getElementById('peak-month-hours').textContent = Math.round(peakHours.month);
+            document.getElementById('peak-quarter-hours').textContent = Math.round(peakHours.quarter);
+            document.getElementById('peak-year-hours').textContent = Math.round(peakHours.year);
+            document.getElementById('peak-audit-hours').textContent = Math.round(peakHours.audit);
+
+            // Chart
+            const baseHours = tasks.reduce((s,t)=>s+calcHours(t),0);
+            const ctx = document.getElementById('peakChart').getContext('2d');
+            if(peakChartInstance) peakChartInstance.destroy();
+            
+            peakChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Normal Month', 'Month-End', 'Quarter-End', 'Year-End', 'Audit Season'],
+                    datasets: [{
+                        label: 'Total Hours',
+                        data: [
+                            Math.round(baseHours), 
+                            Math.round(baseHours + peakHours.month), 
+                            Math.round(baseHours + peakHours.quarter), 
+                            Math.round(baseHours + peakHours.year), 
+                            Math.round(baseHours + peakHours.audit)
+                        ],
+                        backgroundColor: ['#64748b', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: {legend: {display: false}},
+                    scales: {y: {beginAtZero: true}}
+                }
+            });
+
+            // Who's overloaded during close
+            const overloaded = teamMembers.map(m => {
+                const baseHrs = memberHours(m.id);
+                const memberTasks = tasks.filter(t=>t.memberId===m.id);
+                const peakHrs = memberTasks.reduce((s,t) => {
+                    const peaks = t.peakPeriods || [];
+                    return s + (peaks.includes('month') ? calcHours(t)*0.5 : 0);
+                }, 0);
+                const totalPeakHrs = baseHrs + peakHrs;
+                const cap = m.fte * 160;
+                const peakUtil = cap > 0 ? Math.round(totalPeakHrs / cap * 100) : 0;
+                return {member: m, baseHrs, peakHrs, totalPeakHrs, peakUtil};
+            }).filter(x => x.peakUtil > 90).sort((a,b) => b.peakUtil - a.peakUtil);
+
+            document.getElementById('peak-overload').innerHTML = overloaded.length > 0 ? overloaded.map(x => 
+                `<div class="flex justify-between items-center p-3 border border-amber-200 rounded-lg bg-amber-50"><div><p class="font-semibold">${x.member.name}</p><p class="text-sm text-slate-500">${x.member.role}</p></div><div class="text-right"><p class="text-amber-600 font-bold">${x.peakUtil}% during close</p><p class="text-sm text-slate-500">${Math.round(x.baseHrs)} base + ${Math.round(x.peakHrs)} peak = ${Math.round(x.totalPeakHrs)} hrs</p></div></div>`
+            ).join('') : '<p class="text-slate-500 text-center py-4">No team members projected to exceed 90% utilization during close.</p>';
+        }
+
+        // ==================== VALUE CLASSIFICATION ====================
+        function renderValue() {
+            const byValue = {strategic:0, operational:0, admin:0, rework:0};
+            const costByValue = {strategic:0, operational:0, admin:0, rework:0};
+            
+            tasks.forEach(t => {
+                const hrs = calcHours(t);
+                const val = t.value || 'operational';
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                const hourlyRate = m ? m.salary / 2080 : 0;
+                
+                byValue[val] = (byValue[val] || 0) + hrs;
+                costByValue[val] = (costByValue[val] || 0) + (hrs * hourlyRate);
+            });
+
+            const totalHrs = Object.values(byValue).reduce((s,v)=>s+v,0);
+            const totalCost = Object.values(costByValue).reduce((s,v)=>s+v,0);
+
+            document.getElementById('value-strategic-hours').textContent = Math.round(byValue.strategic);
+            document.getElementById('value-operational-hours').textContent = Math.round(byValue.operational);
+            document.getElementById('value-admin-hours').textContent = Math.round(byValue.admin);
+            document.getElementById('value-rework-hours').textContent = Math.round(byValue.rework);
+
+            document.getElementById('value-strategic-pct').textContent = totalHrs>0 ? Math.round(byValue.strategic/totalHrs*100)+'% of time' : '0%';
+            document.getElementById('value-operational-pct').textContent = totalHrs>0 ? Math.round(byValue.operational/totalHrs*100)+'% of time' : '0%';
+            document.getElementById('value-admin-pct').textContent = totalHrs>0 ? Math.round(byValue.admin/totalHrs*100)+'% of time' : '0%';
+            document.getElementById('value-rework-pct').textContent = totalHrs>0 ? Math.round(byValue.rework/totalHrs*100)+'% of time' : '0%';
+
+            // Opportunity text
+            const lowValueHrs = byValue.admin + byValue.rework;
+            const lowValuePct = totalHrs > 0 ? Math.round(lowValueHrs / totalHrs * 100) : 0;
+            const lowValueCost = costByValue.admin + costByValue.rework;
+            document.getElementById('value-opportunity').textContent = `Your team spends ${lowValuePct}% of time (${Math.round(lowValueHrs)} hrs/mo) on Administrative and Rework tasks, costing ~$${Math.round(lowValueCost).toLocaleString()}/month. Reducing this by half would free ${Math.round(lowValueHrs/2)} hours for strategic work.`;
+
+            // Time by Value Chart
+            const ctx1 = document.getElementById('valueTimeChart').getContext('2d');
+            if(valueTimeChartInstance) valueTimeChartInstance.destroy();
+            valueTimeChartInstance = new Chart(ctx1, {
+                type: 'doughnut',
+                data: { 
+                    labels: ['Strategic', 'Operational', 'Administrative', 'Rework'], 
+                    datasets: [{
+                        data: [
+                            Math.round(byValue.strategic), 
+                            Math.round(byValue.operational), 
+                            Math.round(byValue.admin), 
+                            Math.round(byValue.rework)
+                        ], 
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                    }] 
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: {legend: {position: 'bottom'}}
+                }
+            });
+
+            // Cost by Value Chart
+            const ctx2 = document.getElementById('valueCostChart').getContext('2d');
+            if(valueCostChartInstance) valueCostChartInstance.destroy();
+            valueCostChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: { 
+                    labels: ['Strategic', 'Operational', 'Administrative', 'Rework'], 
+                    datasets: [{
+                        data: [
+                            Math.round(costByValue.strategic), 
+                            Math.round(costByValue.operational), 
+                            Math.round(costByValue.admin), 
+                            Math.round(costByValue.rework)
+                        ], 
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+                    }] 
+                },
+                options: {
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: {legend: {position: 'bottom'}}
+                }
+            });
+
+            // Low value tasks list
+            const lowValueTasks = tasks.filter(t => t.value === 'admin' || t.value === 'rework').sort((a,b)=>calcHours(b)-calcHours(a));
+            document.getElementById('low-value-tasks').innerHTML = lowValueTasks.length > 0 ? lowValueTasks.slice(0,10).map(t => {
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                return `<div class="flex justify-between items-center p-3 border rounded-lg"><div><p class="font-medium">${t.name}</p><p class="text-sm text-slate-500">${m?.name || ''} • ${t.job}</p></div><div class="flex items-center gap-3"><span class="value-${t.value} px-2 py-1 rounded text-xs">${t.value}</span><span class="font-semibold">${calcHours(t).toFixed(1)} hrs/mo</span></div></div>`;
+            }).join('') : '<p class="text-slate-500">No administrative or rework tasks identified.</p>';
+        }
+
+        // ==================== UNIT COST ====================
+        function renderUnitCost() {
+            const taskCosts = tasks.map(t => {
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                const hourlyRate = m ? m.salary / 2080 : 0;
+                const monthlyVol = calcMonthlyVolume(t);
+                const monthlyHrs = calcHours(t);
+                const totalCost = monthlyHrs * hourlyRate;
+                const unitCost = monthlyVol > 0 ? totalCost / monthlyVol : 0;
+                return {...t, memberName: m?.name || '', hourlyRate, monthlyVol, monthlyHrs, totalCost, unitCost};
+            }).filter(t => t.monthlyVol > 0);
+
+            const avgCost = taskCosts.length > 0 ? taskCosts.reduce((s,t)=>s+t.unitCost,0) / taskCosts.length : 0;
+            const maxCost = taskCosts.length > 0 ? Math.max(...taskCosts.map(t=>t.unitCost)) : 0;
+            const minCost = taskCosts.length > 0 ? Math.min(...taskCosts.map(t=>t.unitCost)) : 0;
+            const totalVol = taskCosts.reduce((s,t)=>s+t.monthlyVol,0);
+
+            document.getElementById('unit-avg-cost').textContent = '$' + avgCost.toFixed(2);
+            document.getElementById('unit-max-cost').textContent = '$' + maxCost.toFixed(2);
+            document.getElementById('unit-min-cost').textContent = '$' + minCost.toFixed(2);
+            document.getElementById('unit-total-vol').textContent = Math.round(totalVol).toLocaleString();
+
+            document.getElementById('unit-cost-table').innerHTML = taskCosts.sort((a,b)=>b.unitCost-a.unitCost).map(t => 
+                `<tr class="hover:bg-slate-50"><td class="py-2 px-3 font-medium">${t.name}</td><td class="py-2 px-3 text-slate-600">${t.memberName}</td><td class="py-2 px-3 text-right">${Math.round(t.monthlyVol).toLocaleString()}</td><td class="py-2 px-3 text-right">${t.time}</td><td class="py-2 px-3 text-right">$${t.hourlyRate.toFixed(2)}</td><td class="py-2 px-3 text-right font-semibold ${t.unitCost > avgCost*1.5 ? 'text-red-600' : ''}">$${t.unitCost.toFixed(2)}</td><td class="py-2 px-3 text-right">$${Math.round(t.totalCost).toLocaleString()}</td></tr>`
+            ).join('');
+        }
+
+        // ==================== SCENARIO MODELING ====================
+        function updateScenario() {
+            const headcountDelta = parseFloat(document.getElementById('scenario-headcount').value) || 0;
+            const efficiencyPct = parseFloat(document.getElementById('scenario-efficiency').value) || 0;
+            const volumePct = parseFloat(document.getElementById('scenario-volume').value) || 0;
+
+            document.getElementById('scenario-headcount-val').textContent = (headcountDelta >= 0 ? '+' : '') + headcountDelta + ' FTE';
+            document.getElementById('scenario-efficiency-val').textContent = efficiencyPct + '%';
+            document.getElementById('scenario-volume-val').textContent = (volumePct >= 0 ? '+' : '') + volumePct + '%';
+
+            const currentHrs = tasks.reduce((s,t)=>s+calcHours(t),0);
+            const currentCap = teamMembers.reduce((s,m)=>s+m.fte*160,0);
+            const currentCost = teamMembers.reduce((s,m)=>s+m.salary,0);
+            const currentUtil = currentCap > 0 ? currentHrs / currentCap * 100 : 0;
+            const currentVol = tasks.reduce((s,t)=>s+calcMonthlyVolume(t),0);
+            const currentUnitCost = currentVol > 0 ? (currentCost/12) / currentVol : 0;
+
+            const scenarioHrs = currentHrs * (1 - efficiencyPct/100) * (1 + volumePct/100);
+            const avgSalary = teamMembers.length > 0 ? currentCost / teamMembers.length : 65000;
+            const scenarioCap = currentCap + (headcountDelta * 160);
+            const scenarioCost = currentCost + (headcountDelta * avgSalary);
+            const scenarioUtil = scenarioCap > 0 ? scenarioHrs / scenarioCap * 100 : 0;
+            const scenarioVol = currentVol * (1 + volumePct/100);
+            const scenarioUnitCost = scenarioVol > 0 ? (scenarioCost/12) / scenarioVol : 0;
+
+            document.getElementById('scenario-hours-before').textContent = Math.round(currentHrs);
+            document.getElementById('scenario-hours-after').textContent = Math.round(scenarioHrs);
+            document.getElementById('scenario-hours-delta').textContent = (scenarioHrs >= currentHrs ? '+' : '') + Math.round(scenarioHrs - currentHrs);
+            document.getElementById('scenario-hours-delta').className = 'text-xs ' + (scenarioHrs < currentHrs ? 'text-green-400' : scenarioHrs > currentHrs ? 'text-red-400' : 'text-slate-400');
+
+            document.getElementById('scenario-cap-before').textContent = Math.round(currentCap);
+            document.getElementById('scenario-cap-after').textContent = Math.round(scenarioCap);
+            document.getElementById('scenario-cap-delta').textContent = (scenarioCap >= currentCap ? '+' : '') + Math.round(scenarioCap - currentCap);
+            document.getElementById('scenario-cap-delta').className = 'text-xs ' + (scenarioCap > currentCap ? 'text-green-400' : scenarioCap < currentCap ? 'text-red-400' : 'text-slate-400');
+
+            document.getElementById('scenario-util-before').textContent = Math.round(currentUtil) + '%';
+            document.getElementById('scenario-util-after').textContent = Math.round(scenarioUtil) + '%';
+            document.getElementById('scenario-util-delta').textContent = (scenarioUtil >= currentUtil ? '+' : '') + Math.round(scenarioUtil - currentUtil) + 'pts';
+            document.getElementById('scenario-util-delta').className = 'text-xs ' + (scenarioUtil < currentUtil ? 'text-green-400' : scenarioUtil > currentUtil ? 'text-red-400' : 'text-slate-400');
+
+            document.getElementById('scenario-cost-before').textContent = '$' + Math.round(currentCost/12).toLocaleString();
+            document.getElementById('scenario-cost-after').textContent = '$' + Math.round(scenarioCost/12).toLocaleString();
+            document.getElementById('scenario-cost-delta').textContent = '$' + (scenarioCost >= currentCost ? '+' : '') + Math.round((scenarioCost - currentCost)/12).toLocaleString();
+            document.getElementById('scenario-cost-delta').className = 'text-xs ' + (scenarioCost < currentCost ? 'text-green-400' : scenarioCost > currentCost ? 'text-red-400' : 'text-slate-400');
+
+            document.getElementById('scenario-unit-before').textContent = '$' + currentUnitCost.toFixed(2);
+            document.getElementById('scenario-unit-after').textContent = '$' + scenarioUnitCost.toFixed(2);
+            document.getElementById('scenario-unit-delta').textContent = '$' + (scenarioUnitCost >= currentUnitCost ? '+' : '') + (scenarioUnitCost - currentUnitCost).toFixed(2);
+            document.getElementById('scenario-unit-delta').className = 'text-xs ' + (scenarioUnitCost < currentUnitCost ? 'text-green-400' : scenarioUnitCost > currentUnitCost ? 'text-red-400' : 'text-slate-400');
+
+            const insightEl = document.getElementById('scenario-insight');
+            let insight = '';
+            if (headcountDelta === 0 && efficiencyPct === 0 && volumePct === 0) {
+                insight = '<h4 class="font-semibold">📊 Scenario Analysis</h4><p class="text-sm mt-1">Adjust the sliders to model different scenarios.</p>';
+                insightEl.className = 'insight-card insight-info';
+            } else if (scenarioUtil > 95) {
+                insight = `<h4 class="font-semibold">🔴 Capacity Crisis</h4><p class="text-sm mt-1">At ${Math.round(scenarioUtil)}% utilization, the team would be severely overworked. Consider adding headcount or improving efficiency.</p>`;
+                insightEl.className = 'insight-card insight-critical';
+            } else if (scenarioUtil > 85) {
+                insight = `<h4 class="font-semibold">⚠️ High Utilization</h4><p class="text-sm mt-1">At ${Math.round(scenarioUtil)}% utilization, the team has limited flexibility. Sustainable short-term but risky long-term.</p>`;
+                insightEl.className = 'insight-card insight-warning';
+            } else if (scenarioUtil < 60 && headcountDelta > 0) {
+                insight = `<h4 class="font-semibold">💡 Excess Capacity</h4><p class="text-sm mt-1">At ${Math.round(scenarioUtil)}% utilization, you may be overstaffed.</p>`;
+                insightEl.className = 'insight-card insight-warning';
+            } else {
+                const costChange = (scenarioCost - currentCost) / 12;
+                insight = `<h4 class="font-semibold">✅ Scenario Impact</h4><p class="text-sm mt-1">Utilization: ${Math.round(scenarioUtil)}%. Monthly cost ${costChange >= 0 ? 'increases' : 'decreases'} by $${Math.abs(Math.round(costChange)).toLocaleString()}.</p>`;
+                insightEl.className = 'insight-card insight-success';
+            }
+            insightEl.innerHTML = insight;
+        }
+
+        // ==================== EXPORT ====================
+        function exportFullJSON() {
+            const data = {exportDate:new Date().toISOString(),version:'3.0',teamMembers,tasks};
+            downloadFile(JSON.stringify(data,null,2),'CAST_Workforce_Data.json','application/json');
+        }
+
+        function exportTeamCSV() {
+            const h=['ID','Name','Role','Domain','FTE','Salary','Manager','Tasks','ActualHrs','GoalHrs','Utilization','SoleOwnerTasks'];
+            const rows = teamMembers.map(m=>{
+                const tc = tasks.filter(t=>t.memberId===m.id).length;
+                const hrs = memberHours(m.id);
+                const goalHrs = memberGoalHours(m.id);
+                const util = Math.round(hrs / (m.fte*160) * 100);
+                const soleOwner = tasks.filter(t=>t.memberId===m.id && tasks.filter(t2=>t2.name===t.name).length===1).length;
+                return [m.id,m.name,m.role,m.domain,m.fte,m.salary,m.manager||'',tc,Math.round(hrs),Math.round(goalHrs),util,soleOwner];
+            });
+            downloadFile([h,...rows].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n'),'CAST_Team.csv','text/csv');
+        }
+
+        function exportTasksCSV() {
+            const h=['ID','MemberName','Job','TaskName','Frequency','Volume','ActualMin','GoalMin','Value','Complexity','PeakPeriods','Systems','MonthlyHrs','UnitCost'];
+            const rows = tasks.map(t=>{
+                const m = teamMembers.find(x=>x.id===t.memberId);
+                const hrs = calcHours(t);
+                const vol = calcMonthlyVolume(t);
+                const hourlyRate = m ? m.salary/2080 : 0;
+                const unitCost = vol > 0 ? (hrs * hourlyRate) / vol : 0;
+                return [t.id,m?.name||'',t.job,t.name,t.frequency,t.volume,t.time,t.goalTime||t.time,t.value,t.complexity,(t.peakPeriods||[]).join(';'),t.systems||'',hrs.toFixed(2),unitCost.toFixed(2)];
+            });
+            downloadFile([h,...rows].map(r=>r.map(c=>`"${c}"`).join(',')).join('\n'),'CAST_Tasks.csv','text/csv');
+        }
+
+        function exportSummary() {
+            const hrs = tasks.reduce((s,t)=>s+calcHours(t),0);
+            const cap = teamMembers.reduce((s,m)=>s+m.fte*160,0);
+            const cost = teamMembers.reduce((s,m)=>s+m.salary,0);
+            const highRisk = tasks.filter(t => tasks.filter(t2=>t2.name===t.name).length===1).length;
+            const byValue = {strategic:0,operational:0,admin:0,rework:0};
+            tasks.forEach(t => byValue[t.value||'operational'] += calcHours(t));
+            
+            const rpt = `FINANCE WORKFORCE PLANNING - EXECUTIVE SUMMARY
+${'='.repeat(50)}
+Generated: ${new Date().toLocaleString()}
+
+TEAM OVERVIEW
+Team Size: ${teamMembers.length} | FTEs: ${teamMembers.reduce((s,m)=>s+m.fte,0).toFixed(1)}
+Annual Labor Cost: $${cost.toLocaleString()}
+Tasks Defined: ${tasks.length}
+
+CAPACITY
+Monthly Hours: ${Math.round(hrs)} | Capacity: ${Math.round(cap)}
+Utilization: ${cap>0?Math.round(hrs/cap*100):0}%
+
+RISK
+High-Risk Tasks (Single Owner): ${highRisk}
+
+VALUE DISTRIBUTION
+Strategic: ${Math.round(byValue.strategic)} hrs (${hrs>0?Math.round(byValue.strategic/hrs*100):0}%)
+Operational: ${Math.round(byValue.operational)} hrs (${hrs>0?Math.round(byValue.operational/hrs*100):0}%)
+Administrative: ${Math.round(byValue.admin)} hrs (${hrs>0?Math.round(byValue.admin/hrs*100):0}%)
+Rework: ${Math.round(byValue.rework)} hrs (${hrs>0?Math.round(byValue.rework/hrs*100):0}%)
+
+TEAM DETAIL
+${teamMembers.map(m=>`${m.name} (${m.role}): ${Math.round(memberHours(m.id))} hrs, ${Math.round(memberHours(m.id)/(m.fte*160)*100)}% util`).join('\n')}`;
+            downloadFile(rpt,'CAST_Executive_Summary.txt','text/plain');
+        }
+
+        function downloadFile(c,f,m) { const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:m}));a.download=f;a.click(); }
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+        function handleDragLeave(e) { e.currentTarget.classList.remove('dragover'); }
+        function handleJSONDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); if(e.dataTransfer.files[0]) processJSON(e.dataTransfer.files[0]); }
+        function handleJSONUpload(e) { if(e.target.files[0]) processJSON(e.target.files[0]); }
+        function processJSON(file) {
+            const r=new FileReader();
+            r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d.teamMembers&&d.tasks){if(!confirm('Replace all data?'))return;teamMembers=d.teamMembers;tasks=d.tasks;refreshAll();alert('Imported!');showTab('team');}else{alert('Invalid format');}}catch(err){alert('Error: '+err.message);}};
+            r.readAsText(file);
+        }
+    </script>
+</body>
+</html>

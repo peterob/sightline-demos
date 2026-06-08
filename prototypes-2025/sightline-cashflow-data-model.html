@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline - 13 Week Cash Flow Model with Supporting Data</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; font-size: 13px; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-weight: 600; color: #374151; position: sticky; top: 0; z-index: 1; }
+    td { color: #4b5563; }
+    tr:hover td { background: #f0f9ff; }
+    
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .font-mono { font-family: 'SF Mono', Monaco, monospace; font-size: 11px; }
+    .font-semibold { font-weight: 600; }
+    .font-bold { font-weight: 700; }
+    
+    .text-green { color: #059669; }
+    .text-red { color: #dc2626; }
+    .text-blue { color: #2563eb; }
+    .text-amber { color: #d97706; }
+    .text-gray { color: #6b7280; }
+    .text-purple { color: #7c3aed; }
+    
+    .bg-green-50 { background-color: #f0fdf4; }
+    .bg-red-50 { background-color: #fef2f2; }
+    .bg-blue-50 { background-color: #eff6ff; }
+    .bg-amber-50 { background-color: #fffbeb; }
+    .bg-gray-50 { background-color: #f9fafb; }
+    .bg-purple-50 { background-color: #faf5ff; }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status-actual { background: #d1fae5; color: #065f46; }
+    .status-confirmed { background: #dbeafe; color: #1e40af; }
+    .status-projected { background: #e0e7ff; color: #4338ca; }
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-variance { background: #fee2e2; color: #991b1b; }
+    .status-paid { background: #d1fae5; color: #065f46; }
+    .status-due { background: #fef3c7; color: #92400e; }
+    .status-overdue { background: #fee2e2; color: #991b1b; }
+    
+    .section-header {
+      background: #1f2937;
+      color: white;
+      padding: 12px 16px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-top: 24px;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .data-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    
+    .tab-container {
+      display: flex;
+      gap: 4px;
+      background: #f3f4f6;
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    .tab {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 500;
+      color: #6b7280;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .tab:hover { background: #e5e7eb; }
+    .tab.active { background: white; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .summary-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .summary-value { font-size: 24px; font-weight: 700; color: #111827; }
+    .summary-sub { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ============================================
+    // CONFIGURATION & CONSTANTS
+    // ============================================
+    
+    const TODAY = new Date('2025-02-24');
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const FORECAST_WEEKS = 13;
+    const HISTORY_WEEKS = 2; // Show 2 weeks of actuals before current week
+
+    // ============================================
+    // MASTER DATA TABLES
+    // ============================================
+
+    // VENDORS
+    const vendors = [
+      { id: 'VND-001', name: 'Luminaire Factory Co.', category: 'Lighting Fixtures', country: 'CN', paymentTerms: 30, creditLimit: 150000, ytdSpend: 245000 },
+      { id: 'VND-002', name: 'HomeStyle Textiles', category: 'Soft Goods', country: 'VN', paymentTerms: 45, creditLimit: 80000, ytdSpend: 89000 },
+      { id: 'VND-003', name: 'Pacific Freight 3PL', category: 'Fulfillment', country: 'US', paymentTerms: 15, creditLimit: null, ytdSpend: 156000 },
+      { id: 'VND-004', name: 'Artisan Ceramics Ltd', category: 'Home Decor', country: 'PT', paymentTerms: 30, creditLimit: 60000, ytdSpend: 42000 },
+      { id: 'VND-005', name: 'Nordic Wood Design', category: 'Furniture', country: 'DK', paymentTerms: 30, creditLimit: 200000, ytdSpend: 67000 },
+    ];
+
+    // PURCHASE ORDERS - Complete lifecycle data
+    const purchaseOrders = [
+      // HISTORICAL - Paid
+      { id: 'PO-2025-0801', vendorId: 'VND-001', orderDate: '2024-12-15', shipDate: '2025-01-10', receiveDate: '2025-01-18', invoiceDate: '2025-01-18', paymentDueDate: '2025-02-17', paymentDate: '2025-02-15', 
+        amount: 38200, invoiceAmount: 38200, paidAmount: 38200, status: 'CLOSED', items: [
+          { sku: 'LMP-ARC-001', description: 'Arc Floor Lamp - Brass', qty: 150, unitCost: 85, lineTotal: 12750, qtyReceived: 150, qtyDamaged: 0 },
+          { sku: 'LMP-TBL-002', description: 'Table Lamp - Ceramic', qty: 200, unitCost: 42, lineTotal: 8400, qtyReceived: 200, qtyDamaged: 0 },
+          { sku: 'CHN-PND-003', description: 'Pendant Light - Gold', qty: 80, unitCost: 213.125, lineTotal: 17050, qtyReceived: 80, qtyDamaged: 0 }
+        ]},
+      { id: 'PO-2025-0818', vendorId: 'VND-002', orderDate: '2024-12-20', shipDate: '2025-01-15', receiveDate: '2025-01-22', invoiceDate: '2025-01-22', paymentDueDate: '2025-03-08', paymentDate: '2025-02-20',
+        amount: 28400, invoiceAmount: 28400, paidAmount: 28400, status: 'CLOSED', items: [
+          { sku: 'PLW-VLV-010', description: 'Velvet Throw Pillow 18"', qty: 400, unitCost: 12.50, lineTotal: 5000, qtyReceived: 400, qtyDamaged: 0 },
+          { sku: 'DVT-LIN-011', description: 'Linen Duvet Cover Queen', qty: 200, unitCost: 65, lineTotal: 13000, qtyReceived: 200, qtyDamaged: 0 },
+          { sku: 'THR-CSH-012', description: 'Cashmere Throw Blanket', qty: 100, unitCost: 104, lineTotal: 10400, qtyReceived: 100, qtyDamaged: 0 }
+        ]},
+
+      // RECEIVED - Awaiting Payment
+      { id: 'PO-2025-0831', vendorId: 'VND-001', orderDate: '2025-01-05', shipDate: '2025-02-01', receiveDate: '2025-02-08', invoiceDate: '2025-02-10', paymentDueDate: '2025-03-12', paymentDate: null,
+        amount: 42500, invoiceAmount: 42500, paidAmount: 0, status: 'RECEIVED', items: [
+          { sku: 'LMP-FLR-004', description: 'Modern Floor Lamp - Black', qty: 175, unitCost: 95, lineTotal: 16625, qtyReceived: 175, qtyDamaged: 0 },
+          { sku: 'LMP-DSK-005', description: 'Desk Lamp - Adjustable', qty: 250, unitCost: 38, lineTotal: 9500, qtyReceived: 250, qtyDamaged: 0 },
+          { sku: 'SCN-WLL-006', description: 'Wall Sconce - Brass Pair', qty: 100, unitCost: 163.75, lineTotal: 16375, qtyReceived: 100, qtyDamaged: 0 }
+        ]},
+      { id: 'PO-2025-0847', vendorId: 'VND-001', orderDate: '2025-01-10', shipDate: '2025-02-12', receiveDate: '2025-02-18', invoiceDate: '2025-02-19', paymentDueDate: '2025-03-21', paymentDate: null,
+        amount: 48350, invoiceAmount: 46975, paidAmount: 0, status: 'VARIANCE_OPEN', varianceAmount: 1375, varianceReason: 'Qty short (8) + damaged (5)', items: [
+          { sku: 'LMP-BRS-001', description: 'Brass Arc Floor Lamp', qty: 200, unitCost: 85, lineTotal: 17000, qtyReceived: 192, qtyDamaged: 3, varianceQty: 11, varianceAmt: 935 },
+          { sku: 'LMP-BLK-002', description: 'Matte Black Table Lamp', qty: 350, unitCost: 42, lineTotal: 14700, qtyReceived: 350, qtyDamaged: 0, varianceQty: 0, varianceAmt: 0 },
+          { sku: 'CHN-GLD-003', description: 'Gold Pendant Chandelier', qty: 75, unitCost: 220, lineTotal: 16500, qtyReceived: 75, qtyDamaged: 2, varianceQty: 2, varianceAmt: 440 }
+        ]},
+      { id: 'PO-2025-0852', vendorId: 'VND-002', orderDate: '2025-01-15', shipDate: '2025-02-14', receiveDate: '2025-02-19', invoiceDate: '2025-02-20', paymentDueDate: '2025-04-06', paymentDate: null,
+        amount: 16000, invoiceAmount: 16000, paidAmount: 0, status: 'RECEIVED', items: [
+          { sku: 'CUS-VLV-010', description: 'Velvet Throw Pillow 18"', qty: 500, unitCost: 12.50, lineTotal: 6250, qtyReceived: 500, qtyDamaged: 0 },
+          { sku: 'BLK-LIN-011', description: 'Linen Duvet Cover Queen', qty: 150, unitCost: 65, lineTotal: 9750, qtyReceived: 150, qtyDamaged: 0 }
+        ]},
+
+      // IN TRANSIT
+      { id: 'PO-2025-0861', vendorId: 'VND-001', orderDate: '2025-02-01', shipDate: '2025-03-01', receiveDate: '2025-03-08', invoiceDate: null, paymentDueDate: '2025-04-07', paymentDate: null,
+        amount: 15200, invoiceAmount: null, paidAmount: 0, status: 'SHIPPED', items: [
+          { sku: 'LMP-WHT-004', description: 'White Ceramic Table Lamp', qty: 400, unitCost: 38, lineTotal: 15200, qtyReceived: null, qtyDamaged: null }
+        ]},
+
+      // CONFIRMED - Not Yet Shipped  
+      { id: 'PO-2025-0872', vendorId: 'VND-004', orderDate: '2025-02-10', shipDate: '2025-03-10', receiveDate: '2025-03-18', invoiceDate: null, paymentDueDate: '2025-04-17', paymentDate: null,
+        amount: 22800, invoiceAmount: null, paidAmount: 0, status: 'CONFIRMED', items: [
+          { sku: 'VAS-CRM-020', description: 'Ceramic Vase - Large', qty: 120, unitCost: 45, lineTotal: 5400, qtyReceived: null, qtyDamaged: null },
+          { sku: 'BWL-PTR-021', description: 'Pottery Bowl Set', qty: 200, unitCost: 28, lineTotal: 5600, qtyReceived: null, qtyDamaged: null },
+          { sku: 'PLT-ART-022', description: 'Artisan Plate Collection', qty: 150, unitCost: 78.67, lineTotal: 11800, qtyReceived: null, qtyDamaged: null }
+        ]},
+      { id: 'PO-2025-0885', vendorId: 'VND-002', orderDate: '2025-02-15', shipDate: '2025-03-20', receiveDate: '2025-03-28', invoiceDate: null, paymentDueDate: '2025-05-12', paymentDate: null,
+        amount: 31500, invoiceAmount: null, paidAmount: 0, status: 'CONFIRMED', items: [
+          { sku: 'RUG-WOV-030', description: 'Woven Area Rug 8x10', qty: 50, unitCost: 280, lineTotal: 14000, qtyReceived: null, qtyDamaged: null },
+          { sku: 'CRT-LIN-031', description: 'Linen Curtain Panel Pair', qty: 200, unitCost: 55, lineTotal: 11000, qtyReceived: null, qtyDamaged: null },
+          { sku: 'BED-SET-032', description: 'Bedding Set - King', qty: 50, unitCost: 130, lineTotal: 6500, qtyReceived: null, qtyDamaged: null }
+        ]},
+      { id: 'PO-2025-0891', vendorId: 'VND-005', orderDate: '2025-02-20', shipDate: '2025-04-01', receiveDate: '2025-04-15', invoiceDate: null, paymentDueDate: '2025-05-15', paymentDate: null,
+        amount: 67000, invoiceAmount: null, paidAmount: 0, status: 'CONFIRMED', items: [
+          { sku: 'TBL-DNR-040', description: 'Dining Table - Oak', qty: 25, unitCost: 850, lineTotal: 21250, qtyReceived: null, qtyDamaged: null },
+          { sku: 'CHR-DNR-041', description: 'Dining Chair - Set of 2', qty: 75, unitCost: 320, lineTotal: 24000, qtyReceived: null, qtyDamaged: null },
+          { sku: 'SDB-BUF-042', description: 'Sideboard Buffet', qty: 20, unitCost: 1087.50, lineTotal: 21750, qtyReceived: null, qtyDamaged: null }
+        ]},
+
+      // PENDING CONFIRMATION
+      { id: 'PO-2025-0903', vendorId: 'VND-001', orderDate: '2025-02-22', shipDate: '2025-03-25', receiveDate: '2025-04-02', invoiceDate: null, paymentDueDate: '2025-05-02', paymentDate: null,
+        amount: 38400, invoiceAmount: null, paidAmount: 0, status: 'PENDING_CONFIRM', items: [
+          { sku: 'LMP-OUT-050', description: 'Outdoor Lantern - Large', qty: 150, unitCost: 128, lineTotal: 19200, qtyReceived: null, qtyDamaged: null },
+          { sku: 'LMP-OUT-051', description: 'Outdoor String Lights', qty: 400, unitCost: 48, lineTotal: 19200, qtyReceived: null, qtyDamaged: null }
+        ]},
+    ];
+
+    // SALES - Daily/Weekly actuals and projections
+    const salesData = [
+      // ACTUALS (Past 2 weeks)
+      { weekStart: '2025-02-10', weekEnd: '2025-02-16', type: 'ACTUAL', orders: 312, grossRevenue: 52840, discounts: 2640, refunds: 1890, netRevenue: 48310, 
+        cogs: 19324, shippingRevenue: 4680, shippingCost: 5616, processingFees: 1585, fulfillmentCost: 889, contribution: 25576,
+        channels: { website: 198, amazon: 84, wholesale: 30 }, avgOrderValue: 169.36 },
+      { weekStart: '2025-02-17', weekEnd: '2025-02-23', type: 'ACTUAL', orders: 358, grossRevenue: 61200, discounts: 3060, refunds: 2140, netRevenue: 56000,
+        cogs: 22400, shippingRevenue: 5370, shippingCost: 6444, processingFees: 1680, fulfillmentCost: 1020, contribution: 29826,
+        channels: { website: 227, amazon: 96, wholesale: 35 }, avgOrderValue: 170.95 },
+      
+      // CURRENT WEEK (Partial actual + projection)
+      { weekStart: '2025-02-24', weekEnd: '2025-03-02', type: 'CURRENT', orders: 340, grossRevenue: 57800, discounts: 2890, refunds: 1950, netRevenue: 52960,
+        cogs: 21184, shippingRevenue: 5100, shippingCost: 6120, processingFees: 1589, fulfillmentCost: 969, contribution: 28098,
+        channels: { website: 215, amazon: 92, wholesale: 33 }, avgOrderValue: 170.00, daysActual: 4, daysProjected: 3 },
+      
+      // PROJECTIONS (Future weeks)
+      { weekStart: '2025-03-03', weekEnd: '2025-03-09', type: 'PROJECTED', orders: 365, grossRevenue: 62050, discounts: 3103, refunds: 2170, netRevenue: 56778,
+        cogs: 22711, shippingRevenue: 5475, shippingCost: 6570, processingFees: 1703, fulfillmentCost: 1040, contribution: 30229,
+        basis: 'Historical avg + 5% seasonal uplift' },
+      { weekStart: '2025-03-10', weekEnd: '2025-03-16', type: 'PROJECTED', orders: 392, grossRevenue: 66640, discounts: 3332, refunds: 2332, netRevenue: 60976,
+        cogs: 24390, shippingRevenue: 5880, shippingCost: 7056, processingFees: 1829, fulfillmentCost: 1117, contribution: 32464,
+        basis: 'Spring sale week - 12% uplift' },
+      { weekStart: '2025-03-17', weekEnd: '2025-03-23', type: 'PROJECTED', orders: 378, grossRevenue: 64260, discounts: 3213, refunds: 2249, netRevenue: 58798,
+        cogs: 23519, shippingRevenue: 5670, shippingCost: 6804, processingFees: 1764, fulfillmentCost: 1077, contribution: 31304,
+        basis: 'Post-sale normalization' },
+      { weekStart: '2025-03-24', weekEnd: '2025-03-30', type: 'PROJECTED', orders: 385, grossRevenue: 65450, discounts: 3273, refunds: 2291, netRevenue: 59887,
+        cogs: 23955, shippingRevenue: 5775, shippingCost: 6930, processingFees: 1797, fulfillmentCost: 1097, contribution: 31883,
+        basis: 'Historical avg' },
+      { weekStart: '2025-03-31', weekEnd: '2025-04-06', type: 'PROJECTED', orders: 410, grossRevenue: 69700, discounts: 3485, refunds: 2440, netRevenue: 63775,
+        cogs: 25510, shippingRevenue: 6150, shippingCost: 7380, processingFees: 1913, fulfillmentCost: 1169, contribution: 33954,
+        basis: 'Easter week + 8% uplift' },
+      { weekStart: '2025-04-07', weekEnd: '2025-04-13', type: 'PROJECTED', orders: 395, grossRevenue: 67150, discounts: 3358, refunds: 2350, netRevenue: 61442,
+        cogs: 24577, shippingRevenue: 5925, shippingCost: 7110, processingFees: 1843, fulfillmentCost: 1126, contribution: 32712,
+        basis: 'Post-Easter normalization' },
+      { weekStart: '2025-04-14', weekEnd: '2025-04-20', type: 'PROJECTED', orders: 420, grossRevenue: 71400, discounts: 3570, refunds: 2499, netRevenue: 65331,
+        cogs: 26132, shippingRevenue: 6300, shippingCost: 7560, processingFees: 1960, fulfillmentCost: 1197, contribution: 34782,
+        basis: 'Tax refund season + 6% uplift' },
+      { weekStart: '2025-04-21', weekEnd: '2025-04-27', type: 'PROJECTED', orders: 405, grossRevenue: 68850, discounts: 3443, refunds: 2410, netRevenue: 62998,
+        cogs: 25199, shippingRevenue: 6075, shippingCost: 7290, processingFees: 1890, fulfillmentCost: 1154, contribution: 33539,
+        basis: 'Historical avg' },
+      { weekStart: '2025-04-28', weekEnd: '2025-05-04', type: 'PROJECTED', orders: 430, grossRevenue: 73100, discounts: 3655, refunds: 2559, netRevenue: 66887,
+        cogs: 26755, shippingRevenue: 6450, shippingCost: 7740, processingFees: 2007, fulfillmentCost: 1226, contribution: 35610,
+        basis: 'Mother\'s Day prep + 7% uplift' },
+      { weekStart: '2025-05-05', weekEnd: '2025-05-11', type: 'PROJECTED', orders: 468, grossRevenue: 79560, discounts: 3978, refunds: 2785, netRevenue: 72797,
+        cogs: 29119, shippingRevenue: 7020, shippingCost: 8424, processingFees: 2184, fulfillmentCost: 1334, contribution: 38757,
+        basis: 'Mother\'s Day week + 15% uplift' },
+    ];
+
+    // OPERATING EXPENSES - Weekly recurring costs
+    const operatingExpenses = {
+      weekly: [
+        { category: 'Payroll', subcategory: 'Salaries & Wages', amount: 14200, type: 'FIXED', notes: '8 FTEs' },
+        { category: 'Payroll', subcategory: 'Benefits & Taxes', amount: 4300, type: 'FIXED', notes: '~30% of wages' },
+        { category: 'Facilities', subcategory: 'Office Rent', amount: 2800, type: 'FIXED', notes: 'Charleston office' },
+        { category: 'Facilities', subcategory: 'Utilities', amount: 420, type: 'FIXED', notes: 'Electric, internet, etc.' },
+        { category: 'Software', subcategory: 'Shopify', amount: 299, type: 'FIXED', notes: 'Plus plan' },
+        { category: 'Software', subcategory: 'ERP/Inventory', amount: 485, type: 'FIXED', notes: 'NetSuite' },
+        { category: 'Software', subcategory: 'Marketing Tools', amount: 380, type: 'FIXED', notes: 'Klaviyo, etc.' },
+        { category: 'Software', subcategory: 'Other SaaS', amount: 290, type: 'FIXED', notes: 'Misc tools' },
+        { category: 'Marketing', subcategory: 'Paid Ads', amount: 6500, type: 'VARIABLE', notes: 'Meta + Google' },
+        { category: 'Marketing', subcategory: 'Influencer/PR', amount: 1200, type: 'VARIABLE', notes: 'Monthly avg' },
+        { category: 'Marketing', subcategory: 'Content/Creative', amount: 800, type: 'VARIABLE', notes: 'Photography, etc.' },
+        { category: '3PL', subcategory: 'Storage Fees', amount: 2800, type: 'FIXED', notes: 'Pacific Freight 3PL' },
+        { category: 'Insurance', subcategory: 'Business Insurance', amount: 385, type: 'FIXED', notes: 'Liability + property' },
+        { category: 'Professional', subcategory: 'Accounting/Legal', amount: 450, type: 'FIXED', notes: 'Monthly retainer' },
+        { category: 'Other', subcategory: 'Miscellaneous', amount: 600, type: 'VARIABLE', notes: 'Office supplies, etc.' },
+      ],
+      // One-time or irregular expenses
+      scheduled: [
+        { date: '2025-03-15', category: 'Professional', description: 'Quarterly tax prep', amount: 2500 },
+        { date: '2025-04-01', category: 'Insurance', description: 'Annual D&O renewal', amount: 4800 },
+        { date: '2025-04-15', category: 'Marketing', description: 'Trade show booth', amount: 8500 },
+      ]
+    };
+
+    // 3PL FULFILLMENT - Variable costs per order
+    const fulfillmentRates = {
+      pickAndPack: { base: 2.25, perItem: 0.35 },
+      shipping: { 
+        avgCostPerOrder: 6.20,
+        breakdown: { ground: 5.80, express: 12.40, freight: 45.00 },
+        mixPercent: { ground: 82, express: 15, freight: 3 }
+      },
+      storage: { perPallet: 28, perBin: 4.50 },
+      receiving: { perCarton: 1.85, perUnit: 0.12 }
+    };
+
+    // ACCOUNTS PAYABLE AGING
+    const apAging = [
+      { vendorId: 'VND-001', poId: 'PO-2025-0831', invoiceNum: 'INV-LF-4421', invoiceDate: '2025-02-10', dueDate: '2025-03-12', amount: 42500, aging: 'CURRENT' },
+      { vendorId: 'VND-001', poId: 'PO-2025-0847', invoiceNum: 'INV-LF-4438', invoiceDate: '2025-02-19', dueDate: '2025-03-21', amount: 46975, aging: 'CURRENT', hasVariance: true, varianceCredit: 1375 },
+      { vendorId: 'VND-002', poId: 'PO-2025-0852', invoiceNum: 'INV-HS-2287', invoiceDate: '2025-02-20', dueDate: '2025-04-06', amount: 16000, aging: 'CURRENT' },
+      { vendorId: 'VND-003', poId: null, invoiceNum: 'INV-PF-FEB', invoiceDate: '2025-02-28', dueDate: '2025-03-15', amount: 18450, aging: 'CURRENT', description: 'Feb fulfillment services' },
+    ];
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    const formatCurrency = (n, decimals = 0) => {
+      if (n === null || n === undefined) return '—';
+      return new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: 'USD', 
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals 
+      }).format(n);
+    };
+    
+    const formatNumber = (n) => {
+      if (n === null || n === undefined) return '—';
+      return new Intl.NumberFormat('en-US').format(n);
+    };
+    
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '—';
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    const formatDateFull = (dateStr) => {
+      if (!dateStr) return '—';
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const getWeekLabel = (startDate) => {
+      const start = new Date(startDate);
+      const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    };
+
+    const getStatusBadge = (status) => {
+      const statusMap = {
+        'ACTUAL': 'status-actual',
+        'CURRENT': 'status-pending',
+        'PROJECTED': 'status-projected',
+        'CLOSED': 'status-actual',
+        'RECEIVED': 'status-confirmed',
+        'SHIPPED': 'status-pending',
+        'CONFIRMED': 'status-projected',
+        'PENDING_CONFIRM': 'status-pending',
+        'VARIANCE_OPEN': 'status-variance',
+        'PAID': 'status-paid',
+        'DUE': 'status-due',
+        'OVERDUE': 'status-overdue'
+      };
+      return statusMap[status] || 'status-pending';
+    };
+
+    // ============================================
+    // COMPONENTS
+    // ============================================
+
+    function SummaryCard({ label, value, sub, variant }) {
+      const colorMap = {
+        default: '',
+        success: 'text-green',
+        danger: 'text-red',
+        warning: 'text-amber',
+        info: 'text-blue'
+      };
+      return (
+        <div className="summary-card">
+          <div className="summary-label">{label}</div>
+          <div className={`summary-value ${colorMap[variant] || ''}`}>{value}</div>
+          {sub && <div className="summary-sub">{sub}</div>}
+        </div>
+      );
+    }
+
+    function PurchaseOrdersTable() {
+      return (
+        <div>
+          <div className="section-header">📦 Purchase Orders - Complete Lifecycle</div>
+          <div className="data-card">
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>PO #</th>
+                    <th>Vendor</th>
+                    <th>Order Date</th>
+                    <th>Ship Date</th>
+                    <th>Receive Date</th>
+                    <th>Payment Due</th>
+                    <th className="text-right">PO Amount</th>
+                    <th className="text-right">Invoice Amt</th>
+                    <th className="text-right">Variance</th>
+                    <th className="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseOrders.map(po => {
+                    const vendor = vendors.find(v => v.id === po.vendorId);
+                    return (
+                      <tr key={po.id}>
+                        <td className="font-mono font-semibold">{po.id}</td>
+                        <td>{vendor?.name}</td>
+                        <td>{formatDate(po.orderDate)}</td>
+                        <td>{formatDate(po.shipDate)}</td>
+                        <td>{po.receiveDate ? formatDate(po.receiveDate) : <span className="text-gray">—</span>}</td>
+                        <td>{formatDate(po.paymentDueDate)}</td>
+                        <td className="text-right font-mono">{formatCurrency(po.amount)}</td>
+                        <td className="text-right font-mono">{po.invoiceAmount ? formatCurrency(po.invoiceAmount) : <span className="text-gray">—</span>}</td>
+                        <td className="text-right font-mono">
+                          {po.varianceAmount ? <span className="text-red">({formatCurrency(po.varianceAmount)})</span> : '—'}
+                        </td>
+                        <td className="text-center">
+                          <span className={`status-badge ${getStatusBadge(po.status)}`}>{po.status.replace('_', ' ')}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+                    <td colSpan="6">Total Open POs</td>
+                    <td className="text-right font-mono">{formatCurrency(purchaseOrders.filter(po => po.status !== 'CLOSED').reduce((s, po) => s + po.amount, 0))}</td>
+                    <td className="text-right font-mono">{formatCurrency(purchaseOrders.filter(po => po.invoiceAmount && !po.paymentDate).reduce((s, po) => s + po.invoiceAmount, 0))}</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(purchaseOrders.reduce((s, po) => s + (po.varianceAmount || 0), 0))})</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* PO Line Items Detail */}
+          <div className="section-header" style={{ marginTop: '16px', background: '#374151' }}>📋 PO Line Item Detail (Open Orders)</div>
+          <div className="data-card">
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>PO #</th>
+                    <th>SKU</th>
+                    <th>Description</th>
+                    <th className="text-right">Qty Ordered</th>
+                    <th className="text-right">Unit Cost</th>
+                    <th className="text-right">Line Total</th>
+                    <th className="text-right">Qty Received</th>
+                    <th className="text-right">Qty Damaged</th>
+                    <th className="text-right">Variance $</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseOrders.filter(po => po.status !== 'CLOSED').flatMap(po => 
+                    po.items.map((item, idx) => (
+                      <tr key={`${po.id}-${idx}`} className={item.varianceAmt > 0 ? 'bg-red-50' : ''}>
+                        <td className="font-mono">{idx === 0 ? po.id : ''}</td>
+                        <td className="font-mono text-gray">{item.sku}</td>
+                        <td>{item.description}</td>
+                        <td className="text-right">{formatNumber(item.qty)}</td>
+                        <td className="text-right font-mono">{formatCurrency(item.unitCost, 2)}</td>
+                        <td className="text-right font-mono">{formatCurrency(item.lineTotal)}</td>
+                        <td className="text-right">{item.qtyReceived !== null ? formatNumber(item.qtyReceived) : <span className="text-gray">—</span>}</td>
+                        <td className="text-right">{item.qtyDamaged > 0 ? <span className="text-red">{item.qtyDamaged}</span> : (item.qtyDamaged === 0 ? '0' : <span className="text-gray">—</span>)}</td>
+                        <td className="text-right font-mono">{item.varianceAmt > 0 ? <span className="text-red">({formatCurrency(item.varianceAmt)})</span> : '—'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SalesDataTable() {
+      return (
+        <div>
+          <div className="section-header">💰 Sales Revenue - Actuals & Projections</div>
+          <div className="data-card">
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th className="text-center">Type</th>
+                    <th className="text-right">Orders</th>
+                    <th className="text-right">Gross Revenue</th>
+                    <th className="text-right">Discounts</th>
+                    <th className="text-right">Refunds</th>
+                    <th className="text-right">Net Revenue</th>
+                    <th className="text-right">COGS</th>
+                    <th className="text-right">Contribution</th>
+                    <th>Basis/Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesData.map((week, idx) => (
+                    <tr key={idx} className={week.type === 'CURRENT' ? 'bg-amber-50' : week.type === 'PROJECTED' ? 'bg-blue-50' : ''}>
+                      <td className="font-semibold">{getWeekLabel(week.weekStart)}</td>
+                      <td className="text-center">
+                        <span className={`status-badge ${getStatusBadge(week.type)}`}>{week.type}</span>
+                      </td>
+                      <td className="text-right">{formatNumber(week.orders)}</td>
+                      <td className="text-right font-mono">{formatCurrency(week.grossRevenue)}</td>
+                      <td className="text-right font-mono text-red">({formatCurrency(week.discounts)})</td>
+                      <td className="text-right font-mono text-red">({formatCurrency(week.refunds)})</td>
+                      <td className="text-right font-mono font-semibold">{formatCurrency(week.netRevenue)}</td>
+                      <td className="text-right font-mono text-red">({formatCurrency(week.cogs)})</td>
+                      <td className="text-right font-mono text-green font-semibold">{formatCurrency(week.contribution)}</td>
+                      <td className="text-gray" style={{ fontSize: '11px' }}>{week.basis || (week.daysActual ? `${week.daysActual}d actual, ${week.daysProjected}d proj` : '')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+                    <td>13-Week Total</td>
+                    <td></td>
+                    <td className="text-right">{formatNumber(salesData.reduce((s, w) => s + w.orders, 0))}</td>
+                    <td className="text-right font-mono">{formatCurrency(salesData.reduce((s, w) => s + w.grossRevenue, 0))}</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(salesData.reduce((s, w) => s + w.discounts, 0))})</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(salesData.reduce((s, w) => s + w.refunds, 0))})</td>
+                    <td className="text-right font-mono">{formatCurrency(salesData.reduce((s, w) => s + w.netRevenue, 0))}</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(salesData.reduce((s, w) => s + w.cogs, 0))})</td>
+                    <td className="text-right font-mono text-green">{formatCurrency(salesData.reduce((s, w) => s + w.contribution, 0))}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function OperatingExpensesTable() {
+      const weeklyTotal = operatingExpenses.weekly.reduce((s, e) => s + e.amount, 0);
+      const thirteenWeekTotal = weeklyTotal * 13;
+      const scheduledTotal = operatingExpenses.scheduled.reduce((s, e) => s + e.amount, 0);
+
+      return (
+        <div>
+          <div className="section-header">🏢 Operating Expenses - Weekly Recurring</div>
+          <div className="data-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Subcategory</th>
+                  <th className="text-right">Weekly Amount</th>
+                  <th className="text-center">Type</th>
+                  <th>Notes</th>
+                  <th className="text-right">13-Week Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {operatingExpenses.weekly.map((exp, idx) => (
+                  <tr key={idx}>
+                    <td className="font-semibold">{exp.category}</td>
+                    <td>{exp.subcategory}</td>
+                    <td className="text-right font-mono">{formatCurrency(exp.amount)}</td>
+                    <td className="text-center">
+                      <span className={`status-badge ${exp.type === 'FIXED' ? 'status-actual' : 'status-pending'}`}>{exp.type}</span>
+                    </td>
+                    <td className="text-gray" style={{ fontSize: '11px' }}>{exp.notes}</td>
+                    <td className="text-right font-mono">{formatCurrency(exp.amount * 13)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+                  <td colSpan="2">Total Weekly Operating</td>
+                  <td className="text-right font-mono">{formatCurrency(weeklyTotal)}</td>
+                  <td></td>
+                  <td></td>
+                  <td className="text-right font-mono">{formatCurrency(thirteenWeekTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div className="section-header" style={{ marginTop: '16px', background: '#374151' }}>📅 Scheduled One-Time Expenses</div>
+          <div className="data-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th className="text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {operatingExpenses.scheduled.map((exp, idx) => (
+                  <tr key={idx}>
+                    <td>{formatDateFull(exp.date)}</td>
+                    <td>{exp.category}</td>
+                    <td>{exp.description}</td>
+                    <td className="text-right font-mono">{formatCurrency(exp.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+                  <td colSpan="3">Total Scheduled</td>
+                  <td className="text-right font-mono">{formatCurrency(scheduledTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function AccountsPayableTable() {
+      const totalAP = apAging.reduce((s, ap) => s + ap.amount - (ap.varianceCredit || 0), 0);
+
+      return (
+        <div>
+          <div className="section-header">📑 Accounts Payable Aging</div>
+          <div className="data-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Invoice #</th>
+                  <th>PO Reference</th>
+                  <th>Invoice Date</th>
+                  <th>Due Date</th>
+                  <th className="text-right">Invoice Amount</th>
+                  <th className="text-right">Variance Credit</th>
+                  <th className="text-right">Net Due</th>
+                  <th className="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apAging.map((ap, idx) => {
+                  const vendor = vendors.find(v => v.id === ap.vendorId);
+                  const netDue = ap.amount - (ap.varianceCredit || 0);
+                  return (
+                    <tr key={idx} className={ap.hasVariance ? 'bg-amber-50' : ''}>
+                      <td className="font-semibold">{vendor?.name}</td>
+                      <td className="font-mono">{ap.invoiceNum}</td>
+                      <td className="font-mono text-gray">{ap.poId || ap.description}</td>
+                      <td>{formatDate(ap.invoiceDate)}</td>
+                      <td>{formatDate(ap.dueDate)}</td>
+                      <td className="text-right font-mono">{formatCurrency(ap.amount)}</td>
+                      <td className="text-right font-mono">{ap.varianceCredit ? <span className="text-green">({formatCurrency(ap.varianceCredit)})</span> : '—'}</td>
+                      <td className="text-right font-mono font-semibold">{formatCurrency(netDue)}</td>
+                      <td className="text-center">
+                        <span className={`status-badge ${getStatusBadge(ap.aging)}`}>{ap.aging}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: '#f3f4f6', fontWeight: 600 }}>
+                  <td colSpan="5">Total Accounts Payable</td>
+                  <td className="text-right font-mono">{formatCurrency(apAging.reduce((s, ap) => s + ap.amount, 0))}</td>
+                  <td className="text-right font-mono text-green">({formatCurrency(apAging.reduce((s, ap) => s + (ap.varianceCredit || 0), 0))})</td>
+                  <td className="text-right font-mono">{formatCurrency(totalAP)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    function FulfillmentCostsTable() {
+      return (
+        <div>
+          <div className="section-header">🚚 Fulfillment Cost Structure</div>
+          <div className="data-card">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', padding: '20px' }}>
+              {/* Pick & Pack */}
+              <div>
+                <h4 style={{ marginBottom: '12px', color: '#374151' }}>Pick & Pack Rates</h4>
+                <table style={{ fontSize: '12px' }}>
+                  <tbody>
+                    <tr><td>Base fee per order</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.pickAndPack.base, 2)}</td></tr>
+                    <tr><td>Per additional item</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.pickAndPack.perItem, 2)}</td></tr>
+                    <tr style={{ background: '#f3f4f6' }}><td className="font-semibold">Avg per order (1.8 items)</td><td className="text-right font-mono font-semibold">{formatCurrency(fulfillmentRates.pickAndPack.base + (0.8 * fulfillmentRates.pickAndPack.perItem), 2)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Shipping */}
+              <div>
+                <h4 style={{ marginBottom: '12px', color: '#374151' }}>Outbound Shipping</h4>
+                <table style={{ fontSize: '12px' }}>
+                  <tbody>
+                    <tr><td>Ground ({fulfillmentRates.shipping.mixPercent.ground}%)</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.shipping.breakdown.ground, 2)}</td></tr>
+                    <tr><td>Express ({fulfillmentRates.shipping.mixPercent.express}%)</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.shipping.breakdown.express, 2)}</td></tr>
+                    <tr><td>Freight ({fulfillmentRates.shipping.mixPercent.freight}%)</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.shipping.breakdown.freight, 2)}</td></tr>
+                    <tr style={{ background: '#f3f4f6' }}><td className="font-semibold">Blended avg per order</td><td className="text-right font-mono font-semibold">{formatCurrency(fulfillmentRates.shipping.avgCostPerOrder, 2)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Storage & Receiving */}
+              <div>
+                <h4 style={{ marginBottom: '12px', color: '#374151' }}>Storage & Receiving</h4>
+                <table style={{ fontSize: '12px' }}>
+                  <tbody>
+                    <tr><td>Storage per pallet/mo</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.storage.perPallet, 2)}</td></tr>
+                    <tr><td>Storage per bin/mo</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.storage.perBin, 2)}</td></tr>
+                    <tr><td>Receiving per carton</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.receiving.perCarton, 2)}</td></tr>
+                    <tr><td>Receiving per unit</td><td className="text-right font-mono">{formatCurrency(fulfillmentRates.receiving.perUnit, 2)}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Fulfillment Cost Projection */}
+          <div className="section-header" style={{ marginTop: '16px', background: '#374151' }}>📊 Weekly Fulfillment Cost Projection</div>
+          <div className="data-card">
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th className="text-right">Orders</th>
+                    <th className="text-right">Pick & Pack</th>
+                    <th className="text-right">Shipping Cost</th>
+                    <th className="text-right">Storage (allocated)</th>
+                    <th className="text-right">Total Fulfillment</th>
+                    <th className="text-right">Cost per Order</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesData.map((week, idx) => {
+                    const pickPack = week.orders * (fulfillmentRates.pickAndPack.base + 0.8 * fulfillmentRates.pickAndPack.perItem);
+                    const shipping = week.orders * fulfillmentRates.shipping.avgCostPerOrder;
+                    const storage = 2800; // Weekly allocation
+                    const total = pickPack + shipping + storage;
+                    const perOrder = total / week.orders;
+                    
+                    return (
+                      <tr key={idx} className={week.type === 'PROJECTED' ? 'bg-blue-50' : ''}>
+                        <td>{getWeekLabel(week.weekStart)}</td>
+                        <td className="text-right">{formatNumber(week.orders)}</td>
+                        <td className="text-right font-mono">{formatCurrency(pickPack)}</td>
+                        <td className="text-right font-mono">{formatCurrency(shipping)}</td>
+                        <td className="text-right font-mono">{formatCurrency(storage)}</td>
+                        <td className="text-right font-mono font-semibold">{formatCurrency(total)}</td>
+                        <td className="text-right font-mono text-gray">{formatCurrency(perOrder, 2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function CashFlowSummaryTable() {
+      // Build the 13-week cash flow from the data tables
+      const openingCash = 125000;
+      
+      const cashFlowWeeks = salesData.map((sales, idx) => {
+        // Inflows
+        const netRevenue = sales.netRevenue;
+        
+        // PO Payments due this week
+        const weekStart = new Date(sales.weekStart);
+        const weekEnd = new Date(sales.weekEnd);
+        const poDue = purchaseOrders.filter(po => {
+          const dueDate = new Date(po.paymentDueDate);
+          return dueDate >= weekStart && dueDate <= weekEnd && !po.paymentDate;
+        });
+        const poPayments = poDue.reduce((s, po) => s + (po.invoiceAmount || po.amount) - (po.varianceAmount || 0), 0);
+        
+        // Operating expenses
+        const weeklyOpex = operatingExpenses.weekly.reduce((s, e) => s + e.amount, 0);
+        const scheduledThisWeek = operatingExpenses.scheduled
+          .filter(e => {
+            const d = new Date(e.date);
+            return d >= weekStart && d <= weekEnd;
+          })
+          .reduce((s, e) => s + e.amount, 0);
+        
+        // Fulfillment costs (pick/pack + shipping)
+        const pickPack = sales.orders * (fulfillmentRates.pickAndPack.base + 0.8 * fulfillmentRates.pickAndPack.perItem);
+        const shipping = sales.orders * fulfillmentRates.shipping.avgCostPerOrder;
+        
+        const totalOutflows = poPayments + weeklyOpex + scheduledThisWeek + pickPack + shipping;
+        const netCash = netRevenue - totalOutflows;
+        
+        return {
+          week: sales.weekStart,
+          weekLabel: getWeekLabel(sales.weekStart),
+          type: sales.type,
+          netRevenue,
+          poPayments,
+          poDue: poDue.map(po => po.id),
+          weeklyOpex,
+          scheduledOpex: scheduledThisWeek,
+          fulfillmentCosts: pickPack + shipping,
+          totalOutflows,
+          netCash
+        };
+      });
+
+      // Calculate running balances
+      let balance = openingCash;
+      cashFlowWeeks.forEach(week => {
+        week.openingBalance = balance;
+        week.closingBalance = balance + week.netCash;
+        balance = week.closingBalance;
+      });
+
+      const minCash = Math.min(...cashFlowWeeks.map(w => w.closingBalance));
+      const minCashWeek = cashFlowWeeks.find(w => w.closingBalance === minCash);
+
+      return (
+        <div>
+          <div className="section-header">💵 13-Week Cash Flow Summary</div>
+          <div className="data-card">
+            {/* Summary metrics */}
+            <div style={{ padding: '20px', borderBottom: '1px solid #e5e7eb' }}>
+              <div className="summary-grid">
+                <SummaryCard label="Opening Cash" value={formatCurrency(openingCash)} sub="Week 1" />
+                <SummaryCard label="Total Net Revenue" value={formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.netRevenue, 0))} sub="13-week projected" variant="success" />
+                <SummaryCard label="Total Outflows" value={formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.totalOutflows, 0))} sub="PO + Opex + Fulfillment" variant="danger" />
+                <SummaryCard label="Ending Cash" value={formatCurrency(cashFlowWeeks[cashFlowWeeks.length - 1]?.closingBalance)} sub={cashFlowWeeks[cashFlowWeeks.length - 1]?.weekLabel} variant={cashFlowWeeks[cashFlowWeeks.length - 1]?.closingBalance > openingCash ? 'success' : 'warning'} />
+                <SummaryCard label="Minimum Cash" value={formatCurrency(minCash)} sub={minCashWeek?.weekLabel} variant={minCash > 50000 ? 'success' : minCash > 0 ? 'warning' : 'danger'} />
+              </div>
+            </div>
+            
+            <div style={{ overflowX: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th className="text-center">Type</th>
+                    <th className="text-right">Opening</th>
+                    <th className="text-right">Net Revenue</th>
+                    <th className="text-right">PO Payments</th>
+                    <th className="text-right">Operating</th>
+                    <th className="text-right">Fulfillment</th>
+                    <th className="text-right">Net Cash</th>
+                    <th className="text-right">Closing</th>
+                    <th>POs Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cashFlowWeeks.map((week, idx) => (
+                    <tr key={idx} className={week.type === 'CURRENT' ? 'bg-amber-50' : week.type === 'PROJECTED' ? '' : ''}>
+                      <td className="font-semibold">{week.weekLabel}</td>
+                      <td className="text-center">
+                        <span className={`status-badge ${getStatusBadge(week.type)}`}>{week.type}</span>
+                      </td>
+                      <td className="text-right font-mono">{formatCurrency(week.openingBalance)}</td>
+                      <td className="text-right font-mono text-green">{formatCurrency(week.netRevenue)}</td>
+                      <td className="text-right font-mono">{week.poPayments > 0 ? <span className="text-red">({formatCurrency(week.poPayments)})</span> : '—'}</td>
+                      <td className="text-right font-mono text-red">({formatCurrency(week.weeklyOpex + week.scheduledOpex)})</td>
+                      <td className="text-right font-mono text-red">({formatCurrency(week.fulfillmentCosts)})</td>
+                      <td className="text-right font-mono font-semibold">
+                        <span className={week.netCash >= 0 ? 'text-green' : 'text-red'}>{formatCurrency(week.netCash)}</span>
+                      </td>
+                      <td className="text-right font-mono font-semibold">
+                        <span className={week.closingBalance < 50000 ? 'text-amber' : ''}>{formatCurrency(week.closingBalance)}</span>
+                      </td>
+                      <td className="font-mono text-gray" style={{ fontSize: '10px' }}>{week.poDue.join(', ') || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: '#e0e7ff', fontWeight: 700 }}>
+                    <td>TOTAL</td>
+                    <td></td>
+                    <td></td>
+                    <td className="text-right font-mono text-green">{formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.netRevenue, 0))}</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.poPayments, 0))})</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.weeklyOpex + w.scheduledOpex, 0))})</td>
+                    <td className="text-right font-mono text-red">({formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.fulfillmentCosts, 0))})</td>
+                    <td className="text-right font-mono">{formatCurrency(cashFlowWeeks.reduce((s, w) => s + w.netCash, 0))}</td>
+                    <td className="text-right font-mono">{formatCurrency(cashFlowWeeks[cashFlowWeeks.length - 1]?.closingBalance)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function VendorSummaryTable() {
+      return (
+        <div>
+          <div className="section-header">🏭 Vendor Master</div>
+          <div className="data-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendor ID</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Country</th>
+                  <th className="text-right">Payment Terms</th>
+                  <th className="text-right">Credit Limit</th>
+                  <th className="text-right">YTD Spend</th>
+                  <th className="text-right">Open POs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendors.map(vendor => {
+                  const openPOs = purchaseOrders.filter(po => po.vendorId === vendor.id && po.status !== 'CLOSED');
+                  const openPOValue = openPOs.reduce((s, po) => s + po.amount, 0);
+                  return (
+                    <tr key={vendor.id}>
+                      <td className="font-mono">{vendor.id}</td>
+                      <td className="font-semibold">{vendor.name}</td>
+                      <td>{vendor.category}</td>
+                      <td>{vendor.country}</td>
+                      <td className="text-right">Net {vendor.paymentTerms}</td>
+                      <td className="text-right font-mono">{vendor.creditLimit ? formatCurrency(vendor.creditLimit) : '—'}</td>
+                      <td className="text-right font-mono">{formatCurrency(vendor.ytdSpend)}</td>
+                      <td className="text-right font-mono">{formatCurrency(openPOValue)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================
+    // MAIN APP
+    // ============================================
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('summary');
+
+      const tabs = [
+        { id: 'summary', label: '📊 Cash Flow Summary' },
+        { id: 'sales', label: '💰 Sales Data' },
+        { id: 'purchase-orders', label: '📦 Purchase Orders' },
+        { id: 'ap', label: '📑 Accounts Payable' },
+        { id: 'opex', label: '🏢 Operating Expenses' },
+        { id: 'fulfillment', label: '🚚 Fulfillment Costs' },
+        { id: 'vendors', label: '🏭 Vendors' },
+      ];
+
+      return (
+        <div>
+          {/* Header */}
+          <div style={{ background: '#1f2937', color: 'white', padding: '20px 32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '24px' }}>◈</span>
+              <h1 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>Sightline - 13 Week Cash Flow Model</h1>
+            </div>
+            <div style={{ color: '#9ca3af', fontSize: '14px' }}>
+              Lumina Home & Co. • Supporting Data Tables • Generated {new Date().toLocaleDateString()}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div style={{ padding: '24px 32px', maxWidth: '1600px', margin: '0 auto' }}>
+            {/* Tabs */}
+            <div className="tab-container">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'summary' && <CashFlowSummaryTable />}
+            {activeTab === 'sales' && <SalesDataTable />}
+            {activeTab === 'purchase-orders' && <PurchaseOrdersTable />}
+            {activeTab === 'ap' && <AccountsPayableTable />}
+            {activeTab === 'opex' && <OperatingExpensesTable />}
+            {activeTab === 'fulfillment' && <FulfillmentCostsTable />}
+            {activeTab === 'vendors' && <VendorSummaryTable />}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>

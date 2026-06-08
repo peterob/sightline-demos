@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSO Dental - Transaction Management</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        .form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .form label {
+            display: block;
+            margin-bottom: 15px;
+            color: #444;
+        }
+        .form select, .form input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form button {
+            background: #0066cc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .form button:hover {
+            background: #0052a3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        th {
+            background: #0066cc;
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .alert {
+            color: #cc0000;
+            font-weight: bold;
+        }
+        #coa-section {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div id="coa-section">
+        <h2>Chart of Accounts Overview</h2>
+        <table id="coa-table">
+            <thead>
+                <tr>
+                    <th>Department/Practice Area</th>
+                    <th>Line Item</th>
+                    <th>Budgeted ($)</th>
+                    <th>Committed ($)</th>
+                    <th>Actual ($)</th>
+                    <th>Variance ($)</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <h2>Add/Update Transaction (e.g., Insurance Claim or Supply PO)</h2>
+    <form class="form" id="transaction-form">
+        <label>Department/Practice Area: <select id="department"></select></label><br>
+        <label>Line Item: <select id="line-item"></select></label><br>
+        <label>Type: <select id="type">
+            <option value="PO">Purchase Order (Committed, e.g., Supplies)</option>
+            <option value="Invoice">Invoice (Actual, e.g., Equipment)</option>
+            <option value="Approval">Approval (e.g., Claim)</option>
+            <option value="Payment">Payment (Settled, e.g., Reimbursement)</option>
+        </select></label><br>
+        <label>Amount ($): <input type="number" id="amount" required></label><br>
+        <label>Status: <select id="status">
+            <option value="Planned">Planned</option>
+            <option value="Approved">Approved</option>
+            <option value="Committed">Committed</option>
+            <option value="Settled">Settled</option>
+        </select></label><br>
+        <label>Reason: <input type="text" id="reason" required></label><br>
+        <label>Policy Reference: <input type="text" id="policy"></label><br>
+        <label>Expected Outcome: <input type="text" id="outcome"></label><br>
+        <label>Vendor/Notes (e.g., Practice ID): <input type="text" id="notes"></label><br>
+        <button type="submit">Submit</button>
+    </form>
+
+    <h2>Events Log (Traceable History Across Practices)</h2>
+    <table id="events-log">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Action Type</th>
+                <th>Department/Practice Area</th>
+                <th>Line Item</th>
+                <th>Amount ($)</th>
+                <th>Status Change</th>
+                <th>Reason</th>
+                <th>Policy Reference</th>
+                <th>Expected Outcome</th>
+                <th>Notes (e.g., Practice ID)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    // Sample data structure adapted for DSO Dental
+    let coa = {
+        departments: [
+            { name: 'Insurance Billings', lineItems: [
+                { name: 'Patient Co-Pay', budgeted: 50000, committed: 0, actual: 0 },
+                { name: 'Insurance Reimbursements', budgeted: 200000, committed: 0, actual: 0 }
+            ]},
+            { name: 'Supplies Inventory', lineItems: [
+                { name: 'Dental Materials', budgeted: 30000, committed: 0, actual: 0 },
+                { name: 'Office Supplies', budgeted: 10000, committed: 0, actual: 0 }
+            ]},
+            { name: 'Equipment Capex', lineItems: [
+                { name: 'X-Ray Machines', budgeted: 100000, committed: 0, actual: 0 },
+                { name: 'Sterilization Equipment', budgeted: 40000, committed: 0, actual: 0 }
+            ]},
+            { name: 'Staff Payroll', lineItems: [
+                { name: 'Dentists Salaries', budgeted: 150000, committed: 0, actual: 0 },
+                { name: 'Support Staff', budgeted: 80000, committed: 0, actual: 0 }
+            ]}
+            // Add more as needed for multi-practice
+        ]
+    };
+
+    let eventsLog = [];
+
+    // Functions
+    function calculateVariance(item) {
+        return item.budgeted - (item.committed + item.actual);
+    }
+
+    function renderCoA() {
+        const tbody = document.querySelector('#coa-table tbody');
+        tbody.innerHTML = '';
+        coa.departments.forEach(dept => {
+            dept.lineItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${dept.name}</td>
+                    <td>${item.name}</td>
+                    <td>${item.budgeted}</td>
+                    <td>${item.committed}</td>
+                    <td>${item.actual}</td>
+                    <td class="${calculateVariance(item) < 0 ? 'alert' : ''}">${calculateVariance(item)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        });
+    }
+
+    function renderDepartments() {
+        const deptSelect = document.getElementById('department');
+        deptSelect.innerHTML = '';
+        coa.departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.name;
+            option.textContent = dept.name;
+            deptSelect.appendChild(option);
+        });
+        renderLineItems(); // Initial render
+    }
+
+    function renderLineItems() {
+        const dept = document.getElementById('department').value;
+        const lineSelect = document.getElementById('line-item');
+        lineSelect.innerHTML = '';
+        const selectedDept = coa.departments.find(d => d.name === dept);
+        if (selectedDept) {
+            selectedDept.lineItems.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.name;
+                option.textContent = item.name;
+                lineSelect.appendChild(option);
+            });
+        }
+    }
+
+    function logEvent(event) {
+        eventsLog.push(event);
+        renderEventsLog();
+    }
+
+    function renderEventsLog() {
+        const tbody = document.querySelector('#events-log tbody');
+        tbody.innerHTML = '';
+        eventsLog.forEach(ev => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${ev.timestamp}</td>
+                <td>${ev.user}</td>
+                <td>${ev.type}</td>
+                <td>${ev.department}</td>
+                <td>${ev.lineItem}</td>
+                <td>${ev.amount}</td>
+                <td>${ev.status}</td>
+                <td>${ev.reason}</td>
+                <td>${ev.policy}</td>
+                <td>${ev.outcome}</td>
+                <td>${ev.notes}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Event listeners
+    document.getElementById('department').addEventListener('change', renderLineItems);
+
+    document.getElementById('transaction-form').addEventListener('submit', e => {
+        e.preventDefault();
+        const deptName = document.getElementById('department').value;
+        const lineName = document.getElementById('line-item').value;
+        const type = document.getElementById('type').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const status = document.getElementById('status').value;
+        const reason = document.getElementById('reason').value;
+        const policy = document.getElementById('policy').value;
+        const outcome = document.getElementById('outcome').value;
+        const notes = document.getElementById('notes').value;
+
+        const dept = coa.departments.find(d => d.name === deptName);
+        const item = dept.lineItems.find(i => i.name === lineName);
+
+        if (type === 'PO' || type === 'Approval') {
+            item.committed += amount;
+        } else if (type === 'Invoice' || type === 'Payment') {
+            item.actual += amount;
+        }
+
+        const event = {
+            timestamp: new Date().toISOString(),
+            user: 'Prototype User (e.g., Practice Manager)', // Simulate user
+            type,
+            department: deptName,
+            lineItem: lineName,
+            amount,
+            status,
+            reason,
+            policy,
+            outcome,
+            notes
+        };
+
+        logEvent(event);
+        renderCoA();
+        e.target.reset();
+        renderLineItems();
+    });
+
+    // Initial render
+    renderDepartments();
+    renderCoA();
+</script>
+</body>
+</html>

@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST · Knowledge Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a2540; --ink-2:#425466; --ink-soft:#697586;
+    --accent:#635bff; --accent-deep:#4b45cc;
+    --bg:#ffffff; --bg-soft:#f6f9fc; --bg-deep:#0a1628;
+    --line:#e6ebf1; --line-2:#d7dee8;
+    --green:#15be53; --amber:#f5a623; --red:#df1b41;
+    --sans:'Sora',-apple-system,sans-serif;
+    --mono:'IBM Plex Mono',monospace;
+    --serif:'Spectral',Georgia,serif;
+    --sidebar-w:288px; --toc-w:228px; --max:1700px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;text-decoration:none;}
+
+  /* ───────── TOP BAR ───────── */
+  .topbar{position:sticky;top:0;z-index:50;height:60px;background:rgba(255,255,255,0.88);
+    backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:24px;padding:0 24px;}
+  .brand{display:flex;align-items:center;gap:11px;cursor:pointer;}
+  .brand-mark{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:-.02em;color:var(--ink);}
+  .brand-mark em{color:var(--accent);font-style:normal;}
+  .brand-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+    border-left:1px solid var(--line-2);padding-left:11px;}
+  .topnav{display:flex;gap:4px;margin-left:8px;}
+  .topnav a{font-size:13px;color:var(--ink-2);padding:7px 13px;border-radius:7px;font-weight:500;transition:.15s;}
+  .topnav a:hover{background:var(--bg-soft);color:var(--ink);}
+  .topnav a.on{color:var(--accent);}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .searchbox{display:flex;align-items:center;gap:8px;background:var(--bg-soft);border:1px solid var(--line);
+    border-radius:9px;padding:7px 12px;width:240px;cursor:text;transition:.15s;}
+  .searchbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,91,255,.1);}
+  .searchbox svg{width:14px;height:14px;color:var(--ink-soft);flex-shrink:0;}
+  .searchbox input{border:none;background:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--ink);width:100%;}
+  .searchbox kbd{font-family:var(--mono);font-size:10px;color:var(--ink-soft);background:var(--bg);
+    border:1px solid var(--line-2);border-radius:4px;padding:1px 5px;}
+  .cta-top{background:var(--accent);color:#fff;font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;transition:.15s;white-space:nowrap;}
+  .cta-top:hover{background:var(--accent-deep);}
+  .menu-btn{display:none;background:none;border:1px solid var(--line);border-radius:7px;padding:7px;cursor:pointer;}
+  .menu-btn svg{width:18px;height:18px;color:var(--ink);}
+
+  /* ───────── LAYOUT ───────── */
+  .shell{display:grid;grid-template-columns:var(--sidebar-w) 1fr var(--toc-w);
+    max-width:var(--max);margin:0 auto;align-items:start;}
+
+  /* ───────── SIDEBAR ───────── */
+  .sidebar{position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;
+    padding:28px 18px 60px 24px;border-right:1px solid var(--line);}
+  .nav-group{margin-bottom:26px;}
+  .nav-group-label{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--ink-soft);padding:0 12px 9px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .nav-group-label .ic{width:13px;height:13px;opacity:.7;}
+  .nav-link{display:flex;align-items:center;gap:8px;padding:6.5px 12px;border-radius:7px;font-size:13.5px;
+    color:var(--ink-2);cursor:pointer;transition:.13s;border-left:2px solid transparent;margin-left:-2px;}
+  .nav-link:hover{background:var(--bg-soft);color:var(--ink);}
+  .nav-link.active{color:var(--accent);background:rgba(99,91,255,.07);font-weight:600;border-left-color:var(--accent);}
+  .nav-link .tag{margin-left:auto;font-family:var(--mono);font-size:8.5px;letter-spacing:.05em;
+    padding:1px 6px;border-radius:4px;text-transform:uppercase;font-weight:600;}
+  .tag.new{background:rgba(21,190,83,.13);color:var(--green);}
+  .tag.core{background:rgba(99,91,255,.13);color:var(--accent);}
+
+  /* ───────── MAIN ───────── */
+  main{padding:42px 56px 120px;min-width:0;max-width:920px;}
+  .crumb{font-family:var(--mono);font-size:11px;letter-spacing:.05em;color:var(--ink-soft);
+    text-transform:uppercase;margin-bottom:14px;display:flex;gap:8px;align-items:center;}
+  .crumb span{color:var(--accent);}
+  .page{display:none;animation:fade .4s ease;}
+  .page.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  h1.title{font-size:40px;font-weight:700;letter-spacing:-.025em;line-height:1.1;margin-bottom:14px;}
+  .lede{font-size:18px;color:var(--ink-2);line-height:1.55;font-weight:400;margin-bottom:30px;max-width:660px;}
+  .lede .em{color:var(--ink);font-weight:500;}
+  h2.sec{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:46px 0 16px;padding-top:14px;}
+  h3.sub{font-size:17px;font-weight:600;margin:28px 0 10px;}
+  main p{color:var(--ink-2);font-size:15.5px;margin-bottom:16px;max-width:680px;}
+  main p strong{color:var(--ink);font-weight:600;}
+  main ul{margin:0 0 18px 4px;max-width:680px;}
+  main li{color:var(--ink-2);font-size:15.5px;margin-bottom:9px;list-style:none;padding-left:22px;position:relative;}
+  main li::before{content:'';position:absolute;left:4px;top:10px;width:6px;height:6px;background:var(--accent);border-radius:50%;}
+  main li strong{color:var(--ink);}
+
+  .callout{display:flex;gap:14px;background:var(--bg-soft);border:1px solid var(--line);
+    border-left:3px solid var(--accent);border-radius:10px;padding:18px 20px;margin:24px 0;max-width:680px;}
+  .callout .q{font-family:var(--serif);font-size:30px;line-height:1;color:var(--accent);font-style:italic;}
+  .callout p{margin:0;font-family:var(--serif);font-size:16.5px;font-style:italic;color:var(--ink);line-height:1.5;}
+
+  /* layer / scene cards */
+  .layer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0;}
+  .layer-card{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--bg);transition:.18s;position:relative;overflow:hidden;}
+  .layer-card:hover{border-color:var(--accent);box-shadow:0 8px 30px rgba(10,37,64,.07);transform:translateY(-2px);}
+  .layer-card .lnum{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.08em;}
+  .layer-card h4{font-size:16px;font-weight:600;margin:6px 0 8px;}
+  .layer-card p{font-size:13.5px;margin:0;color:var(--ink-soft);line-height:1.5;}
+  .layer-card .ap{margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--ink-2);
+    border-top:1px dashed var(--line-2);padding-top:10px;}
+  .layer-card .ap b{color:var(--accent);}
+
+  /* tables */
+  .tbl-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:22px 0;max-width:760px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);
+    text-align:left;padding:12px 16px;background:var(--bg-soft);border-bottom:1px solid var(--line);font-weight:600;}
+  td{padding:12px 16px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td strong{color:var(--ink);font-weight:600;}
+  .mono{font-family:var(--mono);font-size:12px;}
+
+  /* taxonomy chips */
+  .tax-section{margin:18px 0;}
+  .tax-cat{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:8px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px;}
+  .chip{font-family:var(--mono);font-size:11.5px;background:var(--bg-soft);border:1px solid var(--line);
+    border-radius:6px;padding:5px 10px;color:var(--ink-2);transition:.13s;}
+  .chip:hover{border-color:var(--accent);color:var(--ink);}
+  .chip b{color:var(--accent);}
+
+  /* ───────── EMBEDDED DASHBOARD ───────── */
+  .dash{border:1px solid var(--line-2);border-radius:14px;overflow:hidden;margin:26px 0;box-shadow:0 18px 50px rgba(10,37,64,.1);}
+  .dash-chrome{background:var(--bg-deep);padding:11px 16px;display:flex;align-items:center;gap:8px;}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dash-chrome .title{margin-left:10px;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.6);letter-spacing:.04em;}
+  .dash-chrome .live{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--green);display:flex;align-items:center;gap:6px;}
+  .dash-chrome .live::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .dash-body{display:grid;grid-template-columns:172px 1fr;min-height:430px;background:var(--bg);}
+  .dash-nav{background:var(--bg-soft);border-right:1px solid var(--line);padding:14px 0;}
+  .dash-nav-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);padding:8px 16px 5px;}
+  .dn{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:12.5px;color:var(--ink-2);cursor:pointer;
+    border-left:2px solid transparent;transition:.12s;}
+  .dn:hover{background:rgba(99,91,255,.05);color:var(--ink);}
+  .dn.on{color:var(--accent);border-left-color:var(--accent);background:rgba(99,91,255,.08);font-weight:600;}
+  .dn .b{margin-left:auto;font-family:var(--mono);font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:3px;}
+  .dn .b.warn{background:var(--amber);}
+  .dash-main{padding:18px 20px;overflow:auto;}
+  .dash-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .dash-h h5{font-size:15px;font-weight:600;}
+  .dash-h .sub{font-family:var(--mono);font-size:10px;color:var(--ink-soft);}
+  .dpane{display:none;}
+  .dpane.on{display:block;animation:fade .3s;}
+  .dtable{width:100%;border-collapse:collapse;font-size:12px;}
+  .dtable th{padding:8px 10px;font-size:9px;background:transparent;border-bottom:1px solid var(--line);}
+  .dtable td{padding:9px 10px;font-size:12px;border-bottom:1px solid var(--line);}
+  .pill{font-family:var(--mono);font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.03em;white-space:nowrap;}
+  .pill.held{background:rgba(245,166,35,.15);color:#a9700a;}
+  .pill.conf{background:rgba(21,190,83,.14);color:#0d8a3c;}
+  .pill.post{background:rgba(99,91,255,.13);color:var(--accent);}
+  .pill.open{background:rgba(223,27,65,.12);color:var(--red);}
+  .pill.appr{background:rgba(21,190,83,.14);color:#0d8a3c;}
+  .evt-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;align-items:baseline;}
+  .evt-row .t{font-family:var(--mono);font-size:10px;color:var(--ink-soft);width:62px;flex-shrink:0;}
+  .evt-row .ty{font-family:var(--mono);font-size:10px;padding:1px 7px;border-radius:4px;background:var(--bg-soft);
+    border:1px solid var(--line);color:var(--ink-2);flex-shrink:0;}
+  .evt-row .ty.bil{background:rgba(99,91,255,.1);border-color:transparent;color:var(--accent);font-weight:600;}
+  .evt-row .d{color:var(--ink-2);}
+  .ledger-line{display:grid;grid-template-columns:34px 1fr 100px 100px;gap:8px;padding:9px 10px;font-size:12px;
+    border-bottom:1px solid var(--line);align-items:center;}
+  .ledger-line .dr{font-family:var(--mono);font-size:10px;color:var(--ink-soft);}
+  .ledger-line .amt{font-family:var(--mono);text-align:right;}
+  .case-card{border:1px solid var(--line);border-left:3px solid var(--red);border-radius:8px;padding:12px 14px;margin-bottom:10px;}
+  .case-card .ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+  .case-card .ct{font-size:13px;font-weight:600;}
+  .case-card p{font-size:11.5px;color:var(--ink-soft);margin:0;}
+  .policy-card{border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px;}
+  .policy-card .pt{display:flex;justify-content:space-between;margin-bottom:8px;}
+  .policy-card .pv{font-family:var(--mono);font-size:11px;color:var(--accent);}
+  .cond{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);padding:3px 0;}
+  .cond .ck{color:var(--green);font-weight:700;}
+
+  /* article cards / explore */
+  .art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin:24px 0;}
+  .art-card{border:1px solid var(--line);border-radius:12px;padding:20px;cursor:pointer;transition:.18s;
+    display:flex;flex-direction:column;background:var(--bg);}
+  .art-card:hover{border-color:var(--accent);box-shadow:0 10px 34px rgba(10,37,64,.08);transform:translateY(-3px);}
+  .art-card .kind{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;margin-bottom:10px;}
+  .art-card h4{font-size:16px;font-weight:600;margin-bottom:7px;line-height:1.3;}
+  .art-card p{font-size:13px;color:var(--ink-soft);margin:0 0 14px;flex:1;line-height:1.5;}
+  .art-card .meta{font-family:var(--mono);font-size:10px;color:var(--ink-soft);display:flex;justify-content:space-between;
+    border-top:1px solid var(--line);padding-top:11px;}
+  .art-card .meta .arrow{color:var(--accent);}
+
+  /* engage / signup */
+  .engage{background:var(--bg-deep);border-radius:16px;padding:40px 44px;margin:30px 0;color:#fff;position:relative;overflow:hidden;}
+  .engage::before{content:'';position:absolute;top:-60%;right:-10%;width:380px;height:380px;
+    background:radial-gradient(circle,rgba(99,91,255,.4),transparent 65%);}
+  .engage h3{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px;position:relative;}
+  .engage p{color:rgba(255,255,255,.66);font-size:15px;max-width:520px;position:relative;margin-bottom:22px;}
+  .engage-actions{display:flex;gap:12px;flex-wrap:wrap;position:relative;}
+  .eng-btn{display:inline-flex;align-items:center;gap:9px;padding:12px 20px;border-radius:9px;font-size:14px;font-weight:600;transition:.15s;}
+  .eng-btn.primary{background:#fff;color:var(--ink);}
+  .eng-btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.3);}
+  .eng-btn.ghost{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2);}
+  .eng-btn.ghost:hover{background:rgba(255,255,255,.15);}
+  .signup-row{display:flex;gap:8px;margin-top:8px;position:relative;max-width:420px;}
+  .signup-row input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:9px;
+    padding:12px 14px;color:#fff;font-family:var(--sans);font-size:14px;outline:none;}
+  .signup-row input::placeholder{color:rgba(255,255,255,.45);}
+  .signup-row button{background:var(--accent);border:none;border-radius:9px;padding:0 20px;color:#fff;font-weight:600;
+    font-size:14px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .signup-row button:hover{background:var(--accent-deep);}
+
+  /* footer nav (prev/next) */
+  .pagenav{display:flex;justify-content:space-between;gap:14px;margin-top:60px;border-top:1px solid var(--line);padding-top:26px;}
+  .pagenav a{flex:1;border:1px solid var(--line);border-radius:11px;padding:15px 18px;transition:.15s;cursor:pointer;}
+  .pagenav a:hover{border-color:var(--accent);background:var(--bg-soft);}
+  .pagenav .dir{font-family:var(--mono);font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.07em;}
+  .pagenav .nm{font-size:14.5px;font-weight:600;color:var(--ink);margin-top:4px;}
+  .pagenav .next{text-align:right;}
+
+  /* ───────── TOC ───────── */
+  .toc{position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;padding:42px 24px 60px 8px;}
+  .toc-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);
+    font-weight:600;margin-bottom:14px;}
+  .toc a{display:block;font-size:12.5px;color:var(--ink-soft);padding:5px 0 5px 12px;border-left:2px solid var(--line);
+    transition:.13s;line-height:1.4;}
+  .toc a:hover{color:var(--ink);}
+  .toc a.on{color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+
+  /* mobile */
+  .scrim{display:none;position:fixed;inset:0;background:rgba(10,22,40,.4);z-index:39;}
+  @media(max-width:1180px){
+    .shell{grid-template-columns:var(--sidebar-w) 1fr;}
+    .toc{display:none;}
+  }
+  @media(max-width:900px){
+    .shell{grid-template-columns:1fr;}
+    .sidebar{position:fixed;top:60px;left:0;width:280px;background:var(--bg);z-index:40;
+      transform:translateX(-100%);transition:.25s;box-shadow:4px 0 30px rgba(0,0,0,.1);}
+    .sidebar.open{transform:none;}
+    .scrim.show{display:block;}
+    .menu-btn{display:inline-flex;}
+    .topnav,.searchbox{display:none;}
+    main{padding:28px 22px 90px;}
+    h1.title{font-size:30px;}
+    .layer-grid{grid-template-columns:1fr;}
+    .dash-body{grid-template-columns:1fr;}
+    .dash-nav{display:flex;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);padding:8px;}
+    .dash-nav-label{display:none;}
+    .dn{white-space:nowrap;border-left:none;border-bottom:2px solid transparent;}
+    .dn.on{border-left:none;border-bottom-color:var(--accent);}
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+  <div class="brand" onclick="go('welcome')">
+    <span class="brand-mark">CAST<em>·</em></span>
+    <span class="brand-tag">Knowledge Library</span>
+  </div>
+  <nav class="topnav">
+    <a class="on" onclick="go('welcome')">Overview</a>
+    <a onclick="go('four-layers')">Architecture</a>
+    <a onclick="go('dashboard')">Dashboard</a>
+    <a onclick="go('zero-trust')">Perspectives</a>
+    <a onclick="go('explore')">Library</a>
+  </nav>
+  <div class="top-right">
+    <label class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" placeholder="Search the library…" oninput="runSearch(this.value)">
+      <kbd>/</kbd>
+    </label>
+    <a class="cta-top" onclick="go('engage')">Subscribe</a>
+  </div>
+</header>
+
+<div class="scrim" onclick="toggleSidebar()"></div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="nav-group">
+      <div class="nav-group-label">Start here</div>
+      <div class="nav-link active" data-page="welcome" onclick="go('welcome')">What is CAST</div>
+      <div class="nav-link" data-page="problem" onclick="go('problem')">The verification gap</div>
+      <div class="nav-link" data-page="confirm-pay" onclick="go('confirm-pay')">Why Confirm &amp; Pay first<span class="tag core">v1</span></div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">The architecture</div>
+      <div class="nav-link" data-page="four-layers" onclick="go('four-layers')">The four layers</div>
+      <div class="nav-link" data-page="taxonomy" onclick="go('taxonomy')">Taxonomy &amp; ontology</div>
+      <div class="nav-link" data-page="bilateral" onclick="go('bilateral')">The bilateral event loop</div>
+      <div class="nav-link" data-page="control-plane" onclick="go('control-plane')">Compiled control plane</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">See it work</div>
+      <div class="nav-link" data-page="dashboard" onclick="go('dashboard')">Operator dashboard<span class="tag new">demo</span></div>
+      <div class="nav-link" data-page="three-views" onclick="go('three-views')">Buyer · Seller · Verifier</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Perspectives</div>
+      <div class="nav-link" data-page="zero-trust" onclick="go('zero-trust')">Zero trust for money</div>
+      <div class="nav-link" data-page="laas" onclick="go('laas')">Validation &amp; liability as a service</div>
+      <div class="nav-link" data-page="agentic" onclick="go('agentic')">AI &amp; agentic commerce</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Explore</div>
+      <div class="nav-link" data-page="explore" onclick="go('explore')">Articles, papers &amp; demos</div>
+      <div class="nav-link" data-page="engage" onclick="go('engage')">Subscribe &amp; engage</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- WELCOME -->
+    <section class="page active" id="page-welcome">
+      <div class="crumb">Start here <span>/</span> What is CAST</div>
+      <h1 class="title">A coordination protocol for proof.</h1>
+      <p class="lede"><span class="em">CAST — Commercial Agreement Settlement Technology</span> — is a bilateral coordination protocol for commercial payments and financial control. Before value moves, both parties co-author one cryptographically bound record of the transaction. That record becomes the authorization — and travels with the payment through the ERP, the audit, the lender, and the insurer as tamper-evident proof.</p>
+
+      <div class="callout"><span class="q">"</span><p>The proof is produced once, at transaction time. Verification cost drops to near zero, because checking a hash is structurally cheaper than reconstructing a decision chain.</p></div>
+
+      <h2 class="sec" id="w-thesis">The thesis</h2>
+      <p>As AI commoditizes execution, the binding economic constraint shifts from <strong>production</strong> to <strong>verification</strong>. The question stops being <em>can we produce this output</em> and becomes <em>can we prove this output is trustworthy.</em> CAST expands the verifiable share of economic activity by replacing opinion-based reconstruction — an auditor reading email threads — with proof-based verification: a lineage-hash check anyone can run.</p>
+
+      <h2 class="sec" id="w-not">What CAST is not</h2>
+      <ul>
+        <li><strong>Not an ERP replacement.</strong> It sits upstream as the authorization and proof layer, exporting posting-ready journals.</li>
+        <li><strong>Not workflow automation.</strong> Workflows are consequences of events and policies — not the primary design object.</li>
+        <li><strong>Not a fraud guarantee.</strong> CAST eliminates the class of fraud where one party acts without the other's knowledge. It makes collusion documented and detectable, not impossible.</li>
+        <li><strong>Not a point solution.</strong> The AP product is the first instantiation of a vertical-agnostic architecture.</li>
+      </ul>
+
+      <h2 class="sec" id="w-start">Where to go next</h2>
+      <div class="art-grid">
+        <div class="art-card" onclick="go('four-layers')"><div class="kind">Architecture</div><h4>The four layers</h4><p>Events, Policies, Work Orders, Ledger — the same four layers every vertical maps to.</p><div class="meta"><span>Core concept</span><span class="arrow">Read →</span></div></div>
+        <div class="art-card" onclick="go('dashboard')"><div class="kind">Live demo</div><h4>Operator dashboard</h4><p>Events, Policies, Work Orders, Ledger, and Exceptions in one working console.</p><div class="meta"><span>Interactive</span><span class="arrow">Open →</span></div></div>
+        <div class="art-card" onclick="go('confirm-pay')"><div class="kind">Product</div><h4>Why Confirm &amp; Pay</h4><p>Why we chose AP payments as the first deployable proof of the architecture.</p><div class="meta"><span>Positioning</span><span class="arrow">Read →</span></div></div>
+      </div>
+      <div class="pagenav"><a style="visibility:hidden"></a><a class="next" onclick="go('problem')"><div class="dir">Next →</div><div class="nm">The verification gap</div></a></div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section class="page" id="page-problem">
+      <div class="crumb">Start here <span>/</span> The verification gap</div>
+      <h1 class="title">A unilateral instruction with a hope attached.</h1>
+      <p class="lede">A payment process where only one of two parties has confirmed the terms before value transfers is not a bilateral authorization. The other party learns of the transaction only when money arrives, when it does not arrive, or when something is already wrong.</p>
+
+      <h2 class="sec" id="p-cost">What the gap costs</h2>
+      <div class="tbl-wrap"><table>
+        <tr><th>Failure</th><th>Mechanism</th></tr>
+        <tr><td><strong>Business Email Compromise</strong><br><span class="mono">$2.9B</span> annual US losses</td><td>A fraudulent instruction inserted into a process never designed to verify the counterparty before payment.</td></tr>
+        <tr><td><strong>Reconciliation</strong></td><td>Both parties keep independent records. When they disagree, both reconstruct from email threads and PDFs — slow, costly, inconclusive.</td></tr>
+        <tr><td><strong>Audit friction</strong></td><td>Every sampled transaction requires forensic reconstruction. The auditor does archaeology, not verification.</td></tr>
+        <tr><td><strong>Lender friction</strong></td><td>Field exams and advance-rate discounts exist because the underlying records are unilateral and cannot be trusted without independent checks.</td></tr>
+      </table></div>
+
+      <div class="callout"><span class="q">"</span><p>Every downstream party — auditor, lender, insurer — must verify independently, expensively, and often inconclusively. CAST produces the proof once, so they don't have to.</p></div>
+
+      <h2 class="sec" id="p-root">The root cause is structural</h2>
+      <p>This is not a software gap to be patched. The trust model underneath commercial payments was never bilateral. Card networks, ACH, wire — each absorbed change operationally without ever rebuilding the assumption that one party's instruction is sufficient to move value. CAST adds one narrow control: before a covered payment releases, the counterparty confirms the details through a channel cryptographically bound to a verified identity.</p>
+      <div class="pagenav"><a onclick="go('welcome')"><div class="dir">← Prev</div><div class="nm">What is CAST</div></a><a class="next" onclick="go('confirm-pay')"><div class="dir">Next →</div><div class="nm">Why Confirm &amp; Pay first</div></a></div>
+    </section>
+
+    <!-- CONFIRM & PAY -->
+    <section class="page" id="page-confirm-pay">
+      <div class="crumb">Start here <span>/</span> Why Confirm &amp; Pay first</div>
+      <h1 class="title">Why Confirm &amp; Pay is our first product.</h1>
+      <p class="lede">The architecture is vertical-agnostic. <span class="em">Confirm &amp; Pay</span> — the accounts-payable instantiation — is where we prove it. AP is not a niche; it is the cleanest place to demonstrate the bilateral event loop and capture the first 1,000 units of proof.</p>
+
+      <h2 class="sec" id="cp-why">Four reasons AP goes first</h2>
+      <ul>
+        <li><strong>The damage is concentrated.</strong> First payment to a new vendor, a bank-account change, a rush payment — a handful of triggers account for most unilateral-instruction fraud. We start exactly where the risk lives.</li>
+        <li><strong>The loop is provable in one screen.</strong> One party proposes, the vendor confirms via passkey, policy governs release. That is the entire architectural claim, demonstrable end-to-end without GL automation downstream.</li>
+        <li><strong>The vendor adopts nothing.</strong> The counterparty is a signer, not a tenant — a browser link, three buttons, no app, no account. Adoption friction is near zero.</li>
+        <li><strong>Every other vertical is a configuration problem.</strong> GPU compute financing, institutional grants, intercompany transfers, trade finance — same four layers, different event types and policies. AP proves the architecture; the rest is seed data.</li>
+      </ul>
+
+      <div class="callout"><span class="q">"</span><p>The investor evidence target is 1,000 bilateral events — not feature completeness. Build the loop first. Everything else comes after the first 50 events are live.</p></div>
+
+      <h2 class="sec" id="cp-loop">The covered controls</h2>
+      <div class="layer-grid">
+        <div class="layer-card"><div class="lnum">TRIGGER 01</div><h4>First payment to a vendor</h4><p>A new relationship should not receive funds without counterparty confirmation of the destination details.</p></div>
+        <div class="layer-card"><div class="lnum">TRIGGER 02</div><h4>Bank-account change</h4><p>Any destination change triggers confirmation. The vendor sees the bank last-four before release.</p></div>
+        <div class="layer-card"><div class="lnum">TRIGGER 03</div><h4>Rush payment</h4><p>Urgency increases scrutiny instead of bypassing controls.</p></div>
+        <div class="layer-card"><div class="lnum">TRIGGER 04</div><h4>Amount threshold</h4><p>Payments above a policy-set ceiling require the bilateral gate before they can post.</p></div>
+      </div>
+      <p>These triggers are <strong>hard-coded, not policy-configurable</strong> — by design. They sit at the boundary between measurable and judgment-dependent transactions. Making them configurable would create a suppression attack surface: a path by which a policy change, rather than a bilateral event, moves a high-judgment payment through without review. Hard-coding closes that path structurally.</p>
+      <div class="pagenav"><a onclick="go('problem')"><div class="dir">← Prev</div><div class="nm">The verification gap</div></a><a class="next" onclick="go('four-layers')"><div class="dir">Next →</div><div class="nm">The four layers</div></a></div>
+    </section>
+
+    <!-- FOUR LAYERS -->
+    <section class="page" id="page-four-layers">
+      <div class="crumb">Architecture <span>/</span> The four layers</div>
+      <h1 class="title">Four layers. Every vertical. No re-architecture.</h1>
+      <p class="lede">Every commercial use case maps to the same four layers. The layers do not change between verticals — only the event types, policy rules, and Work Order structures do.</p>
+
+      <div class="layer-grid">
+        <div class="layer-card"><div class="lnum">LAYER 01 · EVENTS</div><h4>The only truth</h4><p>Records everything that happens. All other layers are projections of this one. Immutable, append-only.</p><div class="ap"><b>AP:</b> Invoice ingested → Proposed. Vendor confirms → Bilateral. Payment settles → Settlement.</div></div>
+        <div class="layer-card"><div class="lnum">LAYER 02 · POLICIES</div><h4>Versioned rule sets</h4><p>Govern when an event needs a Work Order, what must complete before a Posting, and what happens on exception.</p><div class="ap"><b>AP:</b> Triggers — first payment, bank change, threshold. Seven auto-approve conditions, all must pass.</div></div>
+        <div class="layer-card"><div class="lnum">LAYER 03 · WORK ORDERS</div><h4>The execution context</h4><p>Where humans and agents do the accounting work between an event and a ledger entry. Three-track state.</p><div class="ap"><b>AP:</b> Analyst assigns GL code, checks budget, routes for approval — every decision recorded with actor identity.</div></div>
+        <div class="layer-card"><div class="lnum">LAYER 04 · LEDGER</div><h4>Journal-ready output</h4><p>Postings produced by completed Work Orders, carrying unbroken lineage from event to entry.</p><div class="ap"><b>AP:</b> Posting generated only after vendor confirms and controller approves. Non-nullable FK to the bilateral event.</div></div>
+      </div>
+
+      <h2 class="sec" id="fl-principles">Foundational design principles</h2>
+      <div class="tbl-wrap"><table>
+        <tr><th>Principle</th><th>What it guarantees</th></tr>
+        <tr><td><strong>Event sourcing</strong></td><td>The event log is the system of record. Delete every other table and replay the log — they reconstruct exactly. The audit trail is the primary output, not a byproduct.</td></tr>
+        <tr><td><strong>Deterministic state machines</strong></td><td>The same events produce identical outputs for all parties. Agreement is guaranteed by construction, not reconciliation.</td></tr>
+        <tr><td><strong>Bilateral co-authorship</strong></td><td>Events are created jointly. Neither party can write to the shared log unilaterally.</td></tr>
+        <tr><td><strong>SQL-level enforcement</strong></td><td>Invariants live in the schema, not the application. App code changes weekly; constraints survive every refactor and every future engineer.</td></tr>
+      </table></div>
+      <div class="pagenav"><a onclick="go('confirm-pay')"><div class="dir">← Prev</div><div class="nm">Why Confirm &amp; Pay</div></a><a class="next" onclick="go('taxonomy')"><div class="dir">Next →</div><div class="nm">Taxonomy &amp; ontology</div></a></div>
+    </section>
+
+    <!-- TAXONOMY -->
+    <section class="page" id="page-taxonomy">
+      <div class="crumb">Architecture <span>/</span> Taxonomy &amp; ontology</div>
+      <h1 class="title">The event taxonomy.</h1>
+      <p class="lede">Everything in CAST is an event or a projection of events. Events are organized into categories. New verticals extend the taxonomy — they never rewrite it.</p>
+
+      <h2 class="sec" id="tx-cats">Event categories</h2>
+      <div class="tax-section">
+        <div class="tax-cat">Proposed</div>
+        <div class="chips"><span class="chip"><b>invoice_ingested</b></span><span class="chip"><b>payment_intent_created</b></span><span class="chip"><b>trade_message_sent</b></span><span class="chip"><b>trade_message_viewed</b></span></div>
+        <div class="tax-cat">Bilateral · the pivot</div>
+        <div class="chips"><span class="chip"><b>vendor_confirmed</b></span><span class="chip"><b>change_requested</b></span><span class="chip"><b>disputed</b></span></div>
+        <div class="tax-cat">Control / Policy</div>
+        <div class="chips"><span class="chip"><b>policy_evaluated</b></span><span class="chip"><b>auto_approved</b></span><span class="chip"><b>routed_for_approval</b></span><span class="chip"><b>controller_approved</b></span></div>
+        <div class="tax-cat">Settlement</div>
+        <div class="chips"><span class="chip"><b>posting_generated</b></span><span class="chip"><b>erp_exported</b></span><span class="chip"><b>payment_settled</b></span></div>
+        <div class="tax-cat">Case · governed exceptions</div>
+        <div class="chips"><span class="chip"><b>case_opened</b></span><span class="chip"><b>case_escalated</b></span><span class="chip"><b>case_resolved</b></span></div>
+        <div class="tax-cat">Vendor · counterparty surface</div>
+        <div class="chips"><span class="chip"><b>vendor_portal_accessed</b></span><span class="chip"><b>proof_export_requested</b></span><span class="chip"><b>proof_export_shared</b></span><span class="chip"><b>vendor_trust_tier_updated</b></span><span class="chip"><b>vendor_network_milestone</b></span></div>
+      </div>
+
+      <h2 class="sec" id="tx-objects">The canonical objects</h2>
+      <p>Six primitives hold the truth. Everything an operator sees is a compiled projection over them.</p>
+      <div class="tbl-wrap"><table>
+        <tr><th>Object</th><th>Canonical role</th></tr>
+        <tr><td><strong>Events</strong></td><td>Immutable record of what happened in the world.</td></tr>
+        <tr><td><strong>Policy Versions</strong></td><td>Immutable rules pinned to processing time.</td></tr>
+        <tr><td><strong>Work Orders</strong></td><td>Execution context with bilateral, control, and settlement tracks.</td></tr>
+        <tr><td><strong>Postings</strong></td><td>Derived ledger outputs only.</td></tr>
+        <tr><td><strong>Cases</strong></td><td>Governed exceptions.</td></tr>
+        <tr><td><strong>Vendors</strong></td><td>Counterparty identity and credential registry.</td></tr>
+      </table></div>
+
+      <h2 class="sec" id="tx-lineage">Intellectual lineage</h2>
+      <p>The ontology is not invented from scratch. It builds on <strong>Sorter's events theory</strong> of accounting, <strong>Ijiri's triple-entry</strong> bookkeeping, and modern event-sourcing — given a bilateral, cryptographically bound form.</p>
+      <div class="pagenav"><a onclick="go('four-layers')"><div class="dir">← Prev</div><div class="nm">The four layers</div></a><a class="next" onclick="go('bilateral')"><div class="dir">Next →</div><div class="nm">The bilateral event loop</div></a></div>
+    </section>
+
+    <!-- BILATERAL LOOP -->
+    <section class="page" id="page-bilateral">
+      <div class="crumb">Architecture <span>/</span> The bilateral event loop</div>
+      <h1 class="title">One party proposes. The vendor confirms. Policy governs release.</h1>
+      <p class="lede">The loop is the entire architectural claim. Steps 1–5 are the prototype — sufficient to generate the proof and answer the three questions: do vendors confirm easily, do they confirm across companies, does audit effort decline.</p>
+
+      <div class="layer-grid">
+        <div class="layer-card"><div class="lnum">01 · PROPOSE</div><h4>Payment intent created</h4><p>A high-risk invoice enters the queue. Policy version and payment details are snapshotted. Lineage hash computed.</p></div>
+        <div class="layer-card"><div class="lnum">02 · SEND</div><h4>Trade Message sent</h4><p>Vendor receives one browser link: amount, invoice, pay date, bank last-four, deadline.</p></div>
+        <div class="layer-card" style="border-color:var(--accent);box-shadow:0 8px 30px rgba(99,91,255,.12)"><div class="lnum">03 · CONFIRM — the pivot</div><h4>Vendor confirms via passkey</h4><p>Passkey assertion verified, bound to the Work Order hash. The Bilateral Event is written. This is the moment proof is created.</p></div>
+        <div class="layer-card"><div class="lnum">04 · RELEASE</div><h4>Payment can proceed</h4><p>Covered payments stay blocked until the bilateral event exists. The proof record is retained and portable.</p></div>
+      </div>
+
+      <h2 class="sec" id="bl-invariants">The five non-negotiables</h2>
+      <p>Enforced in SQL, not application code. If you find yourself writing TypeScript to "check" one of these, the architectural claim is broken.</p>
+      <ul>
+        <li><strong>agent_id is non-nullable on every event</strong> — no anonymous writes.</li>
+        <li><strong>Every posting has a foreign key to a bilateral event</strong> — no ledger entry without co-authored reality.</li>
+        <li><strong>No posting reaches the ledger until the signature is verified</strong> — verification is a precondition to insert, not a status column.</li>
+        <li><strong>Signatures are over canonicalized hashes, not rows</strong> — a 2026 signature still verifies in 2031 after the schema grows.</li>
+        <li><strong>WebAuthn with required user verification</strong> — the signature is bound to a hardware-backed key, with stored attestation.</li>
+      </ul>
+      <div class="pagenav"><a onclick="go('taxonomy')"><div class="dir">← Prev</div><div class="nm">Taxonomy &amp; ontology</div></a><a class="next" onclick="go('control-plane')"><div class="dir">Next →</div><div class="nm">Compiled control plane</div></a></div>
+    </section>
+
+    <!-- CONTROL PLANE -->
+    <section class="page" id="page-control-plane">
+      <div class="crumb">Architecture <span>/</span> Compiled control plane</div>
+      <h1 class="title">Canonical truth below. Operable control above.</h1>
+      <p class="lede">The control plane is a derived operational layer of refreshable projections over the canonical objects. It exposes the current proof, decision, and exception state of every Work Order — and it is replayable, never a source of truth.</p>
+
+      <h2 class="sec" id="ctp-stack">The architecture stack</h2>
+      <div class="tbl-wrap"><table>
+        <tr><th>Layer</th><th>Contents and role</th></tr>
+        <tr><td><strong>User / Agent surface</strong></td><td>Queue, detail, proof tasks, audit replay, governed actions.</td></tr>
+        <tr><td><strong>Control plane</strong></td><td>Control Items, Invariant Results, Proof Requirements, Decision Views, History Views.</td></tr>
+        <tr><td><strong>Canonical CAST layer</strong></td><td>Events, Policy Versions, Work Orders, Postings, Cases, Vendors.</td></tr>
+      </table></div>
+
+      <h2 class="sec" id="ctp-actor">Actor attribution</h2>
+      <div class="callout"><span class="q">"</span><p>Every event and every Work Order decision must declare whether the actor was human, agent, system, or counterparty — and must identify the accountable human owner whenever an action can change financial state.</p></div>
+      <p>This is the design rule that makes the AI Sandwich operable: a signature without context is a claim; a signature with a decision record is a proof.</p>
+      <div class="pagenav"><a onclick="go('bilateral')"><div class="dir">← Prev</div><div class="nm">The bilateral event loop</div></a><a class="next" onclick="go('dashboard')"><div class="dir">Next →</div><div class="nm">Operator dashboard</div></a></div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section class="page" id="page-dashboard">
+      <div class="crumb">See it work <span>/</span> Operator dashboard</div>
+      <h1 class="title">The architecture, in one console.</h1>
+      <p class="lede">This is the operator surface — Events, Policies, Work Orders, Ledger, and Exceptions, all projections of the same canonical log. Click through the tabs. Everything you see traces back to one bilateral event.</p>
+
+      <div class="dash">
+        <div class="dash-chrome">
+          <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+          <span class="title">cast · operator console — Northpoint Distribution Co.</span>
+          <span class="live">live</span>
+        </div>
+        <div class="dash-body">
+          <nav class="dash-nav">
+            <div class="dash-nav-label">Canonical</div>
+            <div class="dn on" data-d="events" onclick="dtab('events')">◴ Events</div>
+            <div class="dn" data-d="policies" onclick="dtab('policies')">§ Policies</div>
+            <div class="dn" data-d="workorders" onclick="dtab('workorders')">▤ Work Orders <span class="b">1</span></div>
+            <div class="dn" data-d="ledger" onclick="dtab('ledger')">≣ Ledger</div>
+            <div class="dn" data-d="cases" onclick="dtab('cases')">! Exceptions <span class="b warn">1</span></div>
+          </nav>
+          <div class="dash-main">
+
+            <!-- EVENTS -->
+            <div class="dpane on" id="d-events">
+              <div class="dash-h"><h5>Event log · INV-2026-1048</h5><span class="sub">append-only · 7 events</span></div>
+              <div class="evt-row"><span class="t">14:02:03</span><span class="ty">proposed</span><span class="d">invoice_ingested — Cascade Industrial Supply · $47,200.00</span></div>
+              <div class="evt-row"><span class="t">14:02:04</span><span class="ty">proposed</span><span class="d">payment_intent_created · POL-v4.2 pinned · 2 triggers fired</span></div>
+              <div class="evt-row"><span class="t">14:02:11</span><span class="ty">proposed</span><span class="d">trade_message_sent · channel SMS · vendor agent enrolled</span></div>
+              <div class="evt-row"><span class="t">14:09:38</span><span class="ty">proposed</span><span class="d">trade_message_viewed · bilateral_state → viewed</span></div>
+              <div class="evt-row"><span class="t">14:12:55</span><span class="ty bil">bilateral</span><span class="d"><strong>vendor_confirmed</strong> — passkey assertion bound to WO hash · lineage_hash computed</span></div>
+              <div class="evt-row"><span class="t">14:12:56</span><span class="ty">control</span><span class="d">policy_evaluated · 7/7 auto-approve conditions pass</span></div>
+              <div class="evt-row"><span class="t">14:13:01</span><span class="ty">settlement</span><span class="d">posting_generated · FK → bilateral event · JE-2026-04-0618</span></div>
+            </div>
+
+            <!-- POLICIES -->
+            <div class="dpane" id="d-policies">
+              <div class="dash-h"><h5>Active policy</h5><span class="sub">one active version · immutable</span></div>
+              <div class="policy-card">
+                <div class="pt"><strong style="font-size:13px">AP Release Policy</strong><span class="pv">POL-v4.2 · active</span></div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-bottom:8px">HARD TRIGGERS (non-suppressible)</div>
+                <div class="cond"><span class="ck">▸</span> first_payment_to_vendor</div>
+                <div class="cond"><span class="ck">▸</span> bank_account_changed</div>
+                <div class="cond"><span class="ck">▸</span> amount &gt; $10,000</div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin:10px 0 6px">AUTO-APPROVE (all 7 must pass)</div>
+                <div class="cond"><span class="ck">✓</span> vendor confirmed via passkey</div>
+                <div class="cond"><span class="ck">✓</span> amount matches proposal</div>
+                <div class="cond"><span class="ck">✓</span> bank last-4 confirmed</div>
+                <div class="cond"><span class="ck">✓</span> within budget envelope</div>
+                <div class="cond"><span class="ck">✓</span> no open case on vendor</div>
+                <div class="cond"><span class="ck">✓</span> policy version current</div>
+                <div class="cond"><span class="ck">✓</span> lineage hash intact</div>
+              </div>
+            </div>
+
+            <!-- WORK ORDERS -->
+            <div class="dpane" id="d-workorders">
+              <div class="dash-h"><h5>Work Order · WO-2026-1048</h5><span class="sub">three-track state</span></div>
+              <div class="tbl-wrap" style="margin:0">
+                <table class="dtable">
+                  <tr><th>Track</th><th>State</th><th>Detail</th></tr>
+                  <tr><td><strong>Bilateral</strong></td><td><span class="pill conf">confirmed</span></td><td>vendor passkey · 14:12:55</td></tr>
+                  <tr><td><strong>Control</strong></td><td><span class="pill appr">approved</span></td><td>7/7 auto · POL-v4.2</td></tr>
+                  <tr><td><strong>Settlement</strong></td><td><span class="pill post">posted</span></td><td>JE-2026-04-0618</td></tr>
+                </table>
+              </div>
+              <div style="margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--ink-soft)">DECISION LOG</div>
+              <div class="evt-row"><span class="t">14:12:56</span><span class="ty">system</span><span class="d">auto-approve evaluated · all conditions pass</span></div>
+              <div class="evt-row"><span class="t">14:13:00</span><span class="ty">human</span><span class="d">GL 6100 assigned · cost center OPS-MW · J. Reyes (controller)</span></div>
+            </div>
+
+            <!-- LEDGER -->
+            <div class="dpane" id="d-ledger">
+              <div class="dash-h"><h5>Posting · JE-2026-04-0618</h5><span class="sub">supported by confirmed bilateral event</span></div>
+              <div class="tbl-wrap" style="margin:0">
+                <div class="ledger-line" style="background:var(--bg-soft);font-family:var(--mono);font-size:9px;color:var(--ink-soft)"><span>DR/CR</span><span>ACCOUNT</span><span style="text-align:right">DEBIT</span><span style="text-align:right">CREDIT</span></div>
+                <div class="ledger-line"><span class="dr">Dr</span><span>6100 · AP / inventory inbound</span><span class="amt">47,200.00</span><span class="amt">—</span></div>
+                <div class="ledger-line"><span class="dr">Cr</span><span>2000 · Accounts payable</span><span class="amt">—</span><span class="amt">47,200.00</span></div>
+              </div>
+              <p style="font-size:12px;margin-top:12px">Every line traces to the bilateral event <span class="mono">WO-2026-1048 (confirmed)</span>. When the auditor asks, the answer is one click — no reconstruction.</p>
+            </div>
+
+            <!-- CASES -->
+            <div class="dpane" id="d-cases">
+              <div class="dash-h"><h5>Exceptions &amp; cases</h5><span class="sub">governed objects · 1 open</span></div>
+              <div class="case-card">
+                <div class="ch"><span class="ct">Bank-change challenge · Summit Equipment</span><span class="pill open">open</span></div>
+                <p>Destination account changed vs. prior payment. Trade Message sent; awaiting vendor re-confirmation. Payment blocked — cannot release until bilateral event exists.</p>
+              </div>
+              <div class="case-card" style="border-left-color:var(--green)">
+                <div class="ch"><span class="ct">Amount mismatch · Beacon Outfitters</span><span class="pill conf">resolved</span></div>
+                <p>Vendor requested change ($31,200 → $30,950). New proposal co-authored and confirmed. Original event retained; correction is a new event, not an edit.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-soft)">This console renders the four layers plus governed exceptions. Each tab is a projection of the same append-only event log — the canonical truth never changes shape between views.</p>
+      <div class="pagenav"><a onclick="go('control-plane')"><div class="dir">← Prev</div><div class="nm">Compiled control plane</div></a><a class="next" onclick="go('three-views')"><div class="dir">Next →</div><div class="nm">Buyer · Seller · Verifier</div></a></div>
+    </section>
+
+    <!-- THREE VIEWS -->
+    <section class="page" id="page-three-views">
+      <div class="crumb">See it work <span>/</span> Buyer · Seller · Verifier</div>
+      <h1 class="title">One transaction. Three audiences.</h1>
+      <p class="lede">The same bilateral event renders differently for each party. Content density is asymmetric by design — the controller sees an operational queue, the vendor sees a phone-sized card, and the auditor sees the cryptographic evidence surface.</p>
+      <div class="art-grid">
+        <div class="art-card"><div class="kind">Buyer view</div><h4>The AP queue</h4><p>A clean table of payments, one held for confirmation. No JSON, no hashes — this is what a controller sees.</p><div class="meta"><span>Operational</span><span>/buyer</span></div></div>
+        <div class="art-card"><div class="kind">Seller view</div><h4>The Trade Message</h4><p>Mobile-first. Payer, amount, invoice, pay date, bank last-four. Three buttons: Confirm, Request change, Dispute.</p><div class="meta"><span>Counterparty</span><span>/seller/:token</span></div></div>
+        <div class="art-card"><div class="kind">Verifier view</div><h4>The evidence surface</h4><p>Signed payload, canonicalizer path and hash, attestation. A "recompute &amp; verify" button. What a lender or auditor sees.</p><div class="meta"><span>Forensic</span><span>/verify/:id</span></div></div>
+      </div>
+      <div class="callout"><span class="q">"</span><p>Given only the database rows, the committed source code, and a standard crypto library, any external party can reproduce the signed content byte-for-byte — without contacting either counterparty.</p></div>
+      <div class="pagenav"><a onclick="go('dashboard')"><div class="dir">← Prev</div><div class="nm">Operator dashboard</div></a><a class="next" onclick="go('zero-trust')"><div class="dir">Next →</div><div class="nm">Zero trust for money</div></a></div>
+    </section>
+
+    <!-- ZERO TRUST -->
+    <section class="page" id="page-zero-trust">
+      <div class="crumb">Perspectives <span>/</span> Zero trust for money</div>
+      <h1 class="title">Zero trust, applied to the movement of value.</h1>
+      <p class="lede">Network security abandoned the trusted perimeter a decade ago — every request is authenticated, every action is verified, nothing is trusted by location. Commercial payments never made that shift. CAST is zero-trust architecture applied to money.</p>
+      <h2 class="sec" id="zt-perimeter">The implicit-trust perimeter still exists in finance</h2>
+      <p>Most payment controls assume that an instruction originating <em>inside</em> the organization — from a known email, an approved user, a familiar vendor record — is trustworthy. That is the perimeter model. Business Email Compromise is simply an attacker crossing the perimeter once and inheriting all the trust inside it.</p>
+      <p>Zero trust replaces "trusted because of origin" with "verified at the point of action." CAST does exactly this for payments: <strong>no covered payment is trusted because of who submitted it. It is trusted only after the counterparty independently co-authors the terms</strong> through a cryptographically bound channel.</p>
+      <div class="callout"><span class="q">"</span><p>Never trust, always verify — extended from packets to payments. The bilateral gate is the verification step the payment perimeter never had.</p></div>
+      <h2 class="sec" id="zt-three">Three zero-trust properties CAST inherits</h2>
+      <ul>
+        <li><strong>Identity-bound action.</strong> WebAuthn ties each confirmation to a hardware-backed key — not a password, not an inbox an attacker can capture.</li>
+        <li><strong>Least-privilege verification.</strong> The vendor sees only their own confirmation record. Buyer GL codes, budgets, and other vendors are never exposed across the counterparty surface.</li>
+        <li><strong>Continuous verification.</strong> A bank-account change re-triggers the gate. Trust is not granted once and inherited forever — it is re-established at every covered event.</li>
+      </ul>
+      <div class="pagenav"><a onclick="go('three-views')"><div class="dir">← Prev</div><div class="nm">Buyer · Seller · Verifier</div></a><a class="next" onclick="go('laas')"><div class="dir">Next →</div><div class="nm">Validation &amp; liability as a service</div></a></div>
+    </section>
+
+    <!-- LAAS -->
+    <section class="page" id="page-laas">
+      <div class="crumb">Perspectives <span>/</span> Validation &amp; liability as a service</div>
+      <h1 class="title">In the verified economy, value accrues to whoever can underwrite the output.</h1>
+      <p class="lede">When AI commoditizes the production of financial output, generating a journal entry is no longer where value lives. Value moves to the party who can <span class="em">verifiably underwrite</span> that the output reflects reality — and accept liability for it. Catalini, Hui &amp; Wu call this Liability-as-a-Service.</p>
+      <h2 class="sec" id="laas-sandwich">The AI Sandwich</h2>
+      <p>Research on AI economics identifies a durable topology for high-stakes professional work: <strong>human intent</strong> sets the policy and acceptance criteria, <strong>machine execution</strong> processes events and generates output, and <strong>human verification</strong> closes the loop with an approval that carries personal accountability. The Work Order is where the sandwich is made concrete.</p>
+      <div class="layer-grid">
+        <div class="layer-card"><div class="lnum">TOP SLICE</div><h4>Human intent</h4><p>The controller defines the policy and the acceptance criteria — what a valid payment looks like.</p></div>
+        <div class="layer-card"><div class="lnum">FILLING</div><h4>Machine execution</h4><p>Agents ingest invoices, evaluate triggers, generate postings. Cheap, fast, commoditized.</p></div>
+        <div class="layer-card"><div class="lnum">BOTTOM SLICE</div><h4>Human verification</h4><p>A controller underwrites the output — staking professional judgment that the event is genuine.</p></div>
+        <div class="layer-card" style="border-color:var(--accent)"><div class="lnum">THE PROOF</div><h4>The decision record</h4><p>Records the conditions evaluated, the budget position, and the approver's identity. The proof of underwriting.</p></div>
+      </div>
+      <div class="callout"><span class="q">"</span><p>A controller who approves a Work Order is not approving a payment. They are underwriting the output. That underwriting act is what makes a transaction insurable, financeable, and survivable.</p></div>
+      <h2 class="sec" id="laas-validation">Validation as a service</h2>
+      <p>The bilateral proof is not just internal control — it is a product the downstream economy pays for. A <strong>third-party verification API</strong> lets an auditor, lender, or insurer confirm a specific bilateral event without contacting either party. Verification rents accrue to the layer that can produce inspectable proof on demand.</p>
+      <div class="pagenav"><a onclick="go('zero-trust')"><div class="dir">← Prev</div><div class="nm">Zero trust for money</div></a><a class="next" onclick="go('agentic')"><div class="dir">Next →</div><div class="nm">AI &amp; agentic commerce</div></a></div>
+    </section>
+
+    <!-- AGENTIC -->
+    <section class="page" id="page-agentic">
+      <div class="crumb">Perspectives <span>/</span> AI &amp; agentic commerce</div>
+      <h1 class="title">When agents transact, who co-authored the deal?</h1>
+      <p class="lede">Autonomous agents will increasingly initiate payments, negotiate terms, and settle obligations. That makes the bilateral question more urgent, not less: when two agents transact, there must be a signed record both principals hold — and any third party can verify.</p>
+      <h2 class="sec" id="ag-attribution">Attribution is the precondition</h2>
+      <p>CAST already requires every event to declare its actor mode — <span class="mono">human</span>, <span class="mono">agent</span>, <span class="mono">system</span>, or <span class="mono">counterparty</span> — and to name the accountable human owner whenever an action can change financial state. This is exactly the control structure agentic commerce needs: an agent can execute, but a human remains accountable, and the record proves which was which.</p>
+      <div class="callout"><span class="q">"</span><p>An agent can be the performer. A human must remain the accountable owner. The decision record keeps the two distinct — permanently, and verifiably.</p></div>
+      <h2 class="sec" id="ag-loop">The agent loop, gated</h2>
+      <ul>
+        <li><strong>Agents propose; the gate stays bilateral.</strong> An agent can draft and route a payment, but the covered event still requires counterparty co-authorship before value moves.</li>
+        <li><strong>Policy as machine-checkable spec.</strong> Proposed policy changes can be expressed as formal state-machine specs, model-checked against all reachable states, and shadow-executed against history before any human approves them.</li>
+        <li><strong>Proof travels with the transaction.</strong> Whatever produced the event — human or agent — the lineage hash and bilateral confirmation make it independently verifiable downstream.</li>
+      </ul>
+      <p>The agentic future does not weaken the case for bilateral proof. It is the case for bilateral proof. As execution gets cheaper and faster, the only durable asset is the ability to prove, years later, that an event occurred and what it contained.</p>
+      <div class="pagenav"><a onclick="go('laas')"><div class="dir">← Prev</div><div class="nm">Validation &amp; liability</div></a><a class="next" onclick="go('explore')"><div class="dir">Next →</div><div class="nm">Articles &amp; papers</div></a></div>
+    </section>
+
+    <!-- EXPLORE -->
+    <section class="page" id="page-explore">
+      <div class="crumb">Explore <span>/</span> Articles, papers &amp; demos</div>
+      <h1 class="title">The library.</h1>
+      <p class="lede">Our writing, the research we build on, and live demos. <span class="em">New material is added by editing one list</span> — see "Add an article" at the bottom.</p>
+      <div class="art-grid" id="library-grid"><!-- populated by JS from LIBRARY[] --></div>
+      <div class="callout" style="border-left-color:var(--green)"><span class="q" style="color:var(--green)">+</span><p>To add an article: open this file, find the <span class="mono" style="font-style:normal">LIBRARY</span> array near the bottom of the script, and add one entry. It appears here instantly — no other change needed.</p></div>
+      <div class="pagenav"><a onclick="go('agentic')"><div class="dir">← Prev</div><div class="nm">AI &amp; agentic commerce</div></a><a class="next" onclick="go('engage')"><div class="dir">Next →</div><div class="nm">Subscribe &amp; engage</div></a></div>
+    </section>
+
+    <!-- ENGAGE -->
+    <section class="page" id="page-engage">
+      <div class="crumb">Explore <span>/</span> Subscribe &amp; engage</div>
+      <h1 class="title">Follow the build.</h1>
+      <p class="lede">We publish our thinking on verification, proof, and the architecture of trust as we build CAST in the open. Subscribe for new essays, demos, and architecture notes.</p>
+      <div class="engage">
+        <h3>Get the next essay in your inbox.</h3>
+        <p>Long-form pieces on the verification economy, zero-trust payments, and the road from Confirm &amp; Pay to a vertical-agnostic proof layer.</p>
+        <div class="signup-row">
+          <input id="email" placeholder="you@company.com">
+          <button onclick="subscribe()">Subscribe</button>
+        </div>
+        <div class="engage-actions" style="margin-top:18px">
+          <a class="eng-btn primary" href="https://cast.substack.com" target="_blank" rel="noopener">↗ Read on Substack</a>
+          <a class="eng-btn ghost" href="https://x.com/cast" target="_blank" rel="noopener">𝕏 Follow on X</a>
+          <a class="eng-btn ghost" onclick="go('explore')">Browse the library</a>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-soft)">Replace the Substack and X links above with your real accounts — they're placeholders (<span class="mono">cast.substack.com</span> and <span class="mono">x.com/cast</span>). The subscribe button is wired for a confirmation message; connect it to your list provider's embed when ready.</p>
+    </section>
+
+  </main>
+
+  <!-- TOC -->
+  <aside class="toc" id="toc">
+    <div class="toc-label">On this page</div>
+    <div id="toc-links"></div>
+  </aside>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   LIBRARY — add articles/papers/demos here. One entry = one card.
+   kind: 'Essay' | 'Paper' | 'Demo' | 'Note'
+   link: internal page id (use page:id) OR external URL (http…)
+   ════════════════════════════════════════════════════════════ */
+const LIBRARY = [
+  { kind:'Essay', title:'Why payments never went zero-trust', desc:'Network security abandoned the trusted perimeter a decade ago. Finance never did. What that costs, and how to fix it.', meta:'CAST Perspectives', link:'page:zero-trust' },
+  { kind:'Essay', title:'Liability as a service', desc:'In the verified economy, value accrues to whoever can underwrite the output — not whoever produces it.', meta:'CAST Perspectives', link:'page:laas' },
+  { kind:'Essay', title:'When agents transact, who signed?', desc:'Agentic commerce makes the bilateral question more urgent, not less. Attribution is the precondition.', meta:'CAST Perspectives', link:'page:agentic' },
+  { kind:'Paper', title:'Some Simple Economics of AGI', desc:'Catalini, Hui & Wu (MIT / WashU / UCLA, 2026). The verification-bottleneck thesis underpinning CAST.', meta:'External · 2026', link:'https://www.nber.org' },
+  { kind:'Demo', title:'Operator console — Confirm & Pay', desc:'Events, Policies, Work Orders, Ledger and Exceptions in one working surface.', meta:'Interactive', link:'page:dashboard' },
+  { kind:'Demo', title:'Buyer · Seller · Verifier walkthrough', desc:'One bilateral transaction rendered for three audiences, from AP queue to evidence surface.', meta:'Interactive', link:'page:three-views' },
+  { kind:'Note', title:'The five non-negotiables', desc:'Why the integrity invariants live in SQL and not in application code.', meta:'Architecture note', link:'page:bilateral' },
+  { kind:'Note', title:'The event taxonomy', desc:'How new verticals extend the ontology without ever rewriting it.', meta:'Architecture note', link:'page:taxonomy' },
+];
+
+function renderLibrary(){
+  const g = document.getElementById('library-grid');
+  g.innerHTML = LIBRARY.map(a=>{
+    const ext = a.link.startsWith('http');
+    const onclick = ext ? `window.open('${a.link}','_blank')` : `go('${a.link.replace('page:','')}')`;
+    return `<div class="art-card" onclick="${onclick}">
+      <div class="kind">${a.kind}</div><h4>${a.title}</h4><p>${a.desc}</p>
+      <div class="meta"><span>${a.meta}</span><span class="arrow">${ext?'Open ↗':'Read →'}</span></div></div>`;
+  }).join('');
+}
+
+/* ── ROUTING ── */
+const PAGES = ['welcome','problem','confirm-pay','four-layers','taxonomy','bilateral','control-plane','dashboard','three-views','zero-trust','laas','agentic','explore','engage'];
+const TOPNAV = {welcome:'Overview','four-layers':'Architecture',dashboard:'Dashboard','zero-trust':'Perspectives',explore:'Library'};
+
+function go(id){
+  if(!PAGES.includes(id)) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active', n.dataset.page===id));
+  buildTOC(id);
+  window.scrollTo({top:0,behavior:'instant'});
+  if(window.innerWidth<=900){ document.getElementById('sidebar').classList.remove('open'); document.querySelector('.scrim').classList.remove('show'); }
+  history.replaceState(null,'','#'+id);
+}
+
+/* ── TABLE OF CONTENTS (built from h2.sec in active page) ── */
+function buildTOC(id){
+  const page = document.getElementById('page-'+id);
+  const heads = page.querySelectorAll('h2.sec[id]');
+  const box = document.getElementById('toc-links');
+  if(!heads.length){ box.innerHTML=''; document.getElementById('toc').style.visibility='hidden'; return; }
+  document.getElementById('toc').style.visibility='visible';
+  box.innerHTML = [...heads].map(h=>`<a onclick="document.getElementById('${h.id}').scrollIntoView({behavior:'smooth'})">${h.textContent}</a>`).join('');
+}
+
+/* ── DASHBOARD TABS ── */
+function dtab(d){
+  document.querySelectorAll('.dpane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.dn').forEach(n=>n.classList.toggle('on', n.dataset.d===d));
+  document.getElementById('d-'+d).classList.add('on');
+}
+
+/* ── SEARCH ── */
+function runSearch(q){
+  q=q.trim().toLowerCase(); if(!q) return;
+  const hit = PAGES.find(p=>{
+    const el=document.getElementById('page-'+p);
+    return el.textContent.toLowerCase().includes(q);
+  });
+  if(hit && q.length>2){ /* jump only on Enter-ish length to avoid jumpiness */ }
+}
+document.getElementById('search').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const q=e.target.value.trim().toLowerCase();
+    const hit=PAGES.find(p=>document.getElementById('page-'+p).textContent.toLowerCase().includes(q));
+    if(hit) go(hit);
+  }
+});
+document.addEventListener('keydown',e=>{ if(e.key==='/' && document.activeElement.tagName!=='INPUT'){e.preventDefault();document.getElementById('search').focus();} });
+
+/* ── MOBILE SIDEBAR ── */
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.querySelector('.scrim').classList.toggle('show');
+}
+
+/* ── SUBSCRIBE (placeholder) ── */
+function subscribe(){
+  const e=document.getElementById('email').value.trim();
+  if(e && e.includes('@')){ alert('Thanks — connect this to your list provider to capture: '+e); }
+  else { alert('Enter a valid email, then wire this button to your Substack/list embed.'); }
+}
+
+/* ── INIT ── */
+renderLibrary();
+const initial = location.hash.replace('#','');
+go(PAGES.includes(initial)?initial:'welcome');
+</script>
+</body>
+</html>

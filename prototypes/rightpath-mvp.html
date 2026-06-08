@@ -1,0 +1,1575 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RightPath MVP — Clickable Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Small tweaks for iPhone friendliness */
+    .tap { -webkit-tap-highlight-color: transparent; }
+    .shadow-soft { box-shadow: 0 10px 25px rgba(0,0,0,.08); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .sticky-subnav { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(10px); }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 tap">
+  <!-- Top bar -->
+  <header class="sticky-subnav bg-white/80 border-b border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-9 w-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-semibold">RP</div>
+        <div class="min-w-0">
+          <div class="font-semibold leading-tight">RightPath Ledger — MVP</div>
+          <div class="text-xs text-slate-500 leading-tight">Zero Trust Accounting • enforced approvals • immutable journal</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <select id="roleSelect" class="text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white shadow-sm">
+          <option value="treasurer">Role: Treasurer</option>
+          <option value="president">Role: President</option>
+          <option value="auditor">Role: Auditor</option>
+        </select>
+        <button id="resetBtn" class="text-sm rounded-xl px-3 py-2 bg-slate-900 text-white shadow-sm hover:bg-slate-800">Reset Demo</button>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="max-w-6xl mx-auto px-4 pb-3">
+      <div class="grid grid-cols-4 gap-2">
+        <button data-route="dashboard" class="navbtn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">Dashboard</button>
+        <button data-route="payments" class="navbtn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">Payments</button>
+        <button data-route="ledger" class="navbtn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">Journal</button>
+        <button data-route="trial" class="navbtn rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100">Trial Balance</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto px-4 py-5 pb-24">
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-soft">
+      <div id="toastText" class="text-sm"></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modalBackdrop" class="hidden fixed inset-0 bg-black/30 z-40"></div>
+    <div id="entryModal" class="hidden fixed inset-x-0 top-10 z-50 max-w-3xl mx-auto px-4">
+      <div class="bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <div class="font-semibold">Journal Entry Detail</div>
+            <div id="entryModalSub" class="text-xs text-slate-500 mono"></div>
+          </div>
+          <button id="closeEntryModal" class="rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">Close</button>
+        </div>
+        <div id="entryModalBody" class="p-4"></div>
+      </div>
+    </div>
+
+    <!-- ROUTES -->
+    <section id="route-dashboard" class="route hidden">
+      <div class="grid lg:grid-cols-3 gap-4">
+        <!-- Snapshot -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 lg:col-span-2">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold">Financial Snapshot</div>
+              <div class="text-xs text-slate-500">Current balances and month activity</div>
+            </div>
+            <button id="dashNewPayment" class="rounded-xl px-3 py-2 text-sm bg-slate-900 text-white hover:bg-slate-800">New Payment</button>
+          </div>
+
+          <div class="grid sm:grid-cols-4 gap-3 mt-4">
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Cash</div>
+              <div id="kpiCash" class="text-xl font-semibold">$—</div>
+            </div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Reserves</div>
+              <div id="kpiReserves" class="text-xl font-semibold">$—</div>
+            </div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">MTD Expenses</div>
+              <div id="kpiMTD" class="text-xl font-semibold">$—</div>
+            </div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Pending Approvals</div>
+              <button id="kpiPendingBtn" class="w-full text-left">
+                <div id="kpiPending" class="text-xl font-semibold">$—</div>
+                <div class="text-xs text-slate-500">Tap to review</div>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-5">
+            <div class="flex items-center justify-between">
+              <div class="font-medium">Budget vs Actual (Operating)</div>
+              <div class="text-xs text-slate-500">Simple category view</div>
+            </div>
+            <div id="budgetBars" class="mt-3 space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- Governance -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="font-semibold">Governance Status</div>
+              <div class="text-xs text-slate-500">Rules in effect for posting</div>
+            </div>
+            <span id="govBadge" class="text-xs px-2 py-1 rounded-full border"></span>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Approval Rule</div>
+              <div class="font-medium">Payments &gt; $5,000 require 2 approvals</div>
+              <div class="text-xs text-slate-500 mt-1">Treasurer + President</div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Immutability</div>
+              <div class="font-medium">Posted entries cannot be edited</div>
+              <div class="text-xs text-slate-500 mt-1">Corrections via reversing entry</div>
+            </div>
+
+            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Audit Readiness</div>
+              <div class="font-medium">Approvals attached to journal</div>
+              <div class="text-xs text-slate-500 mt-1">No email reconstruction</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <button id="dashViewLedger" class="w-full rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">View Journal</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent -->
+      <div class="mt-4 bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-semibold">Recent Activity</div>
+            <div class="text-xs text-slate-500">Most recent transactions and approvals</div>
+          </div>
+          <button id="dashReviewApprovals" class="rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">Review Pending Approvals</button>
+        </div>
+        <div id="recentActivity" class="mt-3 divide-y divide-slate-100"></div>
+      </div>
+    </section>
+
+    <section id="route-payments" class="route hidden">
+      <div class="grid lg:grid-cols-3 gap-4">
+        <!-- Create -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4 lg:col-span-2">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="font-semibold">Create Payment</div>
+              <div class="text-xs text-slate-500">Policy evaluated live before submission</div>
+            </div>
+            <span id="createModeBadge" class="text-xs px-2 py-1 rounded-full border"></span>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-3 mt-4">
+            <div>
+              <label class="text-xs text-slate-500">Vendor</label>
+              <select id="payVendor" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+                <option value="">Select vendor…</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-500">Amount</label>
+              <input id="payAmount" type="number" inputmode="decimal" placeholder="0.00" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-500">Expense Account</label>
+              <select id="payExpenseAccount" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+                <option value="">Select account…</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-xs text-slate-500">Funding Source</label>
+              <select id="payFunding" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+                <option value="operating">Operating Cash</option>
+                <option value="reserves">Reserves</option>
+              </select>
+              <div class="text-[11px] text-slate-500 mt-1">Reserves may require stricter approval.</div>
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="text-xs text-slate-500">Memo</label>
+              <input id="payMemo" type="text" placeholder="e.g., Landscaping monthly service" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="text-xs text-slate-500">Attachment</label>
+              <input id="payAttachment" type="text" placeholder="Paste invoice URL or file name (demo)" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button id="submitForApproval" class="rounded-xl px-4 py-2 text-sm bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">Submit for Approval</button>
+            <button id="clearPaymentForm" class="rounded-xl px-4 py-2 text-sm border border-slate-200 hover:bg-slate-50">Clear</button>
+            <button id="demoFill6000" class="rounded-xl px-4 py-2 text-sm border border-slate-200 hover:bg-slate-50">Demo: $6,000 Landscaping</button>
+          </div>
+
+          <div id="createErrors" class="mt-3 text-sm text-red-600"></div>
+        </div>
+
+        <!-- Policy Box -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+          <div class="font-semibold">Policy Status</div>
+          <div class="text-xs text-slate-500">This is the “vending machine” part: posting is conditional.</div>
+
+          <div class="mt-4 space-y-3">
+            <div class="rounded-2xl border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Budget Check</div>
+              <div id="polBudget" class="font-medium">—</div>
+              <div id="polBudgetSub" class="text-xs text-slate-500 mt-1">—</div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Approval Requirement</div>
+              <div id="polApproval" class="font-medium">—</div>
+              <div id="polApprovalSub" class="text-xs text-slate-500 mt-1">—</div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Funding Restriction</div>
+              <div id="polFunding" class="font-medium">—</div>
+              <div id="polFundingSub" class="text-xs text-slate-500 mt-1">—</div>
+            </div>
+
+            <div class="rounded-2xl border border-slate-200 p-3">
+              <div class="text-xs text-slate-500">Double-Entry Validation</div>
+              <div id="polJE" class="font-medium">—</div>
+              <div id="polJESub" class="text-xs text-slate-500 mt-1">—</div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-xs text-slate-500">
+            Note: This MVP simulates rules. In V1, rules can be hard-coded; V2 can move to a declarative policy registry.
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment queue -->
+      <div class="mt-4 bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <div class="font-semibold">Payment Queue</div>
+            <div class="text-xs text-slate-500">Drafts, pending approvals, posted payments</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="payFilter" class="text-sm border border-slate-300 rounded-xl px-3 py-2 bg-white">
+              <option value="all">All</option>
+              <option value="pending_my_approval">Pending My Approval</option>
+              <option value="pending">Pending</option>
+              <option value="posted">Posted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="paymentQueue" class="mt-3 grid md:grid-cols-2 gap-3"></div>
+      </div>
+    </section>
+
+    <section id="route-ledger" class="route hidden">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="font-semibold">Journal & Ledger</div>
+            <div class="text-xs text-slate-500">Append-only journal. Posted entries are immutable.</div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="exportJSON" class="rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">Export JSON (Demo)</button>
+          </div>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-3 mt-4">
+          <div>
+            <label class="text-xs text-slate-500">Date From</label>
+            <input id="ledFrom" type="date" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Date To</label>
+            <input id="ledTo" type="date" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Account</label>
+            <select id="ledAccount" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white"></select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Status</label>
+            <select id="ledStatus" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+              <option value="all">All</option>
+              <option value="posted">Posted</option>
+              <option value="reversed">Reversed</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="ledgerTable" class="mt-4 overflow-x-auto"></div>
+      </div>
+    </section>
+
+    <section id="route-trial" class="route hidden">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-soft p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="font-semibold">Trial Balance</div>
+            <div class="text-xs text-slate-500">Filter by date; group by type or category; drill into account activity.</div>
+          </div>
+          <span id="tbBadge" class="text-xs px-2 py-1 rounded-full border"></span>
+        </div>
+
+        <div class="grid md:grid-cols-5 gap-3 mt-4">
+          <div>
+            <label class="text-xs text-slate-500">Date From</label>
+            <input id="tbFrom" type="date" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Date To</label>
+            <input id="tbTo" type="date" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Group By</label>
+            <select id="tbGroup" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+              <option value="account">Account</option>
+              <option value="type">Account Type</option>
+              <option value="category">Category</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Account Type</label>
+            <select id="tbTypeFilter" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white">
+              <option value="all">All</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-500">Search</label>
+            <input id="tbSearch" type="text" placeholder="Account, category…" class="w-full mt-1 border border-slate-300 rounded-xl px-3 py-2 bg-white" />
+          </div>
+        </div>
+
+        <div id="trialTable" class="mt-4 overflow-x-auto"></div>
+
+        <div class="mt-4 grid md:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+            <div class="text-xs text-slate-500">Totals</div>
+            <div class="mt-1 flex items-center justify-between">
+              <div class="text-sm">Debits</div>
+              <div id="tbTotalDebits" class="font-semibold">$—</div>
+            </div>
+            <div class="mt-1 flex items-center justify-between">
+              <div class="text-sm">Credits</div>
+              <div id="tbTotalCredits" class="font-semibold">$—</div>
+            </div>
+            <div class="mt-1 flex items-center justify-between">
+              <div class="text-sm">Net</div>
+              <div id="tbNet" class="font-semibold">$—</div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-slate-50 border border-slate-200 p-3">
+            <div class="text-xs text-slate-500">Drilldown</div>
+            <div class="text-sm mt-1">Tap an account row to view the underlying journal entries (within the filtered range).</div>
+            <div id="drillNote" class="text-xs text-slate-500 mt-2 mono">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom CTA bar (mobile-friendly) -->
+  <footer class="fixed bottom-0 inset-x-0 bg-white/90 border-t border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <div class="text-xs text-slate-600">
+        Demo focus: <span class="font-medium text-slate-900">Dual approval + immutable journal + trial balance</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="quickPending" class="rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">Pending</button>
+        <button id="quickTB" class="rounded-xl px-3 py-2 text-sm bg-slate-900 text-white hover:bg-slate-800">Trial Balance</button>
+      </div>
+    </div>
+  </footer>
+
+<script>
+/** ---------------------------
+ * Demo Data + State
+ * --------------------------*/
+const fmt = (n) => {
+  const num = Number(n || 0);
+  return num.toLocaleString(undefined, { style: "currency", currency: "USD" });
+};
+const isoToday = () => new Date().toISOString().slice(0,10);
+
+const COA = [
+  { id: "1000", name: "Cash", type: "Asset", category: "Current Asset" },
+  { id: "1100", name: "Reserves Cash", type: "Asset", category: "Reserves" },
+  { id: "2000", name: "Accounts Payable", type: "Liability", category: "Current Liability" },
+  { id: "3000", name: "Owner Equity", type: "Equity", category: "Equity" },
+  { id: "5000", name: "Repairs & Maintenance", type: "Expense", category: "Operating Expense" },
+  { id: "5100", name: "Pool Maintenance", type: "Expense", category: "Operating Expense" },
+  { id: "5200", name: "Landscaping", type: "Expense", category: "Operating Expense" },
+  { id: "5300", name: "Utilities", type: "Expense", category: "Operating Expense" }
+];
+
+const VENDORS = [
+  { id: "v1", name: "GreenScape Landscaping", approved: true },
+  { id: "v2", name: "CleanStreets Inc.", approved: true },
+  { id: "v3", name: "PoolPro Services", approved: true },
+  { id: "v4", name: "New Vendor (Not Approved)", approved: false }
+];
+
+// Minimal operating budget (monthly) for demo
+const BUDGET = [
+  { category: "Landscaping", monthly: 7000 },
+  { category: "Repairs & Maintenance", monthly: 5000 },
+  { category: "Pool Maintenance", monthly: 2500 },
+  { category: "Utilities", monthly: 3000 }
+];
+
+const makeId = (prefix) => `${prefix}_${Math.random().toString(16).slice(2,10)}_${Date.now().toString(16).slice(2)}`;
+
+const seedState = () => ({
+  role: "treasurer", // treasurer | president | auditor
+  route: "dashboard",
+  // payment requests (pre-journal). after approval, they generate a journal entry
+  payments: [
+    // pre-seeded example
+    {
+      id: makeId("pay"),
+      createdAt: "2025-04-01",
+      vendorId: "v2",
+      amount: 1500,
+      expenseAccountId: "5100",
+      funding: "operating",
+      memo: "Pool maintenance",
+      attachment: "invoice_poolpro_apr01.pdf",
+      createdBy: "Treasurer",
+      status: "posted", // draft | pending | posted | rejected
+      approvalsRequired: 1,
+      approvals: [{ by: "Treasurer", at: "2025-04-01" }],
+      policy: { budgetOk: true, vendorOk: true, fundingOk: true, jeOk: true }
+    }
+  ],
+  // append-only journal entries
+  journal: [
+    // seed opening balances
+    {
+      id: makeId("je"),
+      journalNo: "JE-0001",
+      date: "2025-04-01",
+      memo: "Initial fund deposit",
+      status: "posted",
+      createdBy: "System",
+      approvals: [{ by: "System", at: "2025-04-01" }],
+      policy: { rule: "Opening balance", result: "pass" },
+      lines: [
+        { accountId: "1000", debit: 10000, credit: 0, memo: "Operating cash funded" },
+        { accountId: "1100", debit: 50000, credit: 0, memo: "Reserves funded" },
+        { accountId: "3000", debit: 0, credit: 60000, memo: "Owner equity" }
+      ],
+      immutable: true
+    },
+    // seed posted expense from the payment above
+    {
+      id: makeId("je"),
+      journalNo: "JE-0002",
+      date: "2025-04-01",
+      memo: "Pool maintenance",
+      status: "posted",
+      createdBy: "System",
+      approvals: [{ by: "Treasurer", at: "2025-04-01" }],
+      policy: { rule: "Payment posting", result: "pass" },
+      lines: [
+        { accountId: "5100", debit: 1500, credit: 0, memo: "Pool expense" },
+        { accountId: "1000", debit: 0, credit: 1500, memo: "Cash paid" }
+      ],
+      immutable: true
+    }
+  ],
+  seq: { journal: 2 }
+});
+
+let state = seedState();
+
+/** ---------------------------
+ * Utilities
+ * --------------------------*/
+const byId = (id) => document.getElementById(id);
+const coaMap = () => Object.fromEntries(COA.map(a => [a.id, a]));
+const vendorMap = () => Object.fromEntries(VENDORS.map(v => [v.id, v]));
+
+const toast = (msg) => {
+  const t = byId("toast");
+  byId("toastText").textContent = msg;
+  t.classList.remove("hidden");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.classList.add("hidden"), 2400);
+};
+
+const setRoute = (route) => {
+  state.route = route;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+const roleLabel = (role) => {
+  if (role === "treasurer") return "Treasurer";
+  if (role === "president") return "President";
+  return "Auditor";
+};
+
+const sumLines = (lines) => {
+  let d=0,c=0;
+  for (const l of lines) { d += Number(l.debit||0); c += Number(l.credit||0); }
+  return { debits: d, credits: c, balanced: Math.abs(d-c) < 0.00001 };
+};
+
+const inRange = (d, from, to) => {
+  if (!d) return false;
+  const x = d;
+  if (from && x < from) return false;
+  if (to && x > to) return false;
+  return true;
+};
+
+const monthOf = (iso) => (iso || "").slice(0,7); // YYYY-MM
+
+/** ---------------------------
+ * Policy Evaluation (MVP)
+ * --------------------------*/
+function evaluatePolicy({ vendorId, amount, expenseAccountId, funding, dateISO }) {
+  const vendor = vendorMap()[vendorId];
+  const acct = coaMap()[expenseAccountId];
+  const amt = Number(amount || 0);
+
+  // Vendor must be approved
+  const vendorOk = !!vendorId && !!vendor && vendor.approved === true;
+
+  // Approval requirement: >5000 requires 2 approvals, else 1
+  const approvalsRequired = amt > 5000 ? 2 : 1;
+
+  // Funding restriction: reserves require 2 approvals minimum; also block reserves for < $500 to prevent noise
+  let fundingOk = true;
+  let fundingMsg = "Allowed";
+  if (funding === "reserves") {
+    if (amt < 500) { fundingOk = false; fundingMsg = "Blocked: reserves spend < $500"; }
+    else { fundingOk = true; fundingMsg = "Allowed with stricter approvals"; }
+  }
+
+  // Budget check: compare month-to-date actuals + proposed spend vs monthly budget for the account name (if matches a budget category)
+  const category = acct ? acct.name : "";
+  const budgetRow = BUDGET.find(b => b.category === category);
+  let budgetOk = true;
+  let budgetMsg = "No budget configured (allowed)";
+  if (budgetRow) {
+    const m = monthOf(dateISO || isoToday());
+    const actual = getActualsByCategory(m)[category] || 0;
+    const projected = actual + amt;
+    budgetOk = projected <= budgetRow.monthly;
+    budgetMsg = budgetOk
+      ? `Projected ${fmt(projected)} of ${fmt(budgetRow.monthly)}`
+      : `Blocked: projected ${fmt(projected)} exceeds ${fmt(budgetRow.monthly)}`;
+  }
+
+  // Double-entry: for a payment, we expect expense debit and cash credit; validation here is simply "can form a balanced entry"
+  const jeLines = makePaymentJELines({ expenseAccountId, amount: amt, funding });
+  const sums = sumLines(jeLines);
+  const jeOk = sums.balanced && sums.debits > 0;
+
+  return {
+    approvalsRequired,
+    vendorOk,
+    budgetOk,
+    fundingOk,
+    jeOk,
+    detail: {
+      budgetMsg,
+      fundingMsg,
+      approvalMsg: approvalsRequired === 2 ? "2 approvals required" : "1 approval required",
+      vendorMsg: vendorOk ? "Approved vendor" : "Blocked: vendor not approved"
+    },
+    category
+  };
+}
+
+/** ---------------------------
+ * Journal Generation
+ * --------------------------*/
+function makePaymentJELines({ expenseAccountId, amount, funding }) {
+  const cashAccountId = funding === "reserves" ? "1100" : "1000";
+  return [
+    { accountId: expenseAccountId, debit: Number(amount||0), credit: 0, memo: "Expense" },
+    { accountId: cashAccountId, debit: 0, credit: Number(amount||0), memo: "Cash paid" }
+  ];
+}
+
+function postJournalFromPayment(payment) {
+  state.seq.journal += 1;
+  const journalNo = `JE-${String(state.seq.journal).padStart(4,"0")}`;
+  const lines = makePaymentJELines({
+    expenseAccountId: payment.expenseAccountId,
+    amount: payment.amount,
+    funding: payment.funding
+  });
+
+  const je = {
+    id: makeId("je"),
+    journalNo,
+    date: payment.createdAt,
+    memo: payment.memo || "Vendor payment",
+    status: "posted",
+    createdBy: "System",
+    approvals: payment.approvals.slice(),
+    policy: {
+      rule: "Payment posting",
+      result: "pass",
+      approvalsRequired: payment.approvalsRequired,
+      budgetOk: payment.policy.budgetOk,
+      vendorOk: payment.policy.vendorOk,
+      fundingOk: payment.policy.fundingOk
+    },
+    lines,
+    immutable: true,
+    sourcePaymentId: payment.id,
+    vendorId: payment.vendorId
+  };
+  state.journal.push(je);
+}
+
+/** ---------------------------
+ * Accounting Views
+ * --------------------------*/
+function computeBalances({ from, to }) {
+  const m = coaMap();
+  const balances = {};
+  for (const a of COA) balances[a.id] = { debit:0, credit:0 };
+
+  for (const je of state.journal) {
+    if (je.status !== "posted" && je.status !== "reversed") continue;
+    if (!inRange(je.date, from, to)) continue;
+    for (const line of je.lines) {
+      balances[line.accountId].debit += Number(line.debit||0);
+      balances[line.accountId].credit += Number(line.credit||0);
+    }
+  }
+
+  const rows = Object.entries(balances).map(([id, v]) => {
+    const acct = m[id];
+    return {
+      accountId: id,
+      name: acct.name,
+      type: acct.type,
+      category: acct.category,
+      debits: v.debit,
+      credits: v.credit,
+      balance: v.debit - v.credit
+    };
+  });
+
+  return rows;
+}
+
+function getActualsByCategory(month) {
+  // For demo: sum posted journal expense debits for accounts that match budget categories
+  const actuals = {};
+  for (const je of state.journal) {
+    if (je.status !== "posted") continue;
+    if (monthOf(je.date) !== month) continue;
+    for (const line of je.lines) {
+      const acct = coaMap()[line.accountId];
+      if (!acct) continue;
+      // expense debit counts as actuals for that category
+      if (acct.type === "Expense" && Number(line.debit||0) > 0) {
+        actuals[acct.name] = (actuals[acct.name] || 0) + Number(line.debit||0);
+      }
+    }
+  }
+  return actuals;
+}
+
+function computeKpis() {
+  const rows = computeBalances({ from: "", to: "" });
+  const cash = rows.find(r => r.accountId === "1000")?.balance || 0;
+  const reserves = rows.find(r => r.accountId === "1100")?.balance || 0;
+
+  const currentMonth = monthOf(isoToday());
+  const actuals = getActualsByCategory(currentMonth);
+  const mtd = Object.values(actuals).reduce((a,b)=>a+b,0);
+
+  const pending = state.payments.filter(p => p.status === "pending").length;
+  return { cash, reserves, mtd, pending };
+}
+
+/** ---------------------------
+ * UI Rendering Helpers
+ * --------------------------*/
+function setActiveNav() {
+  document.querySelectorAll(".navbtn").forEach(btn => {
+    const r = btn.dataset.route;
+    if (r === state.route) {
+      btn.classList.add("bg-slate-900","text-white","border-slate-900");
+      btn.classList.remove("bg-white");
+    } else {
+      btn.classList.remove("bg-slate-900","text-white","border-slate-900");
+      btn.classList.add("bg-white");
+    }
+  });
+}
+
+function showRoute() {
+  document.querySelectorAll(".route").forEach(el => el.classList.add("hidden"));
+  byId(`route-${state.route}`).classList.remove("hidden");
+}
+
+function renderDashboard() {
+  const k = computeKpis();
+  byId("kpiCash").textContent = fmt(k.cash);
+  byId("kpiReserves").textContent = fmt(k.reserves);
+  byId("kpiMTD").textContent = fmt(k.mtd);
+  byId("kpiPending").textContent = String(k.pending);
+
+  const govBadge = byId("govBadge");
+  const anyBlocked = state.payments.some(p => p.status === "pending" && (!p.policy.vendorOk || !p.policy.budgetOk || !p.policy.fundingOk));
+  const anyPending = state.payments.some(p => p.status === "pending");
+  if (anyBlocked) {
+    govBadge.textContent = "Policy blocks present";
+    govBadge.className = "text-xs px-2 py-1 rounded-full border border-red-200 bg-red-50 text-red-700";
+  } else if (anyPending) {
+    govBadge.textContent = "Approvals pending";
+    govBadge.className = "text-xs px-2 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700";
+  } else {
+    govBadge.textContent = "All rules active";
+    govBadge.className = "text-xs px-2 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  // Budget bars
+  const container = byId("budgetBars");
+  container.innerHTML = "";
+  const month = monthOf(isoToday());
+  const actuals = getActualsByCategory(month);
+
+  for (const b of BUDGET) {
+    const actual = actuals[b.category] || 0;
+    const pct = Math.min(100, Math.round((actual / b.monthly) * 100));
+    const color = pct >= 100 ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-slate-900";
+
+    const row = document.createElement("div");
+    row.className = "rounded-2xl border border-slate-200 p-3 bg-white";
+    row.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-medium">${b.category}</div>
+        <div class="text-xs text-slate-500">${fmt(actual)} / ${fmt(b.monthly)}</div>
+      </div>
+      <div class="mt-2 w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+        <div class="h-2 ${color}" style="width:${pct}%"></div>
+      </div>
+    `;
+    container.appendChild(row);
+  }
+
+  // Recent activity
+  const rec = byId("recentActivity");
+  rec.innerHTML = "";
+  const items = [];
+
+  // last journal entries
+  const lastJE = [...state.journal].slice(-4).reverse();
+  for (const je of lastJE) {
+    items.push({
+      kind: "Journal",
+      date: je.date,
+      title: `${je.journalNo} • ${je.memo}`,
+      sub: `Status: ${je.status} • CreatedBy: ${je.createdBy}`,
+      meta: je
+    });
+  }
+
+  // pending payments
+  const lastPay = [...state.payments].slice(-3).reverse();
+  for (const p of lastPay) {
+    const v = vendorMap()[p.vendorId]?.name || "—";
+    items.push({
+      kind: "Payment",
+      date: p.createdAt,
+      title: `${v} • ${fmt(p.amount)}`,
+      sub: `Status: ${p.status} • Approvals: ${p.approvals.length}/${p.approvalsRequired}`,
+      meta: p
+    });
+  }
+
+  items.sort((a,b)=> (a.date < b.date ? 1 : -1));
+
+  for (const it of items.slice(0,6)) {
+    const row = document.createElement("button");
+    row.className = "w-full text-left py-3";
+    row.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-sm font-medium">${it.title}</div>
+          <div class="text-xs text-slate-500">${it.sub}</div>
+        </div>
+        <div class="text-xs text-slate-500 mono">${it.kind} • ${it.date}</div>
+      </div>
+    `;
+    row.onclick = () => {
+      if (it.kind === "Journal") openEntryModal(it.meta);
+      else setRoute("payments");
+    };
+    rec.appendChild(row);
+  }
+
+  // Role-based button visibility
+  const role = state.role;
+  byId("dashNewPayment").style.display = (role === "treasurer") ? "inline-flex" : "none";
+}
+
+function renderPaymentFormMeta() {
+  const role = state.role;
+  const badge = byId("createModeBadge");
+  if (role === "treasurer") {
+    badge.textContent = "Editable";
+    badge.className = "text-xs px-2 py-1 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700";
+  } else if (role === "auditor") {
+    badge.textContent = "Read-only";
+    badge.className = "text-xs px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600";
+  } else {
+    badge.textContent = "Approver view";
+    badge.className = "text-xs px-2 py-1 rounded-full border border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  const disable = (role !== "treasurer");
+  ["payVendor","payAmount","payExpenseAccount","payFunding","payMemo","payAttachment"].forEach(id=>{
+    byId(id).disabled = disable;
+    byId(id).classList.toggle("opacity-60", disable);
+    byId(id).classList.toggle("cursor-not-allowed", disable);
+  });
+  byId("submitForApproval").disabled = disable;
+  byId("demoFill6000").disabled = disable;
+  byId("clearPaymentForm").disabled = disable;
+}
+
+function renderPolicyBox() {
+  const vendorId = byId("payVendor").value;
+  const amount = Number(byId("payAmount").value || 0);
+  const expenseAccountId = byId("payExpenseAccount").value;
+  const funding = byId("payFunding").value;
+  const dateISO = isoToday();
+
+  const pol = evaluatePolicy({ vendorId, amount, expenseAccountId, funding, dateISO });
+
+  // Budget
+  byId("polBudget").textContent = pol.budgetOk ? "Within budget" : "Blocked";
+  byId("polBudget").className = `font-medium ${pol.budgetOk ? "text-emerald-700" : "text-red-700"}`;
+  byId("polBudgetSub").textContent = pol.detail.budgetMsg;
+
+  // Approval
+  byId("polApproval").textContent = pol.approvalsRequired === 2 ? "2 approvals required" : "1 approval required";
+  byId("polApproval").className = `font-medium ${pol.approvalsRequired === 2 ? "text-amber-700" : "text-emerald-700"}`;
+  byId("polApprovalSub").textContent = pol.approvalsRequired === 2 ? "Treasurer + President" : "Treasurer auto-approves";
+
+  // Funding
+  byId("polFunding").textContent = pol.fundingOk ? "Allowed" : "Blocked";
+  byId("polFunding").className = `font-medium ${pol.fundingOk ? "text-emerald-700" : "text-red-700"}`;
+  byId("polFundingSub").textContent = (funding === "reserves")
+    ? `Reserves: ${pol.detail.fundingMsg}`
+    : "Operating: allowed";
+
+  // JE
+  byId("polJE").textContent = pol.jeOk ? "Balanced entry can be posted" : "Invalid journal";
+  byId("polJE").className = `font-medium ${pol.jeOk ? "text-emerald-700" : "text-red-700"}`;
+  byId("polJESub").textContent = pol.jeOk
+    ? "Debit expense, credit cash (simulated)"
+    : "Missing required fields";
+
+  // enable submit when treasurer and policy passes and fields present
+  const requiredFieldsPresent = vendorId && expenseAccountId && amount > 0;
+  const canSubmit = requiredFieldsPresent && pol.vendorOk && pol.budgetOk && pol.fundingOk && pol.jeOk;
+
+  byId("submitForApproval").disabled = (state.role !== "treasurer") || !canSubmit;
+  return pol;
+}
+
+function renderPaymentQueue() {
+  const role = state.role;
+  const filter = byId("payFilter").value;
+  const vmap = vendorMap();
+  const amap = coaMap();
+
+  let items = [...state.payments].sort((a,b)=> (a.createdAt < b.createdAt ? 1 : -1));
+
+  if (filter === "pending_my_approval") {
+    items = items.filter(p => p.status === "pending" && canRoleApprove(role, p));
+  } else if (filter !== "all") {
+    items = items.filter(p => p.status === filter);
+  }
+
+  const container = byId("paymentQueue");
+  container.innerHTML = "";
+
+  if (items.length === 0) {
+    container.innerHTML = `<div class="text-sm text-slate-500">No payments found for this filter.</div>`;
+    return;
+  }
+
+  for (const p of items) {
+    const vendor = vmap[p.vendorId]?.name || "—";
+    const acct = amap[p.expenseAccountId]?.name || "—";
+    const approvals = `${p.approvals.length}/${p.approvalsRequired}`;
+    const statusColor =
+      p.status === "posted" ? "border-emerald-200 bg-emerald-50 text-emerald-800" :
+      p.status === "rejected" ? "border-red-200 bg-red-50 text-red-800" :
+      "border-amber-200 bg-amber-50 text-amber-800";
+
+    const blocked = (p.status === "pending") && (!p.policy.vendorOk || !p.policy.budgetOk || !p.policy.fundingOk);
+    const blockedTag = blocked ? `<span class="text-xs px-2 py-1 rounded-full border border-red-200 bg-red-50 text-red-700">Blocked</span>` : "";
+
+    const card = document.createElement("div");
+    card.className = "rounded-2xl border border-slate-200 bg-white p-4 shadow-soft";
+
+    const canApprove = (p.status === "pending") && canRoleApprove(role, p) && !hasApproved(roleLabel(role), p);
+    const canReject = canApprove;
+
+    const approversList = p.approvals.map(a => `${a.by} (${a.at})`).join(", ") || "—";
+
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="font-semibold truncate">${vendor}</div>
+          <div class="text-xs text-slate-500 truncate">${p.memo || ""}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-semibold">${fmt(p.amount)}</div>
+          <div class="text-xs text-slate-500 mono">${p.createdAt}</div>
+        </div>
+      </div>
+
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <span class="text-xs px-2 py-1 rounded-full border ${statusColor}">${p.status.toUpperCase()}</span>
+        ${blockedTag}
+        <span class="text-xs px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">Approvals ${approvals}</span>
+        <span class="text-xs px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">${p.funding === "reserves" ? "Reserves" : "Operating"}</span>
+      </div>
+
+      <div class="mt-3 text-sm">
+        <div class="text-xs text-slate-500">Expense Account</div>
+        <div class="font-medium">${acct}</div>
+      </div>
+
+      <div class="mt-3 text-xs text-slate-500">
+        <div><span class="font-medium">Initiated:</span> ${p.createdBy}</div>
+        <div><span class="font-medium">Approvals:</span> ${approversList}</div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button data-action="approve" class="approveBtn rounded-xl px-3 py-2 text-sm bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">Approve</button>
+        <button data-action="reject" class="rejectBtn rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">Reject</button>
+        <button data-action="view" class="viewBtn rounded-xl px-3 py-2 text-sm border border-slate-200 hover:bg-slate-50">View Related Journal</button>
+      </div>
+    `;
+
+    const approveBtn = card.querySelector(".approveBtn");
+    const rejectBtn = card.querySelector(".rejectBtn");
+
+    approveBtn.disabled = !canApprove;
+    rejectBtn.disabled = !canReject;
+
+    approveBtn.onclick = () => approvePayment(p.id);
+    rejectBtn.onclick = () => rejectPayment(p.id);
+
+    card.querySelector(".viewBtn").onclick = () => {
+      // find linked JE by sourcePaymentId
+      const je = state.journal.find(j => j.sourcePaymentId === p.id);
+      if (je) openEntryModal(je);
+      else toast("No journal posted yet for this payment.");
+    };
+
+    container.appendChild(card);
+  }
+}
+
+function canRoleApprove(role, payment) {
+  // Treasurer auto-approves by submitting; President approves second when needed.
+  if (role === "president") return true;
+  return false;
+}
+
+function hasApproved(actorName, payment) {
+  return payment.approvals.some(a => a.by === actorName);
+}
+
+function approvePayment(paymentId) {
+  const idx = state.payments.findIndex(p => p.id === paymentId);
+  if (idx < 0) return;
+  const p = state.payments[idx];
+
+  const actor = roleLabel(state.role);
+  if (p.status !== "pending") return toast("Payment is not pending.");
+  if (!canRoleApprove(state.role, p)) return toast("You cannot approve in this role.");
+  if (hasApproved(actor, p)) return toast("Already approved.");
+
+  // record approval event (minimal)
+  p.approvals.push({ by: actor, at: isoToday() });
+
+  // if quorum met, post journal
+  if (p.approvals.length >= p.approvalsRequired) {
+    p.status = "posted";
+    postJournalFromPayment(p);
+    toast("Approved. Journal posted automatically.");
+  } else {
+    toast("Approved. Waiting for additional approvals.");
+  }
+  render();
+}
+
+function rejectPayment(paymentId) {
+  const idx = state.payments.findIndex(p => p.id === paymentId);
+  if (idx < 0) return;
+  const p = state.payments[idx];
+
+  const actor = roleLabel(state.role);
+  if (p.status !== "pending") return toast("Payment is not pending.");
+  if (!canRoleApprove(state.role, p)) return toast("You cannot reject in this role.");
+
+  p.status = "rejected";
+  p.rejectedBy = actor;
+  p.rejectedAt = isoToday();
+  toast("Payment rejected.");
+  render();
+}
+
+function renderLedger() {
+  // populate account dropdown
+  const sel = byId("ledAccount");
+  sel.innerHTML = `<option value="all">All</option>` + COA.map(a => `<option value="${a.id}">${a.id} • ${a.name}</option>`).join("");
+
+  const from = byId("ledFrom").value;
+  const to = byId("ledTo").value;
+  const acctFilter = byId("ledAccount").value || "all";
+  const statusFilter = byId("ledStatus").value || "all";
+
+  let items = [...state.journal].filter(je => {
+    if (!inRange(je.date, from, to)) return false;
+    if (statusFilter !== "all" && je.status !== statusFilter) return false;
+    if (acctFilter !== "all") {
+      return je.lines.some(l => l.accountId === acctFilter);
+    }
+    return true;
+  }).sort((a,b)=> (a.date < b.date ? 1 : -1));
+
+  const m = coaMap();
+  const v = vendorMap();
+
+  const table = document.createElement("table");
+  table.className = "min-w-full text-sm";
+  table.innerHTML = `
+    <thead>
+      <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+        <th class="py-2 pr-3">Date</th>
+        <th class="py-2 pr-3">Journal</th>
+        <th class="py-2 pr-3">Memo</th>
+        <th class="py-2 pr-3">Debits</th>
+        <th class="py-2 pr-3">Credits</th>
+        <th class="py-2 pr-3">Approvals</th>
+        <th class="py-2 pr-3">Status</th>
+        <th class="py-2 pr-3">Immutable</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+
+  const tbody = table.querySelector("tbody");
+
+  for (const je of items) {
+    const s = sumLines(je.lines);
+    const approvals = je.approvals?.length || 0;
+
+    const tr = document.createElement("tr");
+    tr.className = "border-b border-slate-100 hover:bg-slate-50 cursor-pointer";
+    tr.innerHTML = `
+      <td class="py-2 pr-3 mono text-xs">${je.date}</td>
+      <td class="py-2 pr-3 font-medium">${je.journalNo}</td>
+      <td class="py-2 pr-3">${je.memo}</td>
+      <td class="py-2 pr-3">${fmt(s.debits)}</td>
+      <td class="py-2 pr-3">${fmt(s.credits)}</td>
+      <td class="py-2 pr-3">${approvals}</td>
+      <td class="py-2 pr-3"><span class="text-xs px-2 py-1 rounded-full border ${
+        je.status==="posted" ? "border-emerald-200 bg-emerald-50 text-emerald-800" :
+        "border-slate-200 bg-slate-50 text-slate-700"
+      }">${je.status.toUpperCase()}</span></td>
+      <td class="py-2 pr-3">${je.immutable ? "Yes" : "No"}</td>
+    `;
+    tr.onclick = () => openEntryModal(je);
+    tbody.appendChild(tr);
+  }
+
+  const wrap = byId("ledgerTable");
+  wrap.innerHTML = "";
+  wrap.appendChild(table);
+
+  // Default filters if empty
+  if (!byId("ledFrom").value) byId("ledFrom").value = "2025-04-01";
+  if (!byId("ledTo").value) byId("ledTo").value = isoToday();
+}
+
+function renderTrialBalance() {
+  // initialize date defaults
+  if (!byId("tbFrom").value) byId("tbFrom").value = "2025-04-01";
+  if (!byId("tbTo").value) byId("tbTo").value = isoToday();
+
+  const from = byId("tbFrom").value;
+  const to = byId("tbTo").value;
+
+  const rows = computeBalances({ from, to });
+
+  // totals
+  const totalDebits = rows.reduce((a,r)=>a+r.debits,0);
+  const totalCredits = rows.reduce((a,r)=>a+r.credits,0);
+
+  byId("tbTotalDebits").textContent = fmt(totalDebits);
+  byId("tbTotalCredits").textContent = fmt(totalCredits);
+  byId("tbNet").textContent = fmt(totalDebits - totalCredits);
+
+  // Badge
+  const balanced = Math.abs(totalDebits - totalCredits) < 0.00001;
+  const badge = byId("tbBadge");
+  badge.textContent = balanced ? "Balanced" : "Out of Balance";
+  badge.className = `text-xs px-2 py-1 rounded-full border ${balanced ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-red-200 bg-red-50 text-red-700"}`;
+
+  // type filter options
+  const types = [...new Set(COA.map(a=>a.type))];
+  const typeSel = byId("tbTypeFilter");
+  if (typeSel.options.length <= 1) {
+    typeSel.innerHTML = `<option value="all">All</option>` + types.map(t=>`<option value="${t}">${t}</option>`).join("");
+  }
+
+  const groupBy = byId("tbGroup").value;
+  const typeFilter = byId("tbTypeFilter").value;
+  const search = (byId("tbSearch").value || "").toLowerCase();
+
+  let filtered = rows.filter(r=>{
+    if (typeFilter !== "all" && r.type !== typeFilter) return false;
+    const hay = `${r.name} ${r.accountId} ${r.type} ${r.category}`.toLowerCase();
+    if (search && !hay.includes(search)) return false;
+    return true;
+  });
+
+  let groupedRows = [];
+  if (groupBy === "account") {
+    groupedRows = filtered;
+  } else {
+    const key = (groupBy === "type") ? "type" : "category";
+    const map = new Map();
+    for (const r of filtered) {
+      const k = r[key];
+      if (!map.has(k)) map.set(k, { key: k, debits:0, credits:0, balance:0 });
+      const agg = map.get(k);
+      agg.debits += r.debits;
+      agg.credits += r.credits;
+      agg.balance += r.balance;
+    }
+    groupedRows = [...map.values()].map(x=>({
+      accountId: "",
+      name: x.key,
+      type: groupBy === "type" ? x.key : "—",
+      category: groupBy === "category" ? x.key : "—",
+      debits: x.debits,
+      credits: x.credits,
+      balance: x.balance,
+      _group: true
+    })).sort((a,b)=> a.name.localeCompare(b.name));
+  }
+
+  // render table
+  const table = document.createElement("table");
+  table.className = "min-w-full text-sm";
+  table.innerHTML = `
+    <thead>
+      <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+        <th class="py-2 pr-3">${groupBy === "account" ? "Account" : "Group"}</th>
+        <th class="py-2 pr-3">Type</th>
+        <th class="py-2 pr-3">Category</th>
+        <th class="py-2 pr-3">Debits</th>
+        <th class="py-2 pr-3">Credits</th>
+        <th class="py-2 pr-3">Net</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+
+  for (const r of groupedRows) {
+    const tr = document.createElement("tr");
+    tr.className = `border-b border-slate-100 ${groupBy==="account" ? "hover:bg-slate-50 cursor-pointer" : ""}`;
+
+    const label = groupBy === "account"
+      ? `${r.accountId} • ${r.name}`
+      : `${r.name}`;
+
+    tr.innerHTML = `
+      <td class="py-2 pr-3 font-medium">${label}</td>
+      <td class="py-2 pr-3">${r.type}</td>
+      <td class="py-2 pr-3">${r.category}</td>
+      <td class="py-2 pr-3">${fmt(r.debits)}</td>
+      <td class="py-2 pr-3">${fmt(r.credits)}</td>
+      <td class="py-2 pr-3 ${r.balance<0 ? "text-red-700" : "text-slate-900"}">${fmt(r.balance)}</td>
+    `;
+
+    if (groupBy === "account") {
+      tr.onclick = () => openAccountDrilldown(r.accountId, from, to);
+    }
+    tbody.appendChild(tr);
+  }
+
+  const wrap = byId("trialTable");
+  wrap.innerHTML = "";
+  wrap.appendChild(table);
+}
+
+function openAccountDrilldown(accountId, from, to) {
+  const acct = coaMap()[accountId];
+  if (!acct) return;
+
+  byId("drillNote").textContent = `Drilldown: ${accountId} • ${acct.name} • Range ${from}..${to}`;
+
+  const entries = state.journal
+    .filter(je => je.status === "posted" && inRange(je.date, from, to) && je.lines.some(l => l.accountId === accountId))
+    .sort((a,b)=> (a.date < b.date ? 1 : -1));
+
+  // create a simple modal using entryModal but custom content
+  byId("entryModalSub").textContent = `${accountId} • ${acct.name} • ${from}..${to}`;
+  const body = document.createElement("div");
+  body.className = "space-y-3";
+
+  for (const je of entries) {
+    const line = je.lines.find(l => l.accountId === accountId) || { debit:0, credit:0 };
+    const row = document.createElement("button");
+    row.className = "w-full text-left rounded-2xl border border-slate-200 bg-slate-50 p-3 hover:bg-white";
+    row.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="text-sm font-medium">${je.journalNo} • ${je.memo}</div>
+          <div class="text-xs text-slate-500 mono">${je.date} • Status: ${je.status}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-semibold">${fmt((line.debit||0) - (line.credit||0))}</div>
+          <div class="text-xs text-slate-500">D ${fmt(line.debit||0)} / C ${fmt(line.credit||0)}</div>
+        </div>
+      </div>
+    `;
+    row.onclick = () => openEntryModal(je);
+    body.appendChild(row);
+  }
+
+  if (entries.length === 0) {
+    body.innerHTML = `<div class="text-sm text-slate-500">No entries for this account in the selected range.</div>`;
+  }
+
+  byId("entryModalBody").innerHTML = "";
+  byId("entryModalBody").appendChild(body);
+  openModal();
+}
+
+function openEntryModal(je) {
+  const sums = sumLines(je.lines);
+  byId("entryModalSub").textContent = `${je.journalNo} • ${je.date} • ${je.status.toUpperCase()} • Balanced: ${sums.balanced ? "YES" : "NO"}`;
+
+  const amap = coaMap();
+  const vmap = vendorMap();
+  const vendorName = je.vendorId ? (vmap[je.vendorId]?.name || "—") : "—";
+
+  const approvals = (je.approvals || []).map(a => `<li class="text-sm">${a.by} <span class="text-xs text-slate-500 mono">(${a.at})</span></li>`).join("") || `<li class="text-sm text-slate-500">—</li>`;
+
+  const lines = je.lines.map(l => {
+    const acct = amap[l.accountId];
+    return `
+      <tr class="border-b border-slate-100">
+        <td class="py-2 pr-3 mono text-xs">${l.accountId}</td>
+        <td class="py-2 pr-3">${acct?.name || ""}</td>
+        <td class="py-2 pr-3">${fmt(l.debit||0)}</td>
+        <td class="py-2 pr-3">${fmt(l.credit||0)}</td>
+        <td class="py-2 pr-3 text-xs text-slate-500">${l.memo || ""}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const body = `
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="md:col-span-2 rounded-2xl border border-slate-200 p-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="font-semibold">${je.memo}</div>
+            <div class="text-xs text-slate-500">Vendor: ${vendorName} • Created by: ${je.createdBy}</div>
+          </div>
+          <span class="text-xs px-2 py-1 rounded-full border ${je.immutable ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-700"}">${je.immutable ? "IMMUTABLE" : "EDITABLE"}</span>
+        </div>
+
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-slate-500 border-b border-slate-200">
+                <th class="py-2 pr-3">Acct</th>
+                <th class="py-2 pr-3">Name</th>
+                <th class="py-2 pr-3">Debit</th>
+                <th class="py-2 pr-3">Credit</th>
+                <th class="py-2 pr-3">Memo</th>
+              </tr>
+            </thead>
+            <tbody>${lines}</tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between text-sm">
+          <div class="text-slate-600">Totals</div>
+          <div class="font-semibold">Debits ${fmt(sums.debits)} • Credits ${fmt(sums.credits)}</div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 p-3">
+        <div class="font-semibold">Policy & Approvals</div>
+        <div class="text-xs text-slate-500">Evidence attached to the journal entry.</div>
+
+        <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3">
+          <div class="text-xs text-slate-500">Policy Result</div>
+          <div class="text-sm font-medium">${je.policy?.result || "—"}</div>
+          <div class="text-xs text-slate-500 mt-1">${je.policy?.rule || "—"}</div>
+        </div>
+
+        <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3">
+          <div class="text-xs text-slate-500">Approvals</div>
+          <ul class="mt-1 space-y-1">${approvals}</ul>
+        </div>
+
+        <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3">
+          <div class="text-xs text-slate-500">Immutability</div>
+          <div class="text-sm font-medium">${je.immutable ? "Posted — cannot edit" : "Not posted"}</div>
+          <div class="text-xs text-slate-500 mt-1">Corrections via reversing entry.</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  byId("entryModalBody").innerHTML = body;
+  openModal();
+}
+
+function openModal() {
+  byId("modalBackdrop").classList.remove("hidden");
+  byId("entryModal").classList.remove("hidden");
+}
+function closeModal() {
+  byId("modalBackdrop").classList.add("hidden");
+  byId("entryModal").classList.add("hidden");
+}
+
+/** ---------------------------
+ * Actions
+ * --------------------------*/
+function clearPaymentForm() {
+  byId("payVendor").value = "";
+  byId("payAmount").value = "";
+  byId("payExpenseAccount").value = "";
+  byId("payFunding").value = "operating";
+  byId("payMemo").value = "";
+  byId("payAttachment").value = "";
+  byId("createErrors").textContent = "";
+  renderPolicyBox();
+}
+
+function submitPayment() {
+  const vendorId = byId("payVendor").value;
+  const amount = Number(byId("payAmount").value || 0);
+  const expenseAccountId = byId("payExpenseAccount").value;
+  const funding = byId("payFunding").value;
+  const memo = byId("payMemo").value;
+  const attachment = byId("payAttachment").value;
+
+  const pol = evaluatePolicy({ vendorId, amount, expenseAccountId, funding, dateISO: isoToday() });
+
+  const errs = [];
+  if (!vendorId) errs.push("Select a vendor.");
+  if (!expenseAccountId) errs.push("Select an expense account.");
+  if (!(amount > 0)) errs.push("Enter an amount > 0.");
+  if (!pol.vendorOk) errs.push("Vendor is not approved.");
+  if (!pol.budgetOk) errs.push("Budget rule blocks this payment.");
+  if (!pol.fundingOk) errs.push("Funding rule blocks this payment.");
+  if (!pol.jeOk) errs.push("Journal entry is not balanced.");
+
+  if (errs.length) {
+    byId("createErrors").innerHTML = errs.map(e=>`• ${e}`).join("<br/>");
+    toast("Cannot submit: fix policy errors.");
+    return;
+  }
+
+  const approvalsRequired = pol.approvalsRequired;
+  const createdBy = roleLabel(state.role);
+
+  const payment = {
+    id: makeId("pay"),
+    createdAt: isoToday(),
+    vendorId,
+    amount,
+    expenseAccountId,
+    funding,
+    memo,
+    attachment,
+    createdBy,
+    status: "pending",
+    approvalsRequired,
+    approvals: [{ by: createdBy, at: isoToday() }], // treasurer auto-approval upon submit
+    policy: {
+      budgetOk: pol.budgetOk,
+      vendorOk: pol.vendorOk,
+      fundingOk: pol.fundingOk,
+      jeOk: pol.jeOk
+    }
+  };
+
+  // If only 1 approval needed, auto-post immediately
+  if (payment.approvalsRequired === 1) {
+    payment.status = "posted";
+    postJournalFromPayment(payment);
+    toast("Submitted and posted (no additional approvals required).");
+  } else {
+    toast("Submitted for approval. Awaiting President.");
+  }
+
+  state.payments.push(payment);
+  clearPaymentForm();
+  render();
+}
+
+function demoFill6000() {
+  byId("payVendor").value = "v1";
+  byId("payAmount").value = "6000";
+  byId("payExpenseAccount").value = "5200";
+  byId("payFunding").value = "operating";
+  byId("payMemo").value = "Landscaping monthly service";
+  byId("payAttachment").value = "invoice_greenscape_apr.pdf";
+  renderPolicyBox();
+  toast("Demo fields filled.");
+}
+
+/** ---------------------------
+ * Initial UI wiring
+ * --------------------------*/
+function initSelectors() {
+  // Vendors
+  byId("payVendor").innerHTML = `<option value="">Select vendor…</option>` + VENDORS.map(v => {
+    const tag = v.approved ? "" : " (Not Approved)";
+    return `<option value="${v.id}">${v.name}${tag}</option>`;
+  }).join("");
+
+  // Expense accounts (expense only)
+  const expSel = byId("payExpenseAccount");
+  expSel.innerHTML = `<option value="">Select account…</option>` + COA.filter(a=>a.type==="Expense").map(a=>`<option value="${a.id}">${a.id} • ${a.name}</option>`).join("");
+}
+
+function wireEvents() {
+  // Nav
+  document.querySelectorAll(".navbtn").forEach(btn => btn.addEventListener("click", () => setRoute(btn.dataset.route)));
+
+  // Top role selector
+  byId("roleSelect").addEventListener("change", (e) => {
+    state.role = e.target.value;
+    toast(`Role set to ${roleLabel(state.role)}.`);
+    render();
+  });
+
+  // Reset
+  byId("resetBtn").addEventListener("click", () => {
+    state = seedState();
+    byId("roleSelect").value = state.role;
+    initSelectors();
+    toast("Demo reset.");
+    render();
+  });
+
+  // Dashboard buttons
+  byId("dashNewPayment").addEventListener("click", () => setRoute("payments"));
+  byId("dashViewLedger").addEventListener("click", () => setRoute("ledger"));
+  byId("dashReviewApprovals").addEventListener("click", () => { setRoute("payments"); byId("payFilter").value="pending_my_approval"; render(); });
+  byId("kpiPendingBtn").addEventListener("click", () => { setRoute("payments"); byId("payFilter").value="pending_my_approval"; render(); });
+
+  // Footer quick
+  byId("quickPending").addEventListener("click", () => { setRoute("payments"); byId("payFilter").value="pending_my_approval"; render(); });
+  byId("quickTB").addEventListener("click", () => setRoute("trial"));
+
+  // Payments form
+  ["payVendor","payAmount","payExpenseAccount","payFunding"].forEach(id => byId(id).addEventListener("input", () => renderPolicyBox()));
+  byId("submitForApproval").addEventListener("click", submitPayment);
+  byId("clearPaymentForm").addEventListener("click", clearPaymentForm);
+  byId("demoFill6000").addEventListener("click", demoFill6000);
+  byId("payFilter").addEventListener("change", renderPaymentQueue);
+
+  // Ledger filters
+  ["ledFrom","ledTo","ledAccount","ledStatus"].forEach(id => byId(id).addEventListener("change", renderLedger));
+
+  // Trial filters
+  ["tbFrom","tbTo","tbGroup","tbTypeFilter","tbSearch"].forEach(id => byId(id).addEventListener("input", renderTrialBalance));
+  ["tbFrom","tbTo","tbGroup","tbTypeFilter"].forEach(id => byId(id).addEventListener("change", renderTrialBalance));
+
+  // Modal
+  byId("closeEntryModal").addEventListener("click", closeModal);
+  byId("modalBackdrop").addEventListener("click", closeModal);
+
+  // Export
+  byId("exportJSON").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ payments: state.payments, journal: state.journal, coa: COA }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rightpath_demo_export.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+/** ---------------------------
+ * Render
+ * --------------------------*/
+function render() {
+  // ensure role selector matches
+  byId("roleSelect").value = state.role;
+
+  setActiveNav();
+  showRoute();
+
+  if (state.route === "dashboard") renderDashboard();
+  if (state.route === "payments") {
+    renderPaymentFormMeta();
+    renderPolicyBox();
+    renderPaymentQueue();
+  }
+  if (state.route === "ledger") renderLedger();
+  if (state.route === "trial") renderTrialBalance();
+
+  // dashboard quick actions role gating
+  if (state.route !== "dashboard") {
+    // nothing
+  }
+}
+
+/** ---------------------------
+ * Boot
+ * --------------------------*/
+initSelectors();
+wireEvents();
+setRoute("dashboard");
+</script>
+</body>
+</html>

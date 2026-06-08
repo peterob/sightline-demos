@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sightline — Billboard Unit Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #13294b;
+      --muted: #5f6b7a;
+      --line: #d9e1ea;
+      --accent: #0f4c81;
+      --accent-2: #1d6f42;
+      --warn: #b7791f;
+      --danger: #b42318;
+      --soft-blue: #eaf1f8;
+      --soft-green: #edf7f1;
+      --soft-amber: #fff7e8;
+      --soft-red: #fff1f1;
+      --shadow: 0 10px 30px rgba(18, 41, 75, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      background: linear-gradient(135deg, #0f2747 0%, #16365f 100%);
+      color: white;
+      padding: 28px 30px;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .title h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .title p {
+      margin: 0;
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .meta-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .meta-card .label,
+    .tool-btn span,
+    .kpi .label,
+    .small-label,
+    .event-type,
+    .policy-rule,
+    .alert-label,
+    .table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .topbar .meta-card .label { color: rgba(255,255,255,0.72); }
+    .meta-card .value {
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .tools {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tool-btn {
+      background: rgba(255,255,255,0.08);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .kpi-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 24px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi {
+      padding: 18px;
+      min-height: 126px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::after {
+      content: "";
+      position: absolute;
+      right: -18px;
+      top: -18px;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(15,76,129,0.06);
+    }
+
+    .kpi .value {
+      margin-top: 14px;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .status {
+      display: inline-flex;
+      margin-top: 12px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .ok { background: var(--soft-green); color: var(--accent-2); }
+    .warn { background: var(--soft-amber); color: var(--warn); }
+    .fail { background: var(--soft-red); color: var(--danger); }
+    .info { background: var(--soft-blue); color: var(--accent); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 22px 0;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toggle-group {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: #f7f9fc;
+    }
+
+    .toggle-group button {
+      border: 0;
+      background: transparent;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .toggle-group .active {
+      background: var(--ink);
+      color: white;
+    }
+
+    .flow-wrap { padding: 22px; }
+
+    .flow-node {
+      display: grid;
+      grid-template-columns: 190px 1fr 150px;
+      gap: 18px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+      position: relative;
+    }
+
+    .flow-node:not(:last-child)::after {
+      content: "↓";
+      position: absolute;
+      left: 50%;
+      bottom: -24px;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .node-title {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .node-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .node-body {
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      padding: 6px 10px;
+      background: var(--soft-blue);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      justify-self: end;
+    }
+
+    .right-stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .decision-panel {
+      padding: 20px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .split-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fcfdff;
+    }
+
+    .split-card h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #e6edf4;
+      font-size: 13px;
+    }
+    .metric-row:last-child { border-bottom: 0; }
+
+    .delta-box {
+      margin-top: 16px;
+      border: 1px solid #f6d995;
+      background: var(--soft-amber);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .delta-box strong {
+      display: block;
+      color: #7a4b05;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .list-panel { padding: 20px; }
+
+    .event-item,
+    .policy-item,
+    .alert-box {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 12px;
+      background: #fcfdff;
+    }
+
+    .event-item:first-of-type,
+    .policy-item:first-of-type,
+    .alert-box:first-of-type { margin-top: 0; }
+
+    .event-head,
+    .policy-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .event-name,
+    .policy-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .event-body,
+    .policy-body,
+    .alert-body {
+      color: #3b4757;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .portfolio { padding: 20px; margin-top: 20px; }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+
+    .table th,
+    .table td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid #ebf0f5;
+      font-size: 13px;
+    }
+
+    .table td { color: #334155; }
+
+    .footnote {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1200px) {
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .layout { grid-template-columns: 1fr; }
+      .flow-node { grid-template-columns: 1fr; }
+      .pill { justify-self: start; }
+    }
+
+    @media (max-width: 760px) {
+      .wrap { padding: 16px; }
+      .topbar { padding: 22px; }
+      .meta-grid,
+      .kpi-grid,
+      .split { grid-template-columns: 1fr; }
+      .tools { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="topbar">
+      <div class="title">
+        <h1>Sightline — Billboard Unit Dashboard</h1>
+        <p>Single-sign operator view. Event-driven. Policy-aware. Built to show where margin was determined versus where it is now observed.</p>
+        <div class="meta-grid">
+          <div class="meta-card">
+            <div class="label">Sign ID</div>
+            <div class="value">I-88 / Mile 142 / Parcel A17</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Status</div>
+            <div class="value">Active</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Current State</div>
+            <div class="value">Contributing (Post-Payback)</div>
+          </div>
+          <div class="meta-card">
+            <div class="label">Last Updated</div>
+            <div class="value">T+0 Real-Time</div>
+          </div>
+        </div>
+      </div>
+      <div class="tools">
+        <button class="tool-btn"><span>View</span>&nbsp; As of Date</button>
+        <button class="tool-btn"><span>Replay</span>&nbsp; DVR</button>
+        <button class="tool-btn"><span>Inspect</span>&nbsp; Policy Log</button>
+      </div>
+    </section>
+
+    <section class="grid kpi-grid">
+      <div class="panel kpi">
+        <div class="label">Occupancy Rate</div>
+        <div class="value">82%</div>
+        <div class="status warn">Below target</div>
+      </div>
+      <div class="panel kpi">
+        <div class="label">Monthly Revenue</div>
+        <div class="value">$18.4K</div>
+        <div class="status ok">In range</div>
+      </div>
+      <div class="panel kpi">
+        <div class="label">Contribution Margin</div>
+        <div class="value">$11.2K</div>
+        <div class="status ok">Passing</div>
+      </div>
+      <div class="panel kpi">
+        <div class="label">Payback Progress</div>
+        <div class="value">78%</div>
+        <div class="status info">On track</div>
+      </div>
+      <div class="panel kpi">
+        <div class="label">Lease % of Revenue</div>
+        <div class="value">32%</div>
+        <div class="status fail">Above policy cap</div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <h2>Causal Flow</h2>
+            <p>Unit economics traced from commitment through current business outcome.</p>
+          </div>
+          <div class="toggle-group">
+            <button class="active">As Decided</button>
+            <button>As Reported</button>
+          </div>
+        </div>
+        <div class="flow-wrap">
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 1</div>
+              <div class="node-title">Land Agreement</div>
+              <div class="node-meta">Signed event • 1986-04-12</div>
+            </div>
+            <div class="node-body">Revenue share agreement with parcel owner. Current lease share is 32% of gross sign revenue.</div>
+            <div class="pill">Contract event</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 2</div>
+              <div class="node-title">Build + Finance</div>
+              <div class="node-meta">Funding event chain</div>
+            </div>
+            <div class="node-body">CapEx of $72,000 funded with a $60,000 bank loan at 9.5%. Remaining capital covered by owner equity.</div>
+            <div class="pill">Investment decision</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 3</div>
+              <div class="node-title">Revenue Stream</div>
+              <div class="node-meta">Billing + contract events</div>
+            </div>
+            <div class="node-body">Five active advertisers. Average realized rate of $3,680 per month. Occupancy below target at 82%.</div>
+            <div class="pill">Observed output</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 4</div>
+              <div class="node-title">Variable Costs</div>
+              <div class="node-meta">Expense event stream</div>
+            </div>
+            <div class="node-body">Lease cost, maintenance, posting labor, and sales commissions currently reduce gross monthly revenue by $7,200.</div>
+            <div class="pill">Unit burden</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 5</div>
+              <div class="node-title">Contribution Margin</div>
+              <div class="node-meta">Derived from event-linked inputs</div>
+            </div>
+            <div class="node-body">Current contribution margin is $11,200 per month. Policy minimum is $9,000. This unit still clears the threshold.</div>
+            <div class="pill">Control point</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 6</div>
+              <div class="node-title">Payback Tracking</div>
+              <div class="node-meta">Recovery state</div>
+            </div>
+            <div class="node-body">Recovered $56,000 of $72,000 invested. Remaining payback window extended by lease creep and lower occupancy.</div>
+            <div class="pill">Risk signal</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 7</div>
+              <div class="node-title">Fixed Cost Coverage</div>
+              <div class="node-meta">Allocated portfolio overhead</div>
+            </div>
+            <div class="node-body">Unit currently contributes $4,500 per month toward warehouse, admin, routing, and sales infrastructure.</div>
+            <div class="pill">System support</div>
+          </div>
+
+          <div class="flow-node">
+            <div>
+              <div class="small-label">Step 8</div>
+              <div class="node-title">Net Unit Profit</div>
+              <div class="node-meta">Owner economics</div>
+            </div>
+            <div class="node-body">Residual cash generation is $6,700 per month. Unit remains productive, but with visible drift from original expectations.</div>
+            <div class="pill">Business outcome</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-stack">
+        <div class="panel decision-panel">
+          <div class="section-head" style="padding:0; margin-bottom:6px;">
+            <div>
+              <h2>Decision vs Observation</h2>
+              <p>Where margin was set versus where the business sees it now.</p>
+            </div>
+          </div>
+          <div class="split">
+            <div class="split-card">
+              <h3>At Time of Decision</h3>
+              <div class="metric-row"><span>Expected revenue</span><strong>$16.0K / mo</strong></div>
+              <div class="metric-row"><span>Expected lease %</span><strong>28%</strong></div>
+              <div class="metric-row"><span>Expected payback</span><strong>24 months</strong></div>
+              <div class="metric-row"><span>Decision confidence</span><strong>High</strong></div>
+            </div>
+            <div class="split-card">
+              <h3>Current Reality</h3>
+              <div class="metric-row"><span>Actual revenue</span><strong>$18.4K / mo</strong></div>
+              <div class="metric-row"><span>Actual lease %</span><strong>32%</strong></div>
+              <div class="metric-row"><span>Projected payback</span><strong>30 months</strong></div>
+              <div class="metric-row"><span>Drift state</span><strong>Negative</strong></div>
+            </div>
+          </div>
+          <div class="delta-box">
+            <strong>Δ Payback = +6 months</strong>
+            Driver mix: lease share increased, maintenance rose, and occupancy fell below target range.
+          </div>
+        </div>
+
+        <div class="panel list-panel">
+          <div class="section-head" style="padding:0; margin-bottom:10px;">
+            <div>
+              <h2>Event Ledger</h2>
+              <p>Current period events behind the revenue stream.</p>
+            </div>
+          </div>
+          <div class="event-item">
+            <div class="event-head">
+              <div>
+                <div class="event-type">Event</div>
+                <div class="event-name">Contract Signed</div>
+              </div>
+              <div class="status ok">Posted</div>
+            </div>
+            <div class="event-body">Local auto dealer signed a 6-month contract at $3,500 per month.</div>
+          </div>
+          <div class="event-item">
+            <div class="event-head">
+              <div>
+                <div class="event-type">Event</div>
+                <div class="event-name">Contract Cancelled</div>
+              </div>
+              <div class="status warn">Revenue risk</div>
+            </div>
+            <div class="event-body">Regional retailer exited early due to budget cuts. Occupancy impact absorbed within 10 days.</div>
+          </div>
+          <div class="event-item">
+            <div class="event-head">
+              <div>
+                <div class="event-type">Event</div>
+                <div class="event-name">Rate Change</div>
+              </div>
+              <div class="status info">Effective</div>
+            </div>
+            <div class="event-body">Beverage brand rate increased from $3,200 to $3,900 with no change in term length.</div>
+          </div>
+        </div>
+
+        <div class="panel list-panel">
+          <div class="section-head" style="padding:0; margin-bottom:10px;">
+            <div>
+              <h2>Policy Engine</h2>
+              <p>Rules that govern whether this unit is behaving within acceptable bounds.</p>
+            </div>
+          </div>
+          <div class="policy-item">
+            <div class="policy-head">
+              <div>
+                <div class="policy-rule">Rule</div>
+                <div class="policy-name">Minimum Contribution Threshold</div>
+              </div>
+              <div class="status ok">Pass</div>
+            </div>
+            <div class="policy-body">Required contribution margin is at least $9,000 per month. Current result is $11,200.</div>
+          </div>
+          <div class="policy-item">
+            <div class="policy-head">
+              <div>
+                <div class="policy-rule">Rule</div>
+                <div class="policy-name">Lease % Cap</div>
+              </div>
+              <div class="status fail">Fail</div>
+            </div>
+            <div class="policy-body">Lease cost should remain at or below 30% of revenue. Current level is 32%.</div>
+          </div>
+          <div class="policy-item">
+            <div class="policy-head">
+              <div>
+                <div class="policy-rule">Rule</div>
+                <div class="policy-name">Payback Limit</div>
+              </div>
+              <div class="status warn">Borderline</div>
+            </div>
+            <div class="policy-body">Target payback is less than or equal to 30 months. Current projection sits exactly at the limit.</div>
+          </div>
+        </div>
+
+        <div class="panel list-panel">
+          <div class="section-head" style="padding:0; margin-bottom:10px;">
+            <div>
+              <h2>Drift Detection</h2>
+              <p>Automated explanation of why the unit is diverging from its original expectations.</p>
+            </div>
+          </div>
+          <div class="alert-box" style="background:var(--soft-amber); border-color:#f5d38b;">
+            <div class="alert-label">Alert</div>
+            <div class="alert-body"><strong>Unit drift detected.</strong><br/>Lease share rose from 28% to 32%. Payback extended by six months. Suggested action: renegotiate lease, raise realized rate, or improve occupancy.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel portfolio">
+      <div class="section-head" style="padding:0; margin-bottom:8px;">
+        <div>
+          <h2>Portfolio Roll-Up</h2>
+          <p>How this sign sits within the broader operating portfolio.</p>
+        </div>
+      </div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Portfolio Metric</th>
+            <th>Current Value</th>
+            <th>Interpretation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Total signs</td>
+            <td>184</td>
+            <td>Operating base for current market cluster</td>
+          </tr>
+          <tr>
+            <td>% meeting contribution target</td>
+            <td>71%</td>
+            <td>Healthy, but below internal benchmark</td>
+          </tr>
+          <tr>
+            <td>% above lease threshold</td>
+            <td>38%</td>
+            <td>Primary source of margin pressure</td>
+          </tr>
+          <tr>
+            <td>Average payback</td>
+            <td>27 months</td>
+            <td>Still acceptable, but trending weaker</td>
+          </tr>
+          <tr>
+            <td>Top risk cluster</td>
+            <td>Urban 8-sheets</td>
+            <td>Lease inflation and higher turnover</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footnote">
+        This mock is designed to align with Sightline principles. The unit is the primitive. Events generate the facts. Policies determine acceptable states. Reporting is downstream of the decision and event chain.
+      </div>
+    </section>
+  </div>
+</body>
+</html>

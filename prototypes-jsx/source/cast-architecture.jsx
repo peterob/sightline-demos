@@ -1,0 +1,411 @@
+import { useState } from "react";
+
+const DARK = "#0D0F14";
+const PANEL = "#13161E";
+const BORDER = "#1E2330";
+const ACCENT = "#00C9A7";
+const ACCENT2 = "#0E7C7B";
+const RED = "#E05252";
+const AMBER = "#F0A500";
+const DIM = "#4A5368";
+const TEXT = "#C8CDD8";
+const WHITE = "#F0F4FF";
+const BLUE = "#4A90D9";
+
+const mono = "'JetBrains Mono', 'Fira Code', 'Courier New', monospace";
+const sans = "'DM Sans', 'Segoe UI', system-ui, sans-serif";
+
+function Tag({ label, color = ACCENT }) {
+  return (
+    <span style={{
+      fontFamily: mono, fontSize: 10, fontWeight: 600, color,
+      background: color + "18", border: `1px solid ${color}40`,
+      borderRadius: 3, padding: "1px 6px", letterSpacing: "0.04em", whiteSpace: "nowrap",
+    }}>{label}</span>
+  );
+}
+
+// ── Diagram 1: Event Flow ─────────────────────────────────────────────────
+function EventFlow() {
+  const [expanded, setExpanded] = useState(null);
+
+  const layers = [
+    {
+      id: "event", label: "EVENT STORE", color: ACCENT,
+      subtitle: "Append-only · No updates · No deletes",
+      items: [
+        { name: "ProposedEvent", note: "agent_id non-nullable — entry point for every action" },
+        { name: "AcknowledgeEvent", note: "bilateral — both parties signed" },
+        { name: "DisputeEvent", note: "first-class object, not an error handler" },
+        { name: "AttachEvidence", note: "supporting proof linked to event" },
+        { name: "AttestView", note: "signed, scoped — enforced at data model" },
+      ],
+      arrow: "every event passes through the policy engine before execution",
+    },
+    {
+      id: "policy", label: "POLICY ENGINE", color: AMBER,
+      subtitle: "Inline for v1 · Checked before execution · Violations → DisputeEvent",
+      items: [
+        { name: "R1: agent_id non-null", note: "rejected at ingestion if missing" },
+        { name: "R2: amount threshold", note: "> $50K requires dual attestation" },
+        { name: "R3: known vendor", note: "new vendor triggers Trade Message" },
+        { name: "R4: bank change", note: "changed destination requires fresh Trade Message" },
+        { name: "R5: policy_version pinned", note: "immutable at ProposedEvent creation" },
+        { name: "R6: ProofChain FK non-null", note: "posting rejected without chain" },
+      ],
+      arrow: "PASS → workflow  ·  FAIL → DisputeEvent → escalation",
+    },
+    {
+      id: "workflow", label: "WORKFLOW ORCHESTRATION", color: BLUE,
+      subtitle: "Three tracks · All generate ProofChain · No track bypasses InvariantCore",
+      items: [
+        { name: "Track 1: Confirm", note: "ProposedEvent → Trade Message → AcknowledgeEvent → Ledger" },
+        { name: "Track 2: Request Change", note: "Amended ProposedEvent → loop back through policy" },
+        { name: "Track 3: Dispute → Resolve", note: "DisputeEvent → human work order → resolution event" },
+      ],
+      arrow: "all tracks converge on ledger posting",
+    },
+    {
+      id: "ledger", label: "LEDGER", color: ACCENT2,
+      subtitle: "Double-entry GL · proof_chain_id non-nullable · agent_id on every posting",
+      items: [
+        { name: "Debit / Credit posting", note: "AP Liability ↔ Cash" },
+        { name: "proof_chain_id FK", note: "non-nullable — DB rejects posting without this" },
+        { name: "gl_ref", note: "external ERP sync reference" },
+        { name: "agent_id", note: "who posted — agent or human, always named" },
+      ],
+      arrow: null,
+    },
+  ];
+
+  return (
+    <div style={{ padding: 32, maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Event → Policy → Workflow → Ledger</div>
+        <div style={{ fontSize: 13, color: DIM, lineHeight: 1.6 }}>
+          How a single financial action flows through all four layers. Every layer is sequential and non-bypassable. Click any layer to expand detail.
+        </div>
+      </div>
+
+      {layers.map((layer, i) => (
+        <div key={layer.id}>
+          <div
+            onClick={() => setExpanded(expanded === layer.id ? null : layer.id)}
+            style={{
+              background: expanded === layer.id ? layer.color + "12" : PANEL,
+              border: `1px solid ${expanded === layer.id ? layer.color + "50" : BORDER}`,
+              borderRadius: 10, padding: "16px 20px", cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: layer.color, boxShadow: `0 0 8px ${layer.color}60` }} />
+                <span style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: layer.color, letterSpacing: "0.06em" }}>{layer.label}</span>
+              </div>
+              <span style={{ fontFamily: mono, fontSize: 10, color: DIM }}>{expanded === layer.id ? "▲" : "▼"}</span>
+            </div>
+            <div style={{ fontSize: 11, color: DIM, marginBottom: expanded === layer.id ? 14 : 0 }}>{layer.subtitle}</div>
+
+            {expanded === layer.id && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {layer.items.map((item, j) => (
+                  <div key={j} style={{
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    padding: "8px 12px", background: DARK,
+                    border: `1px solid ${BORDER}`, borderRadius: 6,
+                  }}>
+                    <div style={{ fontFamily: mono, fontSize: 11, color: layer.color, minWidth: 200, flexShrink: 0 }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: DIM, lineHeight: 1.4 }}>{item.note}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {layer.arrow && (
+            <div style={{
+              textAlign: "center", padding: "10px 0",
+              fontFamily: mono, fontSize: 10, color: DIM,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <div style={{ width: 1, height: 20, background: `linear-gradient(${layer.color}60, ${layers[i+1]?.color || DIM}60)` }} />
+              <span>{layer.arrow}</span>
+              <div style={{ width: 1, height: 20, background: `linear-gradient(${layer.color}60, ${layers[i+1]?.color || DIM}60)` }} />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Diagram 2: Dual-Port ──────────────────────────────────────────────────
+function DualPort() {
+  const [hover, setHover] = useState(null);
+
+  const actor = (label, sub, color, id) => (
+    <div
+      onMouseEnter={() => setHover(id)}
+      onMouseLeave={() => setHover(null)}
+      style={{
+        flex: 1, padding: "12px 14px", textAlign: "center",
+        background: hover === id ? color + "20" : PANEL,
+        border: `1px solid ${hover === id ? color + "60" : BORDER}`,
+        borderRadius: 8, transition: "all 0.2s", cursor: "default",
+      }}
+    >
+      <div style={{ fontFamily: mono, fontSize: 11, fontWeight: 700, color, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, color: DIM, lineHeight: 1.4 }}>{sub}</div>
+    </div>
+  );
+
+  const port = (label, desc, endpoints, color) => (
+    <div style={{
+      flex: 1, padding: "14px 16px",
+      background: color + "10",
+      border: `2px solid ${color}40`, borderRadius: 10,
+    }}>
+      <div style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 11, color: DIM, marginBottom: 10, lineHeight: 1.4 }}>{desc}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {endpoints.map((e, i) => (
+          <div key={i} style={{
+            fontFamily: mono, fontSize: 10, color: color,
+            background: DARK, border: `1px solid ${BORDER}`,
+            borderRadius: 4, padding: "3px 8px",
+          }}>{e}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const divider = (label) => (
+    <div style={{ textAlign: "center", padding: "8px 0", fontFamily: mono, fontSize: 10, color: DIM }}>
+      {label}
+    </div>
+  );
+
+  const core = (label, items, color) => (
+    <div style={{ padding: "16px 20px", background: color + "10", border: `2px solid ${color}50`, borderRadius: 10 }}>
+      <div style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color, marginBottom: 10, letterSpacing: "0.06em" }}>{label}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        {items.map((item, i) => (
+          <div key={i} style={{
+            fontFamily: mono, fontSize: 10, color: TEXT,
+            background: DARK, border: `1px solid ${BORDER}`,
+            borderRadius: 4, padding: "4px 8px",
+          }}>{item}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 32, maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Dual-Port over InvariantCore</div>
+        <div style={{ fontSize: 13, color: DIM, lineHeight: 1.6 }}>
+          Two surfaces, one core. All writes flow through the Automation Port. The UI Port is read-only. The InvariantCore governs both — neither port can bypass it.
+        </div>
+      </div>
+
+      {/* Actors */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
+        {actor("AI AGENTS", "claude-opus · Copilot · Agentforce", ACCENT, "agents")}
+        {actor("INTEGRATIONS", "ERP webhooks · bank feeds", ACCENT, "integrations")}
+        {actor("HUMANS", "AP team · VP Finance · CFO", DIM, "humans")}
+      </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 2, textAlign: "center", fontFamily: mono, fontSize: 10, color: ACCENT, padding: "4px 0" }}>↓ all writes via Automation Port</div>
+        <div style={{ flex: 1, textAlign: "center", fontFamily: mono, fontSize: 10, color: DIM, padding: "4px 0" }}>↓ writes (human actions)</div>
+      </div>
+
+      {/* Ports */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 4 }}>
+        {port("AUTOMATION PORT", "Stable API contract. All agent and integration writes. Breaking changes require versioning.", [
+          "POST /events/:type",
+          "PATCH /work-orders/:id",
+          "POST /proofchain/attest",
+          "GET /lineage/:entry_id",
+        ], ACCENT)}
+        {port("UI PORT", "Read-only MV projections. Evolves with UI. Agents must not depend on this port.", [
+          "AP Queue view",
+          "Event detail view",
+          "Auditor export",
+          "Policy console",
+        ], DIM)}
+      </div>
+
+      {divider("↓  both ports pass through InvariantCore — no bypass possible")}
+
+      {core("INVARIANT CORE", [
+        "R1: agent_id non-null",
+        "R2: $50K dual attestation",
+        "R3: known vendor payee",
+        "R4: bank change → new TM",
+        "R5: policy_version pinned",
+        "R6: ProofChain FK non-null",
+      ], AMBER)}
+
+      {divider("↓  PASS: event store  ·  FAIL: DisputeEvent")}
+
+      {core("EVENT STORE + PROOFCHAIN", [
+        "Append-only Postgres",
+        "Hash chain — tamper-evident",
+        "ProposedEvent → root",
+        "LedgerPosting → leaf",
+        "Lineage queryable",
+        "No deletes, no updates",
+      ], ACCENT2)}
+
+      {divider("↓  materialized views → UI Port (read-only)")}
+
+      <div style={{
+        padding: "14px 20px", background: ACCENT2 + "10",
+        border: `1px solid ${ACCENT2}40`, borderRadius: 10, textAlign: "center",
+      }}>
+        <div style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: ACCENT2, marginBottom: 4 }}>LEDGER</div>
+        <div style={{ fontSize: 11, color: DIM }}>Double-entry GL · proof_chain_id non-nullable · agent_id on every posting</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Diagram 3: Full Stack ─────────────────────────────────────────────────
+function FullStack() {
+  const [active, setActive] = useState(null);
+
+  const rows = [
+    { label: "EXTERNAL ACTORS", color: ACCENT, items: ["AI agents (claude-opus)", "Copilot for Finance", "Salesforce Agentforce", "Human AP team", "ERP webhooks", "Bank feeds"], constraint: "All writes → Automation Port only" },
+    { label: "AUTOMATION PORT", color: ACCENT, items: ["POST /events/:type", "PATCH /work-orders/:id", "POST /proofchain/attest", "agent_id required on all calls"], constraint: "Stable API — versioned contract" },
+    { label: "INVARIANT CORE", color: AMBER, items: ["R1 agent_id", "R2 threshold $50K", "R3 vendor check", "R4 bank change", "R5 policy pin", "R6 FK non-null"], constraint: "Before execution — no bypass" },
+    { label: "POLICY DECISION", color: RED, items: ["PASS → continue", "FAIL → DisputeEvent", "Escalation queue", "Human work order created"], constraint: "Inline engine — no OPA v1" },
+    { label: "WORKFLOW ENGINE", color: BLUE, items: ["Track 1: Confirm", "Track 2: Change", "Track 3: Dispute→Resolve", "Job queue (Temporal/BullMQ)"], constraint: "All tracks → ProofChain" },
+    { label: "EVENT STORE", color: ACCENT2, items: ["Append-only Postgres", "ProposedEvent", "AcknowledgeEvent", "DisputeEvent", "AttestView"], constraint: "No updates — no deletes" },
+    { label: "PROOFCHAIN", color: ACCENT, items: ["Hash chain links", "prior_hash on each link", "Root = ProposedEvent", "Lineage queryable immediately"], constraint: "Tamper-evident, append-only" },
+    { label: "SCOPED VIEWS", color: DIM, items: ["AP Team: full payload", "Auditor: restricted fields", "Vendor: own data only", "CFO: aggregate only"], constraint: "Data model — not UI toggle" },
+    { label: "LEDGER", color: ACCENT2, items: ["Double-entry GL", "proof_chain_id non-null FK", "agent_id on every posting", "ERP sync ref"], constraint: "Rejected without ProofChain" },
+    { label: "UI PORT (READ-ONLY)", color: DIM, items: ["AP Queue", "Event detail", "ProofChain viewer", "Auditor export", "Policy console", "Agent activity log"], constraint: "MV projections — never writes" },
+  ];
+
+  return (
+    <div style={{ padding: 32, maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: WHITE, marginBottom: 6 }}>Full Stack</div>
+        <div style={{ fontSize: 13, color: DIM, lineHeight: 1.6 }}>
+          All layers top to bottom — from external actors through both ports, through the invariant core, to event store, workflow, and ledger. Click any row to highlight.
+        </div>
+      </div>
+
+      {/* Column headers */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 8, paddingLeft: 160 }}>
+        <div style={{ flex: 1, fontFamily: mono, fontSize: 9, color: DIM, letterSpacing: "0.06em", paddingLeft: 14 }}>COMPONENTS</div>
+        <div style={{ width: 200, fontFamily: mono, fontSize: 9, color: DIM, letterSpacing: "0.06em", paddingLeft: 12 }}>CONSTRAINT</div>
+      </div>
+
+      {rows.map((row, i) => (
+        <div key={row.label}>
+          <div
+            onClick={() => setActive(active === row.label ? null : row.label)}
+            style={{
+              display: "flex", alignItems: "stretch", cursor: "pointer",
+              background: active === row.label ? row.color + "12" : PANEL,
+              border: `1px solid ${active === row.label ? row.color + "50" : BORDER}`,
+              borderRadius: 6, overflow: "hidden", transition: "all 0.15s",
+            }}
+          >
+            <div style={{
+              width: 160, flexShrink: 0, padding: "10px 14px",
+              background: row.color + "18",
+              borderRight: `1px solid ${row.color}30`,
+              display: "flex", alignItems: "center",
+            }}>
+              <div style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, color: row.color, lineHeight: 1.3 }}>{row.label}</div>
+            </div>
+            <div style={{ flex: 1, padding: "10px 14px", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+              {row.items.map((item, j) => (
+                <span key={j} style={{
+                  fontFamily: mono, fontSize: 10, color: active === row.label ? row.color : TEXT,
+                  background: DARK, border: `1px solid ${active === row.label ? row.color + "40" : BORDER}`,
+                  borderRadius: 3, padding: "2px 7px", transition: "all 0.15s",
+                }}>{item}</span>
+              ))}
+            </div>
+            <div style={{
+              width: 200, flexShrink: 0, padding: "10px 12px",
+              borderLeft: `1px solid ${BORDER}`,
+              fontSize: 10, color: DIM, lineHeight: 1.4,
+              display: "flex", alignItems: "center",
+            }}>{row.constraint}</div>
+          </div>
+          {i < rows.length - 1 && (
+            <div style={{ textAlign: "center", fontFamily: mono, fontSize: 9, color: DIM + "60", padding: "2px 0" }}>↓</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────
+export default function CastArchitecture() {
+  const [active, setActive] = useState("event-flow");
+
+  const tabs = [
+    { id: "event-flow", label: "Event → Policy → Workflow → Ledger" },
+    { id: "dual-port",  label: "Dual-Port over InvariantCore" },
+    { id: "full-stack", label: "Full Stack" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh", background: DARK, fontFamily: sans, color: TEXT, display: "flex", flexDirection: "column" }}>
+
+      {/* Header */}
+      <div style={{ padding: "14px 32px", borderBottom: `1px solid ${BORDER}`, background: PANEL, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, ${ACCENT}, ${ACCENT2})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: DARK, fontWeight: 900, fontSize: 13 }}>C</span>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: WHITE }}>CAST v1 — Architecture</div>
+            <div style={{ fontSize: 10, color: DIM, fontFamily: mono }}>Events · Policies · Workflows · Ledger</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Tag label="INV-CORE-v14" color={AMBER} />
+          <Tag label="Dual-Port" color={ACCENT} />
+          <Tag label="ProofChain" color={ACCENT2} />
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${BORDER}`, background: PANEL, padding: "0 24px" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setActive(t.id)} style={{
+            padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
+            fontFamily: mono, fontSize: 11, fontWeight: 600,
+            color: active === t.id ? ACCENT : DIM,
+            borderBottom: `2px solid ${active === t.id ? ACCENT : "transparent"}`,
+            transition: "all 0.15s",
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, overflow: "auto" }}>
+        {active === "event-flow" && <EventFlow />}
+        {active === "dual-port"  && <DualPort />}
+        {active === "full-stack" && <FullStack />}
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: "8px 32px", borderTop: `1px solid ${BORDER}`, background: PANEL, fontFamily: mono, fontSize: 10, color: DIM }}>
+        Every other system governs what humans do.&nbsp;
+        <span style={{ color: ACCENT }}>CAST governs what agents do.</span>
+        <span style={{ float: "right" }}>Click layers / rows to expand · Hover actors for highlight</span>
+      </div>
+    </div>
+  );
+}

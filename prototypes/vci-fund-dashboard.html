@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VCI | Valor Compute Infrastructure Fund</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+
+        * { box-sizing: border-box; }
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .mono { font-family: 'IBM Plex Mono', monospace; }
+
+        .tab-active   { border-bottom: 2px solid #3b82f6; color: #f1f5f9; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #475569; }
+        .tab-inactive:hover { color: #94a3b8; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Pulse animation for live indicator */
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+        /* Timeline track */
+        .timeline-track { position: relative; }
+        .timeline-track::before {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 0; bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #1e3a5f, #1e293b);
+        }
+
+        /* Event dot */
+        .ev-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            position: relative; z-index: 1;
+        }
+        .ev-dot.complete  { background: #10b981; box-shadow: 0 0 8px rgba(16,185,129,.5); }
+        .ev-dot.active    { background: #3b82f6; box-shadow: 0 0 12px rgba(59,130,246,.7); animation: pulse 2s infinite; }
+        .ev-dot.pending   { background: #475569; border: 2px solid #334155; }
+        .ev-dot.delayed   { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,.5); }
+        .ev-dot.critical  { background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,.5); }
+
+        .row-hover:hover { background: rgba(30,41,59,.8); }
+
+        /* Momentum bar fill animation */
+        .momentum-fill { transition: width 1s ease; }
+
+        /* Phase badge */
+        .phase-0 { background: rgba(30,58,95,.5);  color: #93c5fd; border: 1px solid #1e3a5f; }
+        .phase-1 { background: rgba(15,52,96,.5);  color: #60a5fa; border: 1px solid #0f3460; }
+        .phase-2 { background: rgba(5,46,22,.5);   color: #4ade80; border: 1px solid #052e16; }
+        .phase-3 { background: rgba(49,10,78,.5);  color: #c084fc; border: 1px solid #31104e; }
+        .phase-4 { background: rgba(69,37,0,.5);   color: #fbbf24; border: 1px solid #451800; }
+        .phase-5 { background: rgba(5,46,22,.5);   color: #34d399; border: 1px solid #052e16; }
+        .phase-6 { background: rgba(69,26,3,.5);   color: #fb923c; border: 1px solid #451a03; }
+
+        /* IRR delta chips */
+        .irr-pos { background: rgba(16,185,129,.15); color: #34d399; }
+        .irr-neg { background: rgba(239,68,68,.15);  color: #f87171; }
+        .irr-zero{ background: rgba(71,85,105,.15);  color: #64748b; }
+
+        /* Momentum glow on key event */
+        .key-event-row { background: rgba(245,158,11,.04); border-left: 3px solid #f59e0b; }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        /* Card hover */
+        .card-hover { transition: border-color .2s; }
+        .card-hover:hover { border-color: #3b82f6 !important; }
+
+        /* Stat number */
+        .stat-num { font-variant-numeric: tabular-nums; }
+
+        /* Slide-in for page transitions */
+        .page.active { animation: fadeIn .15s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+        /* Event detail drawer */
+        .event-drawer { transition: all .2s ease; }
+
+        /* Covenant gauge */
+        .gauge-bar { height: 6px; border-radius: 3px; background: #1e293b; overflow: hidden; }
+        .gauge-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+        .gauge-ok   { background: linear-gradient(90deg, #10b981, #34d399); }
+        .gauge-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .gauge-red  { background: linear-gradient(90deg, #ef4444, #f87171); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+<!-- ─── HEADER ──────────────────────────────────────────────────── -->
+<header class="border-b border-slate-800 px-6 py-3.5 sticky top-0 bg-slate-950/95 backdrop-blur z-50">
+    <div class="flex items-center justify-between max-w-screen-2xl mx-auto">
+        <div class="flex items-center gap-8">
+            <!-- Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold mono"
+                     style="background: linear-gradient(135deg,#1d4ed8,#7c3aed)">V</div>
+                <div>
+                    <div class="text-sm font-semibold leading-none">VCI</div>
+                    <div class="text-xs text-slate-500 leading-none mt-0.5">Valor Compute Infrastructure</div>
+                </div>
+            </div>
+            <!-- Nav -->
+            <nav class="flex gap-0.5 text-sm">
+                <button onclick="showPage('dashboard')"  id="tab-dashboard"  class="px-4 py-2 tab-active   text-sm">Dashboard</button>
+                <button onclick="showPage('events')"     id="tab-events"     class="px-4 py-2 tab-inactive text-sm">Events</button>
+                <button onclick="showPage('policies')"   id="tab-policies"   class="px-4 py-2 tab-inactive text-sm">Policies</button>
+                <button onclick="showPage('workorders')" id="tab-workorders" class="px-4 py-2 tab-inactive text-sm">Work Orders</button>
+                <button onclick="showPage('ledger')"     id="tab-ledger"     class="px-4 py-2 tab-inactive text-sm">Momentum Ledger</button>
+                <button onclick="showPage('exceptions')" id="tab-exceptions" class="px-4 py-2 tab-inactive text-sm">Exceptions</button>
+            </nav>
+        </div>
+        <div class="flex items-center gap-5 text-sm">
+            <div class="flex items-center gap-2 text-slate-400">
+                <span class="w-2 h-2 bg-blue-500 rounded-full pulse-dot"></span>
+                <span class="text-xs">Phase 1 · Procurement Active</span>
+            </div>
+            <div class="w-px h-5 bg-slate-800"></div>
+            <div class="text-xs"><span class="text-slate-500">Fund:</span> <span>Valor Compute Infrastructure L.P.</span></div>
+            <div class="w-px h-5 bg-slate-800"></div>
+            <div class="text-xs"><span class="text-slate-500">Lessee:</span> <span class="text-blue-400">xAI Corp.</span></div>
+        </div>
+    </div>
+</header>
+
+<main class="max-w-screen-2xl mx-auto p-6">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+
+    <!-- KPI Strip -->
+    <div class="grid grid-cols-6 gap-3 mb-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Current Earning Momentum</div>
+            <div class="text-2xl font-semibold mono stat-num text-red-400">$(24.8)M</div>
+            <div class="text-xs text-slate-500 mt-1">per month · pre-commencement</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Target Momentum (E13)</div>
+            <div class="text-2xl font-semibold mono stat-num text-emerald-400">+$10.4M</div>
+            <div class="text-xs text-slate-500 mt-1">per month · post-commencement</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Apollo DSCR</div>
+            <div class="text-2xl font-semibold mono stat-num text-amber-400">0.00x</div>
+            <div class="text-xs text-amber-600 mt-1">↑ 1.634x at E13 · min 1.20x</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Lease Commencement</div>
+            <div class="text-2xl font-semibold mono stat-num text-blue-400">E13</div>
+            <div class="text-xs text-slate-500 mt-1">~Mar 2026 · planned</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Events Complete</div>
+            <div class="text-2xl font-semibold mono stat-num">6 / 27</div>
+            <div class="text-xs text-emerald-400 mt-1">Phase 0–1 closed</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 card-hover">
+            <div class="text-slate-400 text-xs mb-1.5">Cost of Each Day Delayed</div>
+            <div class="text-2xl font-semibold mono stat-num text-red-400">$2.18M</div>
+            <div class="text-xs text-slate-500 mt-1">foregone lease + interest</div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-3 gap-5 mb-5">
+
+        <!-- Lifecycle Timeline (col-span-1) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-medium text-sm">Lifecycle Progress</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">27 events · 5-year project</p>
+                </div>
+                <span class="text-xs mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">Nov 2025 → Nov 2030</span>
+            </div>
+            <div class="space-y-2">
+                <!-- Phase bars -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 0 · Pre-close</span><span class="text-emerald-400 mono">4/4 ✓</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 1 · Procurement</span><span class="text-blue-400 mono">2/4 ►</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-blue-500 rounded-full" style="width:50%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 2 · Commissioning</span><span class="text-blue-400 mono">1/3 ►</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-blue-400 rounded-full" style="width:33%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 3 · Acceptance</span><span class="text-slate-500 mono">0/3</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-purple-500 rounded-full" style="width:0%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 4 · Utilization Ramp</span><span class="text-slate-500 mono">0/4</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-amber-500 rounded-full" style="width:0%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 5 · Steady State</span><span class="text-slate-500 mono">0/4</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-emerald-400 rounded-full" style="width:0%"></div></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1"><span class="text-slate-400">Phase 6 · Terminal</span><span class="text-slate-500 mono">0/5</span></div>
+                    <div class="h-1.5 bg-slate-800 rounded-full"><div class="h-full bg-orange-500 rounded-full" style="width:0%"></div></div>
+                </div>
+            </div>
+            <!-- Momentum state bar -->
+            <div class="mt-5 pt-4 border-t border-slate-800">
+                <div class="text-xs text-slate-500 mb-2">Momentum unlocked vs. contracted target</div>
+                <div class="gauge-bar">
+                    <div class="gauge-fill gauge-warn" style="width:0%"></div>
+                </div>
+                <div class="flex justify-between text-xs mt-1">
+                    <span class="text-red-400 mono">$(24.8)M/mo now</span>
+                    <span class="text-emerald-400 mono">+$10.4M/mo at E13</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capital Stack & Waterfall -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-medium text-sm">Capital Stack</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">$5.4B total · Apollo facility active</p>
+                </div>
+            </div>
+            <div class="space-y-3 mb-5">
+                <div>
+                    <div class="flex justify-between mb-1 text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></span>
+                            <span class="text-slate-300">Apollo Senior Debt</span>
+                        </span>
+                        <span class="mono text-slate-300">$3,500M</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-800 rounded-full">
+                        <div class="h-full bg-blue-500 rounded-full" style="width:64.8%"></div>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-0.5">64.8% LTV · 8.5% rate · IO period Y1 · covenant: LTV ≤75%</div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-1 text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-purple-500 rounded-sm"></span>
+                            <span class="text-slate-300">NVIDIA Anchor LP (equity)</span>
+                        </span>
+                        <span class="mono text-slate-300">$380M</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-800 rounded-full">
+                        <div class="h-full bg-purple-500 rounded-full" style="width:7%"></div>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-0.5">Strategic anchor · pro-rata distributions</div>
+                </div>
+                <div>
+                    <div class="flex justify-between mb-1 text-sm">
+                        <span class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-sm"></span>
+                            <span class="text-slate-300">Valor LP Equity</span>
+                        </span>
+                        <span class="mono text-slate-300">$1,520M</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-800 rounded-full">
+                        <div class="h-full bg-emerald-500 rounded-full" style="width:28.1%"></div>
+                    </div>
+                    <div class="text-xs text-slate-500 mt-0.5">Institutional LPs · ~9% target IRR</div>
+                </div>
+            </div>
+
+            <!-- Monthly waterfall (post E13) -->
+            <div class="border-t border-slate-800 pt-4">
+                <div class="text-xs text-slate-500 mb-3">Monthly cash waterfall (post E13 — projected)</div>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="w-5 h-5 bg-slate-800 rounded flex items-center justify-center text-xs mono">1</div>
+                        <div class="flex-1 flex justify-between">
+                            <span class="text-slate-300">xAI lease payment (NNN)</span>
+                            <span class="mono text-slate-200">$40.5M</span>
+                        </div>
+                        <span class="text-blue-400 text-xs">SOURCE</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="w-5 h-5 bg-slate-800 rounded flex items-center justify-center text-xs mono">2</div>
+                        <div class="flex-1 flex justify-between">
+                            <span class="text-slate-400">Apollo interest service</span>
+                            <span class="mono text-red-400">$(24.8)M</span>
+                        </div>
+                        <span class="text-emerald-400 text-xs">✓</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="w-5 h-5 bg-slate-800 rounded flex items-center justify-center text-xs mono">3</div>
+                        <div class="flex-1 flex justify-between">
+                            <span class="text-slate-400">Mgmt fee + fund expenses</span>
+                            <span class="mono text-red-400">$(5.35)M</span>
+                        </div>
+                        <span class="text-emerald-400 text-xs">✓</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <div class="w-5 h-5 bg-slate-800 rounded flex items-center justify-center text-xs mono">4</div>
+                        <div class="flex-1 flex justify-between">
+                            <span class="text-slate-300">LP distributions (90% · IO period only)</span>
+                            <span class="mono text-emerald-400">$9.3M</span>
+                        </div>
+                        <span class="text-amber-400 text-xs">POST E13</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Covenant Monitor -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="font-medium text-sm">Covenant Monitor</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Apollo facility · event-triggered tests</p>
+                </div>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded mono">4/4 PASS</span>
+            </div>
+            <div class="space-y-4">
+                <!-- DSCR -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">DSCR</span>
+                        <span class="mono"><span class="text-amber-400">0.00x</span> <span class="text-slate-600">/ min 1.20x</span></span>
+                    </div>
+                    <div class="gauge-bar">
+                        <div class="gauge-fill gauge-warn" style="width:0%"></div>
+                    </div>
+                    <div class="text-xs text-slate-600 mt-0.5">Pre-commencement · 0.00x → 1.634x at E13 (IO) · 1.029x post-IO ⚠</div>
+                </div>
+                <!-- LTV -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">LTV</span>
+                        <span class="mono"><span class="text-emerald-400">64.8%</span> <span class="text-slate-600">/ max 75.0%</span></span>
+                    </div>
+                    <div class="gauge-bar">
+                        <div class="gauge-fill gauge-ok" style="width:86.4%"></div>
+                    </div>
+                    <div class="text-xs text-slate-600 mt-0.5">10.2pp headroom · $551M buffer</div>
+                </div>
+                <!-- Interest Reserve -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">Interest Reserve</span>
+                        <span class="mono"><span class="text-emerald-400">6 months</span> <span class="text-slate-600">/ min 6</span></span>
+                    </div>
+                    <div class="gauge-bar">
+                        <div class="gauge-fill gauge-ok" style="width:100%"></div>
+                    </div>
+                    <div class="text-xs text-slate-600 mt-0.5">$148.8M funded at close · E02 trigger</div>
+                </div>
+                <!-- Liquidity -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300 font-medium">Min. Liquidity</span>
+                        <span class="mono"><span class="text-emerald-400">$95.0M</span> <span class="text-slate-600">/ min $50M</span></span>
+                    </div>
+                    <div class="gauge-bar">
+                        <div class="gauge-fill gauge-ok" style="width:100%"></div>
+                    </div>
+                    <div class="text-xs text-slate-600 mt-0.5">Working capital + reserve excess</div>
+                </div>
+            </div>
+            <!-- Breach scenarios -->
+            <div class="mt-4 pt-4 border-t border-slate-800">
+                <div class="text-xs text-slate-500 mb-2">DSCR breach threshold</div>
+                <div class="bg-slate-800/50 rounded-lg p-3 text-xs space-y-1">
+                    <div class="flex justify-between"><span class="text-slate-400">Lease required for 1.20x DSCR (IO only)</span><span class="mono text-slate-300">$29.8M/mo</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Contracted lease rate</span><span class="mono text-emerald-400">$40.5M/mo</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Headroom (IO period)</span><span class="mono text-emerald-400">+$10.7M/mo</span></div>
+                    <div class="flex justify-between mt-1 pt-1 border-t border-slate-700"><span class="text-red-400">⚠ Post-IO DSCR (incl. $175M/yr principal)</span><span class="mono text-red-400">1.029x · below 1.20x min</span></div>
+                    <div class="flex justify-between"><span class="text-slate-400">Lease required for 1.20x post-IO</span><span class="mono text-amber-400">$575.4M/yr · vs $486M contracted</span></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Next Critical Events + Chart row -->
+    <div class="grid grid-cols-2 gap-5">
+        <!-- Next Events -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="font-medium text-sm">Next Critical Events</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Actions blocking E13 lease commencement</p>
+                </div>
+                <button onclick="showPage('events')" class="text-xs text-blue-400 hover:text-blue-300">View all →</button>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded-lg border border-amber-500/20">
+                    <div class="ev-dot critical mt-1"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium text-amber-300">E07 · Batch 3 GPU Delivery</span>
+                            <span class="text-xs mono text-slate-500 ml-2 shrink-0">Dec 31</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">NVIDIA schedule confirmation required · customs clearance</div>
+                        <div class="text-xs mt-1"><span class="text-amber-400">Owner: Logistics</span> · <span class="text-slate-500">No delay yet</span></div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded-lg border border-blue-500/20">
+                    <div class="ev-dot active mt-1"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium">E10 · InfiniBand Fabric</span>
+                            <span class="text-xs mono text-slate-500 ml-2 shrink-0">Jan 14</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">Network topology installation · critical path to E11</div>
+                        <div class="text-xs mt-1"><span class="text-blue-400">Owner: Data Center Ops</span> · <span class="text-slate-500">In progress</span></div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded-lg">
+                    <div class="ev-dot pending mt-1"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium">E11 · Full Cluster Integration</span>
+                            <span class="text-xs mono text-slate-500 ml-2 shrink-0">Feb 4</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">All 100K GPUs addressable · triggers xAI acceptance</div>
+                        <div class="text-xs mt-1 text-slate-500">Owner: Technical / xAI · Pending E10</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-3 bg-slate-800/40 rounded-lg border border-amber-500/30" style="background:rgba(245,158,11,.04)">
+                    <div class="ev-dot critical mt-1"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start">
+                            <span class="text-sm font-medium text-amber-200">★ E13 · Lease Commencement</span>
+                            <span class="text-xs mono text-amber-400 ml-2 shrink-0">~Mar 1</span>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">xAI acceptance cert → revenue momentum +$40.5M/mo · DSCR flips to 1.634x (IO period) → 1.029x post-IO</div>
+                        <div class="text-xs mt-1"><span class="text-amber-400 font-medium">Every day late = $2.18M lost</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- IRR Bridge chart -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="font-medium text-sm">IRR Bridge by Event</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Contribution of each phase to ~9% target IRR</p>
+                </div>
+            </div>
+            <canvas id="irrBridgeChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     EVENTS
+════════════════════════════════════════════════════════════════ -->
+<div id="page-events" class="page">
+    <div class="flex justify-between items-center mb-5">
+        <div>
+            <h1 class="text-xl font-semibold">Event Register</h1>
+            <p class="text-slate-400 text-sm mt-0.5">27 lifecycle events · immutable record of fund milestones · single source of truth for all reporting</p>
+        </div>
+        <div class="flex gap-3">
+            <select id="phaseFilter" onchange="filterEvents()" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm">
+                <option value="all">All Phases</option>
+                <option value="0">Phase 0 · Pre-close</option>
+                <option value="1">Phase 1 · Procurement</option>
+                <option value="2">Phase 2 · Commissioning</option>
+                <option value="3">Phase 3 · Acceptance</option>
+                <option value="4">Phase 4 · Ramp</option>
+                <option value="5">Phase 5 · Steady State</option>
+                <option value="6">Phase 6 · Terminal</option>
+            </select>
+            <select id="statusFilter" onchange="filterEvents()" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm">
+                <option value="all">All Statuses</option>
+                <option value="COMPLETE">Complete</option>
+                <option value="ACTIVE">Active</option>
+                <option value="PENDING">Pending</option>
+                <option value="DELAYED">Delayed</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm" id="eventTable">
+            <thead class="bg-slate-800/60">
+                <tr>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Event</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Phase</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Description</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Planned</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Actual</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Status</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">Momentum Δ</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">Cum. Momentum</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">IRR Impact</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Covenant Trigger</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Work Orders</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/80" id="eventTableBody">
+            </tbody>
+        </table>
+        <div class="px-4 py-3 bg-slate-800/30 flex justify-between text-xs text-slate-500">
+            <span id="eventCount">27 lifecycle events</span>
+            <span>Single source of truth · all downstream reporting derives from this register</span>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     POLICIES
+════════════════════════════════════════════════════════════════ -->
+<div id="page-policies" class="page">
+    <div class="flex justify-between items-center mb-5">
+        <div>
+            <h1 class="text-xl font-semibold">Policies</h1>
+            <p class="text-slate-400 text-sm mt-0.5">Encoded agreements governing VCI fund obligations · each policy triggered by lifecycle events</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-5">
+
+        <!-- Policy: Apollo Debt Compliance -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">DCC-2025-001</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded border border-emerald-500/20">Active</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">Apollo Debt Compliance Certificate</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type IN ('MONTH_END', 'COVENANT_BREACH_RISK')</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">COVENANTS TESTED</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-300">DSCR</span><span class="text-slate-400 mono">≥ 1.20x</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">LTV</span><span class="text-slate-400 mono">≤ 75.0%</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Interest Reserve</span><span class="text-slate-400 mono">≥ 6 months</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Min. Liquidity</span><span class="text-slate-400 mono">≥ $50M</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Recipient</span><div class="text-slate-300 mt-0.5">Apollo</div></div>
+                    <div><span class="text-xs text-slate-500">SLA</span><div class="text-slate-300 mt-0.5">30 days</div></div>
+                    <div><span class="text-xs text-slate-500">Evals (MTD)</span><div class="text-emerald-400 mt-0.5 mono">1 · 100%</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy: Citco NAV -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">NAV-2025-001</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded border border-emerald-500/20">Active</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">Citco Fund Administrator Monthly Report</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type = 'MONTH_END' AND fund.administrator = 'CITCO'</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">REPORT PACKAGE</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-300">NAV Statement</span><span class="text-slate-400 mono">Assets / Liabilities</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Income Statement</span><span class="text-slate-400 mono">vs. Budget</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Cash Flow</span><span class="text-slate-400 mono">OCF / ICF / FCF</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">LP Capital Accounts</span><span class="text-slate-400 mono">Per LP</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Recipient</span><div class="text-slate-300 mt-0.5">Citco</div></div>
+                    <div><span class="text-xs text-slate-500">SLA</span><div class="text-slate-300 mt-0.5">30 days</div></div>
+                    <div><span class="text-xs text-slate-500">Evals (MTD)</span><div class="text-emerald-400 mt-0.5 mono">1 · 100%</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy: Asset Receipt -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">AST-2025-001</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded border border-emerald-500/20">Active</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">GPU Hardware Receipt &amp; Insurance Activation</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type = 'GPU_BATCH_RECEIVED'</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">ACTIONS</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-300">Asset register update</span><span class="text-slate-400 mono">Auto</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Insurance activation</span><span class="text-slate-400 mono">Immediate</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Apollo lender notice</span><span class="text-slate-400 mono">1 business day</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Citco asset schedule</span><span class="text-slate-400 mono">5 business days</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Recipient</span><div class="text-slate-300 mt-0.5">Apollo / Citco</div></div>
+                    <div><span class="text-xs text-slate-500">SLA</span><div class="text-slate-300 mt-0.5">1 bus. day</div></div>
+                    <div><span class="text-xs text-slate-500">Evals (MTD)</span><div class="text-emerald-400 mt-0.5 mono">2 · 100%</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy: Lease Commencement -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover border-l-2 border-l-amber-500">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">LCM-2025-001</span>
+                        <span class="px-2 py-0.5 bg-amber-500/15 text-amber-400 text-xs rounded border border-amber-500/20">Awaiting E13</span>
+                        <span class="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-xs rounded text-xs">Highest Value</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">Lease Commencement · Revenue Momentum Activation</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type = 'XAI_ACCEPTANCE_CERT_ISSUED'</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">ACTIONS (SIMULTANEOUS)</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-300">Issue first invoice to xAI</span><span class="text-amber-400 mono">Same day</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Notify Apollo · DSCR update</span><span class="text-amber-400 mono">Same day</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Update Citco NAV · lease asset</span><span class="text-amber-400 mono">2 bus. days</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">LP commencement notice</span><span class="text-amber-400 mono">5 bus. days</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Momentum Δ</span><div class="text-emerald-400 mt-0.5 mono">+$40.5M/mo</div></div>
+                    <div><span class="text-xs text-slate-500">IRR Impact</span><div class="text-emerald-400 mt-0.5 mono">+970 bps</div></div>
+                    <div><span class="text-xs text-slate-500">DSCR Δ</span><div class="text-emerald-400 mt-0.5 mono">0.00 → 1.634x</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy: PwC Tax -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">TAX-2025-001</span>
+                        <span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded border border-emerald-500/20">Active</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">PwC Tax Compliance · Form 1065 / K-1</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type = 'YEAR_END' OR event_type = 'LP_CHANGE'</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">DELIVERABLES</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-300">Form 1065 partnership return</span><span class="text-slate-400 mono">90 days post-YE</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">K-1s (all LPs incl. NVIDIA)</span><span class="text-slate-400 mono">90 days post-YE</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">DE / TN state filings</span><span class="text-slate-400 mono">Per schedule</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">Offshore LP PFIC analysis</span><span class="text-slate-400 mono">Annual</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Preparer</span><div class="text-slate-300 mt-0.5">PwC</div></div>
+                    <div><span class="text-xs text-slate-500">SLA</span><div class="text-slate-300 mt-0.5">90 days</div></div>
+                    <div><span class="text-xs text-slate-500">Next due</span><div class="text-amber-400 mt-0.5 mono">Mar 31, 2026</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Policy: LP Distribution -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden card-hover">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold mono text-sm">DST-2025-001</span>
+                        <span class="px-2 py-0.5 bg-slate-500/15 text-slate-400 text-xs rounded border border-slate-500/20">Dormant · pre-E13</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mt-1">LP Distribution Waterfall</p>
+                </div>
+                <span class="text-xs text-slate-500 mono">v1</span>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">TRIGGER CONDITION</div>
+                    <div class="bg-slate-800 rounded-lg p-2.5 mono text-xs text-slate-300">event_type = 'LEASE_PAYMENT_RECEIVED' AND waterfall.step &gt; 3</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1.5 uppercase tracking-wide">WATERFALL</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-400">1. Apollo interest</span><span class="text-slate-500 mono">Required · $(24.8)M</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">2. Mgmt fee + expenses</span><span class="text-slate-500 mono">Required · $(5.35)M</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">3. LP distributions (90%)</span><span class="text-emerald-400 mono">$9.3M/mo</span></div>
+                        <div class="flex justify-between"><span class="text-slate-300">4. Retained earnings (10%)</span><span class="text-slate-400 mono">$1.0M/mo</span></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 text-sm">
+                    <div><span class="text-xs text-slate-500">Recipient</span><div class="text-slate-300 mt-0.5">All LPs</div></div>
+                    <div><span class="text-xs text-slate-500">Frequency</span><div class="text-slate-300 mt-0.5">Quarterly</div></div>
+                    <div><span class="text-xs text-slate-500">Activates</span><div class="text-amber-400 mt-0.5 mono">At E13</div></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     WORK ORDERS
+════════════════════════════════════════════════════════════════ -->
+<div id="page-workorders" class="page">
+    <div class="flex justify-between items-center mb-5">
+        <div>
+            <h1 class="text-xl font-semibold">Work Orders</h1>
+            <p class="text-slate-400 text-sm mt-0.5">Reporting and compliance obligations created by lifecycle events</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-5 gap-3 mb-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
+            <div class="text-xl font-semibold mono">3</div><div class="text-xs text-amber-400 mt-0.5">In Progress</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
+            <div class="text-xl font-semibold mono">2</div><div class="text-xs text-blue-400 mt-0.5">Pending</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
+            <div class="text-xl font-semibold mono">6</div><div class="text-xs text-emerald-400 mt-0.5">Completed</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
+            <div class="text-xl font-semibold mono">0</div><div class="text-xs text-red-400 mt-0.5">Exception</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-center">
+            <div class="text-xl font-semibold mono">11</div><div class="text-xs text-slate-400 mt-0.5">Future (event-pending)</div>
+        </div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-800/50">
+                <tr>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Work Order</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Triggering Event</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Policy</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Deliverable</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Assigned To</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Recipient</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Due</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_001</td><td class="px-4 py-3 mono text-xs text-blue-400">E02 · Apollo close</td><td class="px-4 py-3 text-xs">DCC-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Debt Compliance Cert #1</td><td class="px-4 py-3 text-xs">Valor Finance</td><td class="px-4 py-3 text-xs text-slate-400">Apollo</td><td class="px-4 py-3 text-xs text-slate-400">Dec 1, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_002</td><td class="px-4 py-3 mono text-xs text-blue-400">E04 · UCC-1 filed</td><td class="px-4 py-3 text-xs">DCC-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Lender security confirmation</td><td class="px-4 py-3 text-xs">Legal / Counsel</td><td class="px-4 py-3 text-xs text-slate-400">Apollo</td><td class="px-4 py-3 text-xs text-slate-400">Nov 5, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_003</td><td class="px-4 py-3 mono text-xs text-blue-400">E05 · Batch 1 recv.</td><td class="px-4 py-3 text-xs">AST-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Asset receipt + insurance cert</td><td class="px-4 py-3 text-xs">Data Center Ops</td><td class="px-4 py-3 text-xs text-slate-400">Apollo / Citco</td><td class="px-4 py-3 text-xs text-slate-400">Nov 20, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_004</td><td class="px-4 py-3 mono text-xs text-blue-400">E06 · Batch 2 recv.</td><td class="px-4 py-3 text-xs">AST-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Asset receipt + insurance cert</td><td class="px-4 py-3 text-xs">Data Center Ops</td><td class="px-4 py-3 text-xs text-slate-400">Apollo / Citco</td><td class="px-4 py-3 text-xs text-slate-400">Dec 6, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_005</td><td class="px-4 py-3 mono text-xs text-blue-400">Month-end Nov</td><td class="px-4 py-3 text-xs">NAV-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Citco monthly report #1</td><td class="px-4 py-3 text-xs">Valor Finance</td><td class="px-4 py-3 text-xs text-slate-400">Citco</td><td class="px-4 py-3 text-xs text-slate-400">Dec 1, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_006</td><td class="px-4 py-3 mono text-xs text-blue-400">Month-end Nov</td><td class="px-4 py-3 text-xs">TAX-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">PwC monthly provision accrual</td><td class="px-4 py-3 text-xs">Valor Finance → PwC</td><td class="px-4 py-3 text-xs text-slate-400">PwC</td><td class="px-4 py-3 text-xs text-slate-400">Dec 15, 2025</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-emerald-500/15 text-emerald-400 text-xs rounded">Completed</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_007</td><td class="px-4 py-3 mono text-xs text-amber-400">E07 · Batch 3 recv.</td><td class="px-4 py-3 text-xs">AST-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Asset receipt + inventory audit</td><td class="px-4 py-3 text-xs">Data Center Ops</td><td class="px-4 py-3 text-xs text-slate-400">Apollo / Citco</td><td class="px-4 py-3 text-xs text-slate-400">Jan 5, 2026</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-amber-500/15 text-amber-400 text-xs rounded">Pending E07</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_008</td><td class="px-4 py-3 mono text-xs text-amber-400">Month-end Dec</td><td class="px-4 py-3 text-xs">DCC-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Debt Compliance Cert #2</td><td class="px-4 py-3 text-xs">Valor Finance</td><td class="px-4 py-3 text-xs text-slate-400">Apollo</td><td class="px-4 py-3 text-xs text-slate-400">Jan 30, 2026</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-xs rounded">In Progress</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_009</td><td class="px-4 py-3 mono text-xs text-amber-400">Month-end Dec</td><td class="px-4 py-3 text-xs">NAV-2025-001</td><td class="px-4 py-3 text-xs text-slate-300">Citco monthly report #2</td><td class="px-4 py-3 text-xs">Valor Finance</td><td class="px-4 py-3 text-xs text-slate-400">Citco</td><td class="px-4 py-3 text-xs text-slate-400">Jan 30, 2026</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-xs rounded">In Progress</span></td></tr>
+                <tr class="row-hover bg-amber-500/3"><td class="px-4 py-3 mono text-xs">wo_vci_010</td><td class="px-4 py-3 mono text-xs text-amber-400">★ E13 · Lease comm.</td><td class="px-4 py-3 text-xs">LCM-2025-001</td><td class="px-4 py-3 text-xs text-amber-200 font-medium">First invoice + Apollo notice + LP alert</td><td class="px-4 py-3 text-xs">Valor Finance / Legal</td><td class="px-4 py-3 text-xs text-slate-400">xAI / Apollo / LPs</td><td class="px-4 py-3 text-xs text-amber-400">Same day as E13</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-500/15 text-slate-400 text-xs rounded">Awaiting E13</span></td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs">wo_vci_011</td><td class="px-4 py-3 mono text-xs text-slate-500">E20 · FY2025 audit</td><td class="px-4 py-3 text-xs">TAX-2025-001</td><td class="px-4 py-3 text-xs text-slate-400">PwC audited financials + K-1s</td><td class="px-4 py-3 text-xs text-slate-500">PwC</td><td class="px-4 py-3 text-xs text-slate-500">All LPs</td><td class="px-4 py-3 text-xs text-slate-500">Mar 31, 2026</td><td class="px-4 py-3"><span class="px-2 py-0.5 bg-slate-500/15 text-slate-500 text-xs rounded">Future</span></td></tr>
+            </tbody>
+        </table>
+        <div class="px-4 py-3 bg-slate-800/30 flex justify-between text-xs text-slate-500">
+            <span>11 of 22 total work orders · 11 future (event-pending)</span>
+            <span>Work orders auto-created when triggering event is logged</span>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MOMENTUM LEDGER
+════════════════════════════════════════════════════════════════ -->
+<div id="page-ledger" class="page">
+    <div class="flex justify-between items-center mb-5">
+        <div>
+            <h1 class="text-xl font-semibold">Momentum Ledger</h1>
+            <p class="text-slate-400 text-sm mt-0.5">Earning rate state after each lifecycle event · immutable · event-sourced</p>
+        </div>
+        <button class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm hover:bg-slate-700">Export</button>
+    </div>
+
+    <!-- Account balances -->
+    <div class="grid grid-cols-5 gap-3 mb-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+            <div class="text-xs text-slate-500">GPU Assets (at cost)</div>
+            <div class="text-lg font-semibold mono">$3,240M</div>
+            <div class="text-xs text-slate-600 mt-0.5">Batches 1-2 received</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+            <div class="text-xs text-slate-500">Apollo Debt Outstanding</div>
+            <div class="text-lg font-semibold mono text-blue-400">$(3,500)M</div>
+            <div class="text-xs text-slate-600 mt-0.5">IO period · no principal pmts</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+            <div class="text-xs text-slate-500">Interest Reserve</div>
+            <div class="text-lg font-semibold mono text-emerald-400">$148.8M</div>
+            <div class="text-xs text-slate-600 mt-0.5">6 months funded at close</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+            <div class="text-xs text-slate-500">Revenue Momentum</div>
+            <div class="text-lg font-semibold mono text-red-400">$0/mo</div>
+            <div class="text-xs text-amber-600 mt-0.5">Unlocks at E13</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+            <div class="text-xs text-slate-500">Net Momentum (Current)</div>
+            <div class="text-lg font-semibold mono text-red-400">$(24.8)M/mo</div>
+            <div class="text-xs text-slate-600 mt-0.5">Interest cost only</div>
+        </div>
+    </div>
+
+    <!-- Momentum ledger table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-800/50">
+                <tr>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Entry ID</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Event</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Account</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Description</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">Δ Revenue Momentum</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">Δ Cost Momentum</th>
+                    <th class="text-right px-4 py-3 text-slate-400 font-medium text-xs">Net Momentum State</th>
+                    <th class="text-left px-4 py-3 text-slate-400 font-medium text-xs">Lineage</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs text-slate-500">mom_001</td><td class="px-4 py-3 mono text-xs text-blue-400">E01</td><td class="px-4 py-3 text-xs">Fund Formation</td><td class="px-4 py-3 text-xs text-slate-400">Fund inception · zero state</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">$0</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">$0</td><td class="px-4 py-3 text-right mono text-xs font-medium">$0/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e01_...f2a1</td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs text-slate-500">mom_002</td><td class="px-4 py-3 mono text-xs text-blue-400">E02</td><td class="px-4 py-3 text-xs">Debt Service</td><td class="px-4 py-3 text-xs text-slate-400">Apollo facility · $3,500M @ 8.5% · IO · cost momentum activated</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs text-red-400">$(24.8)M</td><td class="px-4 py-3 text-right mono text-xs font-medium text-red-400">$(24.8)M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e02_...c3b2</td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs text-slate-500">mom_003</td><td class="px-4 py-3 mono text-xs text-blue-400">E05</td><td class="px-4 py-3 text-xs">GPU Assets</td><td class="px-4 py-3 text-xs text-slate-400">Batch 1 · 25K GPUs on-site · asset registered · no revenue impact</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs font-medium text-red-400">$(24.8)M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e05_...d4c3</td></tr>
+                <tr class="row-hover"><td class="px-4 py-3 mono text-xs text-slate-500">mom_004</td><td class="px-4 py-3 mono text-xs text-blue-400">E06</td><td class="px-4 py-3 text-xs">GPU Assets</td><td class="px-4 py-3 text-xs text-slate-400">Batch 2 · 50K GPUs cumulative · asset registered · no revenue impact</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs font-medium text-red-400">$(24.8)M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e06_...e5d4</td></tr>
+                <tr class="row-hover bg-amber-500/3"><td class="px-4 py-3 mono text-xs text-slate-500">mom_005</td><td class="px-4 py-3 mono text-xs text-amber-400">E13 ★</td><td class="px-4 py-3 text-xs text-amber-200 font-medium">Revenue Momentum</td><td class="px-4 py-3 text-xs text-amber-200">xAI acceptance cert · LEASE COMMENCEMENT · NNN income stream activated · $40.5M/mo contractual</td><td class="px-4 py-3 text-right mono text-xs text-emerald-400 font-bold">+$40.5M</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs font-bold text-emerald-400">+$10.4M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e13_...PENDING</td></tr>
+                <tr class="row-hover opacity-40"><td class="px-4 py-3 mono text-xs text-slate-600">mom_006</td><td class="px-4 py-3 mono text-xs text-slate-600">E23 (future)</td><td class="px-4 py-3 text-xs text-slate-600">Terminal Value</td><td class="px-4 py-3 text-xs text-slate-600">xAI renewal LOI · revenue momentum confirmed Year 5+ · IRR terminal capture</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">+$40.5M</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">+$10.4M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e23_...future</td></tr>
+                <tr class="row-hover opacity-40"><td class="px-4 py-3 mono text-xs text-slate-600">mom_007</td><td class="px-4 py-3 mono text-xs text-slate-600">E25 (future)</td><td class="px-4 py-3 text-xs text-slate-600">Lease Expiry</td><td class="px-4 py-3 text-xs text-slate-600">Lease expires Y5 · revenue momentum → $0 · terminal event</td><td class="px-4 py-3 text-right mono text-xs text-red-400 opacity-50">$(40.5)M</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">—</td><td class="px-4 py-3 text-right mono text-xs text-slate-600">$(24.8)M/mo</td><td class="px-4 py-3 mono text-xs text-slate-600">evt_e25_...future</td></tr>
+            </tbody>
+        </table>
+        <div class="px-4 py-3 bg-slate-800/30 flex justify-between text-xs text-slate-500">
+            <span>7 momentum entries · 4 actual · 3 projected · complete event lineage preserved</span>
+            <span class="text-slate-600">Immutable log — each entry hashed and linked to triggering event</span>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     EXCEPTIONS
+════════════════════════════════════════════════════════════════ -->
+<div id="page-exceptions" class="page">
+    <div class="flex justify-between items-center mb-5">
+        <div>
+            <h1 class="text-xl font-semibold">Exceptions</h1>
+            <p class="text-slate-400 text-sm mt-0.5">Events at risk, covenant warnings, delayed milestones, and IRR-impacting deviations</p>
+        </div>
+    </div>
+    <div class="space-y-4">
+
+        <!-- Active exception -->
+        <div class="bg-slate-900 border border-amber-500/30 rounded-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center" style="background:rgba(245,158,11,.04)">
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded border border-amber-500/30 mono font-medium">exc_vci_001</span>
+                    <span class="text-sm font-medium text-amber-200">DSCR Pre-Commencement · Covenant Exception Window</span>
+                    <span class="px-2 py-0.5 bg-amber-500/15 text-amber-400 text-xs rounded">Monitored</span>
+                </div>
+                <span class="text-xs text-slate-500 mono">Nov 1, 2025 → E13</span>
+            </div>
+            <div class="p-5 grid grid-cols-3 gap-6">
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Exception Detail</div>
+                    <p class="text-sm text-slate-300">DSCR = 0.00x during pre-commencement period. Apollo credit agreement contains an agreed IO exception: DSCR covenant tested monthly but waived during construction/commissioning period up to lease commencement (E13). Not a breach — documented carve-out.</p>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Covenant Context</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-400">Covenant threshold</span><span class="mono text-slate-300">1.20x min</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Current DSCR</span><span class="mono text-red-400">0.00x</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Exception type</span><span class="mono text-amber-400">Agreed carve-out</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">DSCR at E13</span><span class="mono text-emerald-400">1.634x</span></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Resolution</div>
+                    <p class="text-sm text-slate-300">Automatically resolves at E13 (lease commencement). DSCR flips from 0.00x to 1.634x upon first xAI lease payment. Monthly compliance certificates note exception during window. Apollo aware and aligned.</p>
+                    <div class="mt-3 text-xs mono text-slate-500">Policy: DCC-2025-001 · Exception clause §4.2(c)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk watch -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded border border-blue-500/30 mono font-medium">exc_vci_002</span>
+                    <span class="text-sm font-medium">E10 InfiniBand — Critical Path Watch</span>
+                    <span class="px-2 py-0.5 bg-blue-500/15 text-blue-400 text-xs rounded">Watching</span>
+                </div>
+                <span class="text-xs text-slate-500 mono">Created Dec 15, 2025</span>
+            </div>
+            <div class="p-5 grid grid-cols-3 gap-6">
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Risk Description</div>
+                    <p class="text-sm text-slate-300">InfiniBand/NVLink fabric installation (E10) is on the critical path to cluster integration (E11) and acceptance testing (E12). Any delay cascades directly to E13 lease commencement. Each week of delay = $15.9M of foregone income.</p>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Financial Impact</div>
+                    <div class="text-sm space-y-1.5">
+                        <div class="flex justify-between"><span class="text-slate-400">1-week delay cost</span><span class="mono text-amber-400">$15.9M</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">1-month delay cost</span><span class="mono text-red-400">$68.3M</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">IRR impact (1mo delay)</span><span class="mono text-red-400">−36 bps</span></div>
+                        <div class="flex justify-between"><span class="text-slate-400">Current status</span><span class="mono text-blue-400">In progress</span></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Action Required</div>
+                    <p class="text-sm text-slate-300">Daily status check from Data Center Ops. Escalation protocol: if E10 slips beyond Jan 21, notify CFO and trigger formal delay impact analysis. Brief Apollo if E13 shifts by more than 2 weeks.</p>
+                    <div class="mt-3 text-xs mono text-slate-500">Owner: Data Center Ops · Escalation: CFO</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Future risk flag -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden opacity-60">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 bg-slate-500/20 text-slate-400 text-xs rounded border border-slate-500/30 mono font-medium">exc_vci_003</span>
+                    <span class="text-sm font-medium text-slate-400">E23 Renewal Risk — Year 4 Watch Flag (pre-created)</span>
+                    <span class="px-2 py-0.5 bg-slate-500/15 text-slate-500 text-xs rounded">Future · Not Active</span>
+                </div>
+                <span class="text-xs text-slate-500 mono">Activates: Oct 2029</span>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-slate-500">Pre-created exception flag for xAI lease renewal (E23). If renewal LOI not received within 6 months of lease expiry, this exception activates: triggers terminal value scenario analysis, LP communication, hardware disposition planning, and Apollo covenant stress-test. IRR impact of no-renewal: −410 bps vs base case.</p>
+            </div>
+        </div>
+
+        <!-- Exception → Policy created -->
+        <div class="bg-slate-900 border border-purple-500/20 rounded-xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded border border-purple-500/30 mono font-medium">exc_vci_004</span>
+                    <span class="text-sm font-medium">Resolved: Offshore LP PFIC Analysis — Policy Created</span>
+                    <span class="px-2 py-0.5 bg-purple-500/15 text-purple-400 text-xs rounded">Resolved → Policy</span>
+                </div>
+                <span class="text-xs text-slate-500 mono">Resolved Nov 20, 2025</span>
+            </div>
+            <div class="p-5 grid grid-cols-3 gap-6">
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Original Exception</div>
+                    <p class="text-sm text-slate-300">NVIDIA (anchor LP) has offshore entities that may be subject to PFIC rules. No standard process existed for PFIC analysis and annual disclosure. Raised during LP onboarding review.</p>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Resolution</div>
+                    <p class="text-sm text-slate-300">PwC engaged to perform annual PFIC analysis. Added as standing deliverable to TAX-2025-001 policy. Process encoded — will not recur as exception.</p>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-2 uppercase tracking-wide">Policy Created</div>
+                    <div class="bg-slate-800 rounded-lg p-3 mono text-xs text-purple-300">TAX-2025-001 · §4<br>PFIC annual analysis<br>Triggered: event_type = 'YEAR_END'<br>Assignee: PwC</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</main>
+
+<script>
+// ─── Page navigation ──────────────────────────────────────────
+function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => {
+        b.classList.remove('tab-active'); b.classList.add('tab-inactive');
+    });
+    document.getElementById('page-' + name).classList.add('active');
+    const tab = document.getElementById('tab-' + name);
+    tab.classList.remove('tab-inactive'); tab.classList.add('tab-active');
+}
+
+// ─── Event data ───────────────────────────────────────────────
+const EVENTS = [
+    { id:'E01', phase:0, phaseLabel:'Pre-close',     desc:'VCI Fund formation & LP closes',                         planned:'Nov 1, 2025',  actual:'Nov 1, 2025',  status:'COMPLETE',    momDelta:0,      cumMom:-0,     irr:0,    cov:'K-1 / LP register',        wo:'None' },
+    { id:'E02', phase:0, phaseLabel:'Pre-close',     desc:'Apollo credit agreement executed — $3,500M',             planned:'Oct 1, 2025',  actual:'Oct 1, 2025',  status:'COMPLETE',    momDelta:-24.8,  cumMom:-24.8,  irr:0,    cov:'Debt compliance cert',     wo:'wo_vci_001' },
+    { id:'E03', phase:0, phaseLabel:'Pre-close',     desc:'NVIDIA GB200 PO executed — $5,400M',                     planned:'Oct 15, 2025', actual:'Oct 15, 2025', status:'COMPLETE',    momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Asset schedule',           wo:'None' },
+    { id:'E04', phase:0, phaseLabel:'Pre-close',     desc:'UCC-1 financing statement filed — Apollo lien perfected',planned:'Nov 1, 2025',  actual:'Nov 1, 2025',  status:'COMPLETE',    momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Lender confirmation',      wo:'wo_vci_002' },
+    { id:'E05', phase:1, phaseLabel:'Procurement',   desc:'GPU Batch 1 received — 25K GPUs (25% of cluster)',       planned:'Nov 15, 2025', actual:'Nov 14, 2025', status:'COMPLETE',    momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Asset receipt / insurance',wo:'wo_vci_003' },
+    { id:'E06', phase:1, phaseLabel:'Procurement',   desc:'GPU Batch 2 received — 50K GPUs (50% cumulative)',       planned:'Dec 1, 2025',  actual:'Dec 1, 2025',  status:'COMPLETE',    momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Asset receipt',            wo:'wo_vci_004' },
+    { id:'E07', phase:1, phaseLabel:'Procurement',   desc:'GPU Batch 3 — 75K GPUs (75% cumulative)',                planned:'Dec 31, 2025', actual:'',             status:'ACTIVE',      momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Asset receipt',            wo:'wo_vci_007' },
+    { id:'E08', phase:1, phaseLabel:'Procurement',   desc:'GPU Batch 4 — 100K GPUs · full cluster on-site',         planned:'Jan 29, 2026', actual:'',             status:'PENDING',     momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Full inventory audit',     wo:'Pending E08' },
+    { id:'E09', phase:2, phaseLabel:'Commissioning', desc:'Power & cooling commissioned — Memphis, TN',             planned:'Dec 15, 2025', actual:'Dec 10, 2025', status:'COMPLETE',    momDelta:0,      cumMom:-24.8,  irr:0,    cov:'None',                     wo:'None' },
+    { id:'E10', phase:2, phaseLabel:'Commissioning', desc:'InfiniBand / NVLink network fabric complete',            planned:'Jan 14, 2026', actual:'',             status:'ACTIVE',      momDelta:0,      cumMom:-24.8,  irr:0,    cov:'None',                     wo:'None' },
+    { id:'E11', phase:2, phaseLabel:'Commissioning', desc:'Full cluster integration — 100K GPUs addressable',       planned:'Feb 4, 2026',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:-24.8,  irr:0,    cov:'None',                     wo:'None' },
+    { id:'E12', phase:3, phaseLabel:'Acceptance',    desc:'xAI acceptance testing begins',                          planned:'Feb 18, 2026', actual:'',             status:'PENDING',     momDelta:0,      cumMom:-24.8,  irr:0,    cov:'None',                     wo:'None' },
+    { id:'E13', phase:3, phaseLabel:'Acceptance',    desc:'★ xAI acceptance cert · LEASE COMMENCEMENT DATE',        planned:'Mar 1, 2026',  actual:'',             status:'PENDING',     momDelta:+40.5,  cumMom:+10.4,  irr:+970, cov:'Lease cert / invoice / DSCR',wo:'wo_vci_010' },
+    { id:'E14', phase:3, phaseLabel:'Acceptance',    desc:'First lease payment received from xAI',                  planned:'Apr 1, 2026',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:+150, cov:'Cash receipt confirm',     wo:'Pending E14' },
+    { id:'E15', phase:4, phaseLabel:'Ramp',          desc:'xAI utilization: 25% of cluster active',                 planned:'Mar 15, 2026', actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:0,    cov:'Utilization report',       wo:'None' },
+    { id:'E16', phase:4, phaseLabel:'Ramp',          desc:'xAI utilization: 50% of cluster active',                 planned:'Apr 15, 2026', actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:+250, cov:'Utilization report',       wo:'None' },
+    { id:'E17', phase:4, phaseLabel:'Ramp',          desc:'xAI utilization: 75% — Grok training at scale',         planned:'Jun 1, 2026',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:+400, cov:'LP utilization update',    wo:'None' },
+    { id:'E18', phase:4, phaseLabel:'Ramp',          desc:'xAI utilization: 90%+ — cluster at capacity',           planned:'Aug 1, 2026',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:+550, cov:'Board / LP report',        wo:'None' },
+    { id:'E19', phase:5, phaseLabel:'Steady State',  desc:'12-month anniversary — IO period ends',                  planned:'Nov 1, 2026',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:0,    cov:'Debt schedule / retest',   wo:'Pending E19' },
+    { id:'E20', phase:5, phaseLabel:'Steady State',  desc:'First annual audit completed (PwC) — FY2025',           planned:'Mar 31, 2026', actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:0,    cov:'Audited financials / K-1s',wo:'wo_vci_011' },
+    { id:'E21', phase:5, phaseLabel:'Steady State',  desc:'24-month review — covenant compliance maintained',       planned:'Nov 1, 2027',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:0,    cov:'Full compliance package',  wo:'Pending' },
+    { id:'E22', phase:5, phaseLabel:'Steady State',  desc:'36-month review — mid-lease assessment',                 planned:'Nov 1, 2028',  actual:'',             status:'PENDING',     momDelta:0,      cumMom:+10.4,  irr:0,    cov:'Mid-lease board report',   wo:'Pending' },
+    { id:'E23', phase:6, phaseLabel:'Terminal',      desc:'★ xAI renewal LOI — revenue momentum confirmed Y5+',    planned:'Nov 1, 2029',  actual:'',             status:'NOT STARTED', momDelta:0,      cumMom:+10.4,  irr:+1200,cov:'LP renewal notice',        wo:'Pending' },
+    { id:'E24', phase:6, phaseLabel:'Terminal',      desc:'Hardware obsolescence assessment — GB300 benchmarking', planned:'Nov 1, 2028',  actual:'',             status:'NOT STARTED', momDelta:0,      cumMom:+10.4,  irr:-800, cov:'Board risk report',        wo:'Pending' },
+    { id:'E25', phase:6, phaseLabel:'Terminal',      desc:'Lease expiration — Year 5 (Month 60)',                   planned:'Nov 1, 2030',  actual:'',             status:'NOT STARTED', momDelta:-40.5,  cumMom:-24.8,  irr:-4200,cov:'Terminal / wind-down',     wo:'Pending' },
+    { id:'E26', phase:6, phaseLabel:'Terminal',      desc:'GPU hardware liquidation / new lessee',                  planned:'Dec 1, 2030',  actual:'',             status:'NOT STARTED', momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Asset disposal / LP rpt',  wo:'Pending' },
+    { id:'E27', phase:6, phaseLabel:'Terminal',      desc:'Fund wind-down and final LP distributions',              planned:'Jan 1, 2031',  actual:'',             status:'NOT STARTED', momDelta:0,      cumMom:-24.8,  irr:0,    cov:'Final K-1s / dissolution', wo:'Pending' },
+];
+
+const STATUS_STYLE = {
+    'COMPLETE':    'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20',
+    'ACTIVE':      'bg-blue-500/15 text-blue-400 border border-blue-500/20',
+    'PENDING':     'bg-slate-500/15 text-slate-400 border border-slate-500/20',
+    'DELAYED':     'bg-red-500/15 text-red-400 border border-red-500/20',
+    'NOT STARTED': 'bg-slate-800/50 text-slate-600',
+};
+
+function renderEvents(data) {
+    const tbody = document.getElementById('eventTableBody');
+    tbody.innerHTML = '';
+    data.forEach(ev => {
+        const isKey = ev.desc.startsWith('★');
+        const irrChip = ev.irr > 0
+            ? `<span class="px-2 py-0.5 irr-pos rounded text-xs mono">+${ev.irr} bps</span>`
+            : ev.irr < 0
+            ? `<span class="px-2 py-0.5 irr-neg rounded text-xs mono">${ev.irr} bps</span>`
+            : `<span class="text-slate-600 text-xs">—</span>`;
+        const momChip = ev.momDelta !== 0
+            ? `<span class="mono text-xs ${ev.momDelta > 0 ? 'text-emerald-400' : 'text-red-400'} font-medium">${ev.momDelta > 0 ? '+' : ''}$${ev.momDelta}M</span>`
+            : `<span class="text-slate-600 text-xs">—</span>`;
+        const cumChip = `<span class="mono text-xs ${ev.cumMom >= 0 ? 'text-emerald-400' : 'text-red-400'}">${ev.cumMom >= 0 ? '+' : ''}$${ev.cumMom}M/mo</span>`;
+
+        const rowClass = isKey ? 'key-event-row' : 'row-hover';
+        tbody.innerHTML += `
+        <tr class="${rowClass}">
+            <td class="px-4 py-2.5 mono text-xs font-medium ${isKey ? 'text-amber-300' : 'text-blue-400'}">${ev.id}</td>
+            <td class="px-4 py-2.5"><span class="px-1.5 py-0.5 rounded text-xs phase-${ev.phase}">${ev.phaseLabel}</span></td>
+            <td class="px-4 py-2.5 text-xs ${isKey ? 'text-amber-200 font-medium' : 'text-slate-300'}">${ev.desc}</td>
+            <td class="px-4 py-2.5 text-xs text-slate-500 mono">${ev.planned}</td>
+            <td class="px-4 py-2.5 text-xs mono ${ev.actual ? 'text-slate-300' : 'text-slate-700'}">${ev.actual || '—'}</td>
+            <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded text-xs ${STATUS_STYLE[ev.status] || ''}">${ev.status}</span></td>
+            <td class="px-4 py-2.5 text-right">${momChip}</td>
+            <td class="px-4 py-2.5 text-right">${cumChip}</td>
+            <td class="px-4 py-2.5 text-right">${irrChip}</td>
+            <td class="px-4 py-2.5 text-xs text-slate-500">${ev.cov}</td>
+            <td class="px-4 py-2.5 text-xs mono text-slate-600">${ev.wo}</td>
+        </tr>`;
+    });
+    document.getElementById('eventCount').textContent = `${data.length} events shown`;
+}
+
+function filterEvents() {
+    const phase = document.getElementById('phaseFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    let filtered = EVENTS;
+    if (phase !== 'all') filtered = filtered.filter(e => e.phase == phase);
+    if (status !== 'all') filtered = filtered.filter(e => e.status === status);
+    renderEvents(filtered);
+}
+
+renderEvents(EVENTS);
+
+// ─── IRR Bridge chart ─────────────────────────────────────────
+new Chart(document.getElementById('irrBridgeChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Pre-commencement\ndrag', 'E13 Lease\ncommencement', 'Util ramp\nsignal', 'E23 Renewal\n(terminal)', 'Residual\nvalue', 'Mgmt fee\ndrag', 'Apollo\ninterest drag'],
+        datasets: [{
+            data: [-3.3, 9.7, 1.5, 2.8, 0.8, -3.3, -5.9],
+            backgroundColor: [
+                'rgba(239,68,68,.6)', 'rgba(16,185,129,.8)', 'rgba(16,185,129,.5)',
+                'rgba(16,185,129,.6)', 'rgba(16,185,129,.4)',
+                'rgba(239,68,68,.4)', 'rgba(239,68,68,.5)'
+            ],
+            borderColor: [
+                'rgba(239,68,68,.9)', 'rgba(16,185,129,1)', 'rgba(16,185,129,.8)',
+                'rgba(16,185,129,.9)', 'rgba(16,185,129,.6)',
+                'rgba(239,68,68,.6)', 'rgba(239,68,68,.7)'
+            ],
+            borderWidth: 1,
+            borderRadius: 3,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.raw > 0 ? '+' : ''}${ctx.raw.toFixed(1)}% IRR contribution`
+                }
+            }
+        },
+        scales: {
+            x: { ticks: { color: '#64748b', font: { size: 9, family: 'IBM Plex Mono' } }, grid: { color: 'rgba(30,41,59,.5)' } },
+            y: {
+                ticks: { color: '#64748b', font: { size: 9 }, callback: v => v + '%' },
+                grid: { color: 'rgba(30,41,59,.5)' },
+                title: { display: true, text: '% IRR', color: '#475569', font: { size: 9 } }
+            }
+        }
+    }
+});
+</script>
+</body>
+</html>

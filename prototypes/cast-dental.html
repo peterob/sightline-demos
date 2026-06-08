@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST - Dental Revenue Cycle Dashboard (Data-Driven)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 3px solid #0ea5e9; color: #0ea5e9; }
+        .status-pill { padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 500; }
+        .kpi-card { transition: transform 0.2s; }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .aging-bar { height: 8px; border-radius: 4px; }
+        .data-editor { display: none; position: fixed; top: 0; right: 0; width: 400px; height: 100vh; background: white; box-shadow: -4px 0 20px rgba(0,0,0,0.1); z-index: 100; overflow-y: auto; }
+        .data-editor.open { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-sky-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">C</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">CAST</h1>
+                        <p class="text-xs text-slate-500">Control Assurance & Settlement Technology</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleDataEditor()" class="px-3 py-1.5 bg-purple-100 text-purple-700 text-sm rounded-lg hover:bg-purple-200 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Edit Data
+                    </button>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-slate-800" id="practice-name">Loading...</p>
+                        <p class="text-xs text-slate-500" id="practice-info">Loading...</p>
+                    </div>
+                    <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
+                        <span class="text-cyan-700 font-semibold text-sm">RC</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Data Editor Panel -->
+    <div id="data-editor" class="data-editor">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white">
+            <h3 class="font-semibold text-slate-800">Edit Dashboard Data</h3>
+            <button onclick="toggleDataEditor()" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-4">
+            <div class="mb-4">
+                <p class="text-sm text-slate-600 mb-2">Paste your JSON data below or edit individual values:</p>
+                <textarea id="json-editor" class="w-full h-64 p-3 border border-slate-300 rounded-lg font-mono text-xs" placeholder="Paste JSON data here..."></textarea>
+            </div>
+            <div class="flex gap-2 mb-4">
+                <button onclick="loadJsonData()" class="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 text-sm">Load JSON</button>
+                <button onclick="downloadCurrentData()" class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 text-sm">Export JSON</button>
+            </div>
+            <hr class="my-4">
+            <h4 class="font-semibold text-slate-800 mb-3">Quick Edit KPIs</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-600">Practice Name</label>
+                    <input type="text" id="edit-practice-name" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updatePracticeName(this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Claims Submitted</label>
+                    <input type="number" id="edit-claims" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('claims_submitted', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Clean Claim Rate (%)</label>
+                    <input type="number" step="0.1" id="edit-ccr" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('clean_claim_rate', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Days in A/R</label>
+                    <input type="number" step="0.1" id="edit-dar" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('days_in_ar', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Collections Rate (%)</label>
+                    <input type="number" step="0.1" id="edit-cr" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('collections_rate', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">Denial Rate (%)</label>
+                    <input type="number" step="0.1" id="edit-dr" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('denial_rate', this.value)">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-600">MTD Production ($)</label>
+                    <input type="number" id="edit-prod" class="w-full px-3 py-2 border border-slate-300 rounded text-sm" onchange="updateKPI('mtd_production', this.value)">
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="p-3 bg-amber-50 rounded-lg">
+                <p class="text-xs text-amber-800"><strong>Tip:</strong> Import your data from the CAST_Dental_Import_Template.xlsx to auto-populate all fields.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex gap-8">
+                <button onclick="showTab('dashboard')" id="tab-dashboard" class="py-4 text-sm font-medium tab-active">Dashboard</button>
+                <button onclick="showTab('funnel')" id="tab-funnel" class="py-4 text-sm font-medium text-slate-600 hover:text-slate-800">Revenue Funnel</button>
+                <button onclick="showTab('aging')" id="tab-aging" class="py-4 text-sm font-medium text-slate-600 hover:text-slate-800">A/R Aging</button>
+                <button onclick="showTab('automation')" id="tab-automation" class="py-4 text-sm font-medium text-slate-600 hover:text-slate-800">Automation</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Dashboard Tab -->
+        <div id="content-dashboard">
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-6 gap-4 mb-6" id="kpi-grid">
+                <!-- KPIs populated by JavaScript -->
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- Revenue Cycle Funnel -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 mb-4">Revenue Cycle Funnel (MTD)</h3>
+                    <div class="space-y-3" id="funnel-bars">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- A/R Aging -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 mb-4">Accounts Receivable Aging</h3>
+                    <div class="space-y-4" id="aging-bars">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between">
+                        <span class="font-semibold text-slate-800">Total A/R</span>
+                        <span class="font-bold text-slate-800" id="total-ar">$0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Three Column Layout -->
+            <div class="grid grid-cols-3 gap-6 mb-6">
+                <!-- Denial Analysis -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 mb-4">Denial Analysis (MTD)</h3>
+                    <div class="space-y-3" id="denial-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 flex justify-between">
+                        <span class="text-sm text-slate-600">Total Denied</span>
+                        <span class="font-semibold text-red-600" id="total-denials">0 ($0)</span>
+                    </div>
+                </div>
+
+                <!-- Pending Work -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 mb-4">Pending Work Orders</h3>
+                    <div class="space-y-3" id="pending-work">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Provider Credentials -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 mb-4">Provider Credentials</h3>
+                    <div class="space-y-3" id="credentials-list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation Summary -->
+            <div class="grid grid-cols-4 gap-4" id="automation-cards">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Funnel Tab -->
+        <div id="content-funnel" class="hidden">
+            <div class="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
+                <h3 class="font-semibold text-slate-800 mb-6 text-lg">Revenue Cycle Funnel - Detailed View</h3>
+                <div class="space-y-4" id="funnel-detailed">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Aging Tab -->
+        <div id="content-aging" class="hidden">
+            <div class="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
+                <h3 class="font-semibold text-slate-800 mb-6 text-lg">A/R Aging - Detailed View</h3>
+                <div id="aging-detailed">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Automation Tab -->
+        <div id="content-automation" class="hidden">
+            <div class="bg-white rounded-xl p-8 shadow-sm border border-slate-200">
+                <h3 class="font-semibold text-slate-800 mb-6 text-lg">Automation Metrics</h3>
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <h4 class="font-semibold text-slate-700 mb-4">Work Order Execution</h4>
+                        <div id="automation-breakdown">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-slate-700 mb-4">Exception Summary</h4>
+                        <div id="exception-summary">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Default data structure
+        let dashboardData = {
+            practice: { name: "Your Practice Name", locations: 1, region: "Your Region" },
+            kpis: {
+                claims_submitted: { value: 0, change: 0, change_direction: "up" },
+                clean_claim_rate: { value: 0, change: 0, change_direction: "up" },
+                days_in_ar: { value: 0, benchmark: 42.1, change_direction: "down" },
+                collections_rate: { value: 0, change: 0, change_direction: "up" },
+                denial_rate: { value: 0, previous: 0, change_direction: "down" },
+                mtd_production: { value: 0, target: 0 }
+            },
+            revenue_funnel: { appointments_completed: 0, claims_generated: 0, claims_submitted: 0, era_received: 0, payment_posted: 0 },
+            ar_aging: { current_0_30: { amount: 0, percent: 0 }, days_31_60: { amount: 0, percent: 0 }, days_61_90: { amount: 0, percent: 0 }, days_90_plus: { amount: 0, percent: 0 }, total: 0 },
+            denials: { missing_info: { count: 0, amount: 0 }, not_covered: { count: 0, amount: 0 }, freq_limitation: { count: 0, amount: 0 }, prior_auth: { count: 0, amount: 0 }, other: { count: 0, amount: 0 }, total: { count: 0, amount: 0 } },
+            pending_work: { denials_to_appeal: 0, patient_statements: 0, payment_plans_review: 0, collections_queue: 0, credential_alerts: 0 },
+            credentials_expiring: [],
+            automation_metrics: { ai_automated: { percent: 0, count: 0 }, human_required: { percent: 0, count: 0 }, api_executed: { percent: 0, count: 0 }, exceptions: { percent: 0, count: 0 }, total_today: 0 },
+            exceptions: { open: 0, resolved_mtd: 0, policies_created: 0, dollars_at_risk: 0 }
+        };
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+        }
+
+        // Format number with commas
+        function formatNumber(num) {
+            return new Intl.NumberFormat('en-US').format(num);
+        }
+
+        // Render KPI cards
+        function renderKPIs() {
+            const kpis = dashboardData.kpis;
+            const grid = document.getElementById('kpi-grid');
+            grid.innerHTML = `
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Claims Submitted</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">${formatNumber(kpis.claims_submitted.value)}</p>
+                    <p class="text-xs text-emerald-600 mt-1">↑ ${kpis.claims_submitted.change}% vs last month</p>
+                </div>
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Clean Claim Rate</p>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1">${kpis.clean_claim_rate.value}%</p>
+                    <p class="text-xs text-emerald-600 mt-1">↑ ${kpis.clean_claim_rate.change}% improvement</p>
+                </div>
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Days in A/R</p>
+                    <p class="text-2xl font-bold text-sky-600 mt-1">${kpis.days_in_ar.value}</p>
+                    <p class="text-xs text-emerald-600 mt-1">↓ from ${kpis.days_in_ar.benchmark} (industry)</p>
+                </div>
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Collections Rate</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">${kpis.collections_rate.value}%</p>
+                    <p class="text-xs text-emerald-600 mt-1">↑ ${kpis.collections_rate.change}% vs benchmark</p>
+                </div>
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Denial Rate</p>
+                    <p class="text-2xl font-bold text-amber-600 mt-1">${kpis.denial_rate.value}%</p>
+                    <p class="text-xs text-emerald-600 mt-1">↓ from ${kpis.denial_rate.previous}%</p>
+                </div>
+                <div class="kpi-card bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">MTD Production</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-1">${formatCurrency(kpis.mtd_production.value)}</p>
+                    <p class="text-xs text-slate-500 mt-1">Target: ${formatCurrency(kpis.mtd_production.target)}</p>
+                </div>
+            `;
+        }
+
+        // Render Revenue Funnel
+        function renderFunnel() {
+            const funnel = dashboardData.revenue_funnel;
+            const max = funnel.appointments_completed;
+            const container = document.getElementById('funnel-bars');
+            
+            const stages = [
+                { label: 'Appointments Completed', value: funnel.appointments_completed, color: 'bg-sky-500' },
+                { label: 'Claims Generated', value: funnel.claims_generated, color: 'bg-sky-400' },
+                { label: 'Claims Submitted', value: funnel.claims_submitted, color: 'bg-cyan-500' },
+                { label: 'ERA Received', value: funnel.era_received, color: 'bg-emerald-500' },
+                { label: 'Payment Posted', value: funnel.payment_posted, color: 'bg-emerald-600' }
+            ];
+
+            container.innerHTML = stages.map((s, i) => {
+                const pct = max > 0 ? ((s.value / max) * 100).toFixed(1) : 0;
+                const convPct = i > 0 ? ((s.value / stages[i-1].value) * 100).toFixed(1) : 100;
+                return `
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-slate-600">${s.label}</span>
+                            <span class="font-semibold">${formatNumber(s.value)} ${i > 0 ? `(${convPct}%)` : ''}</span>
+                        </div>
+                        <div class="h-6 ${s.color} rounded" style="width: ${pct}%"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render A/R Aging
+        function renderAging() {
+            const aging = dashboardData.ar_aging;
+            const container = document.getElementById('aging-bars');
+            
+            const buckets = [
+                { label: 'Current (0-30 days)', data: aging.current_0_30, color: 'bg-emerald-500', textColor: 'text-emerald-600' },
+                { label: '31-60 days', data: aging.days_31_60, color: 'bg-sky-500', textColor: 'text-sky-600' },
+                { label: '61-90 days', data: aging.days_61_90, color: 'bg-amber-500', textColor: 'text-amber-600' },
+                { label: '90+ days', data: aging.days_90_plus, color: 'bg-red-500', textColor: 'text-red-600' }
+            ];
+
+            container.innerHTML = buckets.map(b => `
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-slate-600">${b.label}</span>
+                        <span class="font-semibold ${b.textColor}">${formatCurrency(b.data.amount)} (${b.data.percent}%)</span>
+                    </div>
+                    <div class="aging-bar ${b.color}" style="width: ${b.data.percent}%"></div>
+                </div>
+            `).join('');
+
+            document.getElementById('total-ar').textContent = formatCurrency(aging.total);
+        }
+
+        // Render Denials
+        function renderDenials() {
+            const denials = dashboardData.denials;
+            const container = document.getElementById('denial-list');
+            
+            const reasons = [
+                { label: 'Missing Info/Docs', data: denials.missing_info, color: 'bg-red-500' },
+                { label: 'Not Covered', data: denials.not_covered, color: 'bg-amber-500' },
+                { label: 'Freq Limitation', data: denials.freq_limitation, color: 'bg-orange-500' },
+                { label: 'Prior Auth Required', data: denials.prior_auth, color: 'bg-purple-500' },
+                { label: 'Other', data: denials.other, color: 'bg-slate-400' }
+            ];
+
+            container.innerHTML = reasons.map(r => `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded ${r.color}"></div>
+                        <span class="text-sm text-slate-600">${r.label}</span>
+                    </div>
+                    <span class="text-sm font-semibold">${r.data.count} (${formatCurrency(r.data.amount)})</span>
+                </div>
+            `).join('');
+
+            document.getElementById('total-denials').textContent = `${denials.total.count} (${formatCurrency(denials.total.amount)})`;
+        }
+
+        // Render Pending Work
+        function renderPendingWork() {
+            const work = dashboardData.pending_work;
+            const container = document.getElementById('pending-work');
+            
+            const items = [
+                { label: 'Denials to Appeal', value: work.denials_to_appeal, bg: 'bg-amber-50', pill: 'bg-amber-100 text-amber-700' },
+                { label: 'Patient Statements', value: work.patient_statements, bg: 'bg-sky-50', pill: 'bg-sky-100 text-sky-700' },
+                { label: 'Payment Plans Review', value: work.payment_plans_review, bg: 'bg-purple-50', pill: 'bg-purple-100 text-purple-700' },
+                { label: 'Collections Queue', value: work.collections_queue, bg: 'bg-red-50', pill: 'bg-red-100 text-red-700' },
+                { label: 'Credential Alerts', value: work.credential_alerts, bg: 'bg-orange-50', pill: 'bg-orange-100 text-orange-700' }
+            ];
+
+            container.innerHTML = items.map(i => `
+                <div class="flex items-center justify-between p-2 ${i.bg} rounded-lg">
+                    <span class="text-sm text-slate-700">${i.label}</span>
+                    <span class="status-pill ${i.pill}">${i.value}</span>
+                </div>
+            `).join('');
+        }
+
+        // Render Credentials
+        function renderCredentials() {
+            const creds = dashboardData.credentials_expiring;
+            const container = document.getElementById('credentials-list');
+            
+            if (creds.length === 0) {
+                container.innerHTML = '<p class="text-sm text-slate-500">No credentials expiring soon</p>';
+                return;
+            }
+
+            container.innerHTML = creds.map(c => {
+                const borderColor = c.severity === 'critical' ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50';
+                const pillColor = c.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700';
+                return `
+                    <div class="p-3 border ${borderColor} rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">${c.provider}</p>
+                                <p class="text-xs text-slate-600">${c.credential_type}</p>
+                            </div>
+                            <span class="status-pill ${pillColor}">Expires ${c.days_until_expiry}d</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render Automation Cards
+        function renderAutomation() {
+            const auto = dashboardData.automation_metrics;
+            const container = document.getElementById('automation-cards');
+            
+            container.innerHTML = `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-center">
+                    <p class="text-3xl font-bold text-emerald-600">${auto.ai_automated.percent}%</p>
+                    <p class="text-sm text-slate-600 mt-1">AI Automated</p>
+                    <p class="text-xs text-slate-500">${auto.ai_automated.count} of ${auto.total_today} today</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-center">
+                    <p class="text-3xl font-bold text-sky-600">${auto.human_required.percent}%</p>
+                    <p class="text-sm text-slate-600 mt-1">Human Required</p>
+                    <p class="text-xs text-slate-500">${auto.human_required.count} of ${auto.total_today} today</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-center">
+                    <p class="text-3xl font-bold text-purple-600">${auto.api_executed.percent}%</p>
+                    <p class="text-sm text-slate-600 mt-1">API Executed</p>
+                    <p class="text-xs text-slate-500">${auto.api_executed.count} of ${auto.total_today} today</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 text-center">
+                    <p class="text-3xl font-bold text-red-600">${auto.exceptions.percent}%</p>
+                    <p class="text-sm text-slate-600 mt-1">Exceptions</p>
+                    <p class="text-xs text-slate-500">${auto.exceptions.count} of ${auto.total_today} today</p>
+                </div>
+            `;
+        }
+
+        // Render all
+        function renderDashboard() {
+            // Update header
+            document.getElementById('practice-name').textContent = dashboardData.practice.name;
+            document.getElementById('practice-info').textContent = `${dashboardData.practice.locations} Locations • ${dashboardData.practice.region}`;
+            
+            // Update edit fields
+            document.getElementById('edit-practice-name').value = dashboardData.practice.name;
+            document.getElementById('edit-claims').value = dashboardData.kpis.claims_submitted.value;
+            document.getElementById('edit-ccr').value = dashboardData.kpis.clean_claim_rate.value;
+            document.getElementById('edit-dar').value = dashboardData.kpis.days_in_ar.value;
+            document.getElementById('edit-cr').value = dashboardData.kpis.collections_rate.value;
+            document.getElementById('edit-dr').value = dashboardData.kpis.denial_rate.value;
+            document.getElementById('edit-prod').value = dashboardData.kpis.mtd_production.value;
+            
+            // Render components
+            renderKPIs();
+            renderFunnel();
+            renderAging();
+            renderDenials();
+            renderPendingWork();
+            renderCredentials();
+            renderAutomation();
+        }
+
+        // Tab navigation
+        function showTab(tabName) {
+            document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="tab-"]').forEach(el => {
+                el.classList.remove('tab-active');
+                el.classList.add('text-slate-600');
+            });
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            const activeTab = document.getElementById('tab-' + tabName);
+            activeTab.classList.add('tab-active');
+            activeTab.classList.remove('text-slate-600');
+        }
+
+        // Data Editor
+        function toggleDataEditor() {
+            const editor = document.getElementById('data-editor');
+            editor.classList.toggle('open');
+            if (editor.classList.contains('open')) {
+                document.getElementById('json-editor').value = JSON.stringify(dashboardData, null, 2);
+            }
+        }
+
+        function loadJsonData() {
+            try {
+                const json = document.getElementById('json-editor').value;
+                dashboardData = JSON.parse(json);
+                renderDashboard();
+                alert('Data loaded successfully!');
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
+        }
+
+        function downloadCurrentData() {
+            const blob = new Blob([JSON.stringify(dashboardData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cast_dental_data.json';
+            a.click();
+        }
+
+        function updatePracticeName(value) {
+            dashboardData.practice.name = value;
+            renderDashboard();
+        }
+
+        function updateKPI(kpi, value) {
+            dashboardData.kpis[kpi].value = parseFloat(value);
+            renderDashboard();
+        }
+
+        // Load default data on page load
+        // In production, this would fetch from cast_dental_data.json
+        fetch('cast_dental_data.json')
+            .then(response => response.json())
+            .then(data => {
+                dashboardData = data;
+                renderDashboard();
+            })
+            .catch(() => {
+                // If JSON file not found, use embedded default
+                console.log('Using default data - place cast_dental_data.json in same directory for custom data');
+                renderDashboard();
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFODashboard</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+
+
+
+const CFODashboard = () => {
+  const [activeView, setActiveView] = useState('timeline');
+  const [selectedBatch, setSelectedBatch] = useState('BATCH-2025-Q1-001');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Sample data matching the schema
+  const batchEvents = [
+    { id: 1, date: 'Jan 15', event: 'PO Created', state: 'PO_CREATED', amount: null, type: 'milestone' },
+    { id: 2, date: 'Jan 17', event: 'Vendor Acknowledged', state: 'VENDOR_ACKNOWLEDGED', amount: -22500, type: 'payment' },
+    { id: 3, date: 'Jan 20', event: 'Production Started', state: 'IN_PRODUCTION', amount: null, type: 'milestone' },
+    { id: 4, date: 'Feb 8', event: 'Production Complete', state: 'READY_TO_SHIP', amount: null, type: 'milestone' },
+    { id: 5, date: 'Feb 10', event: 'Shipped from Vendor', state: 'IN_TRANSIT', amount: -37500, type: 'payment' },
+    { id: 6, date: 'Feb 22', event: 'Arrived at Port', state: 'AT_PORT', amount: null, type: 'milestone' },
+    { id: 7, date: 'Feb 24', event: 'Customs Cleared', state: 'CUSTOMS_CLEARED', amount: -12000, type: 'payment' },
+    { id: 8, date: 'Feb 27', event: 'Received by 3PL', state: 'RECEIVED', amount: null, type: 'milestone' },
+    { id: 9, date: 'Feb 28', event: 'Available for Sale', state: 'AVAILABLE_FOR_SALE', amount: null, type: 'milestone' },
+    { id: 10, date: 'Mar 17', event: 'Final Payment', state: 'PAID', amount: -15000, type: 'payment' },
+  ];
+
+  const orderEvents = [
+    { id: 1, date: 'Mar 1', time: '2:23 PM', event: 'Order Placed', state: 'PENDING_PAYMENT' },
+    { id: 2, date: 'Mar 1', time: '2:23 PM', event: 'Payment Authorized', state: 'AUTHORIZED', amount: 120.81 },
+    { id: 3, date: 'Mar 1', time: '2:25 PM', event: 'Inventory Allocated', state: 'ALLOCATED' },
+    { id: 4, date: 'Mar 2', time: '9:15 AM', event: 'Pick Started', state: 'PICKING' },
+    { id: 5, date: 'Mar 2', time: '10:05 AM', event: 'Packed', state: 'PACKED' },
+    { id: 6, date: 'Mar 2', time: '2:00 PM', event: 'Shipped', state: 'SHIPPED', amount: -6.85 },
+    { id: 7, date: 'Mar 2', time: '2:00 PM', event: 'Payment Captured', state: 'CAPTURED', amount: 120.81 },
+    { id: 8, date: 'Mar 4', time: '2:22 PM', event: 'Delivered', state: 'DELIVERED' },
+  ];
+
+  const batchSummary = {
+    id: 'BATCH-2025-Q1-001',
+    po: 'PO-2025-0115',
+    vendor: 'Shenzhen Quality Mfg.',
+    unitsOrdered: 5000,
+    unitsReceived: 4985,
+    landedCost: 87000,
+    unitsSold: 2557,
+    grossRevenue: 89530,
+    grossMargin: 45210,
+    gmPct: 50.5,
+    status: 'AVAILABLE_FOR_SALE'
+  };
+
+  const orderSummary = {
+    id: 'ORD-2025-0301-4782',
+    customer: 'CUST-88291',
+    items: 3,
+    subtotal: 124.00,
+    discount: 12.40,
+    shipping: 0,
+    tax: 9.21,
+    total: 120.81,
+    cogs: 37.31,
+    fulfillment: 4.25,
+    shippingCost: 6.85,
+    paymentFees: 3.80,
+    contributionMargin: 59.39,
+    cmPct: 53.2
+  };
+
+  const skuData = [
+    { sku: 'SKU-LAMP-001', name: 'Brass Table Lamp', ordered: 800, received: 798, available: 312, allocated: 45, shipped: 441, returned: 12, landedCost: 14.35, price: 59.00 },
+    { sku: 'SKU-LAMP-002', name: 'Black Table Lamp', ordered: 800, received: 800, available: 287, allocated: 38, shipped: 475, returned: 8, landedCost: 12.63, price: 49.00 },
+    { sku: 'SKU-SHADE-001', name: 'Linen Shade - Cream', ordered: 1000, received: 995, available: 521, allocated: 62, shipped: 412, returned: 15, landedCost: 6.89, price: 24.00 },
+    { sku: 'SKU-SHADE-002', name: 'Linen Shade - Gray', ordered: 1000, received: 998, available: 498, allocated: 55, shipped: 445, returned: 11, landedCost: 6.89, price: 24.00 },
+    { sku: 'SKU-VASE-001', name: 'Ceramic Vase - White', ordered: 600, received: 598, available: 201, allocated: 22, shipped: 375, returned: 6, landedCost: 20.66, price: 45.00 },
+  ];
+
+  const cashFlow = [
+    { date: 'Jan 17', description: 'Vendor Deposit (30%)', amount: -22500, balance: -22500, event: 'VENDOR_ACKNOWLEDGED' },
+    { date: 'Feb 10', description: 'Vendor Milestone (50%)', amount: -37500, balance: -60000, event: 'SHIPPED_FROM_VENDOR' },
+    { date: 'Feb 24', description: 'Duty + Freight', amount: -12000, balance: -72000, event: 'CUSTOMS_CLEARED' },
+    { date: 'Feb 28 - Mar 15', description: 'Customer Orders (net)', amount: 45000, balance: -27000, event: 'ORDERS' },
+    { date: 'Mar 17', description: 'Vendor Final (20%)', amount: -15000, balance: -42000, event: 'FINAL_PAYMENT' },
+    { date: 'Mar 16 - Mar 31', description: 'Customer Orders (net)', amount: 44530, balance: 2530, event: 'ORDERS' },
+  ];
+
+  const StateIndicator = ({ state, isActive }) => {
+    const colors = {
+      'PO_CREATED': 'bg-blue-100 text-blue-800',
+      'VENDOR_ACKNOWLEDGED': 'bg-blue-200 text-blue-800',
+      'IN_PRODUCTION': 'bg-yellow-100 text-yellow-800',
+      'READY_TO_SHIP': 'bg-yellow-200 text-yellow-800',
+      'IN_TRANSIT': 'bg-orange-100 text-orange-800',
+      'AT_PORT': 'bg-orange-200 text-orange-800',
+      'CUSTOMS_CLEARED': 'bg-purple-100 text-purple-800',
+      'RECEIVED': 'bg-green-100 text-green-800',
+      'AVAILABLE_FOR_SALE': 'bg-green-200 text-green-800',
+      'PAID': 'bg-green-300 text-green-900',
+      'PENDING_PAYMENT': 'bg-gray-100 text-gray-800',
+      'AUTHORIZED': 'bg-blue-100 text-blue-800',
+      'ALLOCATED': 'bg-blue-200 text-blue-800',
+      'PICKING': 'bg-yellow-100 text-yellow-800',
+      'PACKED': 'bg-yellow-200 text-yellow-800',
+      'SHIPPED': 'bg-orange-100 text-orange-800',
+      'CAPTURED': 'bg-green-100 text-green-800',
+      'DELIVERED': 'bg-green-200 text-green-800',
+    };
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[state] || 'bg-gray-100 text-gray-800'} ${isActive ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}>
+        {state.replace(/_/g, ' ')}
+      </span>
+    );
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount === null || amount === undefined) return '—';
+    const absAmount = Math.abs(amount);
+    const formatted = absAmount >= 1000 
+      ? `$${(absAmount / 1000).toFixed(1)}k` 
+      : `$${absAmount.toFixed(2)}`;
+    return amount < 0 ? `(${formatted})` : formatted;
+  };
+
+  const Timeline = () => (
+    <div className="space-y-8">
+      {/* Batch Timeline */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Inventory Batch: {batchSummary.id}</h3>
+          <StateIndicator state={batchSummary.status} isActive={true} />
+        </div>
+        <div className="text-sm text-gray-500 mb-6">
+          {batchSummary.vendor} • {batchSummary.unitsOrdered.toLocaleString()} units ordered • ${batchSummary.landedCost.toLocaleString()} landed cost
+        </div>
+        
+        <div className="relative">
+          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+          <div className="space-y-4">
+            {batchEvents.map((event, idx) => (
+              <div key={event.id} className="relative flex items-start pl-10">
+                <div className={`absolute left-2.5 w-3 h-3 rounded-full border-2 ${event.type === 'payment' ? 'bg-red-100 border-red-400' : 'bg-blue-100 border-blue-400'}`}></div>
+                <div className="flex-1 flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{event.event}</div>
+                    <div className="text-xs text-gray-500">{event.date}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {event.amount && (
+                      <span className={`text-sm font-medium ${event.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatCurrency(event.amount)}
+                      </span>
+                    )}
+                    <StateIndicator state={event.state} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Order Timeline */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Order: {orderSummary.id}</h3>
+          <StateIndicator state="DELIVERED" isActive={true} />
+        </div>
+        <div className="text-sm text-gray-500 mb-6">
+          {orderSummary.items} items • ${orderSummary.total.toFixed(2)} total • ${orderSummary.contributionMargin.toFixed(2)} contribution margin ({orderSummary.cmPct}%)
+        </div>
+        
+        <div className="relative">
+          <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+          <div className="space-y-3">
+            {orderEvents.map((event) => (
+              <div key={event.id} className="relative flex items-start pl-10">
+                <div className={`absolute left-2.5 w-3 h-3 rounded-full border-2 ${event.amount ? (event.amount > 0 ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400') : 'bg-blue-100 border-blue-400'}`}></div>
+                <div className="flex-1 flex items-center justify-between bg-gray-50 rounded-lg px-4 py-2">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{event.event}</div>
+                    <div className="text-xs text-gray-500">{event.date} {event.time}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {event.amount && (
+                      <span className={`text-sm font-medium ${event.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {event.amount > 0 ? '+' : ''}{formatCurrency(event.amount)}
+                      </span>
+                    )}
+                    <StateIndicator state={event.state} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const InventoryView = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">SKU Inventory Status</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-2 font-medium text-gray-500">SKU</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Ordered</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Received</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Available</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Allocated</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Shipped</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Returned</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Unit Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {skuData.map((sku) => (
+                <tr key={sku.sku} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-2">
+                    <div className="font-medium text-gray-900">{sku.sku}</div>
+                    <div className="text-xs text-gray-500">{sku.name}</div>
+                  </td>
+                  <td className="text-right py-3 px-2 text-gray-600">{sku.ordered}</td>
+                  <td className="text-right py-3 px-2">
+                    <span className={sku.received < sku.ordered ? 'text-orange-600' : 'text-gray-600'}>
+                      {sku.received}
+                    </span>
+                    {sku.received < sku.ordered && (
+                      <span className="text-xs text-orange-500 ml-1">({sku.ordered - sku.received} short)</span>
+                    )}
+                  </td>
+                  <td className="text-right py-3 px-2 font-medium text-gray-900">{sku.available}</td>
+                  <td className="text-right py-3 px-2 text-blue-600">{sku.allocated}</td>
+                  <td className="text-right py-3 px-2 text-green-600">{sku.shipped}</td>
+                  <td className="text-right py-3 px-2 text-red-600">{sku.returned}</td>
+                  <td className="text-right py-3 px-2">
+                    <span className="font-medium text-gray-900">${(sku.price - sku.landedCost).toFixed(2)}</span>
+                    <span className="text-xs text-gray-500 ml-1">({((sku.price - sku.landedCost) / sku.price * 100).toFixed(0)}%)</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Inventory Flow Visualization */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Inventory Flow: {batchSummary.id}</h3>
+        <div className="flex items-center justify-between">
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
+              <div>
+                <div className="text-xl font-bold text-blue-700">{batchSummary.unitsOrdered.toLocaleString()}</div>
+                <div className="text-xs text-blue-600">Ordered</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 h-1 bg-gray-200 mx-2 relative">
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">-15 variance</div>
+          </div>
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+              <div>
+                <div className="text-xl font-bold text-green-700">{batchSummary.unitsReceived.toLocaleString()}</div>
+                <div className="text-xs text-green-600">Received</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 h-1 bg-gray-200 mx-2"></div>
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-2">
+              <div>
+                <div className="text-xl font-bold text-purple-700">{batchSummary.unitsSold.toLocaleString()}</div>
+                <div className="text-xs text-purple-600">Net Sold</div>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 h-1 bg-gray-200 mx-2"></div>
+          <div className="text-center">
+            <div className="w-24 h-24 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-2">
+              <div>
+                <div className="text-xl font-bold text-orange-700">{(batchSummary.unitsReceived - batchSummary.unitsSold).toLocaleString()}</div>
+                <div className="text-xs text-orange-600">Remaining</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const CashFlowView = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Cash Flow: {batchSummary.id}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-2 font-medium text-gray-500">Date</th>
+                <th className="text-left py-3 px-2 font-medium text-gray-500">Description</th>
+                <th className="text-left py-3 px-2 font-medium text-gray-500">Event</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Amount</th>
+                <th className="text-right py-3 px-2 font-medium text-gray-500">Running Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cashFlow.map((row, idx) => (
+                <tr key={idx} className="border-b border-gray-100">
+                  <td className="py-3 px-2 text-gray-600">{row.date}</td>
+                  <td className="py-3 px-2 font-medium text-gray-900">{row.description}</td>
+                  <td className="py-3 px-2">
+                    <StateIndicator state={row.event} />
+                  </td>
+                  <td className={`text-right py-3 px-2 font-medium ${row.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {row.amount < 0 ? '(' : ''}${Math.abs(row.amount).toLocaleString()}{row.amount < 0 ? ')' : ''}
+                  </td>
+                  <td className={`text-right py-3 px-2 font-bold ${row.balance < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                    {row.balance < 0 ? '(' : ''}${Math.abs(row.balance).toLocaleString()}{row.balance < 0 ? ')' : ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Cash Position Chart */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Cash Position Over Time</h3>
+        <div className="h-48 flex items-end justify-between gap-2">
+          {cashFlow.map((row, idx) => {
+            const maxAbs = Math.max(...cashFlow.map(r => Math.abs(r.balance)));
+            const height = Math.abs(row.balance) / maxAbs * 100;
+            const isNegative = row.balance < 0;
+            return (
+              <div key={idx} className="flex-1 flex flex-col items-center">
+                <div className="w-full flex flex-col justify-end h-36">
+                  {isNegative ? (
+                    <div 
+                      className="w-full bg-red-200 rounded-t"
+                      style={{ height: `${height}%` }}
+                    ></div>
+                  ) : (
+                    <div className="flex-1"></div>
+                  )}
+                  {!isNegative && (
+                    <div 
+                      className="w-full bg-green-200 rounded-t"
+                      style={{ height: `${height}%` }}
+                    ></div>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mt-2 text-center">{row.date.split(' ')[0]}</div>
+                <div className={`text-xs font-medium ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                  {isNegative ? '-' : ''}${(Math.abs(row.balance) / 1000).toFixed(0)}k
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm">
+          <div>
+            <span className="text-gray-500">Peak Cash Out:</span>
+            <span className="font-medium text-red-600 ml-2">($72,000)</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Days to Positive:</span>
+            <span className="font-medium text-gray-900 ml-2">73 days</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Current Position:</span>
+            <span className="font-medium text-green-600 ml-2">$2,530</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ProfitabilityView = () => (
+    <div className="space-y-6">
+      {/* Batch P&L */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Batch Profitability: {batchSummary.id}</h3>
+        <div className="grid grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-600">Gross Revenue</span>
+              <span className="font-medium text-gray-900">$98,450</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-600">Less: Discounts</span>
+              <span className="font-medium text-red-600">(8,920)</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-200">
+              <span className="font-medium text-gray-900">Net Revenue</span>
+              <span className="font-bold text-gray-900">$89,530</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-100">
+              <span className="text-gray-600">Less: COGS (Landed)</span>
+              <span className="font-medium text-red-600">(44,320)</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-gray-200 bg-green-50 -mx-2 px-2">
+              <span className="font-medium text-green-800">Gross Margin</span>
+              <span className="font-bold text-green-700">$45,210 (50.5%)</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-sm text-gray-500 mb-3">Margin by SKU</div>
+            <div className="space-y-2">
+              {skuData.slice(0, 4).map(sku => {
+                const margin = ((sku.price - sku.landedCost) / sku.price * 100);
+                return (
+                  <div key={sku.sku} className="flex items-center gap-2">
+                    <div className="w-24 text-xs text-gray-600 truncate">{sku.name}</div>
+                    <div className="flex-1 h-4 bg-gray-100 rounded overflow-hidden">
+                      <div 
+                        className="h-full bg-green-400 rounded"
+                        style={{ width: `${margin}%` }}
+                      ></div>
+                    </div>
+                    <div className="w-12 text-xs text-right font-medium text-gray-700">{margin.toFixed(0)}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Order P&L Waterfall */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Contribution: {orderSummary.id}</h3>
+        <div className="flex items-end justify-between h-48 px-4">
+          {[
+            { label: 'Subtotal', value: 124.00, color: 'bg-blue-400' },
+            { label: 'Discount', value: -12.40, color: 'bg-red-300' },
+            { label: 'Net Rev', value: 111.60, color: 'bg-blue-500' },
+            { label: 'COGS', value: -37.31, color: 'bg-red-300' },
+            { label: 'Fulfillment', value: -4.25, color: 'bg-red-300' },
+            { label: 'Shipping', value: -6.85, color: 'bg-red-300' },
+            { label: 'Fees', value: -3.80, color: 'bg-red-300' },
+            { label: 'CM', value: 59.39, color: 'bg-green-500' },
+          ].map((item, idx) => {
+            const maxVal = 124;
+            const height = Math.abs(item.value) / maxVal * 100;
+            return (
+              <div key={idx} className="flex flex-col items-center w-16">
+                <div className="text-xs font-medium mb-1">
+                  {item.value > 0 ? '' : '-'}${Math.abs(item.value).toFixed(0)}
+                </div>
+                <div 
+                  className={`w-10 ${item.color} rounded-t`}
+                  style={{ height: `${height}%` }}
+                ></div>
+                <div className="text-xs text-gray-500 mt-2 text-center">{item.label}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+          <span className="text-gray-500">Contribution Margin:</span>
+          <span className="font-bold text-green-600 ml-2">${orderSummary.contributionMargin.toFixed(2)} ({orderSummary.cmPct}%)</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Sightline</h1>
+          <p className="text-gray-500">Ecommerce Operations Ledger</p>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex gap-2 mb-6">
+          {[
+            { id: 'timeline', label: 'Timeline' },
+            { id: 'inventory', label: 'Inventory' },
+            { id: 'cashflow', label: 'Cash Flow' },
+            { id: 'profitability', label: 'Profitability' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeView === tab.id
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Batch Landed Cost</div>
+            <div className="text-2xl font-bold text-gray-900">${(batchSummary.landedCost / 1000).toFixed(0)}k</div>
+            <div className="text-xs text-gray-400">{batchSummary.unitsReceived.toLocaleString()} units received</div>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Net Revenue (to date)</div>
+            <div className="text-2xl font-bold text-gray-900">$89.5k</div>
+            <div className="text-xs text-gray-400">{batchSummary.unitsSold.toLocaleString()} units sold</div>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Gross Margin</div>
+            <div className="text-2xl font-bold text-green-600">$45.2k</div>
+            <div className="text-xs text-green-500">{batchSummary.gmPct}% margin</div>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="text-sm text-gray-500">Inventory Remaining</div>
+            <div className="text-2xl font-bold text-orange-600">{(batchSummary.unitsReceived - batchSummary.unitsSold).toLocaleString()}</div>
+            <div className="text-xs text-orange-500">{((batchSummary.unitsReceived - batchSummary.unitsSold) / batchSummary.unitsReceived * 100).toFixed(0)}% of batch</div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        {activeView === 'timeline' && <Timeline />}
+        {activeView === 'inventory' && <InventoryView />}
+        {activeView === 'cashflow' && <CashFlowView />}
+        {activeView === 'profitability' && <ProfitabilityView />}
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-400">
+          All data linked to event ledger • Policy Version: POL-INV-001 / POL-ORD-001
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// export default CFODashboard;
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(CFODashboard));
+</script>
+</body>
+</html>

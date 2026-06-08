@@ -1,0 +1,793 @@
+import React, { useState } from 'react';
+
+const ProofFirstOverview = () => {
+  const [activeSection, setActiveSection] = useState('problem');
+  const [expandedPrinciple, setExpandedPrinciple] = useState(null);
+
+  const sections = {
+    problem: {
+      label: 'THE PROBLEM',
+      color: '#ef4444'
+    },
+    solution: {
+      label: 'THE SOLUTION',
+      color: '#3b82f6'
+    },
+    principles: {
+      label: 'CORE PRINCIPLES',
+      color: '#8b5cf6'
+    },
+    implementation: {
+      label: 'IMPLEMENTATION',
+      color: '#22c55e'
+    }
+  };
+
+  const principles = [
+    {
+      id: 'evidence',
+      title: 'Evidence-Gated Entry',
+      rule: 'No record accepted without required proof',
+      icon: '⊘',
+      details: [
+        'Approvals from access-controlled workflows',
+        'Bank confirmations / processor status',
+        'Receiving confirmations from warehouse',
+        'Delivery / acceptance acknowledgements',
+        'Contract signature records',
+        'PO-Invoice-Receipt matches'
+      ]
+    },
+    {
+      id: 'event',
+      title: 'Event as Atomic Unit',
+      rule: 'Capture what happened, derive the ledger',
+      icon: '◉',
+      details: [
+        'Events are observable business activities',
+        'Journal entries derived automatically',
+        'No manual journal entry inputs',
+        'Evidence embedded in each record',
+        'Full audit trail by design'
+      ]
+    },
+    {
+      id: 'append',
+      title: 'Append-Only Records',
+      rule: 'Never edit — only add corrections',
+      icon: '⊕',
+      details: [
+        'Accepted records are immutable',
+        'Corrections are new records',
+        'Each correction references original',
+        'Complete history preserved',
+        'Tamper-resistant by structure'
+      ]
+    },
+    {
+      id: 'reject',
+      title: 'Reject, Don\'t Fix Later',
+      rule: 'Block unsupported entries at the gate',
+      icon: '⊗',
+      details: [
+        'Validation happens on submission',
+        'Rejected events go to exception queue',
+        'Clear rejection reasons provided',
+        'Resolution also creates events',
+        'Problems surface in hours, not weeks'
+      ]
+    }
+  ];
+
+  const phases = [
+    {
+      phase: '1',
+      title: 'Sidecar',
+      status: 'LOW RISK',
+      description: 'Run alongside ERP for one scope (inventory, revenue, payments)',
+      output: 'Produces validated summaries for ERP posting'
+    },
+    {
+      phase: '2',
+      title: 'Expand',
+      status: 'GROWTH',
+      description: 'Add event types, reduce manual journals',
+      output: 'Convert manual entries to controlled events'
+    },
+    {
+      phase: '3',
+      title: 'Primary',
+      status: 'MATURE',
+      description: 'Evidence layer becomes integrity source',
+      output: 'ERP becomes downstream reporting'
+    }
+  ];
+
+  const metrics = [
+    { label: 'Exception Rate', desc: '% events rejected' },
+    { label: 'Resolution Time', desc: 'Hours to resolve' },
+    { label: 'Manual Journals', desc: 'Count reduced' },
+    { label: 'Reconciliation', desc: 'Hours saved' },
+    { label: 'Audit Retrieval', desc: 'Time to satisfy' },
+    { label: 'Coverage', desc: '% with evidence' }
+  ];
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%)',
+      color: '#e0e0e0',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      padding: '24px',
+      boxSizing: 'border-box'
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: '300',
+          letterSpacing: '8px',
+          textTransform: 'uppercase',
+          color: '#fff',
+          margin: '0 0 8px 0'
+        }}>
+          PROOF-FIRST FINANCE
+        </h1>
+        <p style={{
+          fontSize: '12px',
+          color: '#666',
+          letterSpacing: '2px',
+          margin: 0,
+          maxWidth: '500px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          lineHeight: '1.6'
+        }}>
+          Evidence-Gated Records That Reduce Reconciliation<br/>and Make Audit Evidence Native
+        </p>
+      </div>
+
+      {/* Navigation */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '8px',
+        marginBottom: '40px',
+        flexWrap: 'wrap'
+      }}>
+        {Object.entries(sections).map(([key, { label, color }]) => (
+          <button
+            key={key}
+            onClick={() => setActiveSection(key)}
+            style={{
+              padding: '10px 20px',
+              background: activeSection === key ? `${color}20` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${activeSection === key ? color : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: '4px',
+              color: activeSection === key ? color : '#666',
+              cursor: 'pointer',
+              fontSize: '10px',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              transition: 'all 0.2s'
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Content Sections */}
+      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        
+        {/* PROBLEM SECTION */}
+        {activeSection === 'problem' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '24px',
+              marginBottom: '32px'
+            }}>
+              {/* Current State */}
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.05)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '8px',
+                padding: '24px'
+              }}>
+                <div style={{
+                  fontSize: '10px',
+                  letterSpacing: '2px',
+                  color: '#ef4444',
+                  marginBottom: '16px'
+                }}>
+                  CURRENT STATE
+                </div>
+                <div style={{
+                  fontSize: '18px',
+                  color: '#fff',
+                  marginBottom: '20px',
+                  lineHeight: '1.4'
+                }}>
+                  Systems accept entries first,<br/>ask questions later
+                </div>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                  {[
+                    'Proof scattered across emails, PDFs, portals',
+                    'Evidence assembled after the fact',
+                    'Detective controls (find errors later)',
+                    'Month-end reconciliation scramble'
+                  ].map((item, i) => (
+                    <div key={i} style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      marginBottom: '10px',
+                      fontSize: '12px',
+                      color: '#999'
+                    }}>
+                      <span style={{ color: '#ef4444', marginRight: '10px' }}>✗</span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Audit Reality */}
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '8px',
+                padding: '24px'
+              }}>
+                <div style={{
+                  fontSize: '10px',
+                  letterSpacing: '2px',
+                  color: '#888',
+                  marginBottom: '16px'
+                }}>
+                  AUDIT REALITY
+                </div>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#aaa',
+                  marginBottom: '16px',
+                  lineHeight: '1.5'
+                }}>
+                  Auditor requests support for 25 revenue transactions:
+                </div>
+                {[
+                  'Spreadsheet extract from ERP',
+                  'PDFs of invoices',
+                  'Screenshots from logistics portal',
+                  'Emails showing acceptance',
+                  'Tickets for price exceptions'
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    marginBottom: '6px',
+                    fontSize: '11px',
+                    color: '#888',
+                    borderLeft: '2px solid rgba(239, 68, 68, 0.3)'
+                  }}>
+                    {item}
+                  </div>
+                ))}
+                <div style={{
+                  marginTop: '16px',
+                  fontSize: '11px',
+                  color: '#ef4444',
+                  fontStyle: 'italic'
+                }}>
+                  This repeats every period.
+                </div>
+              </div>
+            </div>
+
+            {/* Problem Summary */}
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                fontSize: '14px',
+                color: '#fff',
+                lineHeight: '1.6'
+              }}>
+                The ledger is a <span style={{ color: '#ef4444' }}>container for numbers</span>, not a <span style={{ color: '#22c55e' }}>container for proof</span>.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SOLUTION SECTION */}
+        {activeSection === 'solution' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* The Rule */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '8px',
+              padding: '32px',
+              textAlign: 'center',
+              marginBottom: '32px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '3px',
+                color: '#3b82f6',
+                marginBottom: '16px'
+              }}>
+                THE RULE IN ONE SENTENCE
+              </div>
+              <div style={{
+                fontSize: '20px',
+                color: '#fff',
+                fontWeight: '500',
+                marginBottom: '16px'
+              }}>
+                If the required evidence is not present,<br/>the record is not accepted.
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: '#888'
+              }}>
+                It goes to an exception queue.
+              </div>
+            </div>
+
+            {/* What Changes */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 40px 1fr',
+              gap: '0',
+              alignItems: 'center',
+              marginBottom: '32px'
+            }}>
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.05)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#ef4444', marginBottom: '12px' }}>
+                  BEFORE
+                </div>
+                <div style={{ fontSize: '13px', color: '#aaa', lineHeight: '1.6' }}>
+                  Reconstruct what happened at month-end. Chase documents. Post adjustments. Explain to auditors.
+                </div>
+              </div>
+              
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  fontSize: '20px',
+                  color: '#8b5cf6'
+                }}>→</div>
+              </div>
+
+              <div style={{
+                background: 'rgba(34, 197, 94, 0.05)',
+                border: '1px solid rgba(34, 197, 94, 0.2)',
+                borderRadius: '8px',
+                padding: '20px'
+              }}>
+                <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#22c55e', marginBottom: '12px' }}>
+                  AFTER
+                </div>
+                <div style={{ fontSize: '13px', color: '#aaa', lineHeight: '1.6' }}>
+                  Review exceptions and estimates. Evidence already attached. Ledger ready for audit at any time.
+                </div>
+              </div>
+            </div>
+
+            {/* Event Record Structure */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#8b5cf6',
+                marginBottom: '20px'
+              }}>
+                THE EVENT RECORD
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '12px'
+              }}>
+                {[
+                  { num: '1', label: 'WHAT', desc: 'Business activity' },
+                  { num: '2', label: 'WHO', desc: 'Submitter identity' },
+                  { num: '3', label: 'PROOF', desc: 'Evidence attached' },
+                  { num: '4', label: 'RULES', desc: 'Checks applied' }
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(139, 92, 246, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                    borderRadius: '6px',
+                    padding: '16px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: 'rgba(139, 92, 246, 0.2)',
+                      color: '#8b5cf6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 10px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {item.num}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#fff', marginBottom: '4px' }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#666' }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                marginTop: '20px',
+                textAlign: 'center',
+                fontSize: '11px',
+                color: '#666'
+              }}>
+                Accounting entries are <span style={{ color: '#22c55e' }}>derived</span> from accepted events automatically
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PRINCIPLES SECTION */}
+        {activeSection === 'principles' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '16px'
+            }}>
+              {principles.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => setExpandedPrinciple(expandedPrinciple === p.id ? null : p.id)}
+                  style={{
+                    background: expandedPrinciple === p.id 
+                      ? 'rgba(139, 92, 246, 0.1)' 
+                      : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${expandedPrinciple === p.id 
+                      ? 'rgba(139, 92, 246, 0.3)' 
+                      : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: '8px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: 'rgba(139, 92, 246, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      color: '#8b5cf6',
+                      flexShrink: 0
+                    }}>
+                      {p.icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#fff',
+                        marginBottom: '6px',
+                        fontWeight: '500'
+                      }}>
+                        {p.title}
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#888',
+                        lineHeight: '1.4'
+                      }}>
+                        {p.rule}
+                      </div>
+                    </div>
+                    <div style={{
+                      color: '#666',
+                      fontSize: '12px',
+                      transition: 'transform 0.2s',
+                      transform: expandedPrinciple === p.id ? 'rotate(90deg)' : 'rotate(0)'
+                    }}>
+                      ▸
+                    </div>
+                  </div>
+                  
+                  {expandedPrinciple === p.id && (
+                    <div style={{
+                      marginTop: '16px',
+                      paddingTop: '16px',
+                      borderTop: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      {p.details.map((detail, i) => (
+                        <div key={i} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginBottom: '8px',
+                          fontSize: '11px',
+                          color: '#aaa'
+                        }}>
+                          <span style={{ 
+                            color: '#8b5cf6', 
+                            marginRight: '10px',
+                            fontSize: '8px'
+                          }}>●</span>
+                          {detail}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Boundaries */}
+            <div style={{
+              marginTop: '24px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '20px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#666',
+                marginBottom: '16px'
+              }}>
+                EXPLICIT BOUNDARIES — WHAT THIS DOES NOT CLAIM
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                {[
+                  'Fair value measurements',
+                  'Impairment decisions',
+                  'Credit loss reserves',
+                  'Complex contract allocation',
+                  'Management estimates'
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    color: '#888'
+                  }}>
+                    {item}
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                marginTop: '12px',
+                fontSize: '11px',
+                color: '#666'
+              }}>
+                These require judgment. The system enforces <span style={{ color: '#8b5cf6' }}>approvals, version tracking, and evidence retention</span> around them.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* IMPLEMENTATION SECTION */}
+        {activeSection === 'implementation' && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Phases */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '16px',
+              marginBottom: '32px'
+            }}>
+              {phases.map((p, i) => (
+                <div key={i} style={{
+                  background: 'rgba(34, 197, 94, 0.05)',
+                  border: '1px solid rgba(34, 197, 94, 0.2)',
+                  borderRadius: '8px',
+                  padding: '20px',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '-12px',
+                    left: '20px',
+                    background: '#22c55e',
+                    color: '#000',
+                    padding: '4px 12px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: '600',
+                    letterSpacing: '1px'
+                  }}>
+                    PHASE {p.phase}
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    color: '#fff',
+                    marginTop: '8px',
+                    marginBottom: '8px'
+                  }}>
+                    {p.title}
+                  </div>
+                  <div style={{
+                    fontSize: '9px',
+                    letterSpacing: '1px',
+                    color: '#22c55e',
+                    marginBottom: '12px'
+                  }}>
+                    {p.status}
+                  </div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#888',
+                    marginBottom: '12px',
+                    lineHeight: '1.5'
+                  }}>
+                    {p.description}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#666',
+                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                    paddingTop: '12px'
+                  }}>
+                    <span style={{ color: '#22c55e' }}>→</span> {p.output}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Metrics */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '24px'
+            }}>
+              <div style={{
+                fontSize: '10px',
+                letterSpacing: '2px',
+                color: '#888',
+                marginBottom: '20px'
+              }}>
+                SUCCESS METRICS FOR PILOT
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px'
+              }}>
+                {metrics.map((m, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(34, 197, 94, 0.08)',
+                    border: '1px solid rgba(34, 197, 94, 0.15)',
+                    borderRadius: '6px',
+                    padding: '14px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#22c55e',
+                      marginBottom: '4px'
+                    }}>
+                      {m.label}
+                    </div>
+                    <div style={{
+                      fontSize: '10px',
+                      color: '#666'
+                    }}>
+                      {m.desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Key Risks */}
+            <div style={{
+              marginTop: '24px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px'
+            }}>
+              {[
+                { risk: 'Bad source data', mitigation: 'Restrict submitters, cross-checks, anomaly monitoring' },
+                { risk: 'Physical proof spoofing', mitigation: 'Device controls, separation of duties, secondary confirms' },
+                { risk: 'Exception overload', mitigation: 'Clear ownership, SLAs, escalation paths' }
+              ].map((r, i) => (
+                <div key={i} style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '6px',
+                  padding: '14px'
+                }}>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#ef4444',
+                    marginBottom: '8px'
+                  }}>
+                    ⚠ {r.risk}
+                  </div>
+                  <div style={{
+                    fontSize: '10px',
+                    color: '#888',
+                    lineHeight: '1.4'
+                  }}>
+                    {r.mitigation}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Quote */}
+      <div style={{
+        maxWidth: '700px',
+        margin: '48px auto 0',
+        textAlign: 'center',
+        padding: '24px',
+        borderTop: '1px solid rgba(255,255,255,0.05)'
+      }}>
+        <p style={{
+          fontSize: '14px',
+          color: '#888',
+          lineHeight: '1.7',
+          margin: 0,
+          fontStyle: 'italic'
+        }}>
+          "Accounting doesn't fail because teams don't work hard. It fails because systems accept unsupported entries and force people to rebuild proof later."
+        </p>
+        <p style={{
+          fontSize: '13px',
+          color: '#22c55e',
+          marginTop: '16px',
+          marginBottom: 0
+        }}>
+          Support first. Posting second.
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default ProofFirstOverview;

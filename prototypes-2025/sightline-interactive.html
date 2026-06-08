@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline - Control Assurance Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary: #1e3a5f;
+      --primary-light: #3b82f6;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --success-border: #86efac;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
+      --warning-border: #fcd34d;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --danger-border: #fca5a5;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    }
+    
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      line-height: 1.5;
+    }
+    
+    .app { display: flex; min-height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+    
+    .sidebar.collapsed { transform: translateX(-240px); }
+    
+    .logo {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    
+    .logo-text { font-size: 20px; font-weight: 700; }
+    
+    .nav { flex: 1; padding: 12px; }
+    
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 8px;
+      color: rgba(255,255,255,0.7); cursor: pointer;
+      font-size: 14px; font-weight: 500; margin-bottom: 4px;
+      transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+    }
+    
+    .nav-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.15); color: white; }
+    
+    .nav-badge {
+      margin-left: auto;
+      background: #ef4444; color: white;
+      font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 10px;
+    }
+    
+    .user-section { padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+    
+    .user-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;
+    }
+    
+    .user-avatar {
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.2); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    
+    .user-name { font-weight: 600; font-size: 13px; }
+    .user-role { color: rgba(255,255,255,0.5); font-size: 11px; }
+    
+    /* Main */
+    .main {
+      flex: 1; padding: 32px; margin-left: 240px;
+      transition: margin-left 0.3s;
+    }
+    
+    .main.expanded { margin-left: 0; }
+    
+    .mobile-header {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      background: white; padding: 12px 16px;
+      border-bottom: 1px solid var(--gray-200);
+      z-index: 50; align-items: center; gap: 12px;
+    }
+    
+    .menu-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 8px; border-radius: 8px;
+    }
+    
+    .menu-btn:hover { background: var(--gray-100); }
+    
+    .page-header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+    .page-header p { color: var(--gray-500); margin-top: 4px; }
+    
+    .btn {
+      padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    
+    .btn-primary { background: var(--primary-light); color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    
+    .btn-success { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .btn-success:hover { background: #bbf7d0; }
+    
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+    .btn-danger:hover { background: #fecaca; }
+    
+    .btn-warning { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+    .btn-warning:hover { background: #fde68a; }
+    
+    .btn-ghost { background: var(--gray-100); color: var(--gray-600); border: 1px solid var(--gray-200); }
+    .btn-ghost:hover { background: var(--gray-200); }
+    
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    
+    /* Metrics */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    
+    .metric-card {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 12px; padding: 20px;
+    }
+    
+    .metric-label { font-size: 13px; font-weight: 500; color: var(--gray-500); }
+    .metric-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+    .metric-value.success { color: var(--success); }
+    .metric-value.danger { color: var(--danger); }
+    
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    
+    .section {
+      background: white; border: 1px solid var(--gray-200);
+      border-radius: 16px; padding: 24px;
+    }
+    
+    .section h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+    
+    /* Transaction Cards */
+    .tx-list { display: flex; flex-direction: column; gap: 12px; }
+    
+    .tx-card {
+      border: 1px solid var(--gray-200); border-radius: 10px;
+      padding: 14px; cursor: pointer; transition: all 0.15s;
+    }
+    
+    .tx-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .tx-card.selected { ring: 2px solid var(--primary-light); border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+    .tx-card.violation { border-left: 4px solid var(--danger); }
+    
+    .tx-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    
+    .tx-vendor { display: flex; align-items: flex-start; gap: 10px; }
+    
+    .tx-vendor-icon {
+      width: 32px; height: 32px; background: #dbeafe;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary-light);
+    }
+    
+    .tx-vendor-name { font-weight: 600; font-size: 14px; }
+    .tx-invoice { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--gray-400); }
+    
+    .tx-amount {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--gray-100); padding: 4px 10px; border-radius: 6px;
+      font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    }
+    
+    .tx-meta {
+      display: flex; gap: 24px; padding: 10px 0;
+      border-top: 1px solid var(--gray-100); border-bottom: 1px solid var(--gray-100); margin-bottom: 10px;
+    }
+    
+    .tx-meta-item label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-400); margin-bottom: 2px; }
+    .tx-meta-item span { font-size: 13px; color: var(--gray-600); }
+    
+    .tx-footer { display: flex; justify-content: space-between; align-items: center; }
+    .tx-badges { display: flex; gap: 8px; align-items: center; }
+    
+    /* SLA Badge */
+    .sla-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    
+    .sla-badge.ok { background: var(--success-bg); color: var(--success); }
+    .sla-badge.warning { background: var(--warning-bg); color: var(--warning); }
+    .sla-badge.breached { background: var(--danger-bg); color: var(--danger); }
+    
+    .sla-time { opacity: 0.8; padding-left: 6px; border-left: 1px solid currentColor; margin-left: 2px; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    
+    /* Policy Badge */
+    .policy-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+    }
+    
+    .policy-badge.pass { background: var(--success-bg); color: var(--success); }
+    .policy-badge.fail { background: var(--danger-bg); color: var(--danger); }
+    .policy-badge.bypassed { background: var(--warning-bg); color: var(--warning); }
+    
+    /* Detail Panel */
+    .detail-panel { position: sticky; top: 32px; }
+    
+    .detail-header { margin-bottom: 16px; }
+    .detail-header h2 { font-size: 20px; font-weight: 700; }
+    .detail-header .invoice { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--gray-400); }
+    
+    .detail-amount { font-size: 36px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin: 16px 0; }
+    
+    .detail-meta {
+      background: var(--gray-50); border-radius: 8px; padding: 16px; margin-bottom: 16px;
+    }
+    
+    .detail-meta-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-200); }
+    .detail-meta-row:last-child { border-bottom: none; }
+    .detail-meta-row label { color: var(--gray-500); font-size: 13px; }
+    .detail-meta-row span { font-weight: 500; font-size: 13px; }
+    
+    /* Action Bar */
+    .action-bar { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    
+    .violation-warning {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--danger-bg); color: var(--danger);
+      padding: 10px 14px; border-radius: 8px; margin-top: 12px; font-size: 13px;
+    }
+    
+    /* Action Modal */
+    .action-modal { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--gray-200); }
+    .action-modal h4 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    .action-modal textarea {
+      width: 100%; padding: 10px; border: 1px solid var(--gray-200); border-radius: 8px;
+      font-family: inherit; font-size: 13px; resize: vertical; margin-bottom: 12px;
+    }
+    .action-modal textarea:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+    .action-modal-buttons { display: flex; justify-content: flex-end; gap: 8px; }
+    
+    /* Audit Timeline */
+    .timeline { padding: 0; }
+    .timeline-item { display: flex; gap: 12px; padding-bottom: 16px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    
+    .timeline-dot-wrapper { display: flex; flex-direction: column; align-items: center; }
+    
+    .timeline-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    
+    .timeline-dot.success { background: var(--success-bg); color: var(--success); }
+    .timeline-dot.danger { background: var(--danger-bg); color: var(--danger); }
+    
+    .timeline-line { width: 2px; flex: 1; background: var(--gray-200); margin: 4px 0; }
+    
+    .timeline-content { flex: 1; }
+    .timeline-status { font-weight: 600; font-size: 13px; }
+    .timeline-stage { font-size: 11px; background: var(--gray-100); padding: 2px 8px; border-radius: 4px; color: var(--gray-500); margin-left: 8px; }
+    .timeline-meta { font-size: 12px; color: var(--gray-500); margin-top: 4px; }
+    .timeline-hash { font-size: 11px; color: var(--gray-400); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+    
+    /* Budget Bars */
+    .budget-list { display: flex; flex-direction: column; gap: 12px; }
+    
+    .budget-card { background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 14px; }
+    
+    .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .budget-name { font-weight: 600; font-size: 14px; }
+    
+    .budget-pct {
+      display: flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .budget-pct.healthy { background: var(--success-bg); color: var(--success); }
+    .budget-pct.warning { background: var(--warning-bg); color: var(--warning); }
+    .budget-pct.over { background: var(--danger-bg); color: var(--danger); }
+    
+    .budget-bar { height: 10px; background: var(--gray-100); border-radius: 5px; overflow: hidden; margin-bottom: 8px; position: relative; }
+    
+    .budget-fill { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+    .budget-fill.healthy { background: linear-gradient(90deg, #22c55e, #16a34a); }
+    .budget-fill.warning { background: linear-gradient(90deg, #fbbf24, #d97706); }
+    .budget-fill.over { background: linear-gradient(90deg, #f87171, #dc2626); }
+    
+    .budget-bar::after { content: ''; position: absolute; left: 80%; top: 0; bottom: 0; width: 2px; background: rgba(217, 119, 6, 0.4); }
+    
+    .budget-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--gray-500); }
+    .budget-labels strong { font-family: 'JetBrains Mono', monospace; color: var(--gray-700); font-weight: 500; }
+    
+    /* Policy Cards */
+    .policy-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    
+    .policy-card { background: white; border: 1px solid var(--gray-200); border-radius: 12px; padding: 20px; transition: opacity 0.2s; }
+    .policy-card.disabled { opacity: 0.6; }
+    
+    .policy-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .policy-title { display: flex; align-items: center; gap: 10px; }
+    .policy-title h3 { font-size: 15px; font-weight: 600; }
+    
+    .policy-icon { color: var(--primary-light); }
+    .policy-icon.inactive { color: var(--gray-400); }
+    
+    .toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid; transition: all 0.15s;
+    }
+    
+    .toggle-btn.active { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .toggle-btn.inactive { background: var(--gray-100); color: var(--gray-500); border-color: var(--gray-300); }
+    
+    .policy-condition { background: var(--gray-50); padding: 10px 14px; border-radius: 8px; font-size: 13px; color: var(--gray-600); margin-bottom: 12px; }
+    .policy-condition strong { color: var(--gray-900); }
+    
+    .policy-footer { display: flex; justify-content: space-between; font-size: 12px; color: var(--gray-500); }
+    
+    /* Empty State */
+    .empty-state {
+      text-align: center; padding: 40px; color: var(--gray-400);
+      border: 2px dashed var(--gray-200); border-radius: 12px;
+    }
+    
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+    
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--gray-900); color: white;
+      padding: 14px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 500;
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast.danger { background: var(--danger); }
+    
+    /* Pages */
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .grid-2 { grid-template-columns: 1fr; }
+      .policy-list { grid-template-columns: 1fr; }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-240px); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; padding: 80px 16px 16px; }
+      .mobile-header { display: flex; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+    
+    /* Icons */
+    .icon { width: 16px; height: 16px; display: inline-block; vertical-align: middle; }
+    .icon-sm { width: 12px; height: 12px; }
+    .icon-lg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <span class="logo-text">Sightline</span>
+      </div>
+      
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-page="dashboard">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Dashboard
+        </button>
+        <button class="nav-item" data-page="transactions">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Transactions
+        </button>
+        <button class="nav-item" data-page="approvals">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+          Approvals
+          <span class="nav-badge" id="pending-badge">2</span>
+        </button>
+        <button class="nav-item" data-page="policies">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Policies
+        </button>
+      </nav>
+      
+      <div class="user-section">
+        <div class="user-card">
+          <div class="user-avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div>
+            <div class="user-name">Demo User</div>
+            <div class="user-role">Approver, Controller</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+    
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <button class="menu-btn" onclick="toggleSidebar()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <span style="font-weight: 600;">Sightline</span>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main" id="main">
+      
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <h1>Welcome back, Demo</h1>
+            <p>Here's your control assurance overview</p>
+          </div>
+        </div>
+        
+        <div class="metrics" id="metrics"></div>
+        
+        <div class="grid-2">
+          <div class="section">
+            <h2>Pending Approvals</h2>
+            <div class="tx-list" id="dashboard-pending"></div>
+          </div>
+          <div class="section">
+            <h2>Budget Overview</h2>
+            <div class="budget-list" id="dashboard-budgets"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- TRANSACTIONS PAGE -->
+      <div class="page" id="page-transactions">
+        <div class="page-header">
+          <div>
+            <h1>Transactions</h1>
+            <p>View and manage all transactions</p>
+          </div>
+          <button class="btn btn-primary">+ New Transaction</button>
+        </div>
+        
+        <div class="grid-2">
+          <div class="tx-list" id="transactions-list"></div>
+          <div class="detail-panel" id="transaction-detail">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <p>Select a transaction to view details</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- APPROVALS PAGE -->
+      <div class="page" id="page-approvals">
+        <div class="page-header">
+          <div>
+            <h1>Approval Queue</h1>
+            <p>Transactions awaiting your action</p>
+          </div>
+        </div>
+        
+        <div class="grid-2">
+          <div class="tx-list" id="approvals-list"></div>
+          <div class="detail-panel" id="approval-detail">
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              <p>Select a transaction to approve or reject</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- POLICIES PAGE -->
+      <div class="page" id="page-policies">
+        <div class="page-header">
+          <div>
+            <h1>Policy Management</h1>
+            <p>Configure approval rules and thresholds</p>
+          </div>
+          <button class="btn btn-primary">+ Add Policy</button>
+        </div>
+        
+        <div class="policy-list" id="policies-list"></div>
+      </div>
+      
+    </main>
+  </div>
+  
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+<script>
+// ============================================
+// SIGHTLINE - INTERACTIVE PROTOTYPE
+// ============================================
+
+// Data
+let transactions = [
+  { id: 'TXN-0001', invoice: 'INV-0001', vendor: 'GreenScape LLC', amount: 8750.00, account: 'Landscaping', stage: 'Approval Routing', status: 'Pending Approval', slaStatus: 'ok', slaHours: 18, policyResult: 'pass', violation: false },
+  { id: 'TXN-0002', invoice: 'INV-0002', vendor: 'Neighborhood Law PLLC', amount: 15200.00, account: 'Legal', stage: 'Policy Evaluation', status: 'Override Requested', slaStatus: 'warning', slaHours: 2, policyResult: 'fail', violation: true },
+  { id: 'TXN-0003', invoice: 'INV-0003', vendor: 'Sunrise Electric', amount: 4250.00, account: 'Maintenance', stage: 'Payment Execution', status: 'Ready for Payment', slaStatus: 'ok', slaHours: 24, policyResult: 'pass', violation: false },
+  { id: 'TXN-0004', invoice: 'INV-0004', vendor: 'Metro Security', amount: 2100.00, account: 'Security', stage: 'Approval Routing', status: 'Pending Approval', slaStatus: 'breached', slaHours: -4, policyResult: 'pass', violation: false },
+  { id: 'TXN-0005', invoice: 'INV-0005', vendor: 'ClearPath Plumbing', amount: 12500.00, account: 'Maintenance', stage: 'Policy Evaluation', status: 'Approved', slaStatus: 'ok', slaHours: 12, policyResult: 'bypassed', violation: false }
+];
+
+const budgets = [
+  { account: 'Landscaping', budget: 25000, spent: 18500 },
+  { account: 'Legal', budget: 15000, spent: 12800 },
+  { account: 'Maintenance', budget: 40000, spent: 22400 },
+  { account: 'Security', budget: 20000, spent: 8900 }
+];
+
+let policies = [
+  { id: 'POL-001', name: 'Dual Approval > $10K', condition: 'Amount > $10,000', action: 'Dual Approval', enabled: true, sla: 24 },
+  { id: 'POL-002', name: 'Legal Review Required', condition: 'Account = Legal', action: 'Legal Review', enabled: true, sla: 48 },
+  { id: 'POL-003', name: 'Budget Check', condition: 'All Transactions', action: 'Auto Check', enabled: true, sla: 1 },
+  { id: 'POL-004', name: 'New Vendor Verification', condition: 'New Vendor', action: 'W-9 Required', enabled: false, sla: 72 }
+];
+
+const events = [
+  { status: 'Pending Approval', stage: 'Creation', actor: 'Maria Garcia', role: 'Submitter', time: '2h ago', policy: 'pass', hash: 'a1b2c3d4' },
+  { status: 'Routed to Approver', stage: 'Approval Routing', actor: 'System', role: 'System', time: '2h ago', policy: 'pass', hash: 'e5f6g7h8' },
+  { status: 'Under Review', stage: 'Approval Routing', actor: 'David Chen', role: 'Approver', time: '1h ago', policy: 'pass', hash: 'i9j0k1l2' }
+];
+
+let selectedTx = null;
+let currentPage = 'dashboard';
+let actionMode = null;
+
+// Utilities
+const formatCurrency = (n) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+const formatSLA = (hours) => {
+  const abs = Math.abs(hours);
+  if (abs >= 24) return Math.floor(abs / 24) + 'd ' + (abs % 24) + 'h';
+  return abs + 'h';
+};
+
+// Render functions
+function renderMetrics() {
+  const pending = transactions.filter(t => t.status === 'Pending Approval').length;
+  const violations = transactions.filter(t => t.violation).length;
+  
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">Pending Approvals</div>
+      <div class="metric-value">${pending}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">SLA Compliance</div>
+      <div class="metric-value success">87%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Policy Violations</div>
+      <div class="metric-value danger">${violations}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg Approval Time</div>
+      <div class="metric-value">4.2h</div>
+    </div>
+  `;
+  
+  document.getElementById('pending-badge').textContent = pending;
+}
+
+function renderTxCard(tx, clickHandler) {
+  const slaText = tx.slaHours < 0 ? formatSLA(tx.slaHours) + ' over' : formatSLA(tx.slaHours);
+  const selected = selectedTx && selectedTx.id === tx.id ? 'selected' : '';
+  const violation = tx.violation ? 'violation' : '';
+  
+  return `
+    <div class="tx-card ${selected} ${violation}" onclick="${clickHandler}('${tx.id}')">
+      <div class="tx-header">
+        <div class="tx-vendor">
+          <div class="tx-vendor-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="tx-vendor-name">${tx.vendor}</div>
+            <div class="tx-invoice">${tx.invoice}</div>
+          </div>
+        </div>
+        <div class="tx-amount">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          ${formatCurrency(tx.amount)}
+        </div>
+      </div>
+      <div class="tx-meta">
+        <div class="tx-meta-item"><label>Account</label><span>${tx.account}</span></div>
+        <div class="tx-meta-item"><label>Stage</label><span>${tx.stage}</span></div>
+        <div class="tx-meta-item"><label>Status</label><span style="font-weight:500">${tx.status}</span></div>
+      </div>
+      <div class="tx-footer">
+        <div class="tx-badges">
+          <span class="sla-badge ${tx.slaStatus}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              ${tx.slaStatus === 'ok' ? '<polyline points="20 6 9 17 4 12"/>' : tx.slaStatus === 'warning' ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>' : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}
+            </svg>
+            ${tx.slaStatus.charAt(0).toUpperCase() + tx.slaStatus.slice(1)}
+            <span class="sla-time">${slaText}</span>
+          </span>
+          <span class="policy-badge ${tx.policyResult}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            ${tx.policyResult.toUpperCase()}
+          </span>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    </div>
+  `;
+}
+
+function renderBudgetCard(b) {
+  const pct = Math.round((b.spent / b.budget) * 100);
+  const status = pct >= 100 ? 'over' : pct >= 80 ? 'warning' : 'healthy';
+  
+  return `
+    <div class="budget-card">
+      <div class="budget-header">
+        <span class="budget-name">${b.account}</span>
+        <span class="budget-pct ${status}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+          </svg>
+          ${pct}%
+        </span>
+      </div>
+      <div class="budget-bar">
+        <div class="budget-fill ${status}" style="width: ${Math.min(pct, 100)}%"></div>
+      </div>
+      <div class="budget-labels">
+        Spent: <strong>${formatCurrency(b.spent)}</strong> &nbsp;|&nbsp; Budget: <strong>${formatCurrency(b.budget)}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderTimeline() {
+  return `
+    <div class="section" style="margin-top: 16px;">
+      <h2>Audit Trail</h2>
+      <div class="timeline">
+        ${events.map((e, i) => `
+          <div class="timeline-item">
+            <div class="timeline-dot-wrapper">
+              <div class="timeline-dot ${e.policy === 'fail' ? 'danger' : 'success'}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  ${e.policy === 'fail' ? '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' : '<polyline points="20 6 9 17 4 12"/>'}
+                </svg>
+              </div>
+              ${i < events.length - 1 ? '<div class="timeline-line"></div>' : ''}
+            </div>
+            <div class="timeline-content">
+              <span class="timeline-status">${e.status}</span>
+              <span class="timeline-stage">${e.stage}</span>
+              <div class="timeline-meta">${e.actor} as ${e.role} • ${e.time}</div>
+              <div class="timeline-hash"># ${e.hash}...</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderDetail(tx, containerId) {
+  if (!tx) {
+    document.getElementById(containerId).innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <p>Select a transaction to view details</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const slaText = tx.slaHours < 0 ? formatSLA(tx.slaHours) + ' overdue' : formatSLA(tx.slaHours) + ' remaining';
+  const isPending = tx.status === 'Pending Approval' || tx.status === 'Override Requested';
+  
+  let actionModal = '';
+  if (actionMode) {
+    const config = {
+      approve: { title: 'Approve Transaction', placeholder: 'Add optional notes...', btn: 'Confirm Approval', btnClass: 'btn-success' },
+      reject: { title: 'Reject Transaction', placeholder: 'Reason for rejection (required)', btn: 'Confirm Rejection', btnClass: 'btn-danger' },
+      override: { title: 'Override Policy Violation', placeholder: 'Justification (required)', btn: 'Confirm Override', btnClass: 'btn-warning' }
+    }[actionMode];
+    
+    actionModal = `
+      <div class="action-modal">
+        <h4>${config.title}</h4>
+        ${actionMode === 'override' ? '<div class="violation-warning"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg> This will bypass policy controls</div>' : ''}
+        <textarea id="action-input" placeholder="${config.placeholder}" rows="3"></textarea>
+        <div class="action-modal-buttons">
+          <button class="btn btn-ghost btn-sm" onclick="cancelAction()">Cancel</button>
+          <button class="btn ${config.btnClass} btn-sm" onclick="confirmAction('${actionMode}')">${config.btn}</button>
+        </div>
+      </div>
+    `;
+  }
+  
+  document.getElementById(containerId).innerHTML = `
+    <div class="section">
+      <div class="detail-header">
+        <h2>${tx.vendor}</h2>
+        <div class="invoice">${tx.invoice}</div>
+      </div>
+      <div class="detail-amount">${formatCurrency(tx.amount)}</div>
+      <div class="detail-meta">
+        <div class="detail-meta-row"><label>Account</label><span>${tx.account}</span></div>
+        <div class="detail-meta-row"><label>Stage</label><span>${tx.stage}</span></div>
+        <div class="detail-meta-row"><label>Status</label><span>${tx.status}</span></div>
+        <div class="detail-meta-row">
+          <label>SLA</label>
+          <span class="sla-badge ${tx.slaStatus}" style="font-size: 12px;">
+            ${tx.slaStatus.charAt(0).toUpperCase() + tx.slaStatus.slice(1)} • ${slaText}
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    ${isPending ? `
+    <div class="action-bar">
+      ${!actionMode ? `
+      <div class="action-buttons">
+        <button class="btn btn-success btn-sm" onclick="startAction('approve')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Approve
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="startAction('reject')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Reject
+        </button>
+        <button class="btn btn-ghost btn-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Request Info
+        </button>
+        ${tx.violation ? `
+        <button class="btn btn-warning btn-sm" onclick="startAction('override')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Override
+        </button>
+        ` : ''}
+      </div>
+      ${tx.violation ? '<div class="violation-warning"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg> This transaction has a policy violation</div>' : ''}
+      ` : ''}
+      ${actionModal}
+    </div>
+    ` : ''}
+    
+    ${renderTimeline()}
+  `;
+}
+
+function renderPolicies() {
+  document.getElementById('policies-list').innerHTML = policies.map(p => `
+    <div class="policy-card ${p.enabled ? '' : 'disabled'}">
+      <div class="policy-header">
+        <div class="policy-title">
+          <svg class="policy-icon ${p.enabled ? '' : 'inactive'}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <h3>${p.name}</h3>
+        </div>
+        <button class="toggle-btn ${p.enabled ? 'active' : 'inactive'}" onclick="togglePolicy('${p.id}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            ${p.enabled ? '<rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/>' : '<rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="8" cy="12" r="3"/>'}
+          </svg>
+          ${p.enabled ? 'Active' : 'Inactive'}
+        </button>
+      </div>
+      <div class="policy-condition"><strong>When:</strong> ${p.condition}</div>
+      <div class="policy-footer">
+        <span>Action: <strong>${p.action}</strong></span>
+        <span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          SLA: ${p.sla}h
+        </span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Page rendering
+function renderDashboard() {
+  renderMetrics();
+  
+  const pending = transactions.filter(t => t.status === 'Pending Approval' || t.status === 'Override Requested');
+  document.getElementById('dashboard-pending').innerHTML = pending.length > 0 
+    ? pending.slice(0, 3).map(tx => renderTxCard(tx, 'selectFromDashboard')).join('')
+    : '<div class="empty-state"><p>No pending approvals 🎉</p></div>';
+  
+  document.getElementById('dashboard-budgets').innerHTML = budgets.map(renderBudgetCard).join('');
+}
+
+function renderTransactions() {
+  document.getElementById('transactions-list').innerHTML = transactions.map(tx => renderTxCard(tx, 'selectTx')).join('');
+  renderDetail(selectedTx, 'transaction-detail');
+}
+
+function renderApprovals() {
+  const pending = transactions.filter(t => t.status === 'Pending Approval' || t.status === 'Override Requested');
+  document.getElementById('approvals-list').innerHTML = pending.length > 0
+    ? pending.map(tx => renderTxCard(tx, 'selectTx')).join('')
+    : '<div class="empty-state"><p>No pending approvals 🎉</p></div>';
+  renderDetail(selectedTx, 'approval-detail');
+}
+
+// Navigation
+function navigate(page) {
+  currentPage = page;
+  selectedTx = null;
+  actionMode = null;
+  
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'transactions') renderTransactions();
+  else if (page === 'approvals') renderApprovals();
+  else if (page === 'policies') renderPolicies();
+  
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// Interactions
+function selectTx(id) {
+  selectedTx = transactions.find(t => t.id === id);
+  actionMode = null;
+  if (currentPage === 'transactions') renderTransactions();
+  else if (currentPage === 'approvals') renderApprovals();
+}
+
+function selectFromDashboard(id) {
+  selectedTx = transactions.find(t => t.id === id);
+  navigate('transactions');
+}
+
+function startAction(mode) {
+  actionMode = mode;
+  if (currentPage === 'transactions') renderDetail(selectedTx, 'transaction-detail');
+  else if (currentPage === 'approvals') renderDetail(selectedTx, 'approval-detail');
+}
+
+function cancelAction() {
+  actionMode = null;
+  if (currentPage === 'transactions') renderDetail(selectedTx, 'transaction-detail');
+  else if (currentPage === 'approvals') renderDetail(selectedTx, 'approval-detail');
+}
+
+function confirmAction(action) {
+  const input = document.getElementById('action-input').value;
+  if ((action === 'reject' || action === 'override') && !input.trim()) {
+    showToast('Please provide a reason', 'danger');
+    return;
+  }
+  
+  // Update transaction
+  const idx = transactions.findIndex(t => t.id === selectedTx.id);
+  if (action === 'approve') {
+    transactions[idx].status = 'Approved';
+    showToast('Transaction approved', 'success');
+  } else if (action === 'reject') {
+    transactions[idx].status = 'Rejected';
+    showToast('Transaction rejected', 'success');
+  } else if (action === 'override') {
+    transactions[idx].status = 'Override Approved';
+    transactions[idx].violation = false;
+    transactions[idx].policyResult = 'bypassed';
+    showToast('Override confirmed', 'success');
+  }
+  
+  selectedTx = null;
+  actionMode = null;
+  renderMetrics();
+  
+  if (currentPage === 'transactions') renderTransactions();
+  else if (currentPage === 'approvals') renderApprovals();
+}
+
+function togglePolicy(id) {
+  const idx = policies.findIndex(p => p.id === id);
+  policies[idx].enabled = !policies[idx].enabled;
+  showToast(`Policy ${policies[idx].enabled ? 'enabled' : 'disabled'}`, 'success');
+  renderPolicies();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+function showToast(message, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// Initialize
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => navigate(el.dataset.page));
+});
+
+renderDashboard();
+</script>
+</body>
+</html>

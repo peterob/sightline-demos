@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — With vs Without</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: #0D0F14; color: #C8CDD8; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Flow arrows */
+  .arrow-down { width: 1px; height: 24px; background: linear-gradient(to bottom, #334155, #475569); margin: 0 auto; position: relative; }
+  .arrow-down::after { content: ''; position: absolute; bottom: -4px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #475569; }
+
+  .arrow-down-cast { width: 1px; height: 24px; background: linear-gradient(to bottom, #00C9A7, #0E7C7B); margin: 0 auto; position: relative; }
+  .arrow-down-cast::after { content: ''; position: absolute; bottom: -4px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #0E7C7B; }
+
+  /* Step cards */
+  .step-old { background: #1A1F2E; border: 1px solid #2D3748; border-radius: 8px; padding: 12px 16px; }
+  .step-old:hover { border-color: #4A5568; }
+  .step-cast { background: #0D1F1C; border: 1px solid #0E7C7B40; border-radius: 8px; padding: 12px 16px; }
+  .step-cast:hover { border-color: #00C9A780; }
+  .step-cast-block { background: #1C0F0F; border: 1px solid #E0525240; border-radius: 8px; padding: 12px 16px; }
+
+  /* Person badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-human { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
+  .badge-ai { background: rgba(0,201,167,0.15); color: #00C9A7; border: 1px solid rgba(0,201,167,0.3); }
+  .badge-api { background: rgba(59,130,246,0.15); color: #3B82F6; border: 1px solid rgba(59,130,246,0.3); }
+  .badge-vendor { background: rgba(139,92,246,0.15); color: #8B5CF6; border: 1px solid rgba(139,92,246,0.3); }
+  .badge-system { background: rgba(100,116,139,0.15); color: #94A3B8; border: 1px solid rgba(100,116,139,0.3); }
+  .badge-danger { background: rgba(224,82,82,0.15); color: #E05252; border: 1px solid rgba(224,82,82,0.3); }
+  .badge-proof { background: rgba(0,201,167,0.1); color: #00C9A7; border: 1px solid rgba(0,201,167,0.25); font-family: 'JetBrains Mono', monospace; }
+
+  /* Section headers */
+  .col-header-old { background: linear-gradient(135deg, #1E2433, #161B27); border: 1px solid #2D3748; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+  .col-header-cast { background: linear-gradient(135deg, #0A1F1C, #071714); border: 1px solid #0E7C7B60; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+
+  /* Pain / gain callouts */
+  .pain { background: rgba(224,82,82,0.06); border-left: 3px solid #E05252; border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 6px; font-size: 12px; color: #E05252; }
+  .gain { background: rgba(0,201,167,0.06); border-left: 3px solid #00C9A7; border-radius: 0 6px 6px 0; padding: 8px 12px; margin-top: 6px; font-size: 12px; color: #00C9A7; }
+
+  /* System node */
+  .sys-node { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #13161E; border: 1px solid #1E2330; border-radius: 6px; font-size: 12px; }
+
+  /* Tabs */
+  .tab-btn { padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+  .tab-active { background: rgba(0,201,167,0.15); color: #00C9A7; border-color: rgba(0,201,167,0.3); }
+  .tab-inactive { color: #64748B; }
+  .tab-inactive:hover { color: #94A3B8; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Comparison table */
+  .cmp-row { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 0; border-bottom: 1px solid #1E2330; }
+  .cmp-row:last-child { border-bottom: none; }
+  .cmp-cell { padding: 12px 16px; font-size: 13px; }
+  .cmp-label { font-weight: 600; color: #94A3B8; font-size: 12px; display: flex; align-items: center; }
+  .cmp-old { border-left: 1px solid #1E2330; background: #13161E20; }
+  .cmp-cast { border-left: 1px solid #1E2330; background: #0A1F1C20; }
+
+  /* Pulse */
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: #00C9A7; animation: pulse 2s infinite; display: inline-block; }
+  @keyframes pulse { 0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(0,201,167,0.4); } 50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(0,201,167,0); } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header -->
+<header style="border-bottom:1px solid #1E2330; padding:16px 32px; background:#0D0F14; position:sticky; top:0; z-index:50;">
+  <div style="max-width:1400px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div style="width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,#00C9A7,#0E7C7B);display:flex;align-items:center;justify-content:center;font-weight:900;color:#0D0F14;font-size:14px;">C</div>
+      <div>
+        <div style="font-weight:700;font-size:15px;color:#F0F4FF;">CAST v1 — System Map</div>
+        <div class="mono" style="font-size:10px;color:#4A5368;">People · Processes · Systems · With vs Without</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;" id="tabs">
+      <button class="tab-btn tab-active" onclick="switchView('process')">Process Flow</button>
+      <button class="tab-btn tab-inactive" onclick="switchView('systems')">Systems</button>
+      <button class="tab-btn tab-inactive" onclick="switchView('people')">People</button>
+      <button class="tab-btn tab-inactive" onclick="switchView('scorecard')">Scorecard</button>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1400px;margin:0 auto;padding:32px;">
+
+<!-- ═══════════ PROCESS FLOW VIEW ═══════════ -->
+<div id="view-process" class="view active">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:22px;font-weight:700;color:#F0F4FF;margin-bottom:6px;">AP Workflow — End to End</div>
+    <div style="font-size:13px;color:#64748B;">Same scenario. Same vendors. Same people. Fundamentally different process.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:start;">
+
+    <!-- WITHOUT CAST -->
+    <div>
+      <div class="col-header-old">
+        <div style="font-size:16px;font-weight:700;color:#94A3B8;margin-bottom:4px;">WITHOUT CAST</div>
+        <div style="font-size:12px;color:#4A5368;">Manual · Fragmented · Reconstructed after the fact</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 4–6 humans</span>
+          <span class="badge badge-system">⚙ 6–7 systems</span>
+          <span class="badge badge-danger">⚠ No proof chain</span>
+        </div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 1</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Invoice arrives</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Email to AP inbox, or uploaded to AP tool, or EDI from vendor system. AP clerk opens and manually reviews.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Clerk</span>
+          <span class="badge badge-system">📧 Email / AP tool</span>
+        </div>
+        <div class="pain">No record of who reviewed it, when, or what they checked. If they miss a duplicate, it goes through.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 2 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 2</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Manual data entry into ERP</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">AP clerk re-keys invoice details into NetSuite or QuickBooks. Matches to PO manually. Flags discrepancies by email.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Clerk</span>
+          <span class="badge badge-system">⚙ ERP</span>
+        </div>
+        <div class="pain">Data entry errors. No automatic PO matching. Duplicate invoices caught only if clerk remembers.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 3 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 3</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Email approval routing</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">AP clerk emails manager for approval. Manager emails CFO for large amounts. Approval lives in someone's inbox.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Manager</span>
+          <span class="badge badge-human">👤 CFO</span>
+          <span class="badge badge-system">📧 Email</span>
+        </div>
+        <div class="pain">Approval chain is an email thread. If person leaves, audit trail is gone. No SLA enforcement. No structured record of what was approved and why.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 4 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 4</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Vendor verification — by email</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">AP clerk emails vendor to confirm bank details. Vendor replies by email. No structural check on changed accounts.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Clerk</span>
+          <span class="badge badge-vendor">🏢 Vendor contact</span>
+          <span class="badge badge-system">📧 Email</span>
+        </div>
+        <div class="pain" style="color:#E05252;font-weight:600;">⚠ Primary BEC attack vector. A spoofed email changing the bank account bypasses all controls. Wire fraud typically happens here.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 5 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 5</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Payment initiated in bank portal</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">AP clerk logs into bank portal, manually enters wire or ACH details. No automated link to the invoice or approval that authorized it.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Clerk</span>
+          <span class="badge badge-system">🏦 Bank portal</span>
+          <span class="badge badge-api">⚡ ACH / Wire</span>
+        </div>
+        <div class="pain">Bank portal has no record of the invoice. ERP has no record of the bank instruction. No causal link exists between the two systems.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 6 -->
+      <div class="step-old">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#4A5368;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 6</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Month-end reconciliation</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Controller pulls bank statements, matches to ERP entries, investigates gaps. AP clerk tracks exceptions in a spreadsheet.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 Controller</span>
+          <span class="badge badge-system">📊 Spreadsheet</span>
+          <span class="badge badge-system">⚙ ERP</span>
+        </div>
+        <div class="pain">Takes 3–5 days. Exceptions tracked in Excel with no audit trail. Errors found weeks after they occurred.</div>
+      </div>
+      <div class="arrow-down"></div>
+
+      <!-- Step 7 -->
+      <div class="step-old" style="border-color:#E0525240;background:#1C0F0F;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#E05252;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 7</div>
+          <span style="font-size:13px;font-weight:600;color:#E05252;">Audit — reconstruction</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Auditor asks for proof of decisions. AP team spends 1–3 weeks pulling email chains, ERP logs, bank statements, and spreadsheets into a manual package.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-human">👤 AP Manager</span>
+          <span class="badge badge-human">👤 Controller</span>
+          <span class="badge badge-danger">⚠ 4 systems</span>
+        </div>
+        <div class="pain" style="font-weight:600;">Evidence is assembled after the fact. Not proof — a story. Auditors raise findings because the chain cannot be verified independently.</div>
+      </div>
+    </div>
+
+    <!-- DIVIDER -->
+    <div style="display:flex;flex-direction:column;align-items:center;padding-top:120px;gap:8px;">
+      <div style="width:1px;flex:1;background:linear-gradient(to bottom,#1E2330,#00C9A730,#1E2330);"></div>
+      <div style="font-size:10px;color:#4A5368;text-align:center;writing-mode:vertical-rl;letter-spacing:0.1em;padding:16px 0;" class="mono">VS</div>
+      <div style="width:1px;flex:1;background:linear-gradient(to bottom,#1E2330,#00C9A730,#1E2330);"></div>
+    </div>
+
+    <!-- WITH CAST -->
+    <div>
+      <div class="col-header-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span class="pulse"></span>
+          <div style="font-size:16px;font-weight:700;color:#00C9A7;">WITH CAST</div>
+        </div>
+        <div style="font-size:12px;color:#2D7A6E;">Agent-governed · Proof at execution · Permanently traceable</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 1 AI agent</span>
+          <span class="badge badge-human">👤 2 humans (exceptions only)</span>
+          <span class="badge badge-proof">⛓ ProofChain on every event</span>
+        </div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 1</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Invoice received → ProposedEvent</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Email parser reads inbound invoice. CAST creates a ProposedEvent — signed, timestamped, with agent identity and policy version. This is the root of the ProofChain.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 cast-ap-agent-v2.1</span>
+          <span class="badge badge-system">📧 Email parser</span>
+          <span class="badge badge-proof">⛓ EVT-001 · hash: a3f9...</span>
+        </div>
+        <div class="gain">Duplicate detection is structural. Every invoice gets a unique event ID. Duplicates are flagged before any human sees them.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 2 -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 2</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">InvariantCore check — automatic</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Policy engine checks all 6 InvariantCore rules in under 1 second. Agent identity, amount threshold, vendor status, PO match, bank account change detection. Pass or fail — no manual judgment.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 Policy engine</span>
+          <span class="badge badge-proof">⛓ EVT-002 · INV-CORE-v14</span>
+        </div>
+        <div class="gain">Rules enforced before execution — not logged after. Every rule check is permanently recorded with the policy version that governed it.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 3 PASS -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 3</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Trade Message sent — automatically</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Agent sends structured Trade Message to vendor via email and mobile web. Invoice ref, amount, date, account ending, PO ref, reply deadline. Three buttons: Confirm · Request Change · Dispute.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 cast-ap-agent-v2.1</span>
+          <span class="badge badge-vendor">🏢 Vendor portal</span>
+          <span class="badge badge-proof">⛓ EVT-003 · hash: c2e8...</span>
+        </div>
+        <div class="gain">Replaces email back-and-forth. Bank account change triggers a mandatory fresh Trade Message — BEC attack surface eliminated structurally.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 3b FAIL -->
+      <div class="step-cast-block" style="margin-bottom:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#E05252;background:#1E2330;padding:2px 7px;border-radius:3px;">STEP 3b</div>
+          <span style="font-size:13px;font-weight:600;color:#E05252;">If rules fail → DisputeEvent</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Payment blocked immediately. DisputeEvent created with reason codes. Work Order routed to Sarah Chen with SLA timer. CFO dual-attestation Work Order queued if over $50K.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-danger">🚫 Payment blocked</span>
+          <span class="badge badge-human">👤 Sarah Chen</span>
+          <span class="badge badge-human">👤 CFO</span>
+          <span class="badge badge-proof">⛓ EXC-019 → VENDOR-KYC-v2</span>
+        </div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 4 -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 4</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">AcknowledgeEvent — bilateral signed</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Vendor taps Confirm on mobile. Both parties have now signed. Bilateral AcknowledgeEvent created — structurally different from a unilateral system log. ProofChain advances.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-vendor">🏢 J. Torres, BrightPath</span>
+          <span class="badge badge-proof">⛓ EVT-004 · bilateral: true</span>
+        </div>
+        <div class="gain">Vendor signature is in the ProofChain. It cannot be removed. The auditor sees who confirmed, when, and from which vendor contact.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 5 -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 5</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">LedgerPosting + settlement</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Double-entry posting created. proof_chain_id attached — non-nullable at DB layer. Payment routed to settlement rail. ACH (2-day fiat) or USDC on Base (sub-second stablecoin).</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 GL engine</span>
+          <span class="badge badge-api" style="background:rgba(0,201,167,0.1);color:#00C9A7;border-color:rgba(0,201,167,0.3);">⚡ ACH</span>
+          <span class="badge badge-proof" style="background:rgba(139,92,246,0.1);color:#8B5CF6;border-color:rgba(139,92,246,0.3);">⚡ USDC on Base</span>
+          <span class="badge badge-proof">⛓ PC-INV1048-001</span>
+        </div>
+        <div class="gain">Ledger posting is structurally impossible without a ProofChain. The database physically rejects any posting that lacks lineage. No workaround exists.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 6 -->
+      <div class="step-cast">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 6</div>
+          <span style="font-size:13px;font-weight:600;color:#C8CDD8;">Reconciliation — continuous</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">No month-end reconciliation step. Every posting has its ProofChain attached at creation. GL is always reconciled because every entry already has lineage.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 Automated</span>
+          <span class="badge badge-proof">⛓ Continuous</span>
+        </div>
+        <div class="gain">Replaces 3–5 days of month-end reconciliation. Controller reviews exceptions only — not routine entries.</div>
+      </div>
+      <div class="arrow-down-cast"></div>
+
+      <!-- Step 7 -->
+      <div class="step-cast" style="border-color:#00C9A760;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div class="mono" style="font-size:10px;color:#00C9A7;background:#0A1F1C;padding:2px 7px;border-radius:3px;">STEP 7</div>
+          <span style="font-size:13px;font-weight:600;color:#00C9A7;">Audit — proof generated at execution</span>
+        </div>
+        <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Auditor requests AttestView. AUDIT-EXPORT-v1 policy generates a scoped, signed export in seconds. Event type, amounts, agent identity, policy version, proof hashes — independently verifiable. Sensitive fields automatically redacted at data model layer.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span class="badge badge-ai">🤖 Attest engine</span>
+          <span class="badge badge-proof">⛓ Signed · scoped · seconds</span>
+        </div>
+        <div class="gain" style="font-weight:600;">Not a reconstruction. Not a story. A proof chain generated at execution time, independently verifiable, every decision causally linked from the first ProposedEvent to the final ledger posting.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SYSTEMS VIEW ═══════════ -->
+<div id="view-systems" class="view">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:22px;font-weight:700;color:#F0F4FF;margin-bottom:6px;">Systems Required</div>
+    <div style="font-size:13px;color:#64748B;">Every system that touches the AP workflow — what it does and whether CAST replaces or integrates it.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <!-- Without -->
+    <div>
+      <div class="col-header-old" style="margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:700;color:#94A3B8;">WITHOUT CAST — 6–7 Systems</div>
+        <div style="font-size:12px;color:#4A5368;margin-top:2px;">Disconnected · No shared truth · Manual bridges</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="sys-node"><span style="font-size:16px;">📧</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">Email / Inbox</div><div style="font-size:11px;color:#64748B;">Invoice receipt, approvals, vendor comms, audit requests</div></div><span class="badge badge-danger" style="margin-left:auto;">BEC risk</span></div>
+        <div class="sys-node"><span style="font-size:16px;">⚙</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">ERP (NetSuite / QuickBooks)</div><div style="font-size:11px;color:#64748B;">Invoice entry, GL posting, vendor master, reporting</div></div><span class="badge badge-system" style="margin-left:auto;">Still needed</span></div>
+        <div class="sys-node"><span style="font-size:16px;">📋</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">AP Tool (Bill.com / Tipalti)</div><div style="font-size:11px;color:#64748B;">Invoice routing, approval workflows, payment scheduling</div></div><span class="badge badge-danger" style="margin-left:auto;">No agent ID</span></div>
+        <div class="sys-node"><span style="font-size:16px;">📊</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">Spreadsheet (Excel)</div><div style="font-size:11px;color:#64748B;">Exception tracking, reconciliation, audit prep</div></div><span class="badge badge-danger" style="margin-left:auto;">No audit trail</span></div>
+        <div class="sys-node"><span style="font-size:16px;">🏦</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">Bank Portal</div><div style="font-size:11px;color:#64748B;">Wire and ACH initiation — manually by AP clerk</div></div><span class="badge badge-danger" style="margin-left:auto;">Disconnected from ERP</span></div>
+        <div class="sys-node"><span style="font-size:16px;">💬</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">Email / Slack (approval)</div><div style="font-size:11px;color:#64748B;">Manager and CFO sign-off — informal, inbox-based</div></div><span class="badge badge-danger" style="margin-left:auto;">Audit trail disappears</span></div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:#1C0F0F;border:1px solid #E0525240;border-radius:8px;">
+        <div style="font-size:12px;color:#E05252;font-weight:600;margin-bottom:6px;">The fundamental problem</div>
+        <div style="font-size:12px;color:#94A3B8;line-height:1.6;">These systems do not share a single source of truth. Every connection between them is a manual bridge — a human re-keying data, forwarding an email, or building a spreadsheet. The audit trail is assembled after the fact from fragments across all six systems.</div>
+      </div>
+    </div>
+
+    <!-- With CAST -->
+    <div>
+      <div class="col-header-cast" style="margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:700;color:#00C9A7;">WITH CAST — 4–5 Systems</div>
+        <div style="font-size:12px;color:#2D7A6E;margin-top:2px;">Integrated · Single event chain · Proof at execution</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="sys-node" style="border-color:#00C9A740;background:#0A1F1C;"><span style="font-size:16px;">⛓</span><div><div style="font-weight:600;font-size:13px;color:#00C9A7;">CAST Event Store</div><div style="font-size:11px;color:#64748B;">Immutable append-only log. Every action. Replaces email audit trail, spreadsheet exceptions, manual reconciliation.</div></div><span class="badge badge-ai" style="margin-left:auto;">Core</span></div>
+        <div class="sys-node" style="border-color:#00C9A740;background:#0A1F1C;"><span style="font-size:16px;">⚖</span><div><div style="font-weight:600;font-size:13px;color:#00C9A7;">CAST Policy Engine</div><div style="font-size:11px;color:#64748B;">InvariantCore runs on every event. Replaces manual approval routing and exception spreadsheet.</div></div><span class="badge badge-ai" style="margin-left:auto;">Core</span></div>
+        <div class="sys-node" style="border-color:#00C9A740;background:#0A1F1C;"><span style="font-size:16px;">📱</span><div><div style="font-weight:600;font-size:13px;color:#00C9A7;">CAST Vendor Portal</div><div style="font-size:11px;color:#64748B;">Trade Messages replace email back-and-forth. Vendor confirms in one tap. Replaces email vendor comms.</div></div><span class="badge badge-ai" style="margin-left:auto;">Core</span></div>
+        <div class="sys-node"><span style="font-size:16px;">⚙</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">ERP (NetSuite / QuickBooks)</div><div style="font-size:11px;color:#64748B;">Still needed for chart of accounts and financial reporting. CAST writes to it via API with ProofChain attached.</div></div><span class="badge badge-system" style="margin-left:auto;">Integrates</span></div>
+        <div class="sys-node"><span style="font-size:16px;">⚡</span><div><div style="font-weight:600;font-size:13px;color:#C8CDD8;">Settlement Rails</div><div style="font-size:11px;color:#64748B;">ACH / Wire (fiat) or USDC on Base (stablecoin). CAST triggers settlement — same governance either way.</div></div><span class="badge badge-api" style="margin-left:auto;">Rail-agnostic</span></div>
+      </div>
+      <div style="margin-top:16px;padding:14px;background:#0A1F1C;border:1px solid #00C9A740;border-radius:8px;">
+        <div style="font-size:12px;color:#00C9A7;font-weight:600;margin-bottom:6px;">What CAST replaces vs integrates</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+          <div><div style="font-size:11px;color:#E05252;margin-bottom:4px;">REPLACES</div>
+            <div style="font-size:11px;color:#94A3B8;line-height:1.8;">Email approval chains<br>Exception spreadsheet<br>Manual audit reconstruction<br>Email vendor verification</div>
+          </div>
+          <div><div style="font-size:11px;color:#00C9A7;margin-bottom:4px;">INTEGRATES WITH</div>
+            <div style="font-size:11px;color:#94A3B8;line-height:1.8;">ERP (writes via API)<br>Bank / ACH rails<br>USDC settlement layer<br>Existing email (parser)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PEOPLE VIEW ═══════════ -->
+<div id="view-people" class="view">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:22px;font-weight:700;color:#F0F4FF;margin-bottom:6px;">People Involved</div>
+    <div style="font-size:13px;color:#64748B;">Who touches the AP workflow, what they do, and how CAST changes their role.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+
+    <!-- AI Agent -->
+    <div style="background:#0A1F1C;border:1px solid #00C9A760;border-radius:10px;overflow:hidden;">
+      <div style="padding:16px;border-bottom:1px solid #0E7C7B40;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(0,201,167,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#00C9A7;">cast-ap-agent-v2.1</div>
+            <div style="font-size:11px;color:#4A5368;">AI Agent · Acme Corp</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITHOUT CAST</div>
+        <div style="font-size:12px;color:#94A3B8;margin-bottom:12px;">Does not exist as a named, accountable actor. Automation may run but identity is not tracked — "the system did it."</div>
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITH CAST</div>
+        <div style="font-size:12px;color:#94A3B8;">Executes 85%+ of all work orders. Named on every event. Policy version pinned. Every action generates ProofChain link. Handles: policy checks (0.8s), Trade Messages, GL postings, settlement routing.</div>
+      </div>
+    </div>
+
+    <!-- Sarah Chen -->
+    <div style="background:#13161E;border:1px solid #F59E0B40;border-radius:10px;overflow:hidden;">
+      <div style="padding:16px;border-bottom:1px solid #F59E0B20;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#F59E0B;">Sarah Chen</div>
+            <div style="font-size:11px;color:#4A5368;">VP Finance · Acme Corp</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITHOUT CAST</div>
+        <div style="font-size:12px;color:#94A3B8;margin-bottom:12px;">Reviews invoices, approves by email, chases vendors, tracks exceptions in spreadsheet, spends weeks on audit prep. Touches every large invoice.</div>
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITH CAST</div>
+        <div style="font-size:12px;color:#94A3B8;">Reviews DisputeEvents and exceptions only. Every Work Order has a defined SLA. Her decision is a signed event in the ProofChain — not an email. Role shifts from transaction processor to governance owner.</div>
+      </div>
+    </div>
+
+    <!-- CFO -->
+    <div style="background:#13161E;border:1px solid #3B82F640;border-radius:10px;overflow:hidden;">
+      <div style="padding:16px;border-bottom:1px solid #3B82F620;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;font-size:18px;">👤</div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#3B82F6;">CFO</div>
+            <div style="font-size:11px;color:#4A5368;">Chief Financial Officer · Acme Corp</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px;">
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITHOUT CAST</div>
+        <div style="font-size:12px;color:#94A3B8;margin-bottom:12px;">Signs off on large wires via email chain. Relies on AP manager memo. No systematic view of what automation did. Exposure unknown until audit.</div>
+        <div style="font-size:11px;color:#4A5368;margin-bottom:8px;letter-spacing:0.06em;">WITH CAST</div>
+        <div style="font-size:12px;color:#94A3B8;">Receives structured Work Order with full context. Signs dual attestation for payments over $50K. Signature is a signed event — permanently linked to the payment it authorized.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Vendor row -->
+  <div style="background:#13161E;border:1px solid #8B5CF640;border-radius:10px;padding:20px;">
+    <div style="font-size:14px;font-weight:700;color:#8B5CF6;margin-bottom:12px;">Vendors — 4 companies in the demo</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#C8CDD8;margin-bottom:4px;">BrightPath Services</div>
+        <div style="font-size:11px;color:#64748B;">Confirmed INV-1048 · $47,200 · J. Torres tapped Confirm · 2.5hr response · bilateral signed</div>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#C8CDD8;margin-bottom:4px;">Acme Supplies</div>
+        <div style="font-size:11px;color:#64748B;">Confirmed INV-1051 · $12,800 · settled via USDC on Base · sub-second settlement</div>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#C8CDD8;margin-bottom:4px;">NewVendor Solutions</div>
+        <div style="font-size:11px;color:#64748B;">INV-1052 · $85,000 blocked · 3 InvariantCore rules failed · eventually approved with conditions after human review</div>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#C8CDD8;margin-bottom:4px;">Vendor 17</div>
+        <div style="font-size:11px;color:#64748B;">Late fee assessed · $150 · auto-processed by agent under VENDOR-KYC-v2 policy</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#13161E;border:1px solid #8B5CF630;border-radius:6px;">
+      <div style="font-size:12px;color:#94A3B8;line-height:1.6;"><span style="color:#8B5CF6;font-weight:600;">Vendor experience change: </span>Without CAST — email back-and-forth, phone calls, faxed forms. With CAST — one tap on mobile to confirm or dispute. No portal login. No app to install. 10 seconds of their time per invoice.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SCORECARD VIEW ═══════════ -->
+<div id="view-scorecard" class="view">
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="font-size:22px;font-weight:700;color:#F0F4FF;margin-bottom:6px;">Head-to-Head Scorecard</div>
+    <div style="font-size:13px;color:#64748B;">Every dimension that matters — side by side.</div>
+  </div>
+
+  <div style="background:#13161E;border:1px solid #1E2330;border-radius:12px;overflow:hidden;">
+    <!-- Header row -->
+    <div class="cmp-row" style="background:#0D0F14;">
+      <div class="cmp-cell cmp-label" style="font-size:11px;letter-spacing:0.06em;color:#4A5368;">DIMENSION</div>
+      <div class="cmp-cell" style="text-align:center;font-weight:700;color:#94A3B8;font-size:13px;">WITHOUT CAST</div>
+      <div class="cmp-cell" style="text-align:center;font-weight:700;color:#00C9A7;font-size:13px;">WITH CAST</div>
+    </div>
+
+    <!-- Rows -->
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Systems required</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">6–7 disconnected</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">4–5 integrated</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Human touchpoints per invoice</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">3–5 humans, every invoice</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">0–2 humans, exceptions only</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Agent identity</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">"The system did it" — not tracked</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">Non-nullable on every event</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">BEC / bank change protection</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">Email-based · easily spoofed</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">Structural — triggers fresh Trade Message</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">New vendor payment</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">Clerk judgment — inconsistent</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">VENDOR-KYC-v2 — blocked until confirmed</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Policy enforcement</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">After execution — logged, not prevented</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">Before execution — structural, not conditional</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Approval record</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">Email thread in someone's inbox</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">Signed event in ProofChain — permanent</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Audit prep time</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">1–3 weeks manual reconstruction</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">Seconds — generated at execution</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Proof quality</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">A story assembled after the fact</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">A proof chain — independently verifiable</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Reconciliation</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">Month-end · 3–5 days · error-prone</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">Continuous — every posting has lineage</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Exception → policy learning</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">Never happens systematically</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">EXC-019 → VENDOR-KYC-v2 — same session</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Settlement speed</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-system">ACH: 2 business days</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">ACH: 2 days · USDC: &lt;1 second</span></div>
+    </div>
+    <div class="cmp-row">
+      <div class="cmp-cell cmp-label">Settlement rails</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-system">Fiat only · bank portal manual</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-ai">ACH · USDC on Base · x402 (roadmap)</span></div>
+    </div>
+    <div class="cmp-row" style="border-bottom:none;">
+      <div class="cmp-cell cmp-label">What the auditor gets</div>
+      <div class="cmp-cell cmp-old"><span class="badge badge-danger">PDF package · manual · unverifiable</span></div>
+      <div class="cmp-cell cmp-cast"><span class="badge badge-proof">Signed AttestView · scoped · seconds</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom line -->
+  <div style="margin-top:20px;padding:20px 24px;background:linear-gradient(135deg,#0A1F1C,#071714);border:1px solid #00C9A740;border-radius:10px;text-align:center;">
+    <div style="font-size:15px;color:#00C9A7;font-weight:600;margin-bottom:6px;">The one-sentence difference</div>
+    <div style="font-size:14px;color:#94A3B8;line-height:1.7;">Every other system governs what <span style="color:#C8CDD8;font-weight:600;">humans</span> do and logs it after.&nbsp;&nbsp;<span style="color:#00C9A7;font-weight:700;">CAST governs what agents do</span> — and proves it before the money moves.</div>
+  </div>
+</div>
+
+</main>
+
+<script>
+function switchView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('tab-active'); b.classList.add('tab-inactive'); });
+  event.target.classList.remove('tab-inactive');
+  event.target.classList.add('tab-active');
+}
+</script>
+</body>
+</html>

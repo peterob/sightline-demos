@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Company Dashboard | Digital Finance HQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2234;
+            --bg-card-hover: #1f2942;
+            --border: #2a3548;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-violet: #8b5cf6;
+            --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --gradient-danger: linear-gradient(135deg, #f43f5e 0%, #dc2626 100%);
+            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.15);
+            --shadow-glow-emerald: 0 0 40px rgba(16, 185, 129, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .dashboard {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-left h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .header-left .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .period-selector {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .period-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .period-btn.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .period-btn:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-emerald);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* KPI Cards Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .kpi-card.blue::before { background: var(--gradient-blue); }
+        .kpi-card.emerald::before { background: var(--gradient-success); }
+        .kpi-card.amber::before { background: var(--gradient-warning); }
+        .kpi-card.rose::before { background: var(--gradient-danger); }
+        .kpi-card.violet::before { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-family: 'Fraunces', serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .kpi-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .kpi-change.positive {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-emerald);
+        }
+
+        .kpi-change.negative {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--accent-rose);
+        }
+
+        .kpi-change.neutral {
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-secondary);
+        }
+
+        .kpi-target {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border);
+            background: transparent;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        /* Financial Summary */
+        .financial-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .summary-section h4 {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+
+        .summary-row .label {
+            color: var(--text-secondary);
+        }
+
+        .summary-row .value {
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .summary-row .value.positive { color: var(--accent-emerald); }
+        .summary-row .value.negative { color: var(--accent-rose); }
+
+        /* Progress Bars */
+        .progress-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .progress-item {
+            margin-bottom: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .progress-header .label { color: var(--text-secondary); }
+        .progress-header .value { color: var(--text-primary); font-weight: 600; }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--bg-primary);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease-out;
+        }
+
+        .progress-fill.blue { background: var(--gradient-blue); }
+        .progress-fill.emerald { background: var(--gradient-success); }
+        .progress-fill.amber { background: var(--gradient-warning); }
+
+        /* Bottom Grid */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 12px 8px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .customer-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .customer-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-badge.healthy {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-emerald);
+        }
+
+        .status-badge.at-risk {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+        }
+
+        .status-badge.churning {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--accent-rose);
+        }
+
+        /* Action Items */
+        .action-list {
+            list-style: none;
+        }
+
+        .action-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .action-item:last-child {
+            border-bottom: none;
+        }
+
+        .action-priority {
+            width: 4px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .action-priority.high { background: var(--accent-rose); }
+        .action-priority.medium { background: var(--accent-amber); }
+        .action-priority.low { background: var(--accent-blue); }
+
+        .action-content {
+            flex: 1;
+        }
+
+        .action-title {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .action-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Covenant Status */
+        .covenant-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .covenant-item {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .covenant-info h5 {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .covenant-info span {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .covenant-status {
+            text-align: right;
+        }
+
+        .covenant-value {
+            font-family: 'Fraunces', serif;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .covenant-req {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .covenant-item.compliant .covenant-value { color: var(--accent-emerald); }
+        .covenant-item.warning .covenant-value { color: var(--accent-amber); }
+        .covenant-item.breach .covenant-value { color: var(--accent-rose); }
+
+        /* Cash Runway */
+        .runway-visual {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+        }
+
+        .runway-months {
+            font-family: 'Fraunces', serif;
+            font-size: 48px;
+            font-weight: 700;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .runway-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .runway-details {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .runway-details .cash {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .runway-details .burn {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .kpi-card, .card {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(5) { animation-delay: 0.25s; }
+
+        .main-grid .card:nth-child(1) { animation-delay: 0.3s; }
+        .main-grid .card:nth-child(2) { animation-delay: 0.35s; }
+
+        .bottom-grid .card:nth-child(1) { animation-delay: 0.4s; }
+        .bottom-grid .card:nth-child(2) { animation-delay: 0.45s; }
+        .bottom-grid .card:nth-child(3) { animation-delay: 0.5s; }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .kpi-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .bottom-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Footer */
+        .dashboard-footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-brand svg {
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1>Acme Technologies</h1>
+                <p class="subtitle">Portfolio Company Dashboard • Series B • Software/SaaS</p>
+            </div>
+            <div class="header-right">
+                <div class="period-selector">
+                    <button class="period-btn">MTD</button>
+                    <button class="period-btn active">QTD</button>
+                    <button class="period-btn">YTD</button>
+                    <button class="period-btn">LTM</button>
+                </div>
+                <div class="last-updated">
+                    <span class="pulse-dot"></span>
+                    Updated Jan 24, 2026
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="kpi-row">
+            <div class="kpi-card blue">
+                <div class="kpi-label">Revenue (QTD)</div>
+                <div class="kpi-value">$4.2M</div>
+                <span class="kpi-change positive">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    +18.4% vs PY
+                </span>
+                <div class="kpi-target">Target: $4.5M (93% achieved)</div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label">ARR</div>
+                <div class="kpi-value">$18.6M</div>
+                <span class="kpi-change positive">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    +24.2% YoY
+                </span>
+                <div class="kpi-target">NRR: 112%</div>
+            </div>
+            <div class="kpi-card violet">
+                <div class="kpi-label">Gross Margin</div>
+                <div class="kpi-value">72.4%</div>
+                <span class="kpi-change positive">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    +2.1pp vs PY
+                </span>
+                <div class="kpi-target">Target: 70%+ ✓</div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label">EBITDA (QTD)</div>
+                <div class="kpi-value">$420K</div>
+                <span class="kpi-change negative">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                    -8.2% vs Budget
+                </span>
+                <div class="kpi-target">Margin: 10.0%</div>
+            </div>
+            <div class="kpi-card rose">
+                <div class="kpi-label">Cash Position</div>
+                <div class="kpi-value">$8.2M</div>
+                <span class="kpi-change neutral">
+                    → $650K burn/mo
+                </span>
+                <div class="kpi-target">Runway: 12.6 months</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Revenue & EBITDA Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Revenue & EBITDA Trend</h3>
+                        <p class="card-subtitle">Monthly performance vs prior year</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-icon" title="Download">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </button>
+                        <button class="btn-icon" title="Expand">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Financial Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Financial Summary</h3>
+                        <p class="card-subtitle">Q4 2025 vs Budget</p>
+                    </div>
+                </div>
+                <div class="financial-summary">
+                    <div class="summary-section">
+                        <h4>Income Statement</h4>
+                        <div class="summary-row">
+                            <span class="label">Revenue</span>
+                            <span class="value">$4.2M</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">COGS</span>
+                            <span class="value">($1.2M)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Gross Profit</span>
+                            <span class="value positive">$3.0M</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">OpEx</span>
+                            <span class="value">($2.6M)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">EBITDA</span>
+                            <span class="value positive">$420K</span>
+                        </div>
+                    </div>
+                    <div class="summary-section">
+                        <h4>Variance to Budget</h4>
+                        <div class="summary-row">
+                            <span class="label">Revenue</span>
+                            <span class="value negative">($300K)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Gross Margin</span>
+                            <span class="value positive">+1.4pp</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">OpEx</span>
+                            <span class="value positive">$180K</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">EBITDA</span>
+                            <span class="value negative">($38K)</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">EBITDA Margin</span>
+                            <span class="value negative">-0.8pp</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-section">
+                    <div class="progress-item">
+                        <div class="progress-header">
+                            <span class="label">Revenue vs Annual Target</span>
+                            <span class="value">$14.8M / $18.0M (82%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill blue" style="width: 82%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-header">
+                            <span class="label">EBITDA vs Annual Target</span>
+                            <span class="value">$1.4M / $2.0M (70%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill amber" style="width: 70%"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-header">
+                            <span class="label">ARR vs Exit Target</span>
+                            <span class="value">$18.6M / $25.0M (74%)</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill emerald" style="width: 74%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Grid -->
+        <div class="bottom-grid">
+            <!-- Top Customers -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Top Customers</h3>
+                        <p class="card-subtitle">By ARR with health status</p>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>ARR</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="customer-name">
+                                    <div class="customer-avatar" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)">GL</div>
+                                    GlobalTech Inc
+                                </div>
+                            </td>
+                            <td>$1.8M</td>
+                            <td><span class="status-badge healthy">● Healthy</span></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="customer-name">
+                                    <div class="customer-avatar" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9)">NX</div>
+                                    Nexus Corp
+                                </div>
+                            </td>
+                            <td>$1.2M</td>
+                            <td><span class="status-badge healthy">● Healthy</span></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="customer-name">
+                                    <div class="customer-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706)">AC</div>
+                                    Acorn Systems
+                                </div>
+                            </td>
+                            <td>$890K</td>
+                            <td><span class="status-badge at-risk">● At Risk</span></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="customer-name">
+                                    <div class="customer-avatar" style="background: linear-gradient(135deg, #10b981, #059669)">VT</div>
+                                    Vertex Labs
+                                </div>
+                            </td>
+                            <td>$720K</td>
+                            <td><span class="status-badge healthy">● Healthy</span></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="customer-name">
+                                    <div class="customer-avatar" style="background: linear-gradient(135deg, #f43f5e, #dc2626)">DT</div>
+                                    DataTech
+                                </div>
+                            </td>
+                            <td>$650K</td>
+                            <td><span class="status-badge churning">● Churning</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Key Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Key Action Items</h3>
+                        <p class="card-subtitle">Priority items requiring attention</p>
+                    </div>
+                </div>
+                <ul class="action-list">
+                    <li class="action-item">
+                        <div class="action-priority high"></div>
+                        <div class="action-content">
+                            <div class="action-title">Close Q4 books by Jan 31</div>
+                            <div class="action-meta">
+                                <span>📅 Due: Jan 31</span>
+                                <span>👤 Controller</span>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <div class="action-priority high"></div>
+                        <div class="action-content">
+                            <div class="action-title">DataTech renewal - escalate to CEO</div>
+                            <div class="action-meta">
+                                <span>📅 Due: Feb 5</span>
+                                <span>👤 VP Sales</span>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <div class="action-priority medium"></div>
+                        <div class="action-content">
+                            <div class="action-title">Finalize 2026 budget with board</div>
+                            <div class="action-meta">
+                                <span>📅 Due: Feb 15</span>
+                                <span>👤 CFO</span>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <div class="action-priority medium"></div>
+                        <div class="action-content">
+                            <div class="action-title">Hire Senior Accountant</div>
+                            <div class="action-meta">
+                                <span>📅 Due: Feb 28</span>
+                                <span>👤 Controller</span>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <div class="action-priority low"></div>
+                        <div class="action-content">
+                            <div class="action-title">ERP migration planning kickoff</div>
+                            <div class="action-meta">
+                                <span>📅 Due: Mar 15</span>
+                                <span>👤 VP Ops</span>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Covenant & Cash Status -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Covenant & Cash Status</h3>
+                        <p class="card-subtitle">Debt compliance & liquidity</p>
+                    </div>
+                </div>
+                <div class="covenant-grid">
+                    <div class="covenant-item compliant">
+                        <div class="covenant-info">
+                            <h5>Total Leverage</h5>
+                            <span>Requirement: ≤ 4.0x</span>
+                        </div>
+                        <div class="covenant-status">
+                            <div class="covenant-value">2.8x</div>
+                            <div class="covenant-req">Cushion: 1.2x</div>
+                        </div>
+                    </div>
+                    <div class="covenant-item compliant">
+                        <div class="covenant-info">
+                            <h5>Interest Coverage</h5>
+                            <span>Requirement: ≥ 3.0x</span>
+                        </div>
+                        <div class="covenant-status">
+                            <div class="covenant-value">4.2x</div>
+                            <div class="covenant-req">Cushion: 1.2x</div>
+                        </div>
+                    </div>
+                    <div class="covenant-item warning">
+                        <div class="covenant-info">
+                            <h5>Minimum Liquidity</h5>
+                            <span>Requirement: ≥ $5.0M</span>
+                        </div>
+                        <div class="covenant-status">
+                            <div class="covenant-value">$8.2M</div>
+                            <div class="covenant-req">Cushion: $3.2M</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="runway-visual">
+                    <div class="runway-months">12.6</div>
+                    <div class="runway-label">Months<br>Runway</div>
+                    <div class="runway-details">
+                        <div class="cash">$8.2M Cash</div>
+                        <div class="burn">$650K/mo burn rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <div class="footer-brand">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <path d="M3 9h18"/>
+                    <path d="M9 21V9"/>
+                </svg>
+                <span>Powered by Digital Finance HQ</span>
+            </div>
+            <div>
+                Data as of January 24, 2026 • Next board meeting: February 15, 2026
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Period selector functionality
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Revenue & EBITDA Chart
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        
+        const gradient1 = ctx.createLinearGradient(0, 0, 0, 280);
+        gradient1.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
+        gradient1.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+        const gradient2 = ctx.createLinearGradient(0, 0, 0, 280);
+        gradient2.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+        gradient2.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: [1250, 1320, 1380, 1420, 1380, 1450, 1520, 1480, 1550, 1420, 1380, 1400],
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient1,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#3b82f6',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: 'EBITDA',
+                        data: [120, 145, 160, 180, 140, 165, 190, 175, 195, 135, 125, 140],
+                        borderColor: '#10b981',
+                        backgroundColor: gradient2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#10b981',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                        borderWidth: 2.5
+                    },
+                    {
+                        label: 'Revenue PY',
+                        data: [1050, 1100, 1180, 1200, 1150, 1220, 1280, 1250, 1320, 1200, 1180, 1200],
+                        borderColor: 'rgba(148, 163, 184, 0.5)',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        borderWidth: 1.5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            color: '#94a3b8',
+                            font: { size: 11, family: 'DM Sans' },
+                            boxWidth: 12,
+                            boxHeight: 12,
+                            padding: 16,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a2234',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#94a3b8',
+                        borderColor: '#2a3548',
+                        borderWidth: 1,
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600', family: 'DM Sans' },
+                        bodyFont: { size: 12, family: 'DM Sans' },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString() + 'K';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(42, 53, 72, 0.5)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 11, family: 'DM Sans' }
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(42, 53, 72, 0.5)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 11, family: 'DM Sans' },
+                            callback: function(value) {
+                                return '$' + value + 'K';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

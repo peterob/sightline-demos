@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Exception Log Board (Jira-lite)</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#111826;
+      --panel2:#0f1623;
+      --text:#e6edf3;
+      --muted:#9fb0c0;
+      --border:#223047;
+      --pill:#1b2638;
+      --bad:#ff6b6b;
+      --warn:#ffd166;
+      --ok:#2ecc71;
+      --info:#6aa9ff;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: linear-gradient(180deg, #070a0f 0%, #0b0f14 100%);
+      color:var(--text);
+      font-family:var(--sans);
+    }
+    header{
+      padding:20px 18px 14px;
+      border-bottom: 1px solid var(--border);
+      position:sticky; top:0; background: rgba(11,15,20,.92); backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    .wrap{max-width: 1250px; margin: 0 auto; padding: 0 14px;}
+    h1{margin:0 0 6px; font-size: 18px; letter-spacing: .2px}
+    .sub{color:var(--muted); font-size: 13px; line-height: 1.35}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:12px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      background: var(--pill);
+      border:1px solid var(--border);
+      border-radius: 999px;
+      padding:8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pill b{color: var(--text); font-weight: 600}
+    .pill .dot{width:10px; height:10px; border-radius: 999px; background: var(--info)}
+    .pill.ok .dot{background: var(--ok)}
+    .pill.warn .dot{background: var(--warn)}
+    .pill.bad .dot{background: var(--bad)}
+    main{padding: 18px 0 28px}
+    textarea{
+      width:100%;
+      min-height: 150px;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      box-shadow: var(--shadow);
+    }
+    .controls{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center;
+    }
+    button, select, input[type="text"]{
+      background: var(--panel2);
+      color: var(--text);
+      border:1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+    button{cursor:pointer}
+    button:hover{border-color:#2d4264}
+    input[type="text"]{min-width: 280px}
+    .hint{color:var(--muted); font-size: 12px}
+    .board{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+    @media (max-width: 980px){
+      .board{grid-template-columns: 1fr 1fr}
+    }
+    @media (max-width: 560px){
+      .board{grid-template-columns: 1fr}
+    }
+    .lane{
+      background: rgba(17,24,38,.55);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: var(--shadow);
+      min-height: 280px;
+    }
+    .lane header{
+      position:unset;
+      padding: 12px 12px 10px;
+      background: rgba(15,22,35,.8);
+      border-bottom:1px solid var(--border);
+    }
+    .lane h2{
+      margin:0;
+      font-size: 13px;
+      letter-spacing: .3px;
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+    }
+    .count{color: var(--muted); font-weight: 500; font-size: 12px}
+    .cards{padding: 12px; display:flex; flex-direction:column; gap:10px}
+    .card{
+      border:1px solid var(--border);
+      border-radius: 12px;
+      background: #0f1623;
+      padding: 10px 10px 8px;
+    }
+    .top{
+      display:flex; justify-content: space-between; gap:10px; align-items:flex-start;
+      margin-bottom: 8px;
+    }
+    .title{
+      font-weight: 650; font-size: 12.5px; line-height: 1.25;
+    }
+    .meta{color: var(--muted); font-size: 11.5px; line-height: 1.35}
+    .badges{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+    .badge{
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(27,38,56,.7);
+      color: var(--muted);
+      display:inline-flex; align-items:center; gap:6px;
+    }
+    .badge .dot{width:8px; height:8px; border-radius:999px; background: var(--info)}
+    .badge.p0{color:#ffd6d6; border-color: rgba(255,107,107,.35)}
+    .badge.p0 .dot{background: var(--bad)}
+    .badge.p1{color:#ffe8b3; border-color: rgba(255,209,102,.35)}
+    .badge.p1 .dot{background: var(--warn)}
+    .badge.ok{color:#c9f7d6; border-color: rgba(46,204,113,.35)}
+    .badge.ok .dot{background: var(--ok)}
+    .badge.dim{opacity:.9}
+    .kv{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px}
+    .kv span{color: var(--muted); font-size: 11.5px}
+    .kv b{color: var(--text); font-weight: 600}
+    .mini{
+      display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center
+    }
+    .mini select, .mini input{
+      padding: 7px 9px;
+      border-radius: 10px;
+      font-size: 12px;
+      background: rgba(17,24,38,.9);
+    }
+    .mini input{width: 140px; font-family: var(--sans)}
+    .hr{height:1px; background: var(--border); margin: 12px 0}
+    details{
+      margin-top: 14px;
+      background: rgba(17,24,38,.55);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    details summary{
+      cursor:pointer;
+      padding: 12px;
+      color: var(--text);
+      font-size: 13px;
+      background: rgba(15,22,35,.8);
+      border-bottom:1px solid var(--border);
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td{
+      border-bottom:1px solid var(--border);
+      padding: 8px 10px;
+      text-align:left;
+      vertical-align: top;
+    }
+    th{color: var(--muted); font-weight:600; background: rgba(15,22,35,.6)}
+    td{color: var(--text)}
+    .small{font-size: 11px; color: var(--muted)}
+    a{color: var(--info); text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Exception Log Board (Jira-lite) — single source of truth</h1>
+    <div class="sub">
+      Paste your <b>Exception_Log TSV</b> (header + rows). This page computes aging, SLA buckets, priority, and close readiness—then renders a Kanban board by status.
+    </div>
+
+    <div class="row">
+      <span id="closeReadinessPill" class="pill"><span class="dot"></span><b>Close Readiness:</b> <span id="closeReadinessText">—</span></span>
+      <span class="pill"><span class="dot"></span><b>Rules:</b> SEV1 open → BLOCKED; SEV2 past-due → AT RISK; SEV2 open → CAUTION; else READY</span>
+      <span class="pill"><span class="dot"></span><b>Statuses:</b> OPEN · IN_PROGRESS · MITIGATED · RESOLVED (includes ACCEPTED)</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <textarea id="tsvInput" spellcheck="false"></textarea>
+    <div class="controls">
+      <button id="loadBtn">Load TSV → Board</button>
+      <button id="exportBtn">Export Updated TSV</button>
+      <label class="hint">Search:</label>
+      <input id="searchBox" type="text" placeholder="EXC_… | owner | reason_code | metric/account | customer…" />
+      <label class="hint">Show:</label>
+      <select id="showFilter">
+        <option value="all">All</option>
+        <option value="openOnly">Open only</option>
+        <option value="sev1or2">SEV1/SEV2 only</option>
+      </select>
+      <span class="hint">Tip: edit cards’ status/owner/due date inline; export TSV to save.</span>
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <details>
+      <summary>Show underlying table (first 200 rows)</summary>
+      <div style="overflow:auto; max-height: 520px;">
+        <table id="table"></table>
+      </div>
+      <div class="small" style="padding:10px 12px;">
+        Edits are intended to happen on the cards above (status/owner/due date). For full editing, update the TSV in your system-of-record and re-load.
+      </div>
+    </details>
+
+    <div class="hr"></div>
+    <div class="small">
+      SLA policy is configurable in the script: SEV1=1 day, SEV2=5 days, SEV3=14 days. Dates assumed UTC. TSV uses tabs; commas inside fields are fine.
+    </div>
+  </div>
+</main>
+
+<script>
+  // ---------- Sample TSV (audit + tracker columns ok; only a subset is required) ----------
+  const SAMPLE = `exception_id\tdomain\tpackage_month\tdetected_timestamp_utc\tdetected_by\tcontrol_or_gate\tsource_left\tsource_right\taffected_metric_or_account\tscope_entity\tscope_entity_id\tthreshold_type\tthreshold_value\tactual_value\tdelta_value\tdelta_percent\tseverity\tstatus\treason_code\troot_cause_category\towner\tdue_date\tescalation_path\tevidence_links\tremediation_action\tvalidation_steps\tresolved_timestamp_utc\tresolution_notes\tapprover\tsignoff_timestamp_utc
+EXC_ARR_2026-01_001\tARR\t2026-01\t2026-02-02T15:22:00Z\tFinanceAnalytics\tGate A: SF vs Stripe\tcustomer_mapping(Snowflake)\tSalesforce+Stripe\tARR\tCustomer\tCUST_000123\tABSOLUTE\t10000\t24500\t14500\t0.032\tSEV2\tOPEN\tID_MAP\tMAPPING_IDENTITY\tRevOps Lead\t2026-02-06\tRevOps → Finance Analytics → Controller\tlinks:SF_account|Stripe_customer|DimCustomer_snapshot|Recon_sheet\tAdd missing stripe_customer_id mapping; rerun recon\tRe-run 11_Recon and confirm delta within tolerance\t\t\t\t
+EXC_SPND_2026-01_014\tSPEND\t2026-01\t2026-02-01T18:05:00Z\tFinanceOps\tGate C: Receipt Compliance\tRamp\tNetSuite\tTravel & Meals\tEmployee\tEMP_00451\tPOLICY\tReceipt>200 within 7 days\tReceipt missing\t\t\tSEV3\tIN_PROGRESS\tRECEIPT\tPOLICY_COMPLIANCE\tFinance Ops Mgr\t2026-02-08\tFinance Ops → Controller\tlinks:Ramp_txn|Ramp_receipt_status\tNotify cardholder; escalate after 14 days\tReceipt uploaded or manager attests exception policy\t2026-02-07T14:10:00Z\tReceipt received; marked compliant\tFinance Ops Mgr\t2026-02-07T16:00:00Z
+EXC_REV_2026-01_003\tREVENUE_TIEOUT\t2026-01\t2026-02-03T13:30:00Z\tController\tGate B: Stripe vs NS GL\tStripe\tNetSuite\tRevenue\tAccount\t4000-REV\tPERCENT\t0.5%\t0.9%\t0.4%\t0.004\tSEV1\tOPEN\tCUTOFF\tCUTOFF_TIMING\tController\t2026-02-03\tController → CFO\tlinks:rollforward|TB|JE\tInvestigate cutoff; post JE\tRe-run tie-out; confirm within tolerance\t\t\t\t
+EXC_SPND_2026-01_021\tSPEND\t2026-01\t2026-01-28T19:10:00Z\tFinanceOps\tGate A: Completeness\tRamp\tNetSuite\tOpEx\tTransaction\tRAMP_TXN_99121\tABSOLUTE\t0\tUnposted\t\t\tSEV2\tMITIGATED\tTIMING\tCUTOFF_TIMING\tFinance Ops Mgr\t2026-02-02\tFinance Ops → Controller\tlinks:txn|mapping\tAccrue in-month; ensure posting next period\tVerify posting ID exists next run\t\t\t\t
+EXC_ARR_2026-01_009\tARR\t2026-01\t2026-01-31T22:40:00Z\tFinanceAnalytics\tGate D: Data checks\tSnowflake\tSnowflake\tARR modeling\tPipeline\tMRR_FACT\tNONE\t\tDuplicate IDs\t\t\tSEV2\tRESOLVED\tDUPLICATE_OR_IDEMPOTENCY\tDUPLICATE_OR_IDEMPOTENCY\tAnalytics Eng Lead\t2026-02-01\tAnalytics → Finance Analytics\tlinks:run_log\tFix idempotency; backfill\tRe-run duplicate test\t2026-02-01T12:01:00Z\tFixed and validated\tAnalytics Eng Lead\t2026-02-01T12:15:00Z`;
+
+  const SLA = { SEV1: 1, SEV2: 5, SEV3: 14 };
+  const CLOSED = new Set(["RESOLVED","ACCEPTED"]);
+
+  const REQUIRED_FIELDS = [
+    "exception_id","domain","package_month","detected_timestamp_utc","control_or_gate",
+    "source_left","source_right","affected_metric_or_account","severity","status","owner","due_date","reason_code"
+  ];
+
+  const state = {
+    header: [],
+    rows: [],
+    index: {},
+  };
+
+  const el = (id) => document.getElementById(id);
+
+  function parseTSV(tsv){
+    const lines = tsv.replace(/\r/g,"").split("\n").filter(l => l.trim().length>0);
+    if(lines.length < 2) throw new Error("TSV must include a header and at least one row.");
+    const header = lines[0].split("\t").map(h => h.trim());
+    const index = {};
+    header.forEach((h,i)=> index[h]=i);
+
+    // Validate we have minimally what we need
+    const missing = REQUIRED_FIELDS.filter(f => !(f in index));
+    if(missing.length){
+      throw new Error("Missing required columns: " + missing.join(", "));
+    }
+
+    const rows = [];
+    for(let i=1;i<lines.length;i++){
+      const cells = lines[i].split("\t");
+      // Pad to header length
+      while(cells.length < header.length) cells.push("");
+      const obj = {};
+      header.forEach((h,ci)=> obj[h] = (cells[ci] ?? "").trim());
+      rows.push(obj);
+    }
+    return { header, rows, index };
+  }
+
+  function toDateUTC(iso){
+    if(!iso) return null;
+    // Allow YYYY-MM-DD
+    if(/^\d{4}-\d{2}-\d{2}$/.test(iso)) return new Date(iso+"T00:00:00Z");
+    // ISO timestamp
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function daysBetween(a,b){
+    const ms = (b.getTime() - a.getTime());
+    return Math.floor(ms / (24*60*60*1000));
+  }
+
+  function computeDerived(r){
+    const status = (r.status || "").toUpperCase();
+    const severity = (r.severity || "").toUpperCase();
+    const openFlag = !CLOSED.has(status);
+
+    const detected = toDateUTC(r.detected_timestamp_utc);
+    const resolved = toDateUTC(r.resolved_timestamp_utc);
+    const today = new Date();
+    const ageDays = detected ? (resolved ? Math.max(0, daysBetween(detected, resolved)) : Math.max(0, daysBetween(detected, today))) : null;
+
+    const due = toDateUTC(r.due_date);
+    const daysPastDue = (due && openFlag) ? Math.max(0, daysBetween(due, today)) : 0;
+
+    const slaTarget = SLA[severity] ?? 7;
+    const slaBucket = !openFlag ? "CLOSED" : (ageDays > slaTarget ? "BREACHED" : (ageDays >= (slaTarget-1) ? "DUE SOON" : "WITHIN SLA"));
+    const agingBucket = (ageDays<=2) ? "0-2" : (ageDays<=7) ? "3-7" : (ageDays<=14) ? "8-14" : (ageDays<=30) ? "15-30" : "30+";
+
+    const closeBlocker = openFlag && severity === "SEV1";
+    let closeRow = "CLOSED";
+    if(closeBlocker) closeRow = "BLOCKS CLOSE";
+    else if(openFlag){
+      if(severity==="SEV2"){
+        closeRow = (daysPastDue>0 || slaBucket==="BREACHED") ? "AT RISK" : "NEEDS ATTENTION";
+      } else if(severity==="SEV3"){
+        closeRow = "TRACK";
+      } else {
+        closeRow = "OPEN";
+      }
+    }
+
+    const autoPriority = closeBlocker ? "P0" : (closeRow==="AT RISK" ? "P1" : (openFlag ? "P2" : "—"));
+
+    return {
+      openFlag, ageDays, daysPastDue, slaTarget, slaBucket, agingBucket, closeBlocker, closeRow, autoPriority,
+    };
+  }
+
+  function computeCloseReadiness(rows){
+    const open = rows.filter(r => !CLOSED.has((r.status||"").toUpperCase()));
+    const openSev1 = open.some(r => (r.severity||"").toUpperCase()==="SEV1");
+    if(openSev1) return "BLOCKED";
+
+    const openSev2 = open.filter(r => (r.severity||"").toUpperCase()==="SEV2");
+    const anySev2PastDue = openSev2.some(r => {
+      const d = toDateUTC(r.due_date);
+      return d ? (daysBetween(d, new Date())>0) : false;
+    });
+    if(anySev2PastDue) return "AT RISK";
+    if(openSev2.length>0) return "CAUTION";
+    return "READY";
+  }
+
+  function setReadinessPill(status){
+    const pill = el("closeReadinessPill");
+    const text = el("closeReadinessText");
+    text.textContent = status;
+    pill.classList.remove("ok","warn","bad");
+    const dot = pill.querySelector(".dot");
+    if(status==="READY"){ pill.classList.add("ok"); dot.style.background="var(--ok)"; }
+    else if(status==="CAUTION"){ pill.classList.add("warn"); dot.style.background="var(--warn)"; }
+    else if(status==="AT RISK"){ pill.classList.add("warn"); dot.style.background="var(--warn)"; }
+    else { pill.classList.add("bad"); dot.style.background="var(--bad)"; }
+  }
+
+  function laneTitle(label, count){
+    return `<header><h2>${label} <span class="count">${count}</span></h2></header>`;
+  }
+
+  function badge(cls, text, dot){
+    const d = dot ? `<span class="dot"></span>` : "";
+    return `<span class="badge ${cls}">${d}${escapeHtml(text)}</span>`;
+  }
+
+  function escapeHtml(s){
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function buildCard(r, d){
+    const id = r.exception_id || "";
+    const domain = r.domain || "";
+    const metric = r.affected_metric_or_account || "";
+    const reason = r.reason_code || "";
+    const sev = (r.severity || "").toUpperCase();
+    const status = (r.status || "").toUpperCase();
+    const owner = r.owner || "";
+    const due = r.due_date || "";
+    const gate = r.control_or_gate || "";
+    const delta = r.delta_value || "";
+    const dpct = r.delta_percent || "";
+
+    const pClass = d.autoPriority==="P0" ? "p0" : d.autoPriority==="P1" ? "p1" : "dim";
+    const slaClass = d.slaBucket==="BREACHED" ? "p0" : d.slaBucket==="DUE SOON" ? "p1" : "ok";
+
+    // Inline editing (status/owner/due_date)
+    const statusOptions = ["OPEN","IN_PROGRESS","MITIGATED","RESOLVED","ACCEPTED"].map(s => {
+      const sel = (s===status) ? "selected" : "";
+      return `<option value="${s}" ${sel}>${s}</option>`;
+    }).join("");
+
+    return `
+      <div class="card" data-id="${escapeHtml(id)}">
+        <div class="top">
+          <div>
+            <div class="title">[${escapeHtml(d.autoPriority)}] ${escapeHtml(id)} • ${escapeHtml(domain)} • ${escapeHtml(metric)}</div>
+            <div class="meta">${escapeHtml(gate)} — <span class="small">Reason:</span> ${escapeHtml(reason)}</div>
+          </div>
+          <div class="badges" style="justify-content:flex-end">
+            ${badge(pClass, d.autoPriority, true)}
+            ${badge(sev==="SEV1" ? "p0" : sev==="SEV2" ? "p1" : "dim", sev, true)}
+          </div>
+        </div>
+
+        <div class="kv">
+          <span><b>Owner:</b> ${escapeHtml(owner || "—")}</span>
+          <span><b>Due:</b> ${escapeHtml(due || "—")}</span>
+          <span><b>Age:</b> ${d.ageDays ?? "—"}d</span>
+          <span><b>SLA:</b> ${escapeHtml(d.slaBucket)}</span>
+          <span><b>Row:</b> ${escapeHtml(d.closeRow)}</span>
+        </div>
+
+        <div class="badges">
+          ${badge(slaClass, `SLA: ${d.slaBucket}`, true)}
+          ${badge("dim", `Aging: ${d.agingBucket}`, false)}
+          ${d.closeBlocker ? badge("p0", "BLOCKS CLOSE", true) : ""}
+          ${(delta || dpct) ? badge("dim", `Δ ${delta || ""} ${dpct ? `(${dpct})` : ""}`.trim(), false) : ""}
+        </div>
+
+        <div class="mini">
+          <label class="small">Status</label>
+          <select class="edit-status">${statusOptions}</select>
+
+          <label class="small">Owner</label>
+          <input class="edit-owner" type="text" value="${escapeHtml(owner)}" placeholder="Owner" />
+
+          <label class="small">Due</label>
+          <input class="edit-due" type="text" value="${escapeHtml(due)}" placeholder="YYYY-MM-DD" />
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    const board = el("board");
+    const search = (el("searchBox").value || "").toLowerCase().trim();
+    const show = el("showFilter").value;
+
+    const enriched = state.rows.map(r => ({ r, d: computeDerived(r) }));
+
+    // Apply filters
+    const filtered = enriched.filter(({r,d}) => {
+      if(show==="openOnly" && !d.openFlag) return false;
+      if(show==="sev1or2" && !["SEV1","SEV2"].includes((r.severity||"").toUpperCase())) return false;
+
+      if(!search) return true;
+      const hay = [
+        r.exception_id, r.domain, r.package_month, r.control_or_gate, r.affected_metric_or_account,
+        r.reason_code, r.root_cause_category, r.owner, r.scope_entity_id, r.evidence_links
+      ].join(" ").toLowerCase();
+      return hay.includes(search);
+    });
+
+    const byStatus = {
+      OPEN: [],
+      IN_PROGRESS: [],
+      MITIGATED: [],
+      RESOLVED: [], // includes ACCEPTED
+    };
+
+    for(const x of filtered){
+      const s = (x.r.status || "").toUpperCase();
+      if(s==="OPEN") byStatus.OPEN.push(x);
+      else if(s==="IN_PROGRESS") byStatus.IN_PROGRESS.push(x);
+      else if(s==="MITIGATED") byStatus.MITIGATED.push(x);
+      else if(s==="RESOLVED" || s==="ACCEPTED") byStatus.RESOLVED.push(x);
+      else byStatus.OPEN.push(x); // default lane
+    }
+
+    // Sort each lane: priority (P0,P1,P2,...) then age desc
+    const pr = {P0:0,P1:1,P2:2,"—":9};
+    for(const k of Object.keys(byStatus)){
+      byStatus[k].sort((a,b)=> (pr[a.d.autoPriority]-pr[b.d.autoPriority]) || (b.d.ageDays - a.d.ageDays));
+    }
+
+    const lanes = [
+      ["OPEN", byStatus.OPEN],
+      ["IN_PROGRESS", byStatus.IN_PROGRESS],
+      ["MITIGATED", byStatus.MITIGATED],
+      ["RESOLVED", byStatus.RESOLVED],
+    ];
+
+    board.innerHTML = lanes.map(([label, items]) => {
+      const cards = items.map(({r,d}) => buildCard(r,d)).join("");
+      return `<section class="lane">
+        ${laneTitle(label, items.length)}
+        <div class="cards">${cards || `<div class="small">No items.</div>`}</div>
+      </section>`;
+    }).join("");
+
+    // Wire inline editors
+    board.querySelectorAll(".card").forEach(card => {
+      const id = card.getAttribute("data-id");
+      const row = state.rows.find(r => r.exception_id === id);
+      if(!row) return;
+      const st = card.querySelector(".edit-status");
+      const ow = card.querySelector(".edit-owner");
+      const du = card.querySelector(".edit-due");
+
+      st.addEventListener("change", () => { row.status = st.value; refreshReadiness(); renderTable(); render(); });
+      ow.addEventListener("change", () => { row.owner = ow.value; renderTable(); render(); });
+      du.addEventListener("change", () => { row.due_date = du.value; refreshReadiness(); renderTable(); render(); });
+    });
+
+    refreshReadiness(filtered.map(x => x.r));
+  }
+
+  function refreshReadiness(rowsForCalc){
+    const status = computeCloseReadiness(rowsForCalc || state.rows);
+    setReadinessPill(status);
+  }
+
+  function renderTable(){
+    const t = el("table");
+    const header = state.header;
+    const rows = state.rows.slice(0,200);
+    const cols = ["exception_id","domain","package_month","severity","status","owner","due_date","reason_code","control_or_gate","affected_metric_or_account","detected_timestamp_utc","resolved_timestamp_utc"];
+    // Only show columns present
+    const present = cols.filter(c => state.index[c] !== undefined);
+
+    const head = `<tr>${present.map(c => `<th>${escapeHtml(c)}</th>`).join("")}</tr>`;
+    const body = rows.map(r => `<tr>${present.map(c => `<td>${escapeHtml(r[c] || "")}</td>`).join("")}</tr>`).join("");
+    t.innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+  }
+
+  function exportTSV(){
+    const header = state.header;
+    const lines = [];
+    lines.push(header.join("\t"));
+    for(const r of state.rows){
+      const row = header.map(h => (r[h] ?? "").toString().replace(/\t/g," ").replace(/\r?\n/g," "));
+      lines.push(row.join("\t"));
+    }
+    const blob = new Blob([lines.join("\n")], {type: "text/tab-separated-values;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0,10);
+    a.download = `Exception_Log_export_${stamp}.tsv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function init(){
+    el("tsvInput").value = SAMPLE;
+    el("loadBtn").addEventListener("click", () => {
+      try{
+        const parsed = parseTSV(el("tsvInput").value);
+        state.header = parsed.header;
+        state.rows = parsed.rows;
+        state.index = parsed.index;
+        renderTable();
+        render();
+      }catch(e){
+        alert(e.message || e.toString());
+      }
+    });
+    el("exportBtn").addEventListener("click", () => exportTSV());
+    el("searchBox").addEventListener("input", () => render());
+    el("showFilter").addEventListener("change", () => render());
+    // Auto-load sample
+    el("loadBtn").click();
+  }
+
+  init();
+</script>
+</body>
+</html>

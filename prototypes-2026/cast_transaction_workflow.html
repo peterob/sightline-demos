@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — End-to-End Transaction Workflow</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f9f9f7;color:#1a1a1a}
+
+.shell{max-width:900px;margin:0 auto;padding:20px 20px 40px}
+.doc-title{font-size:13px;font-weight:500;color:#888;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:16px}
+
+.progress-bar{display:flex;gap:0;overflow-x:auto;border-bottom:1px solid #e0ddd6;margin-bottom:0;scrollbar-width:none}
+.progress-bar::-webkit-scrollbar{display:none}
+.step-pip{flex:1;min-width:68px;padding:10px 6px 8px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;position:relative}
+.step-pip:hover{background:#f4f4f0}
+.step-pip.active{border-bottom-color:#0E7C7B}
+.step-pip.done{border-bottom-color:#9FE1CB}
+.pip-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;margin:0 auto 4px;background:#f4f4f0;color:#888;border:0.5px solid #e0ddd6;transition:all 0.15s}
+.step-pip.active .pip-num{background:#0E7C7B;color:#fff;border-color:#0E7C7B}
+.step-pip.done .pip-num{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.step-pip.pivot .pip-num{background:#1B2A4A;color:#fff;border-color:#1B2A4A}
+.step-pip.pivot.active .pip-num{background:#0E7C7B;color:#fff}
+.pip-label{font-size:10px;color:#888;line-height:1.3}
+.step-pip.active .pip-label{color:#1a1a1a;font-weight:500}
+
+.step-content{padding:20px 0 0}
+
+.step-header{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;background:#f4f4f0;border-radius:10px;border:0.5px solid #e0ddd6;margin-bottom:18px}
+.step-header.pivot-header{background:#1B2A4A;border-color:#1B2A4A}
+.step-num-lg{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;background:#E1F5EE;color:#085041}
+.pivot-header .step-num-lg{background:#0E7C7B;color:#fff}
+.step-title{font-size:15px;font-weight:500;color:#1a1a1a;margin-bottom:3px}
+.pivot-header .step-title{color:#fff}
+.step-subtitle{font-size:12px;color:#888}
+.pivot-header .step-subtitle{color:rgba(255,255,255,0.55)}
+.pivot-tag{margin-left:auto;flex-shrink:0;font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;background:#0DCFCE;color:#04342C}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}}
+
+.card{background:#fff;border:0.5px solid #e0ddd6;border-radius:10px;padding:14px}
+.card-label{font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px}
+
+.who-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid #e0ddd6;font-size:13px;color:#1a1a1a}
+.who-row:last-child{border-bottom:none}
+.who-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;flex-shrink:0}
+.badge-buyer{background:#E6F1FB;color:#0C447C}
+.badge-vendor{background:#FAEEDA;color:#633806}
+.badge-system{background:#E1F5EE;color:#085041}
+.badge-policy{background:#EEEDFE;color:#3C3489}
+
+.event-record{background:#f4f4f0;border:0.5px solid #e0ddd6;border-radius:8px;padding:12px 14px;font-family:'Courier New',monospace;font-size:11px;line-height:1.9;margin-bottom:14px;color:#888}
+.ef{color:#1a1a1a;font-weight:500}
+.ev{color:#0F6E56}
+.eh{color:#854F0B;word-break:break-all}
+.em{color:#aaa}
+
+.state-tracks{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.track-row{display:flex;align-items:center;gap:10px}
+.track-name{font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.06em;width:72px;flex-shrink:0}
+.track-steps{display:flex;gap:3px;flex:1}
+.ts{height:22px;flex:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;background:#f4f4f0;color:#888}
+.ts.done{background:#E1F5EE;color:#085041}
+.ts.active{background:#0E7C7B;color:#fff}
+.ts.blocked{background:#FCEBEB;color:#A32D2D}
+.ts.pending{background:#FAEEDA;color:#633806}
+
+.tm-phone{background:#1B2A4A;border-radius:12px;padding:18px;color:#fff;max-width:280px}
+.tm-co{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:5px}
+.tm-inv{font-size:14px;font-weight:500;margin-bottom:3px}
+.tm-amt{font-size:26px;font-weight:500;color:#0DCFCE;margin-bottom:2px}
+.tm-det{font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:2px}
+.tm-dl{font-size:11px;color:rgba(255,255,255,0.35);margin:10px 0 14px}
+.tm-btns{display:flex;gap:7px}
+.tm-btn{flex:1;padding:9px 4px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);font-size:12px;font-weight:500;color:#fff;text-align:center;cursor:pointer}
+.tm-btn.primary{background:#0E7C7B;border-color:#0E7C7B}
+
+.check-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.check-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:6px;border:0.5px solid #e0ddd6;font-size:12px;background:#fff;color:#1a1a1a}
+.chk{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;flex-shrink:0;margin-left:12px}
+.chk-pass{background:#E1F5EE;color:#085041}
+.chk-pend{background:#FAEEDA;color:#633806}
+.chk-gray{background:#f4f4f0;color:#888}
+
+.posting-block{background:#f4f4f0;border:0.5px solid #e0ddd6;border-radius:8px;padding:14px;margin-bottom:14px}
+.pb-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid #e0ddd6;font-size:12px}
+.pb-row:last-child{border-bottom:none}
+.pb-key{color:#888}
+.pb-val{color:#1a1a1a;font-weight:500}
+.pb-hash{color:#854F0B;font-family:'Courier New',monospace;font-size:10px}
+
+.timeline-line{display:flex;flex-direction:column;gap:0;border-left:2px solid #e0ddd6;margin-left:10px;padding-left:16px;margin-bottom:14px}
+.tl-item{position:relative;padding:6px 0 12px;font-size:12px;color:#888}
+.tl-item::before{content:'';position:absolute;left:-22px;top:9px;width:8px;height:8px;border-radius:50%;background:#e0ddd6}
+.tl-item.done::before{background:#0E7C7B}
+.tl-item.pivot::before{background:#1B2A4A;width:10px;height:10px;left:-23px}
+.tl-title{font-weight:500;color:#1a1a1a;margin-bottom:2px}
+
+.nav-btns{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:0.5px solid #e0ddd6;margin-top:4px}
+.nav-btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid #ccc;background:#fff;color:#1a1a1a;transition:background 0.1s}
+.nav-btn:hover{background:#f4f4f0}
+.nav-btn.primary{background:#0E7C7B;color:#fff;border-color:#0E7C7B}
+.nav-btn.primary:hover{background:#0fa8a7}
+.nav-btn:disabled{opacity:0.3;cursor:default}
+.step-counter{font-size:12px;color:#888}
+
+.callout{padding:12px 14px;border-radius:0;border-left:3px solid #0E7C7B;background:#E1F5EE;font-size:12px;color:#085041;line-height:1.6;margin-bottom:14px}
+.callout.amber{border-left-color:#C17B2F;background:#FFF8E8;color:#633806}
+.callout.navy{border-left-color:#1B2A4A;background:#EEF1F7;color:#1B2A4A}
+.callout.strong{font-size:13px;font-weight:500}
+
+.label-row{font-size:10px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.07em;margin:14px 0 6px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="doc-title">CAST — end-to-end transaction workflow · Apex Electrical · INV-1048 · $47,200</div>
+  <div class="progress-bar" id="progress-bar"></div>
+  <div class="step-content" id="step-content"></div>
+</div>
+
+<script>
+const STEPS = [
+  {
+    id:1, label:'Invoice arrives', pivot:false,
+    who:'System + AP analyst',
+    subtitle:'Trigger evaluation. Nothing written yet.',
+    render: () => `
+      <div class="two-col">
+        <div class="card">
+          <div class="card-label">Invoice received</div>
+          <div style="font-size:13px;color:#1a1a1a;font-weight:500;margin-bottom:4px">INV-1048 · Apex Electrical Services</div>
+          <div style="font-size:12px;color:#888">$47,200 · Due March 28 · PO-882 Phase 2 retrofit</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Delivery channel</div>
+          <div style="font-size:13px;color:#1a1a1a;font-weight:500;margin-bottom:4px">SMS → portal link</div>
+          <div style="font-size:12px;color:#888">Vendor signer has verified phone — SMS selected as primary channel</div>
+        </div>
+      </div>
+      <div class="label-row">Trigger evaluation — policy POL-v4.2</div>
+      <div class="check-grid">
+        <div class="check-row">First payment to this vendor <span class="chk chk-pass">FIRES — hard-coded</span></div>
+        <div class="check-row">Amount above $10,000 threshold <span class="chk chk-pass">FIRES — $47,200</span></div>
+        <div class="check-row">Bank destination changed <span class="chk chk-gray">No — not applicable</span></div>
+        <div class="check-row">Duplicate invoice in 30-day window <span class="chk chk-gray">No — first occurrence</span></div>
+      </div>
+      <div class="callout navy">Two triggers fire. Trade Message required. No event has been written to the log yet. Invoice ingestion is pre-event.</div>
+      <div class="label-row">Who acts</div>
+      <div class="card">
+        <div class="who-row"><span class="who-badge badge-system">System</span>Evaluates trigger conditions against active policy version POL-v4.2</div>
+        <div class="who-row"><span class="who-badge badge-buyer">AP analyst</span>Reviews trigger result in AP queue. Confirms invoice payload is correct before send.</div>
+      </div>
+    `
+  },
+  {
+    id:2, label:'Proposed Event', pivot:false,
+    who:'System',
+    subtitle:'First write to the event log.',
+    render: () => `
+      <div class="callout">The Proposed Event is the first entry in the immutable log. It is unilateral — BrightPath authored it. Apex has not seen it. It cannot generate a Posting under any circumstances. The schema has no path from a Proposed Event to a Posting.</div>
+      <div class="label-row">Event written — #PE-0014</div>
+      <div class="event-record">
+        <div><span class="ef">event_id:</span>         <span class="ev">#PE-0014</span></div>
+        <div><span class="ef">event_type:</span>        <span class="ev">proposed</span></div>
+        <div><span class="ef">work_order_id:</span>     <span class="ev">#TM-0047 (created simultaneously)</span></div>
+        <div><span class="ef">policy_version_id:</span> <span class="ev">POL-v4.2 (pinned at this moment)</span></div>
+        <div><span class="ef">actor_type:</span>        <span class="ev">system</span></div>
+        <div><span class="ef">triggers_fired:</span>    <span class="ev">["first_payment_to_vendor", "amount_above_threshold"]</span></div>
+        <div><span class="ef">vendor_id:</span>         <span class="ev">apex-electrical-001</span></div>
+        <div><span class="ef">amount:</span>            <span class="ev">47200.00 USD</span></div>
+        <div><span class="ef">bank_token:</span>        <span class="ev">tok_9921_verified</span></div>
+        <div><span class="ef">prior_event_id:</span>    <span class="em">null (genesis event for this work order)</span></div>
+        <div><span class="ef">lineage_hash:</span>      <span class="eh">a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2</span></div>
+      </div>
+      <div class="label-row">Work Order created — three-track state</div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts active">Draft</div><div class="ts">Sent</div><div class="ts">Viewed</div><div class="ts">Confirmed</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts active">Pending policy</div><div class="ts">Approved</div><div class="ts">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts active">Waiting</div><div class="ts">Export ready</div><div class="ts">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:3, label:'Trade Message', pivot:false,
+    who:'System → Vendor',
+    subtitle:'Delivered via SMS. Vendor views.',
+    render: () => `
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div class="label-row">Vendor receives on phone</div>
+          <div style="background:#f4f4f0;border-radius:12px;padding:16px;display:flex;justify-content:center">
+            <div class="tm-phone">
+              <div class="tm-co">BrightPath Holdings → Apex Electrical</div>
+              <div class="tm-inv">Payment confirmation request</div>
+              <div class="tm-amt">$47,200</div>
+              <div class="tm-det">March 28 · Account ending 9921</div>
+              <div class="tm-det">PO-882 / Phase 2 retrofit</div>
+              <div class="tm-dl">Reply by 5:00 PM ET Thursday</div>
+              <div class="tm-btns">
+                <div class="tm-btn primary">Confirm</div>
+                <div class="tm-btn">Change</div>
+                <div class="tm-btn">Dispute</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="label-row">What the vendor sees — and only this</div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>Who is paying and which invoice</div>
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>Exact amount and payment date</div>
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>Bank account last 4 digits</div>
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>PO reference</div>
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>Deadline to respond</div>
+          </div>
+          <div class="callout amber">No login. No app. No account. The vendor taps a link in an SMS. The entire UX is three buttons.</div>
+          <div class="label-row">State transitions appended to log</div>
+          <div class="timeline-line">
+            <div class="tl-item done"><div class="tl-title">Trade Message delivered via SMS</div>bilateral_state → sent · event appended</div>
+            <div class="tl-item done"><div class="tl-title">Vendor opens portal link</div>bilateral_state → viewed · event appended · timestamp recorded</div>
+          </div>
+        </div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts active">Viewed</div><div class="ts">Confirmed</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts active">Pending policy</div><div class="ts">Approved</div><div class="ts">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts active">Waiting</div><div class="ts">Export ready</div><div class="ts">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:4, label:'Vendor confirms ★', pivot:true,
+    who:'Vendor → System',
+    subtitle:'The architectural pivot. Passkey authenticated.',
+    render: () => `
+      <div class="callout strong">This is the only moment in the entire flow where a Posting becomes possible. Everything before this step is Proposed — unilateral, no path to a Posting. Everything after flows deterministically from this bilateral event.</div>
+      <div class="two-col" style="align-items:start">
+        <div>
+          <div class="label-row">Authentication — passkey assertion</div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="who-row"><span class="who-badge badge-vendor">Vendor</span>Taps Confirm on mobile portal</div>
+            <div class="who-row"><span class="who-badge badge-system">WebAuthn</span>Device prompts for FaceID / PIN</div>
+            <div class="who-row"><span class="who-badge badge-system">SimpleWebAuthn</span>Verifies assertion against enrolled public key</div>
+            <div class="who-row"><span class="who-badge badge-system">System</span>Checks assertion bound to this Work Order hash</div>
+            <div class="who-row"><span class="who-badge badge-system">System</span>Verifies assertion timestamp within window</div>
+            <div class="who-row"><span class="who-badge badge-system">System</span>Updates passkey counter — replay impossible</div>
+          </div>
+          <div class="callout">The passkey assertion is bound to the Work Order hash. If the bank account had changed, the hash would differ and the prior signature would not validate. The attacker cannot forge the vendor's private key.</div>
+        </div>
+        <div>
+          <div class="label-row">Bilateral Event written — #BE-0039</div>
+          <div class="event-record">
+            <div><span class="ef">event_id:</span>              <span class="ev">#BE-0039</span></div>
+            <div><span class="ef">event_type:</span>             <span class="ev">bilateral</span></div>
+            <div><span class="ef">work_order_id:</span>          <span class="ev">#TM-0047</span></div>
+            <div><span class="ef">policy_version_id:</span>      <span class="ev">POL-v4.2</span></div>
+            <div><span class="ef">actor_type:</span>             <span class="ev">vendor</span></div>
+            <div><span class="ef">actor_id:</span>               <span class="ev">apex-electrical-001</span></div>
+            <div><span class="ef">confirmation_method:</span>    <span class="ev">vendor_portal_passkey</span></div>
+            <div><span class="ef">vendor_signed_at:</span>       <span class="ev">2026-03-24T14:32:07Z</span></div>
+            <div><span class="ef">prior_event_id:</span>         <span class="ev">#PE-0014 (viewed transition)</span></div>
+            <div><span class="ef">lineage_hash:</span>           <span class="eh">d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts done">Viewed</div><div class="ts active">Confirmed ★</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts active">Running policy…</div><div class="ts">Approved</div><div class="ts">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts active">Waiting</div><div class="ts">Export ready</div><div class="ts">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:5, label:'Policy clears', pivot:false,
+    who:'System — policy engine',
+    subtitle:'Seven conditions evaluated. All pass.',
+    render: () => `
+      <div class="label-row">Auto-approve evaluation — POL-v4.2</div>
+      <div class="check-grid">
+        <div class="check-row">Vendor confirmed via registered passkey channel <span class="chk chk-pass">Pass</span></div>
+        <div class="check-row">Signer identity verified — biometric assertion <span class="chk chk-pass">Pass</span></div>
+        <div class="check-row">Bank destination unchanged from enrolled token <span class="chk chk-pass">Pass — tok_9921 matches</span></div>
+        <div class="check-row">No duplicate invoice in 30-day window <span class="chk chk-pass">Pass</span></div>
+        <div class="check-row">Amount within tolerance and cost center budget <span class="chk chk-pass">Pass — $12,400 remaining</span></div>
+        <div class="check-row">No blocked-vendor flag on record <span class="chk chk-pass">Pass</span></div>
+        <div class="check-row">No mandatory approver missing for this amount <span class="chk chk-pass">Pass</span></div>
+      </div>
+      <div class="callout">All seven pass. Work Order auto-approves. Every condition is recorded as an immutable decision event — not just pass/fail, but the policy version pinned at evaluation time.</div>
+      <div class="label-row">Control decision event appended</div>
+      <div class="event-record">
+        <div><span class="ef">event_type:</span>       <span class="ev">proposed (sub_type: control_decision)</span></div>
+        <div><span class="ef">decision:</span>         <span class="ev">auto_approve</span></div>
+        <div><span class="ef">conditions:</span>       <span class="ev">7/7 passed</span></div>
+        <div><span class="ef">policy_version:</span>   <span class="ev">POL-v4.2</span></div>
+        <div><span class="ef">approved_by:</span>      <span class="ev">policy_engine</span></div>
+        <div><span class="ef">approved_at:</span>      <span class="ev">2026-03-24T14:32:09Z</span></div>
+        <div><span class="ef">lineage_hash:</span>     <span class="eh">e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4…</span></div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts done">Viewed</div><div class="ts done">Confirmed ★</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts done">Policy ran</div><div class="ts active">Approved</div><div class="ts">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts active">Waiting</div><div class="ts">Export ready</div><div class="ts">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:6, label:'GL assignment', pivot:false,
+    who:'AP analyst or agent',
+    subtitle:'Accounting dimensions assigned. Budget checked.',
+    render: () => `
+      <div class="callout amber">Full architecture step — not required for the prototype. Built after confirmation rate from steps 1–5 is measured and above 70%.</div>
+      <div class="two-col">
+        <div>
+          <div class="label-row">Dimension assignment</div>
+          <div class="card">
+            <div class="pb-row"><span class="pb-key">Debit account</span><span class="pb-val">6100 — AP liability</span></div>
+            <div class="pb-row"><span class="pb-key">Credit account</span><span class="pb-val">1000 — Cash / operating</span></div>
+            <div class="pb-row"><span class="pb-key">Cost center</span><span class="pb-val">CC-042 — Facilities</span></div>
+            <div class="pb-row"><span class="pb-key">Legal entity</span><span class="pb-val">BrightPath Holdings LLC</span></div>
+            <div class="pb-row"><span class="pb-key">Project code</span><span class="pb-val">PRJ-882 — Phase 2 retrofit</span></div>
+            <div class="pb-row"><span class="pb-key">Assigned by</span><span class="pb-val">J. Harmon, Controller</span></div>
+            <div class="pb-row"><span class="pb-key">Assigned at</span><span class="pb-val">2026-03-24T15:01:44Z</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="label-row">Budget check — CC-042 Facilities</div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="pb-row"><span class="pb-key">Monthly budget</span><span class="pb-val">$85,000</span></div>
+            <div class="pb-row"><span class="pb-key">Committed to date</span><span class="pb-val">$61,400</span></div>
+            <div class="pb-row"><span class="pb-key">This invoice</span><span class="pb-val">$47,200</span></div>
+            <div class="pb-row"><span class="pb-key">Remaining after</span><span class="pb-val" style="color:#A32D2D">-$23,600 — over budget</span></div>
+            <div class="pb-row"><span class="pb-key">Override</span><span class="pb-val">Required — dual approval</span></div>
+          </div>
+          <div class="callout amber">Budget breach opens a Case. Controller approves with documented reason. The override reason is an immutable event — the breach is on record permanently.</div>
+        </div>
+      </div>
+      <div class="label-row">Decision recorded in Work Order decision log</div>
+      <div class="event-record" style="font-size:10px">
+        <div><span class="ef">decision_type:</span>   <span class="ev">gl_assignment + budget_override</span></div>
+        <div><span class="ef">debit_account:</span>   <span class="ev">6100</span></div>
+        <div><span class="ef">cost_center:</span>     <span class="ev">CC-042</span></div>
+        <div><span class="ef">budget_position:</span> <span class="ev">$23,600 over — recorded at time of check</span></div>
+        <div><span class="ef">override_reason:</span> <span class="ev">emergency_retrofit_pre_approved_by_board</span></div>
+        <div><span class="ef">override_approver:</span><span class="ev">S. Chen, CFO · 2026-03-24T15:44:00Z</span></div>
+      </div>
+    `
+  },
+  {
+    id:7, label:'Posting generated', pivot:false,
+    who:'System',
+    subtitle:'Non-nullable FK enforced. Lineage inherited.',
+    render: () => `
+      <div class="callout">The Posting is generated as the derived output of the completed Work Order. It is not entered — it is computed. The non-nullable FK to the Bilateral Event is enforced at schema level. No Posting can exist without a Bilateral Event.</div>
+      <div class="label-row">Posting record — #PS-0089</div>
+      <div class="posting-block">
+        <div class="pb-row"><span class="pb-key">posting_id</span><span class="pb-val">#PS-0089</span></div>
+        <div class="pb-row"><span class="pb-key">cast_reference</span><span class="pb-val">#CAST-2026-0042371</span></div>
+        <div class="pb-row"><span class="pb-key">work_order_id</span><span class="pb-val">#TM-0047</span></div>
+        <div class="pb-row"><span class="pb-key">bilateral_event_id</span><span class="pb-val" style="color:#0F6E56">#BE-0039 — NON-NULLABLE</span></div>
+        <div class="pb-row"><span class="pb-key">policy_version_id</span><span class="pb-val">POL-v4.2</span></div>
+        <div class="pb-row"><span class="pb-key">debit_account</span><span class="pb-val">6100 — AP liability</span></div>
+        <div class="pb-row"><span class="pb-key">credit_account</span><span class="pb-val">1000 — Cash</span></div>
+        <div class="pb-row"><span class="pb-key">amount</span><span class="pb-val">$47,200.00 USD</span></div>
+        <div class="pb-row"><span class="pb-key">accounting_dims</span><span class="pb-val">CC-042 · PRJ-882 · BrightPath Holdings LLC</span></div>
+        <div class="pb-row"><span class="pb-key">lineage_hash</span><span class="pb-hash">d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9… (inherited from bilateral event)</span></div>
+        <div class="pb-row"><span class="pb-key">erp_export_status</span><span class="pb-val">pending</span></div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts done">Viewed</div><div class="ts done">Confirmed ★</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts done">Policy ran</div><div class="ts done">Approved</div><div class="ts">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts done">Waiting</div><div class="ts active">Awaiting export</div><div class="ts">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:8, label:'ERP export', pivot:false,
+    who:'Controller → NetSuite',
+    subtitle:'Hash stored in ERP. Reconciliation begins.',
+    render: () => `
+      <div class="two-col">
+        <div>
+          <div class="label-row">Controller export — NetSuite SuiteScript</div>
+          <div class="card" style="margin-bottom:10px">
+            <div class="pb-row"><span class="pb-key">Journal entry</span><span class="pb-val">Debit 6100 / Credit 1000</span></div>
+            <div class="pb-row"><span class="pb-key">Amount</span><span class="pb-val">$47,200.00</span></div>
+            <div class="pb-row"><span class="pb-key">Memo field</span><span class="pb-val">CAST #CAST-2026-0042371 | BE #BE-0039</span></div>
+            <div class="pb-row"><span class="pb-key">CAST hash stored</span><span class="pb-val" style="color:#0F6E56">Yes — confirmed by ERP</span></div>
+            <div class="pb-row"><span class="pb-key">NetSuite ref</span><span class="pb-val">JE-2026-004821</span></div>
+            <div class="pb-row"><span class="pb-key">Exported by</span><span class="pb-val">J. Harmon · 2026-03-24T16:00:00Z</span></div>
+          </div>
+          <div class="callout">ERP stores the CAST lineage hash alongside the journal entry. A reconciliation job runs in 24 hours. Any divergence opens a Case automatically.</div>
+        </div>
+        <div>
+          <div class="label-row">What travels with the payment — forever</div>
+          <div class="card">
+            <div class="who-row"><span class="who-badge badge-system">CAST ref</span>#CAST-2026-0042371</div>
+            <div class="who-row"><span class="who-badge badge-system">Bilateral event</span>#BE-0039 · vendor confirmed via passkey</div>
+            <div class="who-row"><span class="who-badge badge-policy">Policy</span>POL-v4.2 · 7/7 conditions passed</div>
+            <div class="who-row"><span class="who-badge badge-buyer">GL dims</span>6100 · CC-042 · PRJ-882</div>
+            <div class="who-row"><span class="who-badge badge-system">Lineage hash</span>d4e5f6a7… INTACT</div>
+          </div>
+          <div style="margin-top:10px" class="callout amber">If the ERP entry is modified after export, the hash breaks and a Case opens. The modification is detectable and documented.</div>
+        </div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts done">Viewed</div><div class="ts done">Confirmed ★</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts done">Policy ran</div><div class="ts done">Approved</div><div class="ts done">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts done">Waiting</div><div class="ts done">Awaiting export</div><div class="ts active">Initiated</div><div class="ts">Closed</div></div></div>
+      </div>
+    `
+  },
+  {
+    id:9, label:'Payment settles', pivot:false,
+    who:'Modern Treasury → System',
+    subtitle:'Webhooks advance settlement track to closed.',
+    render: () => `
+      <div class="label-row">Settlement track — webhook events</div>
+      <div class="timeline-line">
+        <div class="tl-item done"><div class="tl-title">Payment created — Modern Treasury</div>Mar 24 16:05 · Status: pending · Event appended</div>
+        <div class="tl-item done"><div class="tl-title">Payment initiated — ACH instruction sent</div>Mar 27 08:00 · settlement_state → payment_initiated · Event appended</div>
+        <div class="tl-item done"><div class="tl-title">Payment settled — funds received by Apex</div>Mar 28 14:32 · settlement_state → settled · Event appended</div>
+        <div class="tl-item done"><div class="tl-title">ERP confirms posted</div>Mar 28 16:00 · settlement_state → posted · hash reconciliation: INTACT</div>
+        <div class="tl-item done"><div class="tl-title">Work Order closed</div>Mar 28 16:01 · settlement_state → closed · All three tracks complete</div>
+      </div>
+      <div class="state-tracks">
+        <div class="track-row"><div class="track-name">Bilateral</div><div class="track-steps"><div class="ts done">Draft</div><div class="ts done">Sent</div><div class="ts done">Viewed</div><div class="ts done">Confirmed ★</div></div></div>
+        <div class="track-row"><div class="track-name">Control</div><div class="track-steps"><div class="ts done">Policy ran</div><div class="ts done">Approved</div><div class="ts done">Exported</div></div></div>
+        <div class="track-row"><div class="track-name">Settlement</div><div class="track-steps"><div class="ts done">Waiting</div><div class="ts done">Exported</div><div class="ts done">Initiated</div><div class="ts done">Closed</div></div></div>
+      </div>
+      <div class="callout">All three tracks complete. Work Order closed. Nine events in the log. Every state transition recorded. Hash chain intact throughout.</div>
+    `
+  },
+  {
+    id:10, label:'Audit view', pivot:false,
+    who:'Auditor or lender',
+    subtitle:'One query. Complete chain. No reconstruction.',
+    render: () => `
+      <div class="callout">This is what the auditor sees when they pull CAST reference #CAST-2026-0042371. Nine rows. Every actor. Every timestamp. Every hash. No email thread. No PDF archaeology. The event stream is the proof.</div>
+      <div class="label-row">Complete event chain — #TM-0047</div>
+      <div class="timeline-line">
+        <div class="tl-item done"><div class="tl-title">#PE-0014 · Proposed Event</div>Invoice ingested · triggers evaluated · POL-v4.2 pinned · hash: a1b2c3…</div>
+        <div class="tl-item done"><div class="tl-title">State transition · bilateral sent</div>Trade Message delivered via SMS · 2026-03-12T08:00Z</div>
+        <div class="tl-item done"><div class="tl-title">State transition · bilateral viewed</div>Vendor portal opened · 2026-03-12T09:14Z</div>
+        <div class="tl-item pivot"><div class="tl-title">#BE-0039 · Bilateral Event ★ — THE PROOF</div>vendor_portal_passkey · Apex Electrical · 2026-03-24T14:32:07Z · hash: d4e5f6…</div>
+        <div class="tl-item done"><div class="tl-title">Control decision · auto_approve</div>7/7 conditions passed · policy_engine · POL-v4.2 · hash: e5f6a7…</div>
+        <div class="tl-item done"><div class="tl-title">GL assignment + budget override</div>J. Harmon · CC-042 · 6100 · override: board_pre_approved · CFO signed · hash: f6a7b8…</div>
+        <div class="tl-item done"><div class="tl-title">Settlement exported · JE-2026-004821</div>NetSuite · hash stored and confirmed · 2026-03-24T16:00Z</div>
+        <div class="tl-item done"><div class="tl-title">Payment settled · ACH confirmed</div>Apex Electrical received $47,200 · 2026-03-28T14:32Z</div>
+        <div class="tl-item done"><div class="tl-title">Work Order closed · hash verified INTACT</div>2026-03-28T16:01Z · all three tracks closed</div>
+      </div>
+      <div class="label-row">What downstream parties verify without reconstruction</div>
+      <div class="card">
+        <div class="who-row"><span class="who-badge badge-system">Auditor</span>Both parties confirmed identical terms before payment moved — cryptographic proof, not assertion</div>
+        <div class="who-row"><span class="who-badge badge-system">Auditor</span>Policy version governing authorization — pinned, immutable, cannot have been changed retroactively</div>
+        <div class="who-row"><span class="who-badge badge-system">Lender</span>Every invoice in this portfolio has a bilateral confirmation on record — advance rate justified</div>
+        <div class="who-row"><span class="who-badge badge-system">Insurer</span>Payment fraud structurally impossible for this transaction — vendor confirmed via passkey, hash intact</div>
+        <div class="who-row"><span class="who-badge badge-buyer">Controller</span>Budget override documented, dual-approved, immutable — QoE examiner sees the same record</div>
+      </div>
+    `
+  }
+];
+
+let current = 0;
+
+function renderProgress() {
+  const bar = document.getElementById('progress-bar');
+  bar.innerHTML = STEPS.map((s,i) => `
+    <div class="step-pip ${i===current?'active':''} ${i<current?'done':''} ${s.pivot?'pivot':''}"
+         onclick="goTo(${i})">
+      <div class="pip-num">${i===current&&s.pivot?'★':s.id}</div>
+      <div class="pip-label">${s.label}</div>
+    </div>
+  `).join('');
+}
+
+function renderStep() {
+  const s = STEPS[current];
+  const isPivot = s.pivot;
+  document.getElementById('step-content').innerHTML = `
+    <div class="step-header ${isPivot?'pivot-header':''}">
+      <div class="step-num-lg">${isPivot?'★':s.id}</div>
+      <div style="flex:1">
+        <div class="step-title">${s.label}</div>
+        <div class="step-subtitle">${s.subtitle}</div>
+      </div>
+      <div style="flex-shrink:0;font-size:11px;padding:3px 8px;border-radius:20px;${isPivot?'background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7)':'background:#f4f4f0;color:#888'}">
+        ${s.who}
+      </div>
+      ${isPivot?'<div class="pivot-tag">Architectural pivot</div>':''}
+    </div>
+    ${s.render()}
+    <div class="nav-btns">
+      <button class="nav-btn" onclick="goTo(${current-1})" ${current===0?'disabled':''}>← Previous</button>
+      <span class="step-counter">Step ${current+1} of ${STEPS.length}</span>
+      <button class="nav-btn primary" onclick="goTo(${current+1})" ${current===STEPS.length-1?'disabled':''}>Next →</button>
+    </div>
+  `;
+}
+
+function goTo(i) {
+  if(i<0||i>=STEPS.length) return;
+  current = i;
+  renderProgress();
+  renderStep();
+}
+
+renderProgress();
+renderStep();
+</script>
+</body>
+</html>

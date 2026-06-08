@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAST Layer 0 — Bilateral Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:            #0d0d0d;
+    --ink-2:          #2a2a28;
+    --paper:          #f5f1e8;
+    --paper-2:        #ede8da;
+    --paper-3:        #e1dbc9;
+    --rule:           #1a1a18;
+    --rule-soft:      #b8b09a;
+    --mute:           #6b6557;
+    --stamp:          #a8301a;        /* vermilion — the signed/verified state */
+    --stamp-ink:      #7a1f10;
+    --stamp-soft:     #e8d4ce;
+    --ok:             #3d5a3a;
+    --mono:           'JetBrains Mono', ui-monospace, monospace;
+    --serif:          'Fraunces', 'Times New Roman', serif;
+    --sans:           'Inter Tight', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 15px;
+    background-image:
+      radial-gradient(rgba(13,13,13,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--rule);
+    padding: 28px 48px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+  .masthead .wordmark {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .masthead .wordmark em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .masthead .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-2);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .masthead .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .masthead .meta div + div { margin-top: 2px; }
+
+  /* ---------- Sub-rule ---------- */
+  .sub-rule {
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 48px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+  }
+
+  /* ---------- Overview strip ---------- */
+  .overview {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 56px;
+  }
+  .overview .lede {
+    font-family: var(--serif);
+    font-size: 28px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .overview .lede .drop {
+    font-size: 64px;
+    line-height: 0.8;
+    float: left;
+    margin: 6px 10px 0 0;
+    font-weight: 700;
+  }
+  .overview .deck {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .overview .deck strong { color: var(--ink); }
+
+  /* ---------- Scene structure ---------- */
+  .scene {
+    padding: 48px 48px 56px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 120px 1fr 300px;
+    gap: 32px;
+  }
+  .scene-number {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.85;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+  .scene-number span {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-top: 8px;
+  }
+  .scene-title {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  .scene-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .scene-sub {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 24px;
+    max-width: 56ch;
+  }
+
+  /* ---------- Dev annotation panel ---------- */
+  .dev-panel {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.55;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 14px 16px;
+    align-self: start;
+  }
+  .dev-panel h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .dev-panel dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+  }
+  .dev-panel dt {
+    color: var(--mute);
+    text-transform: uppercase;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    padding-top: 2px;
+  }
+  .dev-panel dd {
+    margin: 0;
+    color: var(--ink);
+    word-break: break-word;
+  }
+  .dev-panel code {
+    background: var(--paper-3);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  .dev-panel .writes {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--rule-soft);
+  }
+  .dev-panel .writes span {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 2px 6px;
+    margin: 2px 3px 2px 0;
+    font-size: 9.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ---------- Document (the PO / confirmation / ledger card) ---------- */
+  .doc {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    padding: 28px 32px 24px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .doc-header .kicker {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .doc-header .id {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .doc-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: var(--mute);
+    margin: 0 0 20px;
+  }
+
+  .party-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 18px 0;
+  }
+  .party {
+    border-left: 2px solid var(--rule);
+    padding-left: 12px;
+  }
+  .party .label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--mute);
+    margin-bottom: 2px;
+  }
+  .party .name {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .party .agent {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 2px;
+  }
+
+  .line-items {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 12px 0;
+    margin: 16px 0;
+  }
+  .line-items table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .line-items th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    padding: 4px 0 8px;
+  }
+  .line-items td {
+    padding: 5px 0;
+    border-top: 1px dotted var(--rule-soft);
+  }
+  .line-items td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+  }
+  .total-row .lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--mute);
+  }
+  .total-row .val {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .terms {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    font-style: italic;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--rule-soft);
+    margin-top: 12px;
+  }
+
+  /* ---------- Hash strip ---------- */
+  .hash-strip {
+    margin-top: 20px;
+    padding: 10px 12px;
+    background: var(--paper-3);
+    border: 1px dashed var(--rule);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .hash-strip .hash-label {
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 9.5px;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .hash-strip .hash-val {
+    word-break: break-all;
+    color: var(--ink);
+  }
+
+  /* ---------- Status pills ---------- */
+  .status-bar {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .pill.awaiting {
+    color: var(--mute);
+  }
+  .pill.signed {
+    background: var(--stamp);
+    color: var(--paper);
+    border-color: var(--stamp-ink);
+  }
+  .pill.posted {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ---------- Confirmation (Scene 2) ---------- */
+  .confirm-doc { background: #fbf8ee; }
+
+  .review-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 24px;
+    font-size: 13px;
+    margin: 18px 0 22px;
+  }
+  .review-grid .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    padding-bottom: 2px;
+  }
+  .review-grid .val {
+    font-family: var(--serif);
+    font-size: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px dotted var(--rule-soft);
+  }
+  .review-grid .val.num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .challenge-box {
+    margin: 22px 0;
+    padding: 16px;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--stamp);
+  }
+  .challenge-box .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--stamp-ink);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .challenge-box .hash {
+    font-family: var(--mono);
+    font-size: 12px;
+    word-break: break-all;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .challenge-box .caption {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--mute);
+    margin-top: 8px;
+  }
+
+  .sign-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 18px;
+    margin-top: 18px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .sign-button:hover { background: var(--stamp); }
+  .sign-button .key-icon {
+    width: 18px;
+    height: 18px;
+    stroke: var(--paper);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  /* ---------- Ledger (Scene 3) ---------- */
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 13px;
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+  }
+  .ledger-table thead {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .ledger-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+  .ledger-table th.num { text-align: right; }
+  .ledger-table td {
+    padding: 12px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--mono);
+    font-size: 12px;
+    vertical-align: top;
+  }
+  .ledger-table td.account {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 13.5px;
+  }
+  .ledger-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+  }
+  .ledger-table td .evt-ref {
+    display: block;
+    color: var(--mute);
+    font-size: 10.5px;
+    margin-top: 3px;
+  }
+
+  /* ---------- Chain-of-evidence panel ---------- */
+  .chain {
+    margin-top: 28px;
+    padding: 20px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+  }
+  .chain-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .chain-deck {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--mute);
+    margin: 0 0 18px;
+    max-width: 60ch;
+  }
+  .chain-links {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    position: relative;
+  }
+  .link {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    padding: 12px 10px;
+    position: relative;
+  }
+  .link .num {
+    font-family: var(--serif);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--stamp);
+    margin-bottom: 4px;
+  }
+  .link .name {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .link .desc {
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .link + .link::before {
+    content: '→';
+    position: absolute;
+    left: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--mute);
+  }
+
+  /* ---------- Footer ---------- */
+  .colophon {
+    padding: 36px 48px 48px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: flex;
+    justify-content: space-between;
+    border-top: 2px solid var(--rule);
+  }
+
+  /* ---------- Responsive (narrower) ---------- */
+  @media (max-width: 1100px) {
+    .scene { grid-template-columns: 80px 1fr; }
+    .scene-number { font-size: 72px; }
+    .dev-panel { grid-column: 1 / -1; margin-top: 20px; }
+    .overview { grid-template-columns: 1fr; gap: 24px; }
+    .chain-links { grid-template-columns: 1fr 1fr; }
+    .link + .link::before { display: none; }
+  }
+  @media (max-width: 680px) {
+    .masthead, .sub-rule, .overview, .scene, .colophon { padding-left: 20px; padding-right: 20px; }
+    .scene { grid-template-columns: 1fr; gap: 16px; }
+    .scene-number { font-size: 56px; }
+    .party-grid, .review-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ============================================================== -->
+  <!-- MASTHEAD                                                         -->
+  <!-- ============================================================== -->
+  <header class="masthead">
+    <div class="wordmark">CAST<em>·L0</em></div>
+    <div class="tagline">The bilateral event loop, rendered as a document.</div>
+    <div class="meta">
+      <div>Build Spec · Rev. 04</div>
+      <div>April 2026</div>
+    </div>
+  </header>
+
+  <div class="sub-rule">
+    <span>Internal Agent → Counterparty → Ledger</span>
+    <span>Three scenes · One signed chain</span>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- OVERVIEW                                                         -->
+  <!-- ============================================================== -->
+  <section class="overview">
+    <p class="lede">
+      <span class="drop">A</span>bilateral event is a fact two parties cryptographically agree to. This document walks the full loop — issue, confirm, post — as a demo customer will see it, annotated for the developers building it.
+    </p>
+    <div class="deck">
+      <p><strong>What the customer sees</strong> is a work order, a confirmation page, and a ledger entry — three ordinary screens. <strong>What the schema guarantees</strong> is that no ledger entry exists without a counterparty signature over the exact bytes of the work order. The cryptographic chain is the product; the screens are its packaging.</p>
+      <p>Each scene below corresponds to one endpoint and writes to specific tables. Non-negotiables 1–5 are enforced at the database layer, not by the screens.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- SCENE 1 — Issue                                                  -->
+  <!-- ============================================================== -->
+  <section class="scene">
+    <div class="scene-number">
+      01
+      <span>Scene · Internal</span>
+    </div>
+
+    <div>
+      <h2 class="scene-title">A work order is issued <em>— unsigned, awaiting the other side.</em></h2>
+      <p class="scene-sub">An internal operator drafts a purchase order against a registered counterparty. The payload is canonicalized and hashed the moment it is issued. Nothing posts yet.</p>
+
+      <!-- The PO document -->
+      <div class="doc">
+        <div class="doc-header">
+          <div class="kicker">Purchase Order</div>
+          <div class="id">PO-2026-0142</div>
+        </div>
+
+        <h3 class="doc-title">Supply agreement — spring production run</h3>
+        <p class="doc-subtitle">Issued 20 April 2026 · Net-30 terms · USD</p>
+
+        <div class="party-grid">
+          <div class="party">
+            <div class="label">Issuer</div>
+            <div class="name">Acme Apparel Co.</div>
+            <div class="agent">agt_cea5831f9712 · internal</div>
+          </div>
+          <div class="party">
+            <div class="label">Counterparty</div>
+            <div class="name">Riverdale Textiles Ltd.</div>
+            <div class="agent">agt_2815bf2d3c4e · counterparty</div>
+          </div>
+        </div>
+
+        <div class="line-items">
+          <table>
+            <thead>
+              <tr>
+                <th>Line</th>
+                <th>Description</th>
+                <th class="num">Qty</th>
+                <th class="num">Unit</th>
+                <th class="num">Ext</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>01</td>
+                <td>Organic cotton jersey, 180gsm, natural</td>
+                <td class="num">5,000 yd</td>
+                <td class="num">$6.40</td>
+                <td class="num">$32,000</td>
+              </tr>
+              <tr>
+                <td>02</td>
+                <td>Heavyweight French terry, 320gsm, black</td>
+                <td class="num">1,500 yd</td>
+                <td class="num">$10.00</td>
+                <td class="num">$15,000</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="total-row">
+          <span class="lbl">Total obligation</span>
+          <span class="val">$47,000.00</span>
+        </div>
+
+        <p class="terms">Delivery by 15 June 2026. Payment net-30 from invoice. Inspection window of 5 business days. Governed by Master Supply Agreement dated 2024-03-11.</p>
+
+        <div class="hash-strip">
+          <span class="hash-label">payload_hash (v1)</span>
+          <span class="hash-val">0xa7c3e9f24b81d6a0f5e7c29b4d18a6f3e0c7b5d2a4f9e1c8b6d3a5f7e9c1b4d8</span>
+        </div>
+
+        <div class="status-bar">
+          <span class="pill awaiting">○ Awaiting counterparty signature</span>
+          <span class="pill">payload_version: 1</span>
+          <span class="pill">event_id: pending</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="dev-panel">
+      <h4>Dev · Scene 01</h4>
+      <dl>
+        <dt>Route</dt><dd><code>POST /work-orders</code></dd>
+        <dt>Page</dt><dd><code>/work-orders/:id</code></dd>
+        <dt>Input</dt><dd>payload JSON, issuer agent_id, counterparty agent_id</dd>
+        <dt>Action</dt><dd>canonicalize → hash → store draft + confirmation token</dd>
+        <dt>Delivery</dt><dd>v1: console.log URL. v2: email.</dd>
+      </dl>
+      <div class="writes">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Writes to</div>
+        <span>work_orders</span>
+      </div>
+      <div class="writes" style="padding-top:8px;border-top:1px dashed var(--rule-soft);">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Does NOT write</div>
+        <span>events</span>
+        <span>postings</span>
+        <span style="background:var(--paper);color:var(--ink);border:1px solid var(--rule);">no sig → no event</span>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- SCENE 2 — Confirm                                                -->
+  <!-- ============================================================== -->
+  <section class="scene">
+    <div class="scene-number">
+      02
+      <span>Scene · Counterparty</span>
+    </div>
+
+    <div>
+      <h2 class="scene-title">The counterparty confirms <em>— the signature binds to exact bytes.</em></h2>
+      <p class="scene-sub">The counterparty opens the confirmation URL on their own device. They review the terms, then sign with their registered authenticator. The WebAuthn challenge <em>is</em> the payload hash — meaning the signature cannot be replayed against any other payload.</p>
+
+      <div class="doc confirm-doc">
+        <div class="doc-header">
+          <div class="kicker">Confirmation Requested</div>
+          <div class="id">token: cnf_8f3k9p</div>
+        </div>
+
+        <h3 class="doc-title">Please confirm this purchase order.</h3>
+        <p class="doc-subtitle">You are signing as <strong>Riverdale Textiles Ltd.</strong> · agt_2815bf2d3c4e</p>
+
+        <div class="review-grid">
+          <div>
+            <div class="lbl">PO number</div>
+            <div class="val">PO-2026-0142</div>
+          </div>
+          <div>
+            <div class="lbl">From</div>
+            <div class="val">Acme Apparel Co.</div>
+          </div>
+          <div>
+            <div class="lbl">Total obligation</div>
+            <div class="val num">$47,000.00</div>
+          </div>
+          <div>
+            <div class="lbl">Terms</div>
+            <div class="val">Net-30</div>
+          </div>
+          <div>
+            <div class="lbl">Delivery</div>
+            <div class="val">15 June 2026</div>
+          </div>
+          <div>
+            <div class="lbl">Inspection</div>
+            <div class="val">5 business days</div>
+          </div>
+        </div>
+
+        <div class="challenge-box">
+          <div class="label">You will sign this exact hash</div>
+          <div class="hash">0xa7c3e9f24b81d6a0f5e7c29b4d18a6f3e0c7b5d2a4f9e1c8b6d3a5f7e9c1b4d8</div>
+          <div class="caption">Your authenticator will produce a signature over these 32 bytes. Any alteration to any field above changes the hash and invalidates the signature.</div>
+        </div>
+
+        <button class="sign-button">
+          <svg class="key-icon" viewBox="0 0 24 24"><path d="M15 7a4 4 0 1 1-4 4M11 11l-7 7v4h4v-2h2v-2h2l1-1" /></svg>
+          Sign with your authenticator
+        </button>
+
+        <div class="status-bar" style="margin-top:14px;">
+          <span class="pill awaiting">○ User verification: required</span>
+          <span class="pill awaiting">○ Attestation: direct</span>
+          <span class="pill awaiting">○ Algorithm: ES256 / RS256</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="dev-panel">
+      <h4>Dev · Scene 02</h4>
+      <dl>
+        <dt>Begin</dt><dd><code>POST /confirm/:token/begin</code></dd>
+        <dt>Finish</dt><dd><code>POST /confirm/:token/finish</code></dd>
+        <dt>Challenge</dt><dd>= payload_hash (not random!)</dd>
+        <dt>Verify</dt><dd>@simplewebauthn/server · UV required</dd>
+        <dt>Atomic</dt><dd>single txn writes event + signature, marks token consumed</dd>
+      </dl>
+      <div class="writes">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Writes (one txn)</div>
+        <span>events</span>
+        <span>event_signatures</span>
+      </div>
+      <div class="writes" style="padding-top:8px;border-top:1px dashed var(--rule-soft);">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Guards (NN5)</div>
+        <span>reject fmt='none'</span>
+        <span>reject UV=false</span>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- SCENE 3 — Post                                                   -->
+  <!-- ============================================================== -->
+  <section class="scene">
+    <div class="scene-number">
+      03
+      <span>Scene · Ledger</span>
+    </div>
+
+    <div>
+      <h2 class="scene-title">The ledger posts <em>— and only now.</em></h2>
+      <p class="scene-sub">Once the signature row exists, and only then, the DB trigger permits a posting. Two ledger entries appear — a debit to inventory and a credit to the vendor payable — both foreign-keyed to the same signed event. The chain of evidence is complete.</p>
+
+      <div class="doc">
+        <div class="doc-header">
+          <div class="kicker">Ledger · General Journal</div>
+          <div class="id">evt_f4a1c7e2b9d3</div>
+        </div>
+
+        <h3 class="doc-title">Posting · PO-2026-0142 accrued</h3>
+        <p class="doc-subtitle">Posted 20 April 2026 · Authorized by signed bilateral event</p>
+
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Dr / Cr</th>
+              <th>Account</th>
+              <th class="num">Debit</th>
+              <th class="num">Credit</th>
+              <th>Ref</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dr</td>
+              <td class="account">acme.inventory.raw_materials<span class="evt-ref">Organic cotton + French terry inbound</span></td>
+              <td class="num">$47,000.00</td>
+              <td class="num">—</td>
+              <td>evt_f4a1c7e2b9d3</td>
+            </tr>
+            <tr>
+              <td>Cr</td>
+              <td class="account">acme.vendor_payable.riverdale<span class="evt-ref">Net-30 obligation to Riverdale Textiles</span></td>
+              <td class="num">—</td>
+              <td class="num">$47,000.00</td>
+              <td>evt_f4a1c7e2b9d3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="status-bar" style="margin-top:18px;">
+          <span class="pill posted">● Posted · FK-gated</span>
+          <span class="pill signed">● Signed · 1 of 1</span>
+          <span class="pill">event_id: evt_f4a1c7e2b9d3</span>
+        </div>
+
+        <div class="hash-strip" style="margin-top:16px;">
+          <span class="hash-label">Signature (ES256)</span>
+          <span class="hash-val">0x3045022100e8b4f2a7c9d15e3b8a6f4c2d9e7b1a5f3c8d6e2a4b9f7c5d1e8a3b6f4c2d90220...</span>
+        </div>
+      </div>
+
+      <!-- Chain of evidence -->
+      <div class="chain">
+        <h3 class="chain-title">The chain, in five links.</h3>
+        <p class="chain-deck">What a 2031 auditor can verify from these rows alone — no access to Acme, Riverdale, or CAST required.</p>
+        <div class="chain-links">
+          <div class="link">
+            <div class="num">01</div>
+            <div class="name">Posting</div>
+            <div class="desc">FK references event. Trigger proves it couldn't exist otherwise.</div>
+          </div>
+          <div class="link">
+            <div class="num">02</div>
+            <div class="name">Event</div>
+            <div class="desc">Payload hash recomputable via pinned canonicalizer.</div>
+          </div>
+          <div class="link">
+            <div class="num">03</div>
+            <div class="name">Signature</div>
+            <div class="desc">Verifies against public_key, binds hash as challenge.</div>
+          </div>
+          <div class="link">
+            <div class="num">04</div>
+            <div class="name">Credential</div>
+            <div class="desc">Attestation object chains to manufacturer CA.</div>
+          </div>
+          <div class="link">
+            <div class="num">05</div>
+            <div class="name">Agent</div>
+            <div class="desc">Counterparty identity, immutable since creation.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="dev-panel">
+      <h4>Dev · Scene 03</h4>
+      <dl>
+        <dt>Trigger</dt><dd><code>postings_require_signed_event</code></dd>
+        <dt>Txn</dt><dd>same as Scene 02 — event + sig + postings in one commit</dd>
+        <dt>Invariant</dt><dd>NN2 + NN3 enforced at DB layer</dd>
+        <dt>Demo</dt><dd><code>GET /ledger/:event_id</code> renders this page</dd>
+      </dl>
+      <div class="writes">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Writes</div>
+        <span>postings (×2)</span>
+      </div>
+      <div class="writes" style="padding-top:8px;border-top:1px dashed var(--rule-soft);">
+        <div style="color:var(--mute);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Demo closes</div>
+        <span>Layer 0 exit criterion</span>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ============================================================== -->
+  <!-- COLOPHON                                                         -->
+  <!-- ============================================================== -->
+  <footer class="colophon">
+    <span>CAST Layer 0 · bilateral loop · mockup only</span>
+    <span>Sessions 4–6 build exactly this</span>
+  </footer>
+
+</body>
+</html>

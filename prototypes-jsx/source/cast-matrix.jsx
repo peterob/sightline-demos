@@ -1,0 +1,467 @@
+import { useState, useMemo } from "react";
+
+const CRITERIA = [
+  { id: "discrete_terms", label: "Discrete Machine-Readable Terms", short: "Terms", description: "Commitment has exact, structured fields: amount, date, account, conditions" },
+  { id: "identifiable_parties", label: "Identifiable Parties", short: "Identity", description: "Both parties are known and reachable before value transfers" },
+  { id: "verification_gap", label: "Verification Gap", short: "Gap", description: "Downstream markets price on unverified self-reporting today" },
+  { id: "downstream_market", label: "Downstream Market Depth", short: "Downstream", description: "Auditors, lenders, or insurers actively price on transaction quality" },
+  { id: "recurrence", label: "Recurring Relationships", short: "Recurrence", description: "Same counterparties transact repeatedly — proof history compounds" },
+  { id: "fraud_consequence", label: "Fraud / Error Consequence", short: "Consequence", description: "Material financial or legal consequence if transaction is wrong" },
+  { id: "agent_readiness", label: "Agentic Readiness", short: "Agentic", description: "Transaction pattern is automatable by AI agents with proof governance" },
+];
+
+const COMPANIES = [
+  {
+    name: "B2B Accounts Payable",
+    category: "Enterprise Finance",
+    tier: 1,
+    scores: { discrete_terms: 5, identifiable_parties: 5, verification_gap: 5, downstream_market: 5, recurrence: 5, fraud_consequence: 5, agent_readiness: 4 },
+    note: "Canonical case. Mid-market $10M–$500M is sweet spot.",
+  },
+  {
+    name: "Intercompany Transfers",
+    category: "Enterprise Finance",
+    tier: 1,
+    scores: { discrete_terms: 5, identifiable_parties: 5, verification_gap: 5, downstream_market: 5, recurrence: 5, fraud_consequence: 4, agent_readiness: 5 },
+    note: "No external vendor enrollment. Both parties inside corporate structure.",
+  },
+  {
+    name: "Supply Chain / PO Financing",
+    category: "Trade Finance",
+    tier: 1,
+    scores: { discrete_terms: 5, identifiable_parties: 4, verification_gap: 5, downstream_market: 5, recurrence: 4, fraud_consequence: 5, agent_readiness: 4 },
+    note: "$1.3T market running on unverified AR aging. Bilateral proof improves advance rates.",
+  },
+  {
+    name: "GPU / Metered Infra Billing",
+    category: "AI Infrastructure",
+    tier: 1,
+    scores: { discrete_terms: 4, identifiable_parties: 5, verification_gap: 5, downstream_market: 5, recurrence: 5, fraud_consequence: 4, agent_readiness: 5 },
+    note: "Instrumentation co-authorship. Lender needs verified utilization, not self-report.",
+  },
+  {
+    name: "Institutional Grant Management",
+    category: "Public Sector / Nonprofit",
+    tier: 2,
+    scores: { discrete_terms: 3, identifiable_parties: 5, verification_gap: 5, downstream_market: 4, recurrence: 3, fraud_consequence: 5, agent_readiness: 3 },
+    note: "Milestone verification requires judgment or external oracle. Strong audit demand.",
+  },
+  {
+    name: "Real Estate Escrow / Earnest Money",
+    category: "Real Estate",
+    tier: 2,
+    scores: { discrete_terms: 5, identifiable_parties: 4, verification_gap: 4, downstream_market: 4, recurrence: 2, fraud_consequence: 5, agent_readiness: 3 },
+    note: "Jurisdictional legal wrappers required. CAST as authorization layer, not legal instrument.",
+  },
+  {
+    name: "Parametric Insurance Settlement",
+    category: "Insurance",
+    tier: 2,
+    scores: { discrete_terms: 4, identifiable_parties: 4, verification_gap: 4, downstream_market: 5, recurrence: 3, fraud_consequence: 4, agent_readiness: 5 },
+    note: "Fit improves dramatically as parametric triggers replace claims assessment.",
+  },
+  {
+    name: "Professional Services Milestones",
+    category: "Services",
+    tier: 2,
+    scores: { discrete_terms: 3, identifiable_parties: 5, verification_gap: 3, downstream_market: 3, recurrence: 4, fraud_consequence: 3, agent_readiness: 3 },
+    note: "Deliverable subjectivity limits fit. Improves with machine-readable milestone specs.",
+  },
+  {
+    name: "Royalty & Revenue Share",
+    category: "Media / Licensing",
+    tier: 2,
+    scores: { discrete_terms: 3, identifiable_parties: 4, verification_gap: 4, downstream_market: 3, recurrence: 5, fraud_consequence: 3, agent_readiness: 4 },
+    note: "Depends on whether underlying metric is machine-readable. Streaming yes; franchise no.",
+  },
+  {
+    name: "Government Procurement",
+    category: "Public Sector",
+    tier: 3,
+    scores: { discrete_terms: 3, identifiable_parties: 4, verification_gap: 5, downstream_market: 4, recurrence: 3, fraud_consequence: 4, agent_readiness: 2 },
+    note: "Strong audit need but procurement law complexity and sales cycle are major blockers.",
+  },
+  {
+    name: "Commodity Trading Settlement",
+    category: "Capital Markets",
+    tier: 3,
+    scores: { discrete_terms: 5, identifiable_parties: 4, verification_gap: 3, downstream_market: 4, recurrence: 5, fraud_consequence: 4, agent_readiness: 3 },
+    note: "Entrenched clearing infrastructure. CAST as proof layer on top, not replacement.",
+  },
+  {
+    name: "Consumer High-Value Transactions",
+    category: "Consumer",
+    tier: 3,
+    scores: { discrete_terms: 4, identifiable_parties: 3, verification_gap: 2, downstream_market: 2, recurrence: 1, fraud_consequence: 4, agent_readiness: 2 },
+    note: "No downstream audit/lending market at consumer level. Auto and real estate exception.",
+  },
+  {
+    name: "Micropayments / API Billing",
+    category: "Developer / API",
+    tier: 3,
+    scores: { discrete_terms: 5, identifiable_parties: 4, verification_gap: 2, downstream_market: 2, recurrence: 5, fraud_consequence: 1, agent_readiness: 4 },
+    note: "Bilateral gate overhead exceeds transaction value. Wrong architecture for this pattern.",
+  },
+];
+
+const CATEGORIES = ["All", ...Array.from(new Set(COMPANIES.map(c => c.category)))];
+const TIERS = ["All", "1", "2", "3"];
+
+const TIER_LABELS = { 1: "Best Fit", 2: "Good Fit", 3: "Partial Fit" };
+const TIER_COLORS = {
+  1: { bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.5)", dot: "#10b981", text: "#10b981" },
+  2: { bg: "rgba(245,158,11,0.10)", border: "rgba(245,158,11,0.4)", dot: "#f59e0b", text: "#f59e0b" },
+  3: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.35)", dot: "#ef4444", text: "#ef4444" },
+};
+
+const WEIGHTS = Object.fromEntries(CRITERIA.map(c => [c.id, 1]));
+
+function ScoreDot({ score }) {
+  const filled = Math.round(score);
+  return (
+    <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+      {[1,2,3,4,5].map(i => (
+        <div key={i} style={{
+          width: 7, height: 7, borderRadius: "50%",
+          background: i <= filled ? "#e2c97e" : "rgba(226,201,126,0.18)",
+          transition: "background 0.2s",
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function WeightedScore(scores, weights) {
+  const total = CRITERIA.reduce((sum, c) => sum + scores[c.id] * (weights[c.id] || 1), 0);
+  const max = CRITERIA.reduce((sum, c) => sum + 5 * (weights[c.id] || 1), 0);
+  return Math.round((total / max) * 100);
+}
+
+export default function CastMatrix() {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedTier, setSelectedTier] = useState("All");
+  const [weights, setWeights] = useState(WEIGHTS);
+  const [sortBy, setSortBy] = useState("score");
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const [showWeights, setShowWeights] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+
+  const filtered = useMemo(() => {
+    let list = COMPANIES.filter(c => {
+      if (selectedCategory !== "All" && c.category !== selectedCategory) return false;
+      if (selectedTier !== "All" && String(c.tier) !== selectedTier) return false;
+      return true;
+    });
+    if (sortBy === "score") list = [...list].sort((a, b) => WeightedScore(b.scores, weights) - WeightedScore(a.scores, weights));
+    if (sortBy === "tier") list = [...list].sort((a, b) => a.tier - b.tier);
+    if (sortBy === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+    return list;
+  }, [selectedCategory, selectedTier, weights, sortBy]);
+
+  const selected = selectedCompany ? COMPANIES.find(c => c.name === selectedCompany) : null;
+
+  return (
+    <div style={{
+      fontFamily: "'DM Mono', 'Fira Mono', 'Courier New', monospace",
+      background: "#0d0f14",
+      minHeight: "100vh",
+      color: "#c9cdd6",
+      padding: "0",
+    }}>
+      {/* Header */}
+      <div style={{
+        borderBottom: "1px solid rgba(226,201,126,0.15)",
+        padding: "32px 40px 24px",
+        background: "linear-gradient(180deg, rgba(226,201,126,0.04) 0%, transparent 100%)",
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, letterSpacing: "0.25em", color: "#e2c97e", marginBottom: 8, textTransform: "uppercase" }}>
+              CAST · Opportunity Scoring Matrix
+            </div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#f0ead6", letterSpacing: "-0.02em" }}>
+              Verification Gap Analysis
+            </h1>
+            <p style={{ margin: "6px 0 0", fontSize: 12, color: "#6b7280", maxWidth: 520, lineHeight: 1.6 }}>
+              Weighted scoring across four CAST fit criteria. Adjust weights to model your priority.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 16 }}>
+            {Object.entries(TIER_LABELS).map(([tier, label]) => (
+              <div key={tier} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: TIER_COLORS[tier].dot }} />
+                <span style={{ fontSize: 11, color: "#6b7280" }}>T{tier} · {label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "24px 40px", display: "flex", gap: 24, flexWrap: "wrap" }}>
+        {/* Left: controls + table */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Controls */}
+          <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setSelectedCategory(cat)} style={{
+                  padding: "5px 12px", borderRadius: 4, border: "1px solid",
+                  borderColor: selectedCategory === cat ? "#e2c97e" : "rgba(255,255,255,0.08)",
+                  background: selectedCategory === cat ? "rgba(226,201,126,0.1)" : "transparent",
+                  color: selectedCategory === cat ? "#e2c97e" : "#6b7280",
+                  fontSize: 11, cursor: "pointer", letterSpacing: "0.05em",
+                  transition: "all 0.15s",
+                }}>
+                  {cat === "All" ? "ALL" : cat.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {TIERS.map(t => (
+                <button key={t} onClick={() => setSelectedTier(t)} style={{
+                  padding: "5px 10px", borderRadius: 4, border: "1px solid",
+                  borderColor: selectedTier === t ? (t === "All" ? "#e2c97e" : TIER_COLORS[t]?.dot || "#e2c97e") : "rgba(255,255,255,0.08)",
+                  background: selectedTier === t ? (t === "All" ? "rgba(226,201,126,0.08)" : `${TIER_COLORS[t]?.bg || "rgba(226,201,126,0.08)"}`) : "transparent",
+                  color: selectedTier === t ? (t === "All" ? "#e2c97e" : TIER_COLORS[t]?.text || "#e2c97e") : "#6b7280",
+                  fontSize: 11, cursor: "pointer",
+                  transition: "all 0.15s",
+                }}>
+                  {t === "All" ? "ALL TIERS" : `TIER ${t}`}
+                </button>
+              ))}
+            </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontSize: 11, color: "#4b5563" }}>Sort:</span>
+              {["score", "tier", "name"].map(s => (
+                <button key={s} onClick={() => setSortBy(s)} style={{
+                  padding: "5px 10px", borderRadius: 4, border: "1px solid",
+                  borderColor: sortBy === s ? "rgba(226,201,126,0.4)" : "rgba(255,255,255,0.06)",
+                  background: sortBy === s ? "rgba(226,201,126,0.08)" : "transparent",
+                  color: sortBy === s ? "#e2c97e" : "#4b5563",
+                  fontSize: 11, cursor: "pointer", textTransform: "uppercase",
+                }}>
+                  {s}
+                </button>
+              ))}
+              <button onClick={() => setShowWeights(!showWeights)} style={{
+                padding: "5px 12px", borderRadius: 4, border: "1px solid",
+                borderColor: showWeights ? "rgba(226,201,126,0.5)" : "rgba(255,255,255,0.08)",
+                background: showWeights ? "rgba(226,201,126,0.1)" : "transparent",
+                color: showWeights ? "#e2c97e" : "#6b7280",
+                fontSize: 11, cursor: "pointer",
+              }}>
+                ⚖ WEIGHTS
+              </button>
+            </div>
+          </div>
+
+          {/* Weight sliders */}
+          {showWeights && (
+            <div style={{
+              background: "rgba(226,201,126,0.04)",
+              border: "1px solid rgba(226,201,126,0.12)",
+              borderRadius: 8,
+              padding: "16px 20px",
+              marginBottom: 20,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "14px 24px",
+            }}>
+              <div style={{ gridColumn: "1/-1", fontSize: 10, letterSpacing: "0.15em", color: "#e2c97e", marginBottom: 4, textTransform: "uppercase" }}>
+                Adjust Criteria Weights
+              </div>
+              {CRITERIA.map(c => (
+                <div key={c.id}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.short}</span>
+                    <span style={{ fontSize: 11, color: "#e2c97e" }}>{weights[c.id]}×</span>
+                  </div>
+                  <input type="range" min={0} max={3} step={0.5} value={weights[c.id]}
+                    onChange={e => setWeights(w => ({ ...w, [c.id]: parseFloat(e.target.value) }))}
+                    style={{ width: "100%", accentColor: "#e2c97e", height: 2 }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Table header */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 120px repeat(7, 64px) 64px",
+            gap: 0,
+            padding: "8px 16px",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            marginBottom: 4,
+          }}>
+            <span style={{ fontSize: 9, letterSpacing: "0.15em", color: "#4b5563", textTransform: "uppercase" }}>Transaction Type</span>
+            <span style={{ fontSize: 9, letterSpacing: "0.15em", color: "#4b5563", textTransform: "uppercase" }}>Category</span>
+            {CRITERIA.map(c => (
+              <span key={c.id} style={{ fontSize: 9, letterSpacing: "0.1em", color: "#4b5563", textTransform: "uppercase", textAlign: "center" }}>{c.short}</span>
+            ))}
+            <span style={{ fontSize: 9, letterSpacing: "0.15em", color: "#e2c97e", textTransform: "uppercase", textAlign: "center" }}>Score</span>
+          </div>
+
+          {/* Rows */}
+          {filtered.map((company) => {
+            const score = WeightedScore(company.scores, weights);
+            const tc = TIER_COLORS[company.tier];
+            const isHovered = hoveredRow === company.name;
+            const isSelected = selectedCompany === company.name;
+            return (
+              <div
+                key={company.name}
+                onClick={() => setSelectedCompany(isSelected ? null : company.name)}
+                onMouseEnter={() => setHoveredRow(company.name)}
+                onMouseLeave={() => setHoveredRow(null)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 120px repeat(7, 64px) 64px",
+                  gap: 0,
+                  padding: "11px 16px",
+                  borderRadius: 6,
+                  marginBottom: 3,
+                  cursor: "pointer",
+                  border: "1px solid",
+                  borderColor: isSelected ? tc.border : isHovered ? "rgba(255,255,255,0.06)" : "transparent",
+                  background: isSelected ? tc.bg : isHovered ? "rgba(255,255,255,0.02)" : "transparent",
+                  transition: "all 0.15s",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: tc.dot, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: isSelected ? "#f0ead6" : "#c9cdd6", fontWeight: isSelected ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {company.name}
+                  </span>
+                </div>
+                <span style={{ fontSize: 10, color: "#4b5563", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {company.category}
+                </span>
+                {CRITERIA.map(c => (
+                  <div key={c.id} style={{ display: "flex", justifyContent: "center" }}>
+                    <ScoreDot score={company.scores[c.id]} />
+                  </div>
+                ))}
+                <div style={{ textAlign: "center" }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700,
+                    color: score >= 75 ? "#10b981" : score >= 55 ? "#f59e0b" : "#ef4444",
+                  }}>
+                    {score}
+                  </span>
+                  <span style={{ fontSize: 9, color: "#4b5563" }}>%</span>
+                </div>
+              </div>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "#374151", fontSize: 13 }}>
+              No transactions match current filters.
+            </div>
+          )}
+        </div>
+
+        {/* Right: detail panel */}
+        <div style={{ width: 280, flexShrink: 0 }}>
+          {selected ? (
+            <div style={{
+              border: `1px solid ${TIER_COLORS[selected.tier].border}`,
+              borderRadius: 8,
+              background: TIER_COLORS[selected.tier].bg,
+              padding: "20px",
+              position: "sticky",
+              top: 24,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 9, letterSpacing: "0.2em", color: TIER_COLORS[selected.tier].text, marginBottom: 4, textTransform: "uppercase" }}>
+                    Tier {selected.tier} · {TIER_LABELS[selected.tier]}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#f0ead6", lineHeight: 1.3 }}>{selected.name}</div>
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{selected.category}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: TIER_COLORS[selected.tier].text, lineHeight: 1 }}>
+                    {WeightedScore(selected.scores, weights)}
+                  </div>
+                  <div style={{ fontSize: 9, color: "#4b5563" }}>SCORE</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                {CRITERIA.map(c => (
+                  <div key={c.id} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, alignItems: "center" }}>
+                      <span style={{ fontSize: 10, color: "#9ca3af" }}>{c.short}</span>
+                      <span style={{ fontSize: 10, color: "#e2c97e" }}>{selected.scores[c.id]}/5</span>
+                    </div>
+                    <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${(selected.scores[c.id] / 5) * 100}%`,
+                        background: selected.scores[c.id] >= 4 ? "#10b981" : selected.scores[c.id] >= 3 ? "#f59e0b" : "#ef4444",
+                        borderRadius: 2,
+                        transition: "width 0.3s",
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: "#374151", marginTop: 3, lineHeight: 1.4 }}>{c.description}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                paddingTop: 12,
+                fontSize: 11,
+                color: "#9ca3af",
+                lineHeight: 1.6,
+              }}>
+                {selected.note}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 8,
+              padding: "20px",
+              textAlign: "center",
+              position: "sticky",
+              top: 24,
+            }}>
+              <div style={{ fontSize: 11, color: "#374151", lineHeight: 1.8 }}>
+                Click any row to see<br />criteria breakdown<br />and strategic notes.
+              </div>
+              <div style={{ marginTop: 24, fontSize: 9, color: "#1f2937", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                The four fit criteria
+              </div>
+              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  ["Discrete Terms", "Machine-readable commitment"],
+                  ["Identifiable Parties", "Both reachable pre-payment"],
+                  ["Verification Gap", "Downstream prices on trust"],
+                  ["Downstream Market", "Audit / lend / insure"],
+                  ["Recurrence", "Proof history compounds"],
+                  ["Consequence", "Material if wrong"],
+                  ["Agentic", "Agent-automatable"],
+                ].map(([label, desc]) => (
+                  <div key={label} style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 10, color: "#6b7280" }}>{label}</div>
+                    <div style={{ fontSize: 9, color: "#374151" }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: "12px 40px 32px", borderTop: "1px solid rgba(255,255,255,0.04)", marginTop: 8 }}>
+        <span style={{ fontSize: 10, color: "#1f2937" }}>
+          {filtered.length} transactions · Scores weighted across {CRITERIA.length} criteria · Adjust weights to model your prioritization
+        </span>
+      </div>
+    </div>
+  );
+}

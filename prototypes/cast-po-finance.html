@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST - PO Financing Coordination</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        .state-confirmed { background: #DBEAFE; color: #1E40AF; }
+        .state-funded { background: #D1FAE5; color: #065F46; }
+        .state-shipped { background: #CFFAFE; color: #0E7490; }
+        .state-cleared { background: #E0E7FF; color: #4338CA; }
+        .state-received { background: #FEF3C7; color: #92400E; }
+        .state-window { background: #FEF9C3; color: #854D0E; }
+        .state-disputed { background: #FEE2E2; color: #991B1B; }
+        .state-settled { background: #BBF7D0; color: #14532D; }
+        
+        .hash { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: #1E293B; color: #4ADE80; padding: 2px 6px; border-radius: 4px; }
+        
+        .party-buyer { background: #DBEAFE; color: #1E40AF; }
+        .party-supplier { background: #FCE7F3; color: #9D174D; }
+        .party-lender { background: #EDE9FE; color: #5B21B6; }
+        .party-3pl { background: #D1FAE5; color: #065F46; }
+        .party-freight { background: #CFFAFE; color: #0E7490; }
+        
+        .pulse-green { animation: pulseGreen 2s infinite; }
+        @keyframes pulseGreen { 0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen">
+    
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-200">
+                        <span class="text-white font-bold">C</span>
+                    </div>
+                    <div>
+                        <span class="font-bold text-slate-900">CAST</span>
+                        <span class="text-slate-400 text-sm ml-2 hidden sm:inline">PO Financing Coordination</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                    <button onclick="showTab('pitch')" id="tab-pitch" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition bg-white shadow text-slate-900">Pitch</button>
+                    <button onclick="showTab('demo')" id="tab-demo" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600">Live Demo</button>
+                    <button onclick="showTab('finance')" id="tab-finance" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600">Finance</button>
+                    <button onclick="showTab('technical')" id="tab-technical" class="tab-btn px-4 py-1.5 rounded-md text-sm font-medium transition text-slate-600">Technical</button>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full pulse-green"></span>
+                    <span class="text-green-600 font-medium">Chain Verified</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- PITCH TAB -->
+    <div id="content-pitch" class="tab-content">
+        <section class="py-20 px-6">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium mb-6">PO Financing & International Trade</div>
+                <h1 class="text-5xl font-extrabold text-slate-900 mb-6 leading-tight">
+                    Five parties. Five systems.<br>
+                    <span class="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">One truth.</span>
+                </h1>
+                <p class="text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
+                    Every international PO involves a buyer, supplier, lender, freight forwarder, and 3PL—each maintaining their own records. The lender's "collateral visibility" is a PDF that's two weeks stale.
+                </p>
+                <p class="text-2xl font-semibold text-slate-900">We built the coordination layer to fix that.</p>
+            </div>
+        </section>
+
+        <section class="py-16 px-6 bg-white border-y border-slate-200">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">The Coordination Nightmare</h2>
+                <div class="grid grid-cols-5 gap-4 mb-10">
+                    <div class="text-center p-4 rounded-xl party-buyer">
+                        <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-blue-700">B</div>
+                        <div class="font-semibold text-sm">Buyer</div>
+                        <div class="text-xs opacity-75 mt-1">ERP / NetSuite</div>
+                    </div>
+                    <div class="text-center p-4 rounded-xl party-supplier">
+                        <div class="w-12 h-12 bg-pink-200 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-pink-700">S</div>
+                        <div class="font-semibold text-sm">Supplier</div>
+                        <div class="text-xs opacity-75 mt-1">WeChat + Excel</div>
+                    </div>
+                    <div class="text-center p-4 rounded-xl party-lender">
+                        <div class="w-12 h-12 bg-violet-200 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-violet-700">L</div>
+                        <div class="font-semibold text-sm">Lender/Factor</div>
+                        <div class="text-xs opacity-75 mt-1">Loan System</div>
+                    </div>
+                    <div class="text-center p-4 rounded-xl party-freight">
+                        <div class="w-12 h-12 bg-cyan-200 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-cyan-700">F</div>
+                        <div class="font-semibold text-sm">Freight</div>
+                        <div class="text-xs opacity-75 mt-1">TMS</div>
+                    </div>
+                    <div class="text-center p-4 rounded-xl party-3pl">
+                        <div class="w-12 h-12 bg-emerald-200 rounded-full flex items-center justify-center mx-auto mb-3 font-bold text-emerald-700">W</div>
+                        <div class="font-semibold text-sm">3PL</div>
+                        <div class="text-xs opacity-75 mt-1">WMS</div>
+                    </div>
+                </div>
+
+                <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-10">
+                    <h3 class="font-semibold text-red-900 mb-3">What Goes Wrong Today</h3>
+                    <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">Lender's collateral report is 2 weeks old</span></div>
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">Buyer's AP doesn't match supplier's AR</span></div>
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">3PL receipt count doesn't match the BOL</span></div>
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">Supplier ships, claims payment; buyer says never received</span></div>
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">Month-end close takes a week to reconcile inventory</span></div>
+                        <div class="flex items-start gap-2"><span class="text-red-500">✗</span><span class="text-red-800">Disputes escalate with no shared record</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 rounded-2xl p-8">
+                    <h3 class="font-semibold text-slate-900 mb-4 text-center">CAST: One Event Log, Five Parties</h3>
+                    <div class="flex items-center justify-center gap-2 overflow-x-auto pb-4 text-xs">
+                        <div class="state-confirmed px-3 py-2 rounded-lg font-semibold">PO CONFIRMED</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-funded px-3 py-2 rounded-lg font-semibold">FUNDED</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-shipped px-3 py-2 rounded-lg font-semibold">SHIPPED</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-cleared px-3 py-2 rounded-lg font-semibold">CLEARED</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-received px-3 py-2 rounded-lg font-semibold">RECEIVED</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-window px-3 py-2 rounded-lg font-semibold">72h WINDOW</div>
+                        <div class="text-slate-400">→</div>
+                        <div class="state-settled px-3 py-2 rounded-lg font-semibold">SETTLED</div>
+                    </div>
+                    <p class="text-center text-slate-600 text-sm mt-4">Each party attests their step. Everyone sees the same state. The math guarantees alignment.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-16 px-6 bg-slate-900 text-white">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-2xl font-bold mb-8 text-center">Value for Each Party</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="party-lender inline-block px-3 py-1 rounded-full text-sm font-medium mb-4">Lender / Factor</div>
+                        <ul class="space-y-3 text-sm text-slate-300">
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Real-time collateral visibility</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Watch inventory move from factory to warehouse</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Automated payment triggers on receipt</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="party-buyer inline-block px-3 py-1 rounded-full text-sm font-medium mb-4">Buyer / Brand</div>
+                        <ul class="space-y-3 text-sm text-slate-300">
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Dispute window protects against short shipments</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Supplier accountability with cryptographic proof</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Faster month-end close</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6">
+                        <div class="party-supplier inline-block px-3 py-1 rounded-full text-sm font-medium mb-4">Supplier</div>
+                        <ul class="space-y-3 text-sm text-slate-300">
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Faster payment (auto-release after receipt)</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Clear handoff documentation</li>
+                            <li class="flex items-start gap-2"><span class="text-emerald-400">✓</span>Proof of shipment if disputed</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 px-6">
+            <div class="max-w-3xl mx-auto text-center">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6">The Ask</h2>
+                <p class="text-xl text-slate-600 mb-8">One pilot. A brand with international sourcing, their factor, and their 3PL. One PO, real money, real coordination.</p>
+                <div class="inline-flex flex-col items-center gap-4 p-8 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100">
+                    <p class="text-slate-700 font-medium">We're not asking you to trust us.</p>
+                    <p class="text-slate-900 text-lg">We're asking you to trust the math.</p>
+                    <div class="flex items-center gap-3 mt-2">
+                        <span class="hash">immutable</span>
+                        <span class="hash">verifiable</span>
+                        <span class="hash">deterministic</span>
+                    </div>
+                </div>
+                <p class="text-2xl font-bold text-slate-900 mt-12">Zero trust. Shared truth. No reconciliation.</p>
+                <p class="text-indigo-600 font-semibold text-lg mt-2">That's CAST.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- DEMO TAB -->
+    <div id="content-demo" class="tab-content hidden">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Advances Outstanding</div>
+                    <div class="text-3xl font-bold text-slate-900">$4.2M</div>
+                    <div class="text-xs text-emerald-600 mt-1">18 active POs</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">In Transit</div>
+                    <div class="text-3xl font-bold text-cyan-600">$1.8M</div>
+                    <div class="text-xs text-slate-500 mt-1">7 shipments en route</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Dispute Window</div>
+                    <div class="text-3xl font-bold text-amber-600">$620K</div>
+                    <div class="text-xs text-slate-500 mt-1">3 awaiting confirmation</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Released This Month</div>
+                    <div class="text-3xl font-bold text-emerald-600">$2.9M</div>
+                    <div class="text-xs text-slate-500 mt-1">12 POs settled</div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-slate-900">Active Purchase Orders</h2>
+                        <button onclick="openCreateModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">+ New PO</button>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                        <!-- PO: In Transit -->
+                        <div class="p-4 hover:bg-slate-50 cursor-pointer" onclick="selectPO('PO-2024-1847')">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">PO-2024-1847</span>
+                                        <span class="state-shipped px-2 py-0.5 rounded text-xs font-semibold">IN TRANSIT</span>
+                                        <span class="text-xs text-cyan-600">🚢 ETA 6 days</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">Kitchen Ceramics - 15,000 units</div>
+                                    <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                                        <span class="party-buyer px-2 py-0.5 rounded">HomeGoods Direct</span>
+                                        <span class="party-supplier px-2 py-0.5 rounded">Guangzhou Ceramics</span>
+                                        <span class="party-lender px-2 py-0.5 rounded">Bluevine</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$340,000</div>
+                                    <div class="text-xs text-cyan-600">$272K advanced</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PO: Dispute Window -->
+                        <div class="p-4 hover:bg-amber-50 cursor-pointer bg-amber-50/50" onclick="selectPO('PO-2024-1823')">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">PO-2024-1823</span>
+                                        <span class="state-window px-2 py-0.5 rounded text-xs font-semibold">DISPUTE WINDOW</span>
+                                        <span class="text-xs text-amber-600 font-semibold animate-pulse">⏱ 18h 42m left</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">Outdoor Furniture - 500 units</div>
+                                    <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                                        <span class="party-buyer px-2 py-0.5 rounded">Patio Plus</span>
+                                        <span class="party-supplier px-2 py-0.5 rounded">Vietnam Wood Co</span>
+                                        <span class="party-lender px-2 py-0.5 rounded">Fundbox</span>
+                                        <span class="party-3pl px-2 py-0.5 rounded">Flexport</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$225,000</div>
+                                    <div class="text-xs text-amber-600">492 of 500 received</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PO: Disputed -->
+                        <div class="p-4 hover:bg-red-50 cursor-pointer bg-red-50/50" onclick="selectPO('PO-2024-1798')">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">PO-2024-1798</span>
+                                        <span class="state-disputed px-2 py-0.5 rounded text-xs font-semibold">DISPUTED</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">Electronics Components - 50,000 units</div>
+                                    <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                                        <span class="party-buyer px-2 py-0.5 rounded">TechAssembly Inc</span>
+                                        <span class="party-supplier px-2 py-0.5 rounded">Shenzhen Electronics</span>
+                                        <span class="party-lender px-2 py-0.5 rounded">SVB</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$175,000</div>
+                                    <div class="text-xs text-red-600">12% defect rate</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PO: Settled -->
+                        <div class="p-4 hover:bg-slate-50 cursor-pointer opacity-60" onclick="selectPO('PO-2024-1756')">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="mono text-xs text-slate-400">PO-2024-1756</span>
+                                        <span class="state-settled px-2 py-0.5 rounded text-xs font-semibold">SETTLED</span>
+                                    </div>
+                                    <div class="font-medium text-slate-900">Stainless Steel Cookware - 3,000 units</div>
+                                    <div class="flex flex-wrap gap-2 mt-2 text-xs">
+                                        <span class="party-buyer px-2 py-0.5 rounded">Kitchen Supply Co</span>
+                                        <span class="party-supplier px-2 py-0.5 rounded">Jiangmen Steel</span>
+                                        <span class="party-lender px-2 py-0.5 rounded">Bluevine</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-slate-900">$187,500</div>
+                                    <div class="text-xs text-emerald-600">✓ Released Jan 18</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Log -->
+                <div class="lg:col-span-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-slate-900">Event Log</h2>
+                        <button onclick="verifyChain()" class="text-xs text-indigo-600 font-medium">Verify Chain →</button>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
+                        <div class="p-3 border-l-4 border-amber-400">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-amber-700">RECEIVED</span>
+                                <span class="mono text-xs text-slate-400">EVT-8921</span>
+                            </div>
+                            <div class="text-xs text-slate-600">Flexport confirmed receipt • 492/500 units</div>
+                            <div class="text-xs text-slate-400 mt-1">PO-2024-1823 • 1 hour ago</div>
+                            <div class="flex items-center gap-1 mt-2">
+                                <span class="hash">9d4c7e3f</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">8c3b6d2e</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border-l-4 border-cyan-400">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-cyan-700">SHIPPED</span>
+                                <span class="mono text-xs text-slate-400">EVT-8919</span>
+                            </div>
+                            <div class="text-xs text-slate-600">Guangzhou Ceramics • Container: MSCU-7294821</div>
+                            <div class="text-xs text-slate-400 mt-1">PO-2024-1847 • 6 hours ago</div>
+                            <div class="flex items-center gap-1 mt-2">
+                                <span class="hash">7b2a5c1d</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">6a1948c0</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border-l-4 border-red-400">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-red-700">DISPUTE</span>
+                                <span class="mono text-xs text-slate-400">EVT-8917</span>
+                            </div>
+                            <div class="text-xs text-slate-600">TechAssembly raised dispute • 12% defect rate</div>
+                            <div class="text-xs text-slate-400 mt-1">PO-2024-1798 • 2 days ago</div>
+                            <div class="flex items-center gap-1 mt-2">
+                                <span class="hash">590837bf</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">48f726ae</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border-l-4 border-emerald-400">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-emerald-700">SETTLEMENT</span>
+                                <span class="mono text-xs text-slate-400">EVT-8916</span>
+                            </div>
+                            <div class="text-xs text-slate-600">Auto-released to Jiangmen Steel</div>
+                            <div class="text-xs text-slate-400 mt-1">PO-2024-1756 • Jan 18</div>
+                            <div class="flex items-center gap-1 mt-2">
+                                <span class="hash">48f726ae</span>
+                                <span class="text-slate-300">←</span>
+                                <span class="hash opacity-50">37e615ad</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-slate-50 rounded-xl text-sm">
+                        <div class="flex justify-between"><span class="text-slate-600">Chain Length</span><span class="font-semibold">8,921 events</span></div>
+                        <div class="flex justify-between mt-2"><span class="text-slate-600">Integrity</span><span class="font-semibold text-emerald-600">✓ 100%</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINANCE TAB -->
+    <div id="content-finance" class="tab-content hidden">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Financial Overview</h2>
+                    <p class="text-slate-500 text-sm mt-1">Auto-generated from event log • January 2026</p>
+                </div>
+                <button onclick="exportFinance()" class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg">Export CSV</button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl p-5 text-white">
+                    <div class="text-sm opacity-80 mb-1">Total PO Volume</div>
+                    <div class="text-3xl font-bold">$9.6M</div>
+                    <div class="text-xs opacity-70 mt-1">↑ 18% vs prior</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Advances Outstanding</div>
+                    <div class="text-3xl font-bold text-slate-900">$4.2M</div>
+                    <div class="text-xs text-slate-500 mt-1">78% avg advance rate</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Budget Variance</div>
+                    <div class="text-3xl font-bold text-emerald-600">$320K</div>
+                    <div class="text-xs text-emerald-600 mt-1">3.4% over plan</div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <div class="text-sm text-slate-500 mb-1">Settlement Rate</div>
+                    <div class="text-3xl font-bold text-slate-900">96.8%</div>
+                    <div class="text-xs text-emerald-600 mt-1">↑ 1.2% vs prior</div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6 mb-8">
+                <!-- Trial Balance -->
+                <div class="bg-white rounded-xl border border-slate-200">
+                    <div class="px-5 py-4 border-b border-slate-200">
+                        <h3 class="font-semibold text-slate-900">Trial Balance</h3>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-slate-500 text-xs uppercase">
+                                    <th class="pb-3">Account</th>
+                                    <th class="pb-3 text-right">Debit</th>
+                                    <th class="pb-3 text-right">Credit</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="font-medium text-slate-700"><td class="py-2" colspan="3">ASSETS</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">1010 · Advances - Awaiting Shipment</td><td class="text-right font-mono">1,840,000</td><td class="text-right text-slate-300">—</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">1020 · Advances - In Transit</td><td class="text-right font-mono">1,440,000</td><td class="text-right text-slate-300">—</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">1030 · Advances - Received (Window)</td><td class="text-right font-mono">496,000</td><td class="text-right text-slate-300">—</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">1040 · Advances - Disputed</td><td class="text-right font-mono">140,000</td><td class="text-right text-slate-300">—</td></tr>
+                                <tr class="font-medium text-slate-700"><td class="py-2 pt-4" colspan="3">LIABILITIES</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">2010 · Due to Suppliers - Pending</td><td class="text-right text-slate-300">—</td><td class="text-right font-mono">3,280,000</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">2020 · Due to Suppliers - In Window</td><td class="text-right text-slate-300">—</td><td class="text-right font-mono">496,000</td></tr>
+                                <tr><td class="py-2 pl-4 text-slate-600">2030 · Due to Suppliers - Disputed</td><td class="text-right text-slate-300">—</td><td class="text-right font-mono">140,000</td></tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-slate-300 font-bold">
+                                    <td class="py-3">TOTALS</td>
+                                    <td class="py-3 text-right font-mono">3,916,000</td>
+                                    <td class="py-3 text-right font-mono">3,916,000</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="mt-4 p-3 bg-emerald-50 rounded-lg flex items-center gap-2">
+                            <span class="text-emerald-600">✓</span>
+                            <span class="text-sm text-emerald-700 font-medium">Derived from 8,921 events</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget vs Actual -->
+                <div class="bg-white rounded-xl border border-slate-200">
+                    <div class="px-5 py-4 border-b border-slate-200">
+                        <h3 class="font-semibold text-slate-900">Budget vs Actual</h3>
+                    </div>
+                    <div class="p-5">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-slate-500 text-xs uppercase">
+                                    <th class="pb-3">Category</th>
+                                    <th class="pb-3 text-right">Budget</th>
+                                    <th class="pb-3 text-right">Actual</th>
+                                    <th class="pb-3 text-right">Var</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr><td class="py-3 font-medium">PO Volume</td><td class="text-right font-mono text-slate-600">$9.0M</td><td class="text-right font-mono">$9.6M</td><td class="text-right font-mono text-emerald-600">+6.7%</td></tr>
+                                <tr><td class="py-3 font-medium">Settlements</td><td class="text-right font-mono text-slate-600">$2.5M</td><td class="text-right font-mono">$2.9M</td><td class="text-right font-mono text-emerald-600">+16%</td></tr>
+                                <tr><td class="py-3 font-medium">Dispute Rate</td><td class="text-right font-mono text-slate-600">5.0%</td><td class="text-right font-mono">3.2%</td><td class="text-right font-mono text-emerald-600">-36%</td></tr>
+                                <tr><td class="py-3 font-medium">Avg Transit</td><td class="text-right font-mono text-slate-600">21 days</td><td class="text-right font-mono">19 days</td><td class="text-right font-mono text-emerald-600">-2 days</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collateral Position -->
+            <div class="bg-white rounded-xl border border-slate-200 mb-8">
+                <div class="px-5 py-4 border-b border-slate-200">
+                    <h3 class="font-semibold text-slate-900">Real-Time Collateral Position</h3>
+                    <p class="text-xs text-slate-500">For lender visibility • Updates with each event</p>
+                </div>
+                <div class="p-5 grid grid-cols-4 gap-4">
+                    <div class="bg-emerald-50 rounded-lg p-4">
+                        <div class="text-xs text-emerald-600 uppercase mb-1">Pre-Shipment</div>
+                        <div class="text-2xl font-bold text-emerald-700">$1.84M</div>
+                        <div class="text-xs text-emerald-600">8 POs • Lowest risk</div>
+                    </div>
+                    <div class="bg-cyan-50 rounded-lg p-4">
+                        <div class="text-xs text-cyan-600 uppercase mb-1">In Transit</div>
+                        <div class="text-2xl font-bold text-cyan-700">$1.44M</div>
+                        <div class="text-xs text-cyan-600">7 shipments • On water</div>
+                    </div>
+                    <div class="bg-amber-50 rounded-lg p-4">
+                        <div class="text-xs text-amber-600 uppercase mb-1">In Warehouse</div>
+                        <div class="text-2xl font-bold text-amber-700">$496K</div>
+                        <div class="text-xs text-amber-600">3 POs • Dispute window</div>
+                    </div>
+                    <div class="bg-red-50 rounded-lg p-4">
+                        <div class="text-xs text-red-600 uppercase mb-1">Under Dispute</div>
+                        <div class="text-2xl font-bold text-red-700">$140K</div>
+                        <div class="text-xs text-red-600">1 PO • Frozen</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Insight -->
+            <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-8 text-white">
+                <h3 class="text-xl font-bold mb-3">Zero Reconciliation Accounting</h3>
+                <p class="text-indigo-100 mb-4">Every number on this page is derived from the event log. The lender's collateral report, the trial balance, and the budget variance all come from the same source of truth.</p>
+                <div class="grid grid-cols-3 gap-4 mt-6">
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <div class="text-2xl font-bold">8,921</div>
+                        <div class="text-sm text-indigo-200">Events in chain</div>
+                    </div>
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <div class="text-2xl font-bold">17,842</div>
+                        <div class="text-sm text-indigo-200">Journal entries</div>
+                    </div>
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <div class="text-2xl font-bold">0</div>
+                        <div class="text-sm text-indigo-200">Reconciliation exceptions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TECHNICAL TAB -->
+    <div id="content-technical" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto px-6 py-12">
+            <h2 class="text-2xl font-bold text-slate-900 mb-8">Technical Architecture</h2>
+            
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 class="font-semibold text-slate-900 mb-4">Event Structure</h3>
+                <pre class="bg-slate-900 text-slate-100 p-4 rounded-lg text-sm overflow-x-auto"><code>{
+  "event_id": "EVT-8921",
+  "po_id": "PO-2024-1823",
+  "event_type": "RECEIVED",
+  "actor": "Flexport",
+  "actor_type": "3PL",
+  "timestamp": "2026-01-23T14:32:17Z",
+  "data": {
+    "units_expected": 500,
+    "units_received": 492,
+    "units_damaged": 8,
+    "warehouse": "LAX-07",
+    "bol_reference": "HLCU-VN-2024-8827"
+  },
+  "hash": "9d4c7e3f1a2b3c4d",
+  "prior_hash": "8c3b6d2e0f1a2b3c"
+}</code></pre>
+            </div>
+
+            <div class="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                <h3 class="font-semibold text-slate-900 mb-4">Event → Journal Entry Mapping</h3>
+                <pre class="bg-slate-900 text-slate-100 p-4 rounded-lg text-sm overflow-x-auto"><code>ADVANCE_FUNDED: {
+  debit:  "1010 · Advances - Awaiting Shipment",
+  credit: "2010 · Due to Suppliers",
+  amount: event.data.advance_amount
+}
+
+SHIPPED: {
+  debit:  "1020 · Advances - In Transit",
+  credit: "1010 · Advances - Awaiting Shipment"
+}
+
+RECEIVED: {
+  debit:  "1030 · Advances - Received (Window)",
+  credit: "1020 · Advances - In Transit"
+}
+
+SETTLEMENT: {
+  debit:  "2020 · Due to Suppliers - Window",
+  credit: "1030 · Advances - Received"
+}</code></pre>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-6">
+                <h3 class="font-semibold text-amber-900 mb-3">Why Not Blockchain?</h3>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <div class="font-medium text-amber-800 mb-1">We don't need:</div>
+                        <ul class="text-amber-700 space-y-1">
+                            <li>• Decentralized consensus (parties are known)</li>
+                            <li>• Token economics (using real USD)</li>
+                            <li>• Global state (just our POs)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="font-medium text-amber-800 mb-1">We do need:</div>
+                        <ul class="text-amber-700 space-y-1">
+                            <li>• Immutability (hash chains provide this)</li>
+                            <li>• Multi-party visibility</li>
+                            <li>• Speed (instant, not 12-second blocks)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl fade-in">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="font-semibold text-lg">Create New PO</h3>
+                <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                    <input type="text" id="newPODesc" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Kitchen Ceramics - 15,000 units">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
+                        <input type="number" id="newPOAmount" class="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="340000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Advance Rate (%)</label>
+                        <input type="number" id="newPOAdvance" value="80" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeCreateModal()" class="px-4 py-2 text-slate-700 rounded-lg">Cancel</button>
+                <button onclick="createPO()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">Create PO</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="poModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto fade-in">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
+                <div>
+                    <h3 class="font-semibold text-lg" id="modalPOId"></h3>
+                    <p class="text-sm text-slate-500" id="modalPODesc"></p>
+                </div>
+                <button onclick="closePOModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div class="p-6" id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-white', 'shadow', 'text-slate-900');
+                el.classList.add('text-slate-600');
+            });
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('bg-white', 'shadow', 'text-slate-900');
+            document.getElementById('tab-' + tabName).classList.remove('text-slate-600');
+        }
+
+        function openCreateModal() {
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('createModal').classList.add('flex');
+        }
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+        }
+        function closePOModal() {
+            document.getElementById('poModal').classList.add('hidden');
+        }
+
+        const pos = {
+            'PO-2024-1847': { desc: 'Kitchen Ceramics - 15,000 units', amount: 340000, advanced: 272000, state: 'SHIPPED', buyer: 'HomeGoods Direct', supplier: 'Guangzhou Ceramics', lender: 'Bluevine', container: 'MSCU-7294821', eta: '6 days' },
+            'PO-2024-1823': { desc: 'Outdoor Furniture - 500 units', amount: 225000, advanced: 180000, state: 'DISPUTE_WINDOW', buyer: 'Patio Plus', supplier: 'Vietnam Wood Co', lender: 'Fundbox', threepl: 'Flexport', received: '492/500', deadline: '18h 42m' },
+            'PO-2024-1798': { desc: 'Electronics Components - 50,000 units', amount: 175000, advanced: 140000, state: 'DISPUTED', buyer: 'TechAssembly Inc', supplier: 'Shenzhen Electronics', lender: 'SVB', disputeReason: '12% defect rate - 6,000 units failed QC' },
+            'PO-2024-1756': { desc: 'Stainless Steel Cookware - 3,000 units', amount: 187500, advanced: 150000, state: 'SETTLED', buyer: 'Kitchen Supply Co', supplier: 'Jiangmen Steel', lender: 'Bluevine', settledAt: 'Jan 18, 2026' }
+        };
+
+        function selectPO(poId) {
+            const po = pos[poId];
+            document.getElementById('modalPOId').textContent = poId;
+            document.getElementById('modalPODesc').textContent = po.desc;
+            
+            let stateClass = po.state === 'SHIPPED' ? 'state-shipped' : po.state === 'DISPUTE_WINDOW' ? 'state-window' : po.state === 'DISPUTED' ? 'state-disputed' : 'state-settled';
+            let actions = '';
+            if (po.state === 'DISPUTE_WINDOW') {
+                actions = `<button onclick="raiseDispute('${poId}')" class="w-full py-3 bg-red-500 text-white rounded-lg font-medium mb-2">Raise Dispute</button><p class="text-xs text-slate-500 text-center">Window expires in ${po.deadline}</p>`;
+            } else if (po.state === 'DISPUTED') {
+                actions = `<div class="grid grid-cols-2 gap-3"><button onclick="settlePO('${poId}')" class="py-3 bg-emerald-500 text-white rounded-lg font-medium">Release to Supplier</button><button onclick="refundPO('${poId}')" class="py-3 bg-red-500 text-white rounded-lg font-medium">Refund Buyer</button></div>`;
+            }
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div><div class="text-sm text-slate-500 mb-1">PO Amount</div><div class="text-3xl font-bold">$${po.amount.toLocaleString()}</div></div>
+                    <div><div class="text-sm text-slate-500 mb-1">State</div><div class="${stateClass} inline-block px-4 py-2 rounded-lg font-semibold">${po.state.replace('_', ' ')}</div></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-emerald-50 rounded-lg p-4"><div class="text-xs text-emerald-600 uppercase mb-1">Advanced</div><div class="text-xl font-bold text-emerald-700">$${po.advanced.toLocaleString()}</div></div>
+                    <div class="bg-slate-50 rounded-lg p-4"><div class="text-xs text-slate-500 uppercase mb-1">Remaining</div><div class="text-xl font-bold">$${(po.amount - po.advanced).toLocaleString()}</div></div>
+                </div>
+                <div class="space-y-2 mb-6">
+                    <div class="p-3 rounded-lg party-buyer"><span class="text-xs uppercase opacity-75 w-16 inline-block">Buyer</span><span class="font-medium">${po.buyer}</span></div>
+                    <div class="p-3 rounded-lg party-supplier"><span class="text-xs uppercase opacity-75 w-16 inline-block">Supplier</span><span class="font-medium">${po.supplier}</span></div>
+                    <div class="p-3 rounded-lg party-lender"><span class="text-xs uppercase opacity-75 w-16 inline-block">Factor</span><span class="font-medium">${po.lender}</span></div>
+                    ${po.threepl ? `<div class="p-3 rounded-lg party-3pl"><span class="text-xs uppercase opacity-75 w-16 inline-block">3PL</span><span class="font-medium">${po.threepl}</span></div>` : ''}
+                </div>
+                ${po.container ? `<div class="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-6"><div class="text-xs text-cyan-600 uppercase mb-1">Shipment</div><div class="font-medium text-cyan-800">Container: ${po.container} • ETA: ${po.eta}</div></div>` : ''}
+                ${po.deadline ? `<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"><div class="text-xs text-amber-600 uppercase mb-1">Dispute Window</div><div class="font-semibold text-amber-800">${po.deadline} remaining</div><div class="text-sm text-amber-700">Received: ${po.received}</div></div>` : ''}
+                ${po.disputeReason ? `<div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"><div class="text-xs text-red-600 uppercase mb-1">Dispute</div><div class="font-medium text-red-800">${po.disputeReason}</div></div>` : ''}
+                ${po.settledAt ? `<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6"><div class="text-xs text-emerald-600 uppercase mb-1">Settled</div><div class="font-medium text-emerald-800">${po.settledAt}</div></div>` : ''}
+                ${actions ? `<div class="mb-6">${actions}</div>` : ''}
+            `;
+            document.getElementById('poModal').classList.remove('hidden');
+            document.getElementById('poModal').classList.add('flex');
+        }
+
+        function createPO() {
+            const desc = document.getElementById('newPODesc').value;
+            const amount = document.getElementById('newPOAmount').value;
+            if (!desc || !amount) { alert('Please fill in all fields'); return; }
+            alert(`✓ PO Created\n\nID: PO-2024-${Math.random().toString().slice(2,6)}\nAmount: $${parseInt(amount).toLocaleString()}\nAdvance: $${Math.round(amount * 0.8).toLocaleString()}\n\nEvent logged with hash: ${Math.random().toString(36).slice(2,10)}`);
+            closeCreateModal();
+        }
+
+        function raiseDispute(poId) {
+            const reason = prompt('Enter dispute reason:');
+            if (reason) { alert(`✓ Dispute Raised\n\nPO: ${poId}\nReason: ${reason}\n\nFunds frozen pending resolution.`); closePOModal(); }
+        }
+
+        function settlePO(poId) {
+            if (confirm(`Release funds to supplier for ${poId}?`)) { alert(`✓ Settled\n\nFunds released to supplier.`); closePOModal(); }
+        }
+
+        function refundPO(poId) {
+            if (confirm(`Refund buyer for ${poId}?`)) { alert(`✓ Refunded\n\nFunds returned to buyer.`); closePOModal(); }
+        }
+
+        function verifyChain() {
+            alert('✓ Chain Verified\n\nAll 8,921 events have valid hashes.\nNo tampering detected.\nIntegrity: 100%');
+        }
+
+        function exportFinance() {
+            alert('Exporting CSV...\n\n• Trial Balance\n• Budget vs Actual\n• Collateral Position\n• Journal Entries\n\nAll derived from the same event log.');
+        }
+    </script>
+</body>
+</html>

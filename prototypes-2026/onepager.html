@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Unit Economics and Capital Allocation</title>
+<style>
+  @page { size: 11in 8.5in; margin: 0; }
+
+  :root {
+    --ink: #0F2A44;
+    --ink-2: #1A3A5C;
+    --muted: #5A6470;
+    --rule: #C7CCD1;
+    --paper: #FCFBF7;
+    --shade: #EEF3F8;
+    --base: #1D5C8C;
+    --down: #B5462C;
+    --up: #1D9E75;
+    --accent: #C9A961;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 11in; height: 8.5in;
+    font-family: "Georgia", "Times New Roman", serif;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 9.5px;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 11in; height: 8.5in;
+    padding: 0.4in 0.5in;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 10px;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .h-left .eyebrow {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8px; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .h-left .title {
+    font-size: 22px; font-weight: 400;
+    font-style: italic; letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .h-right {
+    text-align: right;
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8px; color: var(--muted);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .h-right .frame {
+    margin-top: 3px; font-size: 9px; color: var(--ink);
+    text-transform: none; letter-spacing: 0; font-style: italic;
+    font-family: "Georgia", serif;
+  }
+
+  /* ===== OPERATING MODEL VISUAL ===== */
+  .opmodel {
+    background: var(--paper);
+    border: 0.5px solid var(--rule);
+    border-radius: 2px;
+    padding: 10px 14px;
+    position: relative;
+  }
+  .opmodel-title {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink); margin-bottom: 8px;
+  }
+  .opmodel-title .sub {
+    font-weight: 400; color: var(--muted);
+    letter-spacing: 0.04em; text-transform: none;
+    font-style: italic; margin-left: 8px;
+    font-family: "Georgia", serif; font-size: 9.5px;
+  }
+
+  .opmodel-svg { width: 100%; height: 130px; }
+
+  /* ===== MAIN GRID: SCENARIOS + CAPITAL ===== */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 2.1fr 1fr;
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .panel-title {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8.5px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink); margin-bottom: 8px;
+  }
+  .panel-title .sub {
+    font-weight: 400; color: var(--muted);
+    letter-spacing: 0.04em; text-transform: none;
+    font-style: italic; margin-left: 8px;
+    font-family: "Georgia", serif; font-size: 9.5px;
+  }
+
+  /* Scenario cards */
+  .scenarios {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .sc {
+    border: 0.5px solid var(--rule);
+    border-top: 3px solid var(--ink);
+    padding: 8px 10px 10px;
+    background: var(--paper);
+    display: flex; flex-direction: column;
+  }
+  .sc.base { border-top-color: var(--base); }
+  .sc.down { border-top-color: var(--down); }
+  .sc.up { border-top-color: var(--up); }
+
+  .sc-name {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 8px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 1px;
+  }
+  .sc.base .sc-name { color: var(--base); }
+  .sc.down .sc-name { color: var(--down); }
+  .sc.up .sc-name { color: var(--up); }
+
+  .sc-tag {
+    font-style: italic; color: var(--muted);
+    font-size: 8.5px; margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .driver-row {
+    display: flex; justify-content: space-between;
+    border-bottom: 0.5px dotted var(--rule);
+    padding: 2.5px 0;
+    font-size: 8.5px;
+  }
+  .driver-row.thick {
+    border-bottom: 0.5px solid var(--ink);
+    padding-top: 4px; font-weight: 600;
+  }
+  .driver-row .lbl { color: var(--muted); }
+  .driver-row .val {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink); font-weight: 500;
+  }
+  .sc-section {
+    margin-top: 5px;
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 7px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 1px;
+  }
+
+  .sc-output {
+    margin-top: auto; padding-top: 6px;
+    border-top: 0.5px solid var(--ink);
+  }
+  .sc-output .out-row {
+    display: flex; justify-content: space-between;
+    padding: 1.5px 0; font-size: 8.5px;
+  }
+  .sc-output .out-row .lbl { color: var(--muted); }
+  .sc-output .out-row .val {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .sc-output .out-row.headline { padding-top: 3px; }
+  .sc-output .out-row.headline .val { font-size: 11px; }
+  .sc.base .out-row.headline .val { color: var(--base); }
+  .sc.down .out-row.headline .val { color: var(--down); }
+  .sc.up .out-row.headline .val { color: var(--up); }
+
+  /* Capital allocation panel */
+  .capital {
+    border: 0.5px solid var(--rule);
+    background: var(--shade);
+    padding: 9px 11px;
+    display: flex; flex-direction: column;
+  }
+  .cap-row {
+    padding: 4px 0;
+    border-bottom: 0.5px solid rgba(15,42,68,0.12);
+    font-size: 8.5px; line-height: 1.35;
+  }
+  .cap-row:last-child { border-bottom: none; }
+  .cap-row .q {
+    font-style: italic; color: var(--muted);
+    margin-bottom: 1px; font-size: 8.5px;
+  }
+  .cap-row .a {
+    color: var(--ink); font-weight: 500;
+  }
+  .cap-row .a strong {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-weight: 700; color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .cap-trigger {
+    font-family: "Helvetica Neue", "Arial", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted);
+    font-weight: 600; display: inline-block;
+    padding: 1px 5px; border-radius: 2px;
+    margin-right: 4px;
+  }
+  .cap-trigger.b { background: rgba(29,92,140,0.12); color: var(--base); }
+  .cap-trigger.d { background: rgba(181,70,44,0.12); color: var(--down); }
+  .cap-trigger.u { background: rgba(29,158,117,0.12); color: var(--up); }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    display: flex; justify-content: space-between;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--rule);
+    font-size: 8px; color: var(--muted);
+    font-style: italic;
+  }
+  .footer .num {
+    font-family: "Georgia", serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    font-style: normal; font-size: 7.5px;
+    color: var(--ink);
+  }
+
+  /* SVG styling */
+  .node-box {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 0.8;
+  }
+  .node-box.input { stroke: var(--base); stroke-width: 1; }
+  .node-box.tissue {
+    fill: var(--ink); stroke: var(--ink);
+  }
+  .node-box.output { stroke: var(--up); stroke-width: 1; }
+  .node-box.cap {
+    fill: var(--shade); stroke: var(--ink-2); stroke-width: 0.8;
+    stroke-dasharray: 2 1.5;
+  }
+
+  .node-label {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    fill: var(--ink);
+  }
+  .node-label.white { fill: var(--paper); }
+  .node-label.base { fill: var(--base); }
+  .node-label.up { fill: var(--up); }
+  .node-sub {
+    font-family: "Georgia", serif;
+    font-size: 6.5px; font-style: italic;
+    fill: var(--muted);
+  }
+  .node-sub.white { fill: rgba(252,251,247,0.75); font-style: normal; letter-spacing: 0.04em; }
+
+  .swim-label {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 6.5px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    fill: var(--muted);
+  }
+
+  .arrow { stroke: var(--ink); stroke-width: 0.7; fill: none; }
+  .arrow.feed { stroke: var(--muted); stroke-dasharray: 2 1.5; }
+
+  .pillar {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 6.5px; font-weight: 700;
+    letter-spacing: 0.04em;
+    fill: var(--paper);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <div class="h-left">
+      <div class="eyebrow">Strategic Finance Briefing &nbsp;·&nbsp; CFO Office</div>
+      <div class="title">Unit Economics &amp; Capital Allocation</div>
+    </div>
+    <div class="h-right">
+      <div>One Page &nbsp;·&nbsp; Three Scenarios</div>
+      <div class="frame">From operating signal to capital decision</div>
+    </div>
+  </div>
+
+  <!-- ===== OPERATING MODEL VISUAL ===== -->
+  <div class="opmodel">
+    <div class="opmodel-title">
+      Operating Model Architecture
+      <span class="sub">Systems thinking is the connective tissue. One source of truth, six operating signals, three capital decisions.</span>
+    </div>
+
+    <svg class="opmodel-svg" viewBox="0 0 1100 130" preserveAspectRatio="xMidYMid meet">
+      <!-- swim lane labels -->
+      <text x="6" y="22" class="swim-label">Operating Inputs</text>
+      <text x="6" y="68" class="swim-label">Connective Tissue</text>
+      <text x="6" y="113" class="swim-label">Capital Decisions</text>
+
+      <!-- ===== INPUT NODES (top row) ===== -->
+      <!-- 6 input boxes -->
+      <g>
+        <rect x="115" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="177" y="20" text-anchor="middle" class="node-label base">Volume</text>
+        <text x="177" y="32" text-anchor="middle" class="node-sub">customer count, mix</text>
+      </g>
+      <g>
+        <rect x="250" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="312" y="20" text-anchor="middle" class="node-label base">Price</text>
+        <text x="312" y="32" text-anchor="middle" class="node-sub">contracted rate, PMPM</text>
+      </g>
+      <g>
+        <rect x="385" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="447" y="20" text-anchor="middle" class="node-label base">Yield</text>
+        <text x="447" y="32" text-anchor="middle" class="node-sub">PA approval, no-show</text>
+      </g>
+      <g>
+        <rect x="520" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="582" y="20" text-anchor="middle" class="node-label base">Capacity</text>
+        <text x="582" y="32" text-anchor="middle" class="node-sub">utilization, FTE mix</text>
+      </g>
+      <g>
+        <rect x="655" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="717" y="20" text-anchor="middle" class="node-label base">CAC</text>
+        <text x="717" y="32" text-anchor="middle" class="node-sub">channel mix, payback</text>
+      </g>
+      <g>
+        <rect x="790" y="6" width="125" height="32" rx="2" class="node-box input"/>
+        <text x="852" y="20" text-anchor="middle" class="node-label base">Outcomes</text>
+        <text x="852" y="32" text-anchor="middle" class="node-sub">avoided cost, savings</text>
+      </g>
+
+      <!-- arrows from inputs to tissue -->
+      <path d="M 177 38 L 177 56" class="arrow"/>
+      <path d="M 312 38 L 312 56" class="arrow"/>
+      <path d="M 447 38 L 447 56" class="arrow"/>
+      <path d="M 582 38 L 582 56" class="arrow"/>
+      <path d="M 717 38 L 717 56" class="arrow"/>
+      <path d="M 852 38 L 852 56" class="arrow"/>
+
+      <!-- ===== CONNECTIVE TISSUE (middle band) ===== -->
+      <rect x="115" y="56" width="800" height="28" rx="2" class="node-box tissue"/>
+      <text x="515" y="71" text-anchor="middle" class="node-label white" style="font-size: 8px; letter-spacing: 0.18em;">Living Financial Model &nbsp;·&nbsp; Scenario Engine &nbsp;·&nbsp; Weekly Cadence &nbsp;·&nbsp; Variance Discipline</text>
+      <text x="515" y="80" text-anchor="middle" class="node-sub white">single source of truth, no version drift, every assumption owned</text>
+
+      <!-- arrows from tissue to capital -->
+      <path d="M 230 84 L 230 100" class="arrow"/>
+      <path d="M 515 84 L 515 100" class="arrow"/>
+      <path d="M 800 84 L 800 100" class="arrow"/>
+
+      <!-- ===== CAPITAL DECISIONS (bottom row) ===== -->
+      <g>
+        <rect x="115" y="100" width="230" height="26" rx="2" class="node-box cap"/>
+        <text x="230" y="113" text-anchor="middle" class="node-label">Hire &amp; Capacity</text>
+        <text x="230" y="122" text-anchor="middle" class="node-sub">FTE pace · employment mix · ROI gate</text>
+      </g>
+      <g>
+        <rect x="400" y="100" width="230" height="26" rx="2" class="node-box cap"/>
+        <text x="515" y="113" text-anchor="middle" class="node-label">Tech &amp; Software Cap</text>
+        <text x="515" y="122" text-anchor="middle" class="node-sub">capex/opex split · payback weeks</text>
+      </g>
+      <g>
+        <rect x="685" y="100" width="230" height="26" rx="2" class="node-box cap"/>
+        <text x="800" y="113" text-anchor="middle" class="node-label">Raise &amp; Runway</text>
+        <text x="800" y="122" text-anchor="middle" class="node-sub">timing · scenario gating · cushion</text>
+      </g>
+
+      <!-- feedback loop arc from capital back to tissue -->
+      <path d="M 945 113 Q 990 113 990 70 Q 990 40 945 40" class="arrow feed"/>
+      <text x="998" y="74" class="node-sub" style="font-size: 6.5px;">decisions feed back as new assumptions</text>
+    </svg>
+  </div>
+
+  <!-- ===== MAIN GRID ===== -->
+  <div class="main-grid">
+
+    <!-- LEFT: SCENARIOS -->
+    <div>
+      <div class="panel-title">
+        Three Scenarios
+        <span class="sub">Same drivers, different assumptions. Identical model, no reconciliation.</span>
+      </div>
+      <div class="scenarios">
+
+        <!-- BASE -->
+        <div class="sc base">
+          <div class="sc-name">Base</div>
+          <div class="sc-tag">Plan of record. Strategic partner ramps on schedule.</div>
+
+          <div class="sc-section">Drivers</div>
+          <div class="driver-row"><span class="lbl">FTE delivery units</span><span class="val">15</span></div>
+          <div class="driver-row"><span class="lbl">Active customers</span><span class="val">2,500</span></div>
+          <div class="driver-row"><span class="lbl">Realized rate</span><span class="val">$135</span></div>
+          <div class="driver-row"><span class="lbl">Utilization</span><span class="val">80%</span></div>
+          <div class="driver-row"><span class="lbl">Yield (PA approval)</span><span class="val">90%</span></div>
+
+          <div class="sc-output">
+            <div class="out-row"><span class="lbl">Revenue / unit (annual)</span><span class="val">$162k</span></div>
+            <div class="out-row"><span class="lbl">Contribution margin</span><span class="val">35%</span></div>
+            <div class="out-row"><span class="lbl">LTV / CAC</span><span class="val">8.2x</span></div>
+            <div class="out-row headline"><span class="lbl">EBITDA, year 1</span><span class="val">$1.4M</span></div>
+          </div>
+        </div>
+
+        <!-- DOWNSIDE -->
+        <div class="sc down">
+          <div class="sc-name">Downside</div>
+          <div class="sc-tag">Partner ramp delays 60 days. Yield holds, utilization slips.</div>
+
+          <div class="sc-section">Drivers</div>
+          <div class="driver-row"><span class="lbl">FTE delivery units</span><span class="val">15</span></div>
+          <div class="driver-row"><span class="lbl">Active customers</span><span class="val">1,950</span></div>
+          <div class="driver-row"><span class="lbl">Realized rate</span><span class="val">$132</span></div>
+          <div class="driver-row"><span class="lbl">Utilization</span><span class="val">65%</span></div>
+          <div class="driver-row"><span class="lbl">Yield (PA approval)</span><span class="val">87%</span></div>
+
+          <div class="sc-output">
+            <div class="out-row"><span class="lbl">Revenue / unit (annual)</span><span class="val">$118k</span></div>
+            <div class="out-row"><span class="lbl">Contribution margin</span><span class="val">14%</span></div>
+            <div class="out-row"><span class="lbl">LTV / CAC</span><span class="val">5.1x</span></div>
+            <div class="out-row headline"><span class="lbl">EBITDA, year 1</span><span class="val">($0.8M)</span></div>
+          </div>
+        </div>
+
+        <!-- UPSIDE -->
+        <div class="sc up">
+          <div class="sc-name">Upside</div>
+          <div class="sc-tag">Partner on schedule. Yield improves with PA automation.</div>
+
+          <div class="sc-section">Drivers</div>
+          <div class="driver-row"><span class="lbl">FTE delivery units</span><span class="val">22</span></div>
+          <div class="driver-row"><span class="lbl">Active customers</span><span class="val">3,400</span></div>
+          <div class="driver-row"><span class="lbl">Realized rate</span><span class="val">$138</span></div>
+          <div class="driver-row"><span class="lbl">Utilization</span><span class="val">82%</span></div>
+          <div class="driver-row"><span class="lbl">Yield (PA approval)</span><span class="val">92%</span></div>
+
+          <div class="sc-output">
+            <div class="out-row"><span class="lbl">Revenue / unit (annual)</span><span class="val">$172k</span></div>
+            <div class="out-row"><span class="lbl">Contribution margin</span><span class="val">41%</span></div>
+            <div class="out-row"><span class="lbl">LTV / CAC</span><span class="val">11.4x</span></div>
+            <div class="out-row headline"><span class="lbl">EBITDA, year 1</span><span class="val">$3.1M</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: CAPITAL DECISIONS -->
+    <div class="capital">
+      <div class="panel-title" style="margin-bottom: 6px;">
+        Decisions Triggered
+      </div>
+
+      <div class="cap-row">
+        <div class="q">When do we hire the next cohort of delivery units?</div>
+        <div class="a">
+          <span class="cap-trigger b">Base</span>add 5 FTE in Q2 once utilization holds &gt;75% for 4 weeks. <strong>$0.6M loaded cost</strong>, payback in 9 months.
+        </div>
+      </div>
+
+      <div class="cap-row">
+        <div class="q">When does runway force a raise process?</div>
+        <div class="a">
+          <span class="cap-trigger d">Downside</span>at 16-week runway threshold, raise process opens. Trigger fires in <strong>month 7</strong> under downside; not at all in base or upside.
+        </div>
+      </div>
+
+      <div class="cap-row">
+        <div class="q">Which technology investment lands first?</div>
+        <div class="a">
+          <span class="cap-trigger u">Upside</span>yield automation funds itself in <strong>11 weeks</strong>. Each 1% PA improvement recovers ~$140k annual revenue at current volume.
+        </div>
+      </div>
+
+      <div class="cap-row">
+        <div class="q">Which deal structures clear the bar?</div>
+        <div class="a">
+          <span class="cap-trigger b">Base</span>PMPM and shared-savings structures clear at <strong>contribution margin &gt;30%</strong>. Downside risk capped at 20% of upside on any value-based contract.
+        </div>
+      </div>
+
+      <div class="cap-row">
+        <div class="q">When do cost-center owners face variance review?</div>
+        <div class="a">
+          <span class="cap-trigger b">All</span>any line <strong>&gt;10% or &gt;$10k</strong> off plan triggers same-week conversation with named owner. No deferral.
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="footer">
+    <span><em>Every number above flows from one model. Every decision returns to it as a new assumption. That feedback loop is the operating system.</em></span>
+    <span class="num">Confidential &nbsp;·&nbsp; CFO Office</span>
+  </div>
+
+</div>
+</body>
+</html>

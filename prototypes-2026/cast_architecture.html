@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CAST Architecture — Five-Layer Design</title>
+<style>
+  @page { size: letter; margin: 0.75in; }
+  :root {
+    --text: #1a1a1a;
+    --muted: #5f5e5a;
+    --border: #d3d1c7;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+  body { padding: 0.5in; max-width: 7.5in; margin: 0 auto; }
+  h1 { font-size: 22pt; font-weight: 500; margin: 0 0 4pt; letter-spacing: -0.01em; }
+  h2 { font-size: 15pt; font-weight: 500; margin: 0 0 4pt; letter-spacing: -0.005em; }
+  h3 { font-size: 12pt; font-weight: 500; margin: 0 0 6pt; color: var(--muted); }
+  p  { margin: 0 0 10pt; }
+  .subtitle { color: var(--muted); font-size: 11pt; margin-bottom: 28pt; }
+  .meta { color: var(--muted); font-size: 9.5pt; margin-bottom: 18pt; }
+  .section { margin-bottom: 36pt; page-break-inside: avoid; }
+  .section + .section { padding-top: 8pt; }
+  .diagram {
+    background: #fafafa;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14pt;
+    margin: 10pt 0 12pt;
+  }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .non-negs {
+    background: #f6f5f0;
+    border-left: 3px solid #5f5e5a;
+    padding: 10pt 14pt;
+    margin: 10pt 0;
+    font-size: 10.5pt;
+  }
+  .non-negs strong { font-weight: 500; }
+  .exit {
+    font-size: 10pt;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 6pt;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 28pt 0; }
+  .page-break { page-break-before: always; }
+  .cover { page-break-after: always; padding-top: 1in; }
+  .cover h1 { font-size: 28pt; }
+
+  /* SVG text styling */
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  .t  { font-size: 14px; font-weight: 400; fill: #1a1a1a; }
+  .ts { font-size: 12px; font-weight: 400; fill: #5f5e5a; }
+  .th { font-size: 14px; font-weight: 500; fill: #1a1a1a; }
+  .arr { stroke: #5f5e5a; stroke-width: 1; fill: none; }
+</style>
+</head>
+<body>
+
+<!-- ================== COVER ================== -->
+<div class="cover">
+  <div class="meta">CAST — Financial Coordination Infrastructure</div>
+  <h1>Five-Layer Architecture</h1>
+  <p class="subtitle">Reference document for Layer 0 coding session — Sunday, April 19, 2026</p>
+
+  <h3>What this document is</h3>
+  <p>The architectural reference for CAST's five-layer system. Each section contains a diagram, a one-paragraph description, and — where applicable — the build rule or exit criterion for that layer. This document is meant to sit open alongside your editor during coding.</p>
+
+  <h3>What this document is not</h3>
+  <p>This is not the build guide. For session-by-session prompts and exit criteria, see <em>CAST_Layer0_Build_Guide.md</em>. For the canonical spec, see <em>CAST_System_Design_v1_3_March2026.docx</em>.</p>
+
+  <h3>Three rules that govern every layer</h3>
+  <div class="non-negs">
+    <strong>1.</strong> <code>agent_id</code> is non-nullable on every event — this is the architectural claim, not a feature.<br>
+    <strong>2.</strong> Every ledger posting carries a foreign key to a bilateral event. No posting without a signed event.<br>
+    <strong>3.</strong> No posting reaches the ledger until the bilateral confirmation is cryptographically verified.
+  </div>
+</div>
+
+<!-- ================== OVERVIEW ================== -->
+<div class="section">
+  <h2>Overview — The five layers</h2>
+  <p class="subtitle">Each layer above Layer 0 is a read surface on the event ledger below it.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 560" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-o" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">CAST layer architecture</text>
+      <text class="ts" x="40" y="52">Each layer adds a read surface on the event ledger below it</text>
+
+      <!-- Layer 4 -->
+      <rect x="40" y="80" width="520" height="56" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+      <text class="th" x="56" y="104" fill="#3C3489">Layer 4 — Compiled control plane</text>
+      <text class="ts" x="56" y="122" fill="#534AB7">Invariant engine, proof requirements, decisions</text>
+      <text class="ts" x="576" y="112">v2+</text>
+
+      <!-- Layer 3 -->
+      <rect x="40" y="148" width="520" height="56" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+      <text class="th" x="56" y="172" fill="#085041">Layer 3 — Vendor event layer</text>
+      <text class="ts" x="56" y="190" fill="#0F6E56">Portable proof export, trust tiers</text>
+      <text class="ts" x="576" y="180">later</text>
+
+      <!-- Layer 2 -->
+      <rect x="40" y="216" width="520" height="56" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+      <text class="th" x="56" y="240" fill="#712B13">Layer 2 — Verification API</text>
+      <text class="ts" x="56" y="258" fill="#993C1D">Third-party proof check, no lineage</text>
+      <text class="ts" x="576" y="248">next</text>
+
+      <!-- Layer 1 -->
+      <rect x="40" y="284" width="520" height="56" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+      <text class="th" x="56" y="308" fill="#633806">Layer 1 — Auditor view</text>
+      <text class="ts" x="56" y="326" fill="#854F0B">Read-only lineage projection of events</text>
+      <text class="ts" x="576" y="316">after L0</text>
+
+      <!-- Layer 0 -->
+      <rect x="40" y="352" width="520" height="76" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="1"/>
+      <text class="th" x="56" y="378" fill="#0C447C">Layer 0 — Bilateral event loop</text>
+      <text class="ts" x="56" y="396" fill="#185FA5">Work order → signed confirm → posting</text>
+      <text class="ts" x="56" y="414" fill="#185FA5">Three non-negotiables enforced here</text>
+      <text class="ts" x="576" y="394" fill="#0C447C" font-weight="500">building</text>
+
+      <line x1="300" y1="436" x2="300" y2="466" class="arr" marker-end="url(#arrow-o)"/>
+      <text class="ts" x="312" y="455">writes</text>
+
+      <!-- Ledger -->
+      <rect x="40" y="470" width="520" height="56" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+      <text class="th" x="56" y="494" fill="#2C2C2A">Event ledger</text>
+      <text class="ts" x="56" y="512" fill="#444441">agent_id · bilateral_event_id · posting FK</text>
+    </svg>
+  </div>
+
+  <p><strong>The ledger is the spine.</strong> Every layer above Layer 0 is a read surface — a projection, a query, a verification endpoint. Nothing bypasses the ledger. If the three non-negotiables hold at Layer 0, every upper layer inherits correctness. If any one fails, every upper layer inherits the defect.</p>
+
+  <p class="exit">Build rule: no upper layer ships until Layer 0 has produced ~10 real bilateral events.</p>
+</div>
+
+<hr>
+
+<!-- ================== LAYER 0 ================== -->
+<div class="section">
+  <h3>Building now</h3>
+  <h2>Layer 0 — Bilateral event loop</h2>
+  <p class="subtitle">The write path. Cryptographic confirmation gates every posting.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">Layer 0 — Bilateral event loop</text>
+      <text class="ts" x="40" y="52">The write path. Cryptographic confirmation gates every posting.</text>
+
+      <rect x="40" y="90" width="140" height="60" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="110" y="116" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Work order</text>
+      <text class="ts" x="110" y="134" text-anchor="middle" dominant-baseline="central" fill="#185FA5">Issued internally</text>
+
+      <rect x="220" y="90" width="140" height="60" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+      <text class="th" x="290" y="116" text-anchor="middle" dominant-baseline="central" fill="#2C2C2A">Delivery</text>
+      <text class="ts" x="290" y="134" text-anchor="middle" dominant-baseline="central" fill="#444441">SMS, email, API</text>
+
+      <rect x="400" y="90" width="140" height="60" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+      <text class="th" x="470" y="116" text-anchor="middle" dominant-baseline="central" fill="#633806">Counterparty</text>
+      <text class="ts" x="470" y="134" text-anchor="middle" dominant-baseline="central" fill="#854F0B">Passkey confirm</text>
+
+      <line x1="180" y1="120" x2="218" y2="120" class="arr" marker-end="url(#arrow-0)"/>
+      <line x1="360" y1="120" x2="398" y2="120" class="arr" marker-end="url(#arrow-0)"/>
+
+      <path d="M 470 150 L 470 200 L 110 200 L 110 230" class="arr" marker-end="url(#arrow-0)"/>
+      <text class="ts" x="290" y="194" text-anchor="middle">Signed confirmation returns</text>
+
+      <rect x="40" y="240" width="300" height="76" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+      <text class="th" x="190" y="266" text-anchor="middle" dominant-baseline="central" fill="#085041">Bilateral event recorded</text>
+      <text class="ts" x="190" y="286" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">agent_id · signature · timestamp</text>
+      <text class="ts" x="190" y="302" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Both parties bound to same fact</text>
+
+      <line x1="340" y1="278" x2="378" y2="278" class="arr" marker-end="url(#arrow-0)"/>
+      <text class="ts" x="358" y="270" text-anchor="middle">FK</text>
+
+      <rect x="380" y="240" width="260" height="76" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1"/>
+      <text class="th" x="510" y="266" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Ledger posting</text>
+      <text class="ts" x="510" y="286" text-anchor="middle" dominant-baseline="central" fill="#534AB7">References bilateral_event_id</text>
+      <text class="ts" x="510" y="302" text-anchor="middle" dominant-baseline="central" fill="#534AB7">Cannot exist without it</text>
+    </svg>
+  </div>
+
+  <p>The foundation. A work order is issued internally, delivered to a counterparty over SMS, email, or API, and confirmed with a cryptographic signature (passkey). Only after that signature is verified does a ledger posting become legal. The bilateral event is the only thing that binds both parties to the same fact, and the posting's foreign key to that event is what makes the whole architecture hold.</p>
+
+  <div class="non-negs">
+    <strong>Non-negotiables enforced here:</strong><br>
+    (1) <code>agent_id</code> non-nullable on every event &nbsp; (2) posting FK → bilateral event &nbsp; (3) no posting until signature verified
+  </div>
+
+  <p class="exit">Exit criterion: one real counterparty completes the loop end-to-end, demoable via shareable URL.</p>
+</div>
+
+<!-- ================== LAYER 1 ================== -->
+<div class="section page-break">
+  <h3>After Layer 0 produces ~10 real events</h3>
+  <h2>Layer 1 — Auditor view</h2>
+  <p class="subtitle">Read-only lineage projection. Any posting traces back to its event chain.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">Layer 1 — Auditor view</text>
+      <text class="ts" x="40" y="52">Read-only lineage projection. Any posting → full event chain.</text>
+
+      <rect x="40" y="90" width="140" height="60" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+      <text class="th" x="110" y="116" text-anchor="middle" dominant-baseline="central" fill="#2C2C2A">Auditor</text>
+      <text class="ts" x="110" y="134" text-anchor="middle" dominant-baseline="central" fill="#444441">Queries a posting</text>
+
+      <line x1="180" y1="120" x2="218" y2="120" class="arr" marker-end="url(#arrow-1)"/>
+
+      <rect x="220" y="90" width="180" height="60" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+      <text class="th" x="310" y="116" text-anchor="middle" dominant-baseline="central" fill="#633806">Lineage projection</text>
+      <text class="ts" x="310" y="134" text-anchor="middle" dominant-baseline="central" fill="#854F0B">Read-only view</text>
+
+      <line x1="400" y1="120" x2="438" y2="120" class="arr" marker-end="url(#arrow-1)"/>
+
+      <rect x="440" y="90" width="200" height="60" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+      <text class="th" x="540" y="116" text-anchor="middle" dominant-baseline="central" fill="#085041">Event chain returned</text>
+      <text class="ts" x="540" y="134" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Posting → event → order</text>
+
+      <rect x="40" y="210" width="600" height="68" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="340" y="238" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Layer 0 event ledger</text>
+      <text class="ts" x="340" y="258" text-anchor="middle" dominant-baseline="central" fill="#185FA5">agent_id · bilateral_event_id · signature · posting FK</text>
+
+      <line x1="310" y1="208" x2="310" y2="180" class="arr" marker-end="url(#arrow-1)"/>
+      <text class="ts" x="322" y="198">reads</text>
+    </svg>
+  </div>
+
+  <p>The first read surface. Given any ledger posting, Layer 1 reconstructs the complete chain of events that produced it — the originating work order, the delivery mechanism, the signature, the timestamp, the agent_id. No write access. It is a projection, not a system of record.</p>
+
+  <p class="exit">Gate: do not build until ~10 real bilateral events exist in the ledger. Building against synthetic data optimizes for imagined shape, not real shape.</p>
+</div>
+
+<!-- ================== LAYER 2 ================== -->
+<div class="section page-break">
+  <h3>Next</h3>
+  <h2>Layer 2 — Verification API</h2>
+  <p class="subtitle">Third-party attestation. Yes/no answer, no lineage exposed.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">Layer 2 — Verification API</text>
+      <text class="ts" x="40" y="52">Third-party attestation. Yes/no answer, no lineage exposed.</text>
+
+      <rect x="40" y="90" width="160" height="60" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+      <text class="th" x="120" y="116" text-anchor="middle" dominant-baseline="central" fill="#2C2C2A">Third party</text>
+      <text class="ts" x="120" y="134" text-anchor="middle" dominant-baseline="central" fill="#444441">Auditor, lender, platform</text>
+
+      <line x1="200" y1="110" x2="238" y2="110" class="arr" marker-end="url(#arrow-2)"/>
+      <text class="ts" x="219" y="102" text-anchor="middle">POST sig</text>
+
+      <rect x="240" y="90" width="180" height="60" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1"/>
+      <text class="th" x="330" y="116" text-anchor="middle" dominant-baseline="central" fill="#712B13">Verification endpoint</text>
+      <text class="ts" x="330" y="134" text-anchor="middle" dominant-baseline="central" fill="#993C1D">Stateless attestation</text>
+
+      <line x1="420" y1="130" x2="238" y2="130" class="arr" marker-end="url(#arrow-2)"/>
+      <text class="ts" x="330" y="158" text-anchor="middle">Valid · signer · timestamp</text>
+
+      <line x1="330" y1="150" x2="330" y2="200" class="arr" marker-end="url(#arrow-2)"/>
+      <text class="ts" x="342" y="178">checks</text>
+
+      <rect x="40" y="210" width="600" height="68" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="340" y="238" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Layer 0 event ledger</text>
+      <text class="ts" x="340" y="258" text-anchor="middle" dominant-baseline="central" fill="#185FA5">Signatures verified against stored agent_id and event record</text>
+    </svg>
+  </div>
+
+  <p>The commercial surface for Scope B buyers. A third party — auditor, lender, platform owner — posts a signature to the verification endpoint and receives an attestation: valid or not, signed by whom, at what time. No lineage, no context, no access to the underlying system. Platform owners (Anthropic, Microsoft, Salesforce) can expose this to their enterprise customers so agent actions become auditable without exposing the system that produced them.</p>
+</div>
+
+<!-- ================== LAYER 3 ================== -->
+<div class="section page-break">
+  <h3>Later</h3>
+  <h2>Layer 3 — Vendor event layer</h2>
+  <p class="subtitle">Vendor's view across all buyers. Portable proof, emergent trust tiers.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">Layer 3 — Vendor event layer</text>
+      <text class="ts" x="40" y="52">Vendor's view across all buyers. Portable proof, emergent trust tiers.</text>
+
+      <rect x="40" y="90" width="140" height="50" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="110" y="118" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Buyer A</text>
+      <rect x="40" y="150" width="140" height="50" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="110" y="178" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Buyer B</text>
+      <rect x="40" y="210" width="140" height="50" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="110" y="238" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Buyer C</text>
+
+      <line x1="180" y1="115" x2="258" y2="165" class="arr" marker-end="url(#arrow-3)"/>
+      <line x1="180" y1="175" x2="258" y2="175" class="arr" marker-end="url(#arrow-3)"/>
+      <line x1="180" y1="235" x2="258" y2="185" class="arr" marker-end="url(#arrow-3)"/>
+
+      <rect x="260" y="130" width="200" height="90" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+      <text class="th" x="360" y="158" text-anchor="middle" dominant-baseline="central" fill="#085041">Vendor aggregation</text>
+      <text class="ts" x="360" y="178" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">All co-signed events</text>
+      <text class="ts" x="360" y="196" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Signature history</text>
+
+      <line x1="460" y1="160" x2="498" y2="140" class="arr" marker-end="url(#arrow-3)"/>
+      <line x1="460" y1="190" x2="498" y2="210" class="arr" marker-end="url(#arrow-3)"/>
+
+      <rect x="500" y="110" width="140" height="60" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+      <text class="th" x="570" y="136" text-anchor="middle" dominant-baseline="central" fill="#633806">Proof bundle</text>
+      <text class="ts" x="570" y="154" text-anchor="middle" dominant-baseline="central" fill="#854F0B">Portable export</text>
+
+      <rect x="500" y="180" width="140" height="60" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+      <text class="th" x="570" y="206" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Trust tier</text>
+      <text class="ts" x="570" y="224" text-anchor="middle" dominant-baseline="central" fill="#534AB7">Emerges from history</text>
+    </svg>
+  </div>
+
+  <p>The vendor's own view of every bilateral event they've co-authored, across all their buyers. This is where network effects begin: each new buyer adds to every vendor's provable history. A vendor with 200 signed events is a different credit risk than one with 2. Vendors become portable across platforms without losing their reputation — their proof bundle travels with them.</p>
+</div>
+
+<!-- ================== LAYER 4 ================== -->
+<div class="section page-break">
+  <h3>v2+ — only viable after enough events exist to compile from</h3>
+  <h2>Layer 4 — Compiled control plane</h2>
+  <p class="subtitle">The operator surface. Compiles event history into enforceable rules.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <text class="th" x="40" y="34">Layer 4 — Compiled control plane</text>
+      <text class="ts" x="40" y="52">The operator surface. Compiles event history into enforceable rules.</text>
+
+      <rect x="40" y="90" width="600" height="56" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+      <text class="th" x="340" y="116" text-anchor="middle" dominant-baseline="central" fill="#0C447C">Accumulated event history</text>
+      <text class="ts" x="340" y="134" text-anchor="middle" dominant-baseline="central" fill="#185FA5">Layers 0–3 must be producing real events for this to be meaningful</text>
+
+      <line x1="160" y1="146" x2="160" y2="180" class="arr" marker-end="url(#arrow-4)"/>
+      <line x1="340" y1="146" x2="340" y2="180" class="arr" marker-end="url(#arrow-4)"/>
+      <line x1="520" y1="146" x2="520" y2="180" class="arr" marker-end="url(#arrow-4)"/>
+
+      <rect x="60" y="190" width="200" height="80" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+      <text class="th" x="160" y="216" text-anchor="middle" dominant-baseline="central" fill="#3C3489">Invariant engine</text>
+      <text class="ts" x="160" y="236" text-anchor="middle" dominant-baseline="central" fill="#534AB7">Rules that must hold</text>
+      <text class="ts" x="160" y="254" text-anchor="middle" dominant-baseline="central" fill="#534AB7">across all events</text>
+
+      <rect x="240" y="190" width="200" height="80" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+      <text class="th" x="340" y="216" text-anchor="middle" dominant-baseline="central" fill="#712B13">Proof requirements</text>
+      <text class="ts" x="340" y="236" text-anchor="middle" dominant-baseline="central" fill="#993C1D">What signatures are</text>
+      <text class="ts" x="340" y="254" text-anchor="middle" dominant-baseline="central" fill="#993C1D">needed for what actions</text>
+
+      <rect x="420" y="190" width="200" height="80" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+      <text class="th" x="520" y="216" text-anchor="middle" dominant-baseline="central" fill="#085041">Decision engine</text>
+      <text class="ts" x="520" y="236" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">Deterministic outcomes</text>
+      <text class="ts" x="520" y="254" text-anchor="middle" dominant-baseline="central" fill="#0F6E56">from event patterns</text>
+
+      <line x1="160" y1="270" x2="160" y2="300" class="arr" marker-end="url(#arrow-4)"/>
+      <line x1="340" y1="270" x2="340" y2="300" class="arr" marker-end="url(#arrow-4)"/>
+      <line x1="520" y1="270" x2="520" y2="300" class="arr" marker-end="url(#arrow-4)"/>
+
+      <rect x="40" y="310" width="600" height="46" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+      <text class="th" x="340" y="333" text-anchor="middle" dominant-baseline="central" fill="#2C2C2A">Governs future Layer 0 events</text>
+    </svg>
+  </div>
+
+  <p>The operator surface, viable only after the system has accumulated enough real events to compile from. Invariants become enforceable rules. Proof requirements become policy. Decisions become deterministic. This is the v2 operating system — it is in the roadmap specifically so that nothing upstream is built toward it prematurely. Compiling rules before enough events exist produces brittle policy that will be thrown away.</p>
+
+  <p class="exit">Conditional layer: "if at all." Build only when event volume and operator count justify it.</p>
+</div>
+
+</body>
+</html>

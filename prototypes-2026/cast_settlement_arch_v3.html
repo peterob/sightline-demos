@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cast — Settlement Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:        #0a2540;
+    --ink-2:      #425466;
+    --ink-3:      #697386;
+    --line:       #e3e8ee;
+    --line-2:     #d8dee5;
+    --bg:         #ffffff;
+    --bg-2:       #f6f9fc;
+    --bg-3:       #f0f4f8;
+
+    --accent:     #635bff;
+    --accent-2:   #7a73ff;
+    --accent-soft:#efeeff;
+
+    --pre:        #0073e6;
+    --pre-bg:     #eaf3fc;
+    --settle:     #00875a;
+    --settle-bg:  #e3f2eb;
+    --post:       #b54708;
+    --post-bg:    #fbf2ea;
+
+    --mono:       'JetBrains Mono', ui-monospace, monospace;
+    --sans:       'Inter', system-ui, -apple-system, sans-serif;
+
+    --radius:     8px;
+    --radius-lg:  12px;
+    --shadow-sm:  0 1px 2px rgba(10,37,64,0.04), 0 0 0 1px rgba(10,37,64,0.04);
+    --shadow:     0 2px 8px rgba(10,37,64,0.06), 0 0 0 1px rgba(10,37,64,0.04);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Layer gating */
+  .lyr-op, .lyr-eng, .lyr-strat { display: none; }
+  body[data-layer="op"]    .lyr-op    { display: block; }
+  body[data-layer="op"]    .lyr-op.inline { display: inline; }
+  body[data-layer="eng"]   .lyr-eng   { display: block; }
+  body[data-layer="eng"]   .lyr-eng.inline { display: inline; }
+  body[data-layer="strat"] .lyr-strat { display: block; }
+  body[data-layer="strat"] .lyr-strat.inline { display: inline; }
+
+  /* =========================================================
+     NAV
+     ========================================================= */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(180%) blur(10px);
+    -webkit-backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand .dot {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: inline-block;
+  }
+  .brand .sub {
+    font-weight: 500;
+    color: var(--ink-3);
+    font-size: 14px;
+    margin-left: 4px;
+  }
+
+  .toggle-group {
+    display: inline-flex;
+    background: var(--bg-2);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .toggle-group button {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: -0.005em;
+  }
+  .toggle-group button:hover { color: var(--ink); }
+  body[data-layer="op"]    .toggle-group button[data-target="op"],
+  body[data-layer="eng"]   .toggle-group button[data-target="eng"],
+  body[data-layer="strat"] .toggle-group button[data-target="strat"] {
+    background: var(--bg);
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* =========================================================
+     HERO
+     ========================================================= */
+  .hero {
+    padding: 80px 56px 64px;
+    max-width: 1280px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 480px;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(99,91,255,0.08), transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0,115,230,0.06), transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 0 0 20px;
+    max-width: 900px;
+    color: var(--ink);
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--accent), #00a3a3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .hero .lede {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 720px;
+    margin: 0 0 32px;
+    font-weight: 400;
+  }
+  .hero code {
+    font-family: var(--mono);
+    font-size: 14px;
+    background: var(--bg-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 48px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .meta-item .k {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .meta-item .v {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  /* =========================================================
+     SECTION
+     ========================================================= */
+  .section {
+    padding: 64px 56px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .section-head {
+    margin-bottom: 40px;
+    max-width: 760px;
+  }
+  .section-head h2 {
+    font-size: 36px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  .section-head p {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  /* =========================================================
+     PHASE STRIP
+     ========================================================= */
+  .phase-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .phase-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .phase-card[data-phase="pre"]::before    { background: var(--pre); }
+  .phase-card[data-phase="settle"]::before { background: var(--settle); }
+  .phase-card[data-phase="post"]::before   { background: var(--post); }
+
+  .phase-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .phase-name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin-bottom: 6px;
+  }
+  .phase-card[data-phase="pre"]    .phase-name { color: var(--pre); }
+  .phase-card[data-phase="settle"] .phase-name { color: var(--settle); }
+  .phase-card[data-phase="post"]   .phase-name { color: var(--post); }
+  .phase-tag {
+    font-size: 13px;
+    color: var(--ink-2);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .phase-claim {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* =========================================================
+     MATRIX — using a single outer card; inner cells use
+     border-bottom + border-right with no bleeds at edges.
+     The matrix container clips with overflow:hidden so the
+     last column/row never shows orphan borders.
+     ========================================================= */
+  .matrix {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .matrix-grid {
+    display: grid;
+    grid-template-columns: 200px repeat(3, 1fr);
+  }
+
+  /* Header row */
+  .mh {
+    padding: 14px 20px;
+    background: var(--bg-2);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  .mh:nth-child(4n) { border-right: none; }
+  .mh[data-phase="pre"]    { color: var(--pre); }
+  .mh[data-phase="settle"] { color: var(--settle); }
+  .mh[data-phase="post"]   { color: var(--post); }
+
+  /* Role cell (leftmost) */
+  .mr {
+    padding: 24px 20px;
+    background: var(--bg-2);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .mr .role-name {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .mr .role-sub {
+    font-size: 13px;
+    color: var(--ink-3);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+
+  /* Step cell */
+  .mc {
+    padding: 24px 20px;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .mc:nth-child(4n) { border-right: none; }
+  .mc:hover { background: var(--bg-2); }
+
+  /* Empty cell */
+  .mc.empty {
+    background:
+      repeating-linear-gradient(
+        135deg,
+        var(--bg-2),
+        var(--bg-2) 8px,
+        var(--bg-3) 8px,
+        var(--bg-3) 9px
+      );
+    align-items: center;
+    justify-content: center;
+  }
+  .mc.empty:hover { background:
+      repeating-linear-gradient(
+        135deg,
+        var(--bg-2),
+        var(--bg-2) 8px,
+        var(--bg-3) 8px,
+        var(--bg-3) 9px
+      );
+  }
+  .mc.empty::after {
+    content: "Not active in this phase";
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+  }
+
+  /* Bottom row (last cells): kill the bottom border to avoid
+     a double line against the matrix's own border-radius edge. */
+  .matrix-grid > .mc-last,
+  .matrix-grid > .mr-last { border-bottom: none; }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .mc[data-phase="pre"]    .step-num { color: var(--pre); }
+  .mc[data-phase="settle"] .step-num { color: var(--settle); }
+  .mc[data-phase="post"]   .step-num { color: var(--post); }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: -0.005em;
+  }
+  .step-desc {
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin-bottom: 14px;
+  }
+  .step-desc code, .step-title code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg-3);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    background: var(--bg-2);
+    color: var(--ink-2);
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .pill.primary {
+    background: var(--ink);
+    color: #ffffff;
+    border-color: var(--ink);
+  }
+  .pill.warn {
+    background: var(--post-bg);
+    color: var(--post);
+    border-color: #f0d9c0;
+  }
+
+  /* =========================================================
+     ARTIFACT BAR — light tinted card (NOT dark anymore)
+     Uses a soft wash so dark text remains readable.
+     ========================================================= */
+  .artifact-bar {
+    margin-top: 24px;
+    background: linear-gradient(180deg, #f7fafc 0%, #eef4f9 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .artifact-grid {
+    display: grid;
+    grid-template-columns: 200px repeat(3, 1fr);
+  }
+  .artifact-label {
+    padding: 24px 20px;
+    background: rgba(10, 37, 64, 0.04);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+  .artifact-label .role-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .artifact-label .role-sub {
+    font-size: 12px;
+    color: var(--ink-3);
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  .ac {
+    padding: 24px 20px;
+    border-right: 1px solid var(--line);
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+  }
+  .ac:last-child { border-right: none; }
+  .ac .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .ac[data-phase="pre"]    .step-num { color: var(--pre); }
+  .ac[data-phase="settle"] .step-num { color: var(--settle); }
+  .ac[data-phase="post"]   .step-num { color: var(--post); }
+  .ac .step-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: -0.005em;
+  }
+  .ac .step-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    margin-bottom: 14px;
+  }
+  .ac .step-desc code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(255,255,255,0.7);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .ac .pill {
+    background: rgba(255,255,255,0.75);
+    color: var(--ink-2);
+    border-color: var(--line);
+  }
+
+  /* =========================================================
+     LEGEND
+     ========================================================= */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+  }
+  .legend-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+  .legend-card .k {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .legend-card .v {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .legend-card .v strong { color: var(--ink); font-weight: 600; }
+
+  /* =========================================================
+     PHASE NOTES
+     ========================================================= */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .note-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .note-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .note-card[data-phase="pre"]::before    { background: var(--pre); }
+  .note-card[data-phase="settle"]::before { background: var(--settle); }
+  .note-card[data-phase="post"]::before   { background: var(--post); }
+
+  .note-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .note-card[data-phase="pre"]    .note-eyebrow { color: var(--pre); }
+  .note-card[data-phase="settle"] .note-eyebrow { color: var(--settle); }
+  .note-card[data-phase="post"]   .note-eyebrow { color: var(--post); }
+  .note-card h4 {
+    font-size: 18px;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    color: var(--ink);
+  }
+  .note-card p {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0 0 12px;
+  }
+  .note-card p:last-of-type { margin-bottom: 16px; }
+  .note-card code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+  .note-footer {
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+
+  /* =========================================================
+     CALLOUT — light gradient card; no dark backgrounds
+     ========================================================= */
+  .callout {
+    background: linear-gradient(135deg, #f6f9fc 0%, #eef2f8 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .stamp-num {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent), #00a3a3);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    margin-bottom: 8px;
+  }
+  .stamp-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .callout .body p {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .callout .body p:last-child { margin-bottom: 0; }
+  .callout .body code {
+    font-family: var(--mono);
+    font-size: 14px;
+    background: var(--bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .callout .body .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  /* =========================================================
+     FOOTER
+     ========================================================= */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 32px 56px;
+    max-width: 1280px;
+    margin: 56px auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  footer .links {
+    display: flex;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  /* =========================================================
+     RESPONSIVE
+     ========================================================= */
+  @media (max-width: 1100px) {
+    .matrix-grid, .artifact-grid { grid-template-columns: 160px repeat(3, 1fr); }
+    .hero h1 { font-size: 44px; }
+    .callout { grid-template-columns: 1fr; gap: 24px; padding: 32px; }
+    .stamp-num { font-size: 48px; }
+  }
+  @media (max-width: 860px) {
+    .nav, .hero, .section, footer { padding-left: 24px; padding-right: 24px; }
+    .phase-strip, .notes-grid, .legend { grid-template-columns: 1fr; }
+    .matrix-grid, .artifact-grid { grid-template-columns: 1fr; }
+    .mh { display: none; }
+    .mr, .mc, .artifact-label, .ac {
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+    }
+    .matrix-grid > *:last-child,
+    .artifact-grid > *:last-child { border-bottom: none; }
+    .mc::before {
+      content: attr(data-phase-label);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-3);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .ac::before {
+      content: attr(data-phase-label);
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-3);
+      margin-bottom: 8px;
+      display: block;
+    }
+    .hero h1 { font-size: 32px; }
+    .hero { padding-top: 48px; padding-bottom: 32px; }
+    .section { padding: 40px 24px; }
+  }
+</style>
+</head>
+<body data-layer="op">
+
+  <nav class="nav">
+    <div class="brand">
+      <span class="dot"></span>
+      Cast<span class="sub">/ settlement architecture</span>
+    </div>
+    <div class="toggle-group" role="tablist" aria-label="Audience">
+      <button type="button" data-target="op">Operator</button>
+      <button type="button" data-target="eng">Engineer</button>
+      <button type="button" data-target="strat">Strategy</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">Pre-settlement → Settlement → Post-settlement</div>
+    <h1>
+      <span class="lyr-op inline">From PO to payment to <span class="grad">permanent record.</span></span>
+      <span class="lyr-eng inline">Bilateral event, atomic settlement, <span class="grad">replayable proof.</span></span>
+      <span class="lyr-strat inline">Where the wedge sits — and <span class="grad">where the rents form.</span></span>
+    </h1>
+    <p class="lede">
+      <span class="lyr-op inline">A single signed object — the confirmed deal — connects your books, your payments, and your audit trail. Every phase produces evidence anyone can replay later.</span>
+      <span class="lyr-eng inline">Each phase produces a row that references <code>event_id</code>. <code>payload_hash</code> is the universal join key. Standard primitives only — SHA-256, ECDSA-P256, WebAuthn — no proprietary verifier.</span>
+      <span class="lyr-strat inline">Bitcoin and stablecoins are good at trace properties post-broadcast. They're weak at the bilateral commitment problem before broadcast. Cast occupies that ground, then composes with any settlement rail.</span>
+    </p>
+    <div class="meta-row">
+      <div class="meta-item"><span class="k">Participants</span><span class="v">4</span></div>
+      <div class="meta-item"><span class="k">Phases</span><span class="v">3</span></div>
+      <div class="meta-item"><span class="k">Steps</span><span class="v">7</span></div>
+      <div class="meta-item"><span class="k">Join key</span><span class="v"><code>payload_hash</code></span></div>
+    </div>
+  </section>
+
+  <!-- PHASE OVERVIEW -->
+  <section class="section">
+    <div class="section-head">
+      <div class="eyebrow">The three phases</div>
+      <h2>One deal, one hash, three lifecycles.</h2>
+      <p>
+        <span class="lyr-op inline">Pre-settlement is where terms get pinned down. Settlement is the payment itself. Post-settlement is where auditors, lenders, and insurers consume the record.</span>
+        <span class="lyr-eng inline">Pre-settlement produces a signed event. Settlement conditions a transfer on it. Post-settlement is the verifier surface — replay anywhere, no trust required.</span>
+        <span class="lyr-strat inline">Pre-settlement is the wedge — Bitcoin can't reach it. Settlement is rail-agnostic. Post-settlement is where verification rents accrue and Layer 2 sells coverage.</span>
+      </p>
+    </div>
+
+    <div class="phase-strip">
+      <div class="phase-card" data-phase="pre">
+        <div class="phase-num">Phase 01</div>
+        <div class="phase-name">Pre-settlement</div>
+        <div class="phase-tag">Deal formation · bilateral agreement</div>
+        <div class="phase-claim">
+          <span class="lyr-op inline">The terms get nailed down before any money moves. Vendor confirms the exact PO with their device.</span>
+          <span class="lyr-eng inline">Canonicalized payload, WebAuthn-bound signature. Posting refuses to exist without it.</span>
+          <span class="lyr-strat inline">Highest-value layer. Real disputes originate here, where hidden constraints meet bilateral commitment.</span>
+        </div>
+      </div>
+      <div class="phase-card" data-phase="settle">
+        <div class="phase-num">Phase 02</div>
+        <div class="phase-name">Settlement</div>
+        <div class="phase-tag">Atomic value transfer · on rail</div>
+        <div class="phase-claim">
+          <span class="lyr-op inline">Payment fires only because the agreed terms were satisfied. Reconciliation is automatic.</span>
+          <span class="lyr-eng inline">Transfer conditioned on the verified event hash; rail produces immutable receipt.</span>
+          <span class="lyr-strat inline">Atomicity binds off-chain agreement to on-chain fact. This is where chains earn their keep.</span>
+        </div>
+      </div>
+      <div class="phase-card" data-phase="post">
+        <div class="phase-num">Phase 03</div>
+        <div class="phase-name">Post-settlement</div>
+        <div class="phase-tag">Verification · audit · underwriting</div>
+        <div class="phase-claim">
+          <span class="lyr-op inline">Anyone — auditor, lender, insurer — can replay the deal years later.</span>
+          <span class="lyr-eng inline">Verifier replays event chain via pinned canonicalizer. Standard libs, pass/fail.</span>
+          <span class="lyr-strat inline">Verification rents. LaaS sits here. The signed bytes are the durable asset.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MATRIX -->
+  <section class="section">
+    <div class="section-head">
+      <div class="eyebrow">Participants × phases</div>
+      <h2>Who does what — and what they use to do it.</h2>
+      <p>
+        <span class="lyr-op inline">Each row is a participant. Each column is a phase. Cells show the action and the supporting tools.</span>
+        <span class="lyr-eng inline">Each cell names the action and the technical primitives invoked. The light band underneath shows the artifact that survives the phase boundary.</span>
+        <span class="lyr-strat inline">The bottom band is the cumulative asset — the durable, queryable record that compounds across phases and is the basis of every downstream rent.</span>
+      </p>
+    </div>
+
+    <div class="matrix">
+      <div class="matrix-grid">
+        <!-- Header row -->
+        <div class="mh">Participant</div>
+        <div class="mh" data-phase="pre">Pre-settlement</div>
+        <div class="mh" data-phase="settle">Settlement</div>
+        <div class="mh" data-phase="post">Post-settlement</div>
+
+        <!-- ROW 1: PRINCIPAL -->
+        <div class="mr">
+          <div class="role-name">Principal</div>
+          <div class="role-sub">
+            <span class="lyr-op inline">Buyer · purchasing</span>
+            <span class="lyr-eng inline">Internal agent · issuer</span>
+            <span class="lyr-strat inline">Originator of obligation</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="pre" data-phase-label="Pre-settlement">
+          <div class="step-num">Step 01 · Issue</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Drafts the PO against an approved vendor</span>
+            <span class="lyr-eng inline">POSTs work order; payload canonicalized + hashed at issue</span>
+            <span class="lyr-strat inline">Commits to terms before bargaining is settled</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Quantity, price, delivery, payment terms — all stamped at the moment of authorization. Cannot be quietly edited.</span>
+            <span class="lyr-eng inline">Canonical bytes via <code>canonicalize(payload, v1)</code>. <code>payload_hash</code> stored on the event row immediately.</span>
+            <span class="lyr-strat inline">Issuer-bound, append-only intent. Schema enforces NN1: <code>agent_id</code> non-null on every event.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">PO drafting UI</span>
+            <span class="pill lyr-op inline">Vendor master</span>
+            <span class="pill lyr-op inline">Approval workflow</span>
+            <span class="pill primary lyr-eng inline">POST /work-orders</span>
+            <span class="pill lyr-eng inline">canonicalize@v1</span>
+            <span class="pill lyr-eng inline">SHA-256</span>
+            <span class="pill primary lyr-strat inline">Issuer-bound</span>
+            <span class="pill lyr-strat inline">Append-only intent</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="settle" data-phase-label="Settlement">
+          <div class="step-num">Step 04 · Authorize</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Releases payment against the matched, vendor-confirmed PO</span>
+            <span class="lyr-eng inline">Signs settlement intent referencing event_id</span>
+            <span class="lyr-strat inline">Payment is gated by satisfaction of the bilateral commitment</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Treasury can only release against a signed event. Three-way match runs against verified terms.</span>
+            <span class="lyr-eng inline">Hashlock or covenant references <code>payload_hash</code>; rail refuses to broadcast without it.</span>
+            <span class="lyr-strat inline">Atomicity guarantee: no release without the off-chain hyperproperty being satisfied.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">Treasury / AP</span>
+            <span class="pill lyr-op inline">3-way match</span>
+            <span class="pill lyr-op inline">Approval limits</span>
+            <span class="pill primary lyr-eng inline">Hashlock / HTLC</span>
+            <span class="pill lyr-eng inline">Stablecoin TX</span>
+            <span class="pill lyr-eng inline">Lightning · ACH · wire</span>
+            <span class="pill primary lyr-strat inline">Atomicity guarantee</span>
+            <span class="pill lyr-strat inline">No event, no release</span>
+          </div>
+        </div>
+        <div class="mc empty" data-phase="post" data-phase-label="Post-settlement"></div>
+
+        <!-- ROW 2: AGENT -->
+        <div class="mr">
+          <div class="role-name">Agent</div>
+          <div class="role-sub">
+            <span class="lyr-op inline">Procurement system</span>
+            <span class="lyr-eng inline">Service · automation layer</span>
+            <span class="lyr-strat inline">Executor · human or AI</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="pre" data-phase-label="Pre-settlement">
+          <div class="step-num">Step 02 · Bind</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Routes PO to the vendor for confirmation</span>
+            <span class="lyr-eng inline">Generates token; routes counterparty to challenge bound to payload_hash</span>
+            <span class="lyr-strat inline">AI sandwich — principal authorizes, agent executes within bounded payload</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Sends the PO with a confirmation link. Won't move forward until the vendor signs the exact terms.</span>
+            <span class="lyr-eng inline">Challenge presented to authenticator <em>is</em> the payload hash, not a random nonce — signature binds permanently to bytes.</span>
+            <span class="lyr-strat inline">Bounded execution. Agent cannot deviate from the principal-authorized payload.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">Vendor portal</span>
+            <span class="pill lyr-op inline">Email / link</span>
+            <span class="pill lyr-op inline">Reminders</span>
+            <span class="pill primary lyr-eng inline">Confirmation token</span>
+            <span class="pill lyr-eng inline">Challenge = payload_hash</span>
+            <span class="pill lyr-eng inline">No random nonce</span>
+            <span class="pill primary lyr-strat inline">Bounded execution</span>
+            <span class="pill lyr-strat inline">No unilateral edits</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="settle" data-phase-label="Settlement">
+          <div class="step-num">Step 05 · Post</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Records the GL entry; auto-matches to the verified PO</span>
+            <span class="lyr-eng inline">Single transaction: event + signature + postings</span>
+            <span class="lyr-strat inline">Books and rail-receipt bound to the same canonical bytes</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Three-way match runs against the verified PO automatically. Support documentation is produced, not reconstructed.</span>
+            <span class="lyr-eng inline">DB trigger <code>postings_require_signed_event</code> refuses unsigned events. NN2 + NN3 enforced at schema level.</span>
+            <span class="lyr-strat inline">Schema-enforced — no application code can bypass. Phantom postings structurally impossible.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">GL accrual</span>
+            <span class="pill lyr-op inline">3-way match</span>
+            <span class="pill lyr-op inline">Auto-attach PO</span>
+            <span class="pill primary lyr-eng inline">postings.event_id FK</span>
+            <span class="pill lyr-eng inline">PG transaction</span>
+            <span class="pill lyr-eng inline">DB trigger</span>
+            <span class="pill primary lyr-strat inline">Schema-enforced NN2/NN3</span>
+            <span class="pill lyr-strat inline">No phantom postings</span>
+          </div>
+        </div>
+        <div class="mc empty" data-phase="post" data-phase-label="Post-settlement"></div>
+
+        <!-- ROW 3: COUNTERPARTY -->
+        <div class="mr">
+          <div class="role-name">Counterparty</div>
+          <div class="role-sub">
+            <span class="lyr-op inline">Vendor · seller</span>
+            <span class="lyr-eng inline">External agent · signer</span>
+            <span class="lyr-strat inline">Other side of the deal</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="pre" data-phase-label="Pre-settlement">
+          <div class="step-num">Step 03 · Confirm</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Reviews exact terms; confirms with their device</span>
+            <span class="lyr-eng inline">WebAuthn assertion over payload_hash with userVerification required</span>
+            <span class="lyr-strat inline">Hardware-attested counterparty identity, non-repudiation</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Acceptance is bound to those exact bytes. No forged emails. No "I never agreed to that."</span>
+            <span class="lyr-eng inline">Stores <code>authenticatorData</code>, <code>clientDataJSON</code>, attestation. Verifier reproduces bytes via pinned canonicalizer.</span>
+            <span class="lyr-strat inline">Underwritable identity. The signature is the basis of every downstream insurance product.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">Confirmation page</span>
+            <span class="pill lyr-op inline">Device biometric</span>
+            <span class="pill lyr-op inline">Tamper-evident</span>
+            <span class="pill primary lyr-eng inline">WebAuthn / FIDO2</span>
+            <span class="pill lyr-eng inline">ES256 · P-256</span>
+            <span class="pill lyr-eng inline">attestation: direct</span>
+            <span class="pill primary lyr-strat inline">Non-repudiation</span>
+            <span class="pill lyr-strat inline">Underwritable identity</span>
+          </div>
+        </div>
+        <div class="mc" data-phase="settle" data-phase-label="Settlement">
+          <div class="step-num">Step 06 · Receive</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Receives funds against the confirmed PO</span>
+            <span class="lyr-eng inline">On-chain receipt links to event_id; webhook closes the loop</span>
+            <span class="lyr-strat inline">Settlement receipt observationally consistent with bilateral event</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Reconciliation is pre-built. Vendor's books close in the same motion as ours.</span>
+            <span class="lyr-eng inline">TX hash and <code>event_id</code> mutually linked. Webhook payload includes both for cross-system match.</span>
+            <span class="lyr-strat inline">Off-chain ↔ on-chain linkage is auditable end-to-end. The hyperproperty extends through settlement.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">Funds received</span>
+            <span class="pill lyr-op inline">Auto-reconcile</span>
+            <span class="pill primary lyr-eng inline">tx_hash ↔ event_id</span>
+            <span class="pill lyr-eng inline">Webhook</span>
+            <span class="pill lyr-eng inline">Block confirmation</span>
+            <span class="pill primary lyr-strat inline">Chain-bound receipt</span>
+            <span class="pill lyr-strat inline">Off ↔ on linkage</span>
+          </div>
+        </div>
+        <div class="mc empty" data-phase="post" data-phase-label="Post-settlement"></div>
+
+        <!-- ROW 4: VERIFIER -->
+        <div class="mr mr-last">
+          <div class="role-name">Verifier</div>
+          <div class="role-sub">
+            <span class="lyr-op inline">Auditor · lender · insurer</span>
+            <span class="lyr-eng inline">Replay client · third party</span>
+            <span class="lyr-strat inline">Buyer of verification</span>
+          </div>
+        </div>
+        <div class="mc empty mc-last" data-phase="pre" data-phase-label="Pre-settlement"></div>
+        <div class="mc empty mc-last" data-phase="settle" data-phase-label="Settlement"></div>
+        <div class="mc mc-last" data-phase="post" data-phase-label="Post-settlement">
+          <div class="step-num">Step 07 · Replay</div>
+          <div class="step-title">
+            <span class="lyr-op inline">Pulls any deal years later — sees the full chain</span>
+            <span class="lyr-eng inline">Recomputes canonical bytes via pinned function; verifies signature</span>
+            <span class="lyr-strat inline">Replays the event with no trust in the originator; underwrites the chain</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Auditors get audit support. Lenders verify receivables. Insurers underwrite the property itself.</span>
+            <span class="lyr-eng inline"><code>canonicalize@vN</code> from <code>schema_registry</code>; ECDSA verify against attested public key; X.509 chain to manufacturer CA.</span>
+            <span class="lyr-strat inline">Verification rents. LaaS premium surface. The signed bytes are the asset rents accrue against.</span>
+          </div>
+          <div class="pills">
+            <span class="pill primary lyr-op inline">Borrowing-base query</span>
+            <span class="pill lyr-op inline">Audit support</span>
+            <span class="pill lyr-op inline">Insurance claim</span>
+            <span class="pill primary lyr-eng inline">GET /ledger/:event_id</span>
+            <span class="pill lyr-eng inline">canonicalize@vN</span>
+            <span class="pill lyr-eng inline">ECDSA verify</span>
+            <span class="pill lyr-eng inline">X.509 chain</span>
+            <span class="pill primary lyr-strat inline">Verification rent</span>
+            <span class="pill lyr-strat inline">LaaS surface</span>
+            <span class="pill warn lyr-strat inline">Reinsurable pool</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTIFACT BAR (light, not dark) -->
+    <div class="artifact-bar">
+      <div class="artifact-grid">
+        <div class="artifact-label">
+          <div class="role-name">Durable evidence</div>
+          <div class="role-sub">What survives the phase</div>
+        </div>
+        <div class="ac" data-phase="pre" data-phase-label="Pre-settlement">
+          <div class="step-num">After phase 01</div>
+          <div class="step-title">
+            <span class="lyr-op inline">A vendor-confirmed PO — tamper-evident, signed by both sides</span>
+            <span class="lyr-eng inline">events row + event_signatures row, fully linked</span>
+            <span class="lyr-strat inline">Bilateral agreement asset — the pre-settlement claim</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">No more "where's the signed PO." It exists, on every PO, by construction.</span>
+            <span class="lyr-eng inline">Payload, hash, signature, attestation all mutually linked via FK constraints.</span>
+            <span class="lyr-strat inline">Off-chain provenance. The thing Bitcoin and stablecoins cannot natively produce.</span>
+          </div>
+          <div class="pills">
+            <span class="pill lyr-op inline">Confirmed PO</span>
+            <span class="pill lyr-op inline">Counterparty identity</span>
+            <span class="pill lyr-eng inline">events</span>
+            <span class="pill lyr-eng inline">event_signatures</span>
+            <span class="pill lyr-eng inline">webauthn_credentials</span>
+            <span class="pill lyr-strat inline">Off-chain provenance</span>
+            <span class="pill lyr-strat inline">Bilateral commitment</span>
+          </div>
+        </div>
+        <div class="ac" data-phase="settle" data-phase-label="Settlement">
+          <div class="step-num">After phase 02</div>
+          <div class="step-title">
+            <span class="lyr-op inline">A booked entry plus a payment receipt — both pointing to the same PO</span>
+            <span class="lyr-eng inline">postings row(s) + chain TX hash, both bound to event_id</span>
+            <span class="lyr-strat inline">Off-chain agreement and on-chain settlement, atomically linked</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Books, payment, and PO all reference the same record. No drift, no reconciliation Friday.</span>
+            <span class="lyr-eng inline">Cross-system join on <code>event_id</code> works in standard SQL — no proprietary verifier.</span>
+            <span class="lyr-strat inline">Cross-layer linkage. The chain's atomicity binds to the off-chain hyperproperty.</span>
+          </div>
+          <div class="pills">
+            <span class="pill lyr-op inline">GL entry</span>
+            <span class="pill lyr-op inline">Wire / chain receipt</span>
+            <span class="pill lyr-eng inline">postings</span>
+            <span class="pill lyr-eng inline">tx_hash</span>
+            <span class="pill lyr-eng inline">block_height</span>
+            <span class="pill lyr-strat inline">Atomic binding</span>
+            <span class="pill lyr-strat inline">Cross-layer linkage</span>
+          </div>
+        </div>
+        <div class="ac" data-phase="post" data-phase-label="Post-settlement">
+          <div class="step-num">After phase 03</div>
+          <div class="step-title">
+            <span class="lyr-op inline">A replayable record — usable for audit, lending, insurance for years</span>
+            <span class="lyr-eng inline">Verifiable certificate: payload + sig + cred + canonicalizer + chain proof</span>
+            <span class="lyr-strat inline">The underwritable artifact — what rents accrue against</span>
+          </div>
+          <div class="step-desc">
+            <span class="lyr-op inline">Self-serve verification. No phone calls, no email archeology. Yes/no, with proof.</span>
+            <span class="lyr-eng inline">Replay API + tamper-evident timestamp. All primitives are standard libraries.</span>
+            <span class="lyr-strat inline">Verification-grade ground truth. Layer 2 sells the hosted replay; Layer 3 sells the policy.</span>
+          </div>
+          <div class="pills">
+            <span class="pill lyr-op inline">Permanent record</span>
+            <span class="pill lyr-op inline">Self-serve verify</span>
+            <span class="pill lyr-eng inline">Replay API</span>
+            <span class="pill lyr-eng inline">canonicalize@vN</span>
+            <span class="pill lyr-eng inline">tamper-evident TS</span>
+            <span class="pill lyr-strat inline">Ground truth</span>
+            <span class="pill lyr-strat inline">LaaS basis</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-card">
+        <div class="k">Phase columns</div>
+        <div class="v">Each column is a phase in the deal lifecycle. <strong>Pre-settlement</strong> is where Cast's wedge sits.</div>
+      </div>
+      <div class="legend-card">
+        <div class="k">Hatched cells</div>
+        <div class="v">A participant <strong>not active</strong> in that phase. The verifier only appears post-settlement; they replay what was already signed.</div>
+      </div>
+      <div class="legend-card">
+        <div class="k">Bottom band</div>
+        <div class="v">The cumulative <strong>artifact</strong> at each phase boundary — what flows forward and what an outsider can later inspect.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE NOTES -->
+  <section class="section">
+    <div class="section-head">
+      <div class="eyebrow">Why each phase matters</div>
+      <h2>
+        <span class="lyr-op inline">Three phases. Three audiences. One chain.</span>
+        <span class="lyr-eng inline">Three phases. Three sets of primitives. One join key.</span>
+        <span class="lyr-strat inline">Three phases. Three rent surfaces. One asset.</span>
+      </h2>
+    </div>
+
+    <div class="notes-grid">
+      <div class="note-card" data-phase="pre">
+        <div class="note-eyebrow">Phase 01 · Pre-settlement</div>
+        <h4>
+          <span class="lyr-op inline">The agreement gets locked in before money moves.</span>
+          <span class="lyr-eng inline">Canonical bytes + WebAuthn — everything else rests on this.</span>
+          <span class="lyr-strat inline">The wedge. Bitcoin and stablecoins don't reach here.</span>
+        </h4>
+        <p class="lyr-op inline">Procurement drafts a PO. The vendor confirms the exact terms with their device. Once that loop closes, no one can quietly alter the deal — and no entry hits the books without it.</p>
+        <p class="lyr-op inline">This is what three-way matching has always wanted to be.</p>
+        <p class="lyr-eng inline">Signed object is <code>sha256(payload_version || canonical_json(payload))</code>. Challenge presented to authenticator <em>is</em> the payload hash — not a random nonce — so the signature binds permanently to bytes.</p>
+        <p class="lyr-eng inline">Schema enforces NN1–5: posting refuses to exist without a verified event signature.</p>
+        <p class="lyr-strat inline">Bitcoin and stablecoins are excellent at trace properties post-broadcast. They're weak at the bilateral commitment problem: hidden constraints, mutual acceptance, the moment of binding.</p>
+        <p class="lyr-strat inline">That's where real-world disputes originate. Cast occupies that ground.</p>
+        <div class="note-footer">
+          <span class="lyr-op inline">Owner: Procurement, AP, vendor success.</span>
+          <span class="lyr-eng inline">Tables: agents, webauthn_credentials, events, event_signatures, schema_registry.</span>
+          <span class="lyr-strat inline">Defends Catalini's verification-rent thesis at the formation layer.</span>
+        </div>
+      </div>
+
+      <div class="note-card" data-phase="settle">
+        <div class="note-eyebrow">Phase 02 · Settlement</div>
+        <h4>
+          <span class="lyr-op inline">Payment fires automatically against the confirmed deal.</span>
+          <span class="lyr-eng inline">Atomic binding — rail receipt references the event hash.</span>
+          <span class="lyr-strat inline">Atomicity is what chains are good at. Here they earn it.</span>
+        </h4>
+        <p class="lyr-op inline">Treasury releases the payment. The transfer references the PO directly, so matching, posting, and reconciliation aren't a Friday-afternoon project — they happen at the moment the wire goes out.</p>
+        <p class="lyr-op inline">The vendor's receipt closes their books in the same motion.</p>
+        <p class="lyr-eng inline">Settlement is conditional on the verified event. For stablecoin rails this is a hashlock or covenant; for traditional rails it's a treasury workflow that refuses to release without a valid <code>event_id</code> reference.</p>
+        <p class="lyr-eng inline">On-chain TX hash and off-chain event_id are mutually linked.</p>
+        <p class="lyr-strat inline">Settlement is rail-agnostic. Stablecoins, Lightning, ACH, wire — Cast doesn't compete with any of them. It composes with all of them.</p>
+        <p class="lyr-strat inline">The atomicity that crypto is good at is what binds the off-chain agreement to the on-chain receipt.</p>
+        <div class="note-footer">
+          <span class="lyr-op inline">Owner: Treasury, AP. Reconciliation is automated.</span>
+          <span class="lyr-eng inline">Rails: USDC, USDT, BTC L2, ACH, wire — interchangeable.</span>
+          <span class="lyr-strat inline">Hybrid play: off-chain hyperproperty + on-chain atomicity.</span>
+        </div>
+      </div>
+
+      <div class="note-card" data-phase="post">
+        <div class="note-eyebrow">Phase 03 · Post-settlement</div>
+        <h4>
+          <span class="lyr-op inline">Auditors, lenders, insurers all read the same record.</span>
+          <span class="lyr-eng inline">Replay via pinned canonicalizer. Standard libs only.</span>
+          <span class="lyr-strat inline">Verification rents. LaaS surface. Reinsurable pool.</span>
+        </h4>
+        <p class="lyr-op inline">Five years later, a bank asks for proof of a receivable. A regulator asks how an AP entry was authorized. An insurer asks who confirmed delivery.</p>
+        <p class="lyr-op inline">The verifier replays the event chain and gets a yes/no — without phone calls, email archeology, or trust in any one party.</p>
+        <p class="lyr-eng inline">Verifier loads <code>canonicalize@v1</code>, recomputes bytes, checks ECDSA signature against public key, walks X.509 chain to manufacturer CA, validates on-chain TX.</p>
+        <p class="lyr-eng inline">Every primitive is a standard library. The moat is the schema, not a verifier binary.</p>
+        <p class="lyr-strat inline">This is where Catalini's rents live. Each verifier is paying for the ability to consume the signed record without trusting the originator.</p>
+        <p class="lyr-strat inline">The highest-premium policies cover the property itself — turning settlement into a full-stack insurable product.</p>
+        <div class="note-footer">
+          <span class="lyr-op inline">Consumed by: auditors, lenders, insurers, regulators.</span>
+          <span class="lyr-eng inline">Inputs: events, signatures, credentials, registry, postings, tx_hash.</span>
+          <span class="lyr-strat inline">Layer 2 sells the replay. Layer 3 sells the policy.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BOTTOM-LINE CALLOUT -->
+  <section class="section">
+    <div class="callout">
+      <div>
+        <div class="stamp-num">01</div>
+        <div class="stamp-label">
+          <span class="lyr-op inline">One chain of evidence</span>
+          <span class="lyr-eng inline">One hash · three phases</span>
+          <span class="lyr-strat inline">One asset · compounding rents</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="label">
+          <span class="lyr-op inline">Bottom line · operator</span>
+          <span class="lyr-eng inline">Bottom line · engineer</span>
+          <span class="lyr-strat inline">Bottom line · strategy</span>
+        </div>
+        <p class="lyr-op inline">The PO, the GL entry, the payment, and the audit record all reference the same signed bytes. There is no moment where the four artifacts can drift apart.</p>
+        <p class="lyr-op inline">That is what makes the record defensible — without anyone having to defend it.</p>
+        <p class="lyr-eng inline">Every phase produces a row that references <code>event_id</code>. <code>payload_hash</code> is the universal join key.</p>
+        <p class="lyr-eng inline">The canonicalizer is committed code, versioned in <code>schema_registry</code>, so a 2031 verifier reproduces 2026 bytes exactly. No primitive used here is proprietary.</p>
+        <p class="lyr-strat inline">Cast occupies the layer Bitcoin and stablecoins can't reach: bilateral commitment before broadcast. It composes with any settlement rail and exposes the result to a verifier surface that compounds value with every event added.</p>
+        <p class="lyr-strat inline">The wedge is pre-settlement. The moat is the cumulative artifact. The cash flow is post-settlement underwriting.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Cast · settlement architecture · v1</span>
+    <div class="links">
+      <span class="lyr-op inline">Operator view</span>
+      <span class="lyr-eng inline">Engineer view</span>
+      <span class="lyr-strat inline">Strategy view</span>
+      <span>Toggle in nav ↑</span>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      const body = document.body;
+      const buttons = document.querySelectorAll('.toggle-group button[data-target]');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-target');
+          if (['op','eng','strat'].includes(target)) {
+            body.setAttribute('data-layer', target);
+          }
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>

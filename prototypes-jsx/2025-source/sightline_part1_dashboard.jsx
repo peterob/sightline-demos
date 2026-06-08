@@ -1,0 +1,329 @@
+import React, { useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+// ============================================
+// SHARED DATA & UTILITIES
+// ============================================
+
+const cashFlowData = [
+  { month: 'Jul', operating: 1850000, reserves: 4200000 },
+  { month: 'Aug', operating: 1720000, reserves: 4150000 },
+  { month: 'Sep', operating: 1680000, reserves: 4100000 },
+  { month: 'Oct', operating: 1890000, reserves: 4050000 },
+  { month: 'Nov', operating: 1950000, reserves: 3850000 },
+  { month: 'Dec', operating: 2100000, reserves: 3710000 },
+];
+
+const transactions = [
+  { id: 1, date: 'Dec 9', vendor: 'Toro Equipment Co.', amount: -47500, flagged: false },
+  { id: 2, date: 'Dec 9', vendor: 'ADP Payroll Services', amount: -198450, flagged: false },
+  { id: 3, date: 'Dec 8', vendor: 'Sysco Foods', amount: -34200, flagged: false },
+  { id: 4, date: 'Dec 8', vendor: 'Premium Landscaping LLC', amount: -28000, flagged: true },
+  { id: 5, date: 'Dec 7', vendor: 'Member Dues Collection', amount: 425000, flagged: false },
+];
+
+const formatCurrency = (val) => {
+  if (Math.abs(val) >= 1000000) return `$${(val / 1000000).toFixed(2)}M`;
+  if (Math.abs(val) >= 1000) return `$${(val / 1000).toFixed(0)}K`;
+  return `$${val.toLocaleString()}`;
+};
+
+// ============================================
+// DESKTOP DASHBOARD
+// ============================================
+
+export function DesktopDashboard({ onNavigate }) {
+  return (
+    <div className="fade-in space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-semibold text-stone-800">Palm Harbor Country Club</h1>
+          <p className="text-stone-500 mt-1">Financial Overview · Updated 2 hours ago</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-2 bg-white rounded-xl text-sm font-medium text-stone-600 shadow hover:shadow-md transition-all">Export Report</button>
+          <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-white font-medium shadow-lg">JW</div>
+        </div>
+      </div>
+
+      {/* Alert Banner */}
+      <div className="card p-4 border-l-4 border-amber-400 bg-gradient-to-r from-amber-50 to-white cursor-pointer" onClick={() => onNavigate('anomaly')}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <div className="font-medium text-stone-800">1 transaction requires your attention</div>
+              <div className="text-sm text-stone-500">New vendor payment flagged for review</div>
+            </div>
+          </div>
+          <button className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors">Review Now</button>
+        </div>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Operating Cash', value: '$2.10M', change: '+7.7%', positive: true, sub: '98 days runway' },
+          { label: 'Reserve Balance', value: '$3.71M', change: '-$340K', positive: false, sub: '68% funded' },
+          { label: 'YTD Variance', value: '+$262K', change: '4.1% over', positive: false, sub: 'vs budget' },
+          { label: 'Health Score', value: '72', change: '/100', positive: null, sub: 'Good standing' },
+        ].map((m, i) => (
+          <div key={i} className="card card-hover p-5 transition-all cursor-pointer">
+            <div className="text-xs text-stone-400 uppercase tracking-wider font-medium">{m.label}</div>
+            <div className="font-display text-3xl font-semibold text-stone-800 mt-2">{m.value}</div>
+            <div className="flex items-center gap-2 mt-2">
+              {m.positive !== null && (
+                <span className={`text-sm font-medium ${m.positive ? 'text-emerald-600' : 'text-red-600'}`}>{m.change}</span>
+              )}
+              {m.positive === null && <span className="text-sm text-stone-400">{m.change}</span>}
+            </div>
+            <div className="text-xs text-stone-400 mt-1">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-3 gap-6">
+        <div className="col-span-2 card p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-display text-lg font-semibold text-stone-800">Cash & Reserves Trend</h3>
+              <p className="text-sm text-stone-500">6-month history</p>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div>Operating</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500"></div>Reserves</div>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={cashFlowData}>
+              <defs>
+                <linearGradient id="opGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="resGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 12 }} tickFormatter={v => `$${v/1000000}M`} />
+              <Tooltip formatter={(v) => [`$${(v/1000000).toFixed(2)}M`, '']} />
+              <Area type="monotone" dataKey="reserves" stroke="#3b82f6" strokeWidth={2} fill="url(#resGrad)" />
+              <Area type="monotone" dataKey="operating" stroke="#10b981" strokeWidth={2} fill="url(#opGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card p-6">
+          <h3 className="font-display text-lg font-semibold text-stone-800 mb-4">Recent Transactions</h3>
+          <div className="space-y-3">
+            {transactions.map(tx => (
+              <div 
+                key={tx.id} 
+                className={`flex items-center justify-between p-2 -mx-2 rounded-lg cursor-pointer hover:bg-stone-50 ${tx.flagged ? 'bg-amber-50' : ''}`}
+                onClick={() => tx.flagged && onNavigate('anomaly')}
+              >
+                <div className="flex items-center gap-2">
+                  {tx.flagged && <div className="w-2 h-2 rounded-full bg-amber-500"></div>}
+                  <div>
+                    <div className="text-sm font-medium text-stone-800 truncate max-w-[140px]">{tx.vendor}</div>
+                    <div className="text-xs text-stone-400">{tx.date}</div>
+                  </div>
+                </div>
+                <div className={`text-sm font-medium ${tx.amount > 0 ? 'text-emerald-600' : 'text-stone-800'}`}>
+                  {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="w-full mt-4 py-2 text-sm text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition-colors">View All →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// MOBILE VIEW
+// ============================================
+
+export function MobileView() {
+  const [mobileTab, setMobileTab] = useState('home');
+  
+  return (
+    <div className="flex justify-center fade-in">
+      <div className="mobile-frame bg-stone-50 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-10"></div>
+        
+        <div className="h-full overflow-y-auto">
+          <div className="h-12 flex items-end justify-between px-8 pb-1 text-sm font-medium">
+            <span>9:41</span>
+            <div className="flex items-center gap-1">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 4h-3V2h-4v2H7v18h10V4z"/></svg>
+            </div>
+          </div>
+
+          <div className="px-5 pt-2 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-stone-400 uppercase tracking-wider">Palm Harbor CC</div>
+                <h1 className="font-display text-2xl font-semibold text-stone-800">Dashboard</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-white shadow flex items-center justify-center">
+                    <svg className="w-5 h-5 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                    </svg>
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-stone-50 flex items-center justify-center">
+                    <span className="text-[10px] text-white font-bold">1</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-white text-sm font-medium shadow-lg">JW</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Alert Card */}
+          <div className="px-5 mb-4">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white shadow-lg">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">Review Required</div>
+                  <div className="text-sm text-white/80 mt-0.5">New vendor payment needs approval</div>
+                </div>
+                <svg className="w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="px-5 grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="text-xs text-stone-400 uppercase tracking-wider">Operating</div>
+              <div className="font-display text-2xl font-semibold text-stone-800 mt-1">$2.10M</div>
+              <div className="flex items-center gap-1 mt-1">
+                <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                <span className="text-xs text-emerald-600 font-medium">+7.7%</span>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="text-xs text-stone-400 uppercase tracking-wider">Reserves</div>
+              <div className="font-display text-2xl font-semibold text-stone-800 mt-1">$3.71M</div>
+              <div className="flex items-center gap-1 mt-1">
+                <svg className="w-3 h-3 text-red-500 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                <span className="text-xs text-red-600 font-medium">-$340K</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Health Score */}
+          <div className="px-5 mb-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-stone-400 uppercase tracking-wider">Financial Health</div>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="font-display text-4xl font-semibold text-stone-800">72</span>
+                    <span className="text-stone-400 text-lg">/100</span>
+                  </div>
+                  <div className="text-sm text-stone-500 mt-1">Good · Similar clubs avg 74</div>
+                </div>
+                <div className="w-20 h-20 relative">
+                  <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e7e5e4" strokeWidth="3"/>
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="72, 100"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Chart */}
+          <div className="px-5 mb-4">
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="text-xs text-stone-400 uppercase tracking-wider mb-3">6 Month Trend</div>
+              <ResponsiveContainer width="100%" height={80}>
+                <AreaChart data={cashFlowData}>
+                  <defs>
+                    <linearGradient id="mobileGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="reserves" stroke="#3b82f6" strokeWidth={2} fill="url(#mobileGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="px-5 mb-24">
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-xs text-stone-400 uppercase tracking-wider">Recent Activity</div>
+                <span className="text-xs text-blue-600 font-medium">View All</span>
+              </div>
+              <div className="space-y-3">
+                {transactions.slice(0, 4).map(tx => (
+                  <div key={tx.id} className={`flex items-center justify-between py-2 ${tx.flagged ? 'bg-amber-50 -mx-2 px-2 rounded-lg' : ''}`}>
+                    <div className="flex items-center gap-2">
+                      {tx.flagged && <div className="w-2 h-2 rounded-full bg-amber-500"></div>}
+                      <div>
+                        <div className="text-sm font-medium text-stone-800">{tx.vendor}</div>
+                        <div className="text-xs text-stone-400">{tx.date}</div>
+                      </div>
+                    </div>
+                    <div className={`text-sm font-medium ${tx.amount > 0 ? 'text-emerald-600' : 'text-stone-700'}`}>
+                      {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Tab Bar */}
+          <div className="fixed bottom-0 bg-white border-t border-stone-100 px-6 py-2 pb-8" style={{ width: '370px' }}>
+            <div className="flex justify-around">
+              {[
+                { id: 'home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', label: 'Home' },
+                { id: 'activity', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', label: 'Activity' },
+                { id: 'budget', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z', label: 'Budget' },
+                { id: 'more', icon: 'M4 6h16M4 12h16M4 18h16', label: 'More' },
+              ].map(tab => (
+                <button key={tab.id} onClick={() => setMobileTab(tab.id)} className={`flex flex-col items-center py-1 px-3 rounded-xl ${mobileTab === tab.id ? 'text-stone-800' : 'text-stone-400'}`}>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={tab.icon} />
+                  </svg>
+                  <span className={`text-xs mt-1 ${mobileTab === tab.id ? 'font-medium' : ''}`}>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default { DesktopDashboard, MobileView };

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capital Allocation: ROIIC vs. Hurdle Rate</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0e0d;
+    --paper: #f5f1eb;
+    --paper2: #ede9e1;
+    --rule: #c8bfaf;
+    --accent: #b8341b;
+    --accent2: #1a4a6b;
+    --go: #2d6a3f;
+    --stop: #b8341b;
+    --warn: #b87a1b;
+    --serif: 'Libre Baskerville', Georgia, serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    padding: 0;
+    min-height: 100vh;
+  }
+
+  header {
+    border-bottom: 2px solid var(--ink);
+    padding: 28px 40px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    background: var(--paper);
+  }
+
+  .header-left .eyebrow {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .header-left h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .header-right {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: #6b6257;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 1px;
+    background: var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .panel {
+    background: var(--paper);
+    padding: 28px 32px 32px;
+  }
+
+  .panel-full {
+    grid-column: 1 / -1;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6b6257;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* ── CHART 1: ROIIC Lifecycle ── */
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  svg text { font-family: var(--mono); }
+
+  /* ── CHART 2: $1 Test Waterfall ── */
+  .waterfall-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 200px;
+    padding-top: 12px;
+    position: relative;
+  }
+
+  .wf-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  .wf-bar-wrap {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 160px;
+  }
+
+  .wf-bar {
+    width: 100%;
+    border-radius: 1px 1px 0 0;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+  }
+
+  .wf-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+  }
+
+  .wf-label {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b6257;
+    text-align: center;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+
+  .wf-hurdle-line {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 2px dashed var(--accent);
+    pointer-events: none;
+  }
+
+  .wf-hurdle-label {
+    position: absolute;
+    right: 0;
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--accent);
+    transform: translateY(-14px);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── CHART 3: Vital Signs ── */
+  .vitals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .vital-card {
+    border: 1px solid var(--rule);
+    padding: 14px 16px;
+    background: var(--paper2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .vital-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+  }
+
+  .vital-card.ok::before { background: var(--go); }
+  .vital-card.warn::before { background: var(--warn); }
+  .vital-card.bad::before { background: var(--stop); }
+
+  .vital-name {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #6b6257;
+    margin-bottom: 8px;
+  }
+
+  .vital-metric {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .vital-fail {
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--stop);
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+
+  .vital-spark {
+    margin-top: 10px;
+    height: 32px;
+  }
+
+  /* ── CHART 4: Investment Buckets ── */
+  .buckets {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+
+  .bucket {
+    border: 1px solid var(--rule);
+    padding: 16px;
+    background: var(--paper2);
+    position: relative;
+  }
+
+  .bucket-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .bucket-tag.grow { background: #d4edda; color: var(--go); }
+  .bucket-tag.build { background: #cce0f0; color: var(--accent2); }
+  .bucket-tag.buy { background: #f9e8d0; color: var(--warn); }
+
+  .bucket-desc {
+    font-size: 11px;
+    line-height: 1.55;
+    color: #3a3530;
+    margin-bottom: 10px;
+  }
+
+  .bucket-metrics {
+    border-top: 1px solid var(--rule);
+    padding-top: 8px;
+  }
+
+  .bm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 0;
+  }
+
+  .bm-key {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b6257;
+  }
+
+  .bm-val {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: #4a4540;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-line {
+    width: 18px; height: 2px;
+    flex-shrink: 0;
+  }
+
+  footer {
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    color: #8a8076;
+  }
+
+  .anno {
+    font-family: var(--mono);
+    font-size: 8.5px;
+    color: #6b6257;
+    line-height: 1.5;
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="eyebrow">Operating Partner Brief · Capital Allocation</div>
+    <h1>Converting $1 Into Durable Value</h1>
+  </div>
+  <div class="header-right">
+    ROIIC · NPV · VITAL SIGNS<br>
+    PORTFOLIO DIAGNOSTIC FRAMEWORK<br>
+    Q2 2026
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- PANEL 1: ROIIC Lifecycle Curve -->
+  <div class="panel">
+    <div class="panel-title">01 — ROIIC vs. Hurdle Rate · Lifecycle Curve</div>
+    <div class="chart-wrap">
+      <svg id="lifecycleSvg" viewBox="0 0 420 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="fillGo" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2d6a3f" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#2d6a3f" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="fillStop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#b8341b" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#b8341b" stop-opacity="0.15"/>
+          </linearGradient>
+          <clipPath id="goClip">
+            <rect x="0" y="0" width="420" height="220"/>
+          </clipPath>
+        </defs>
+
+        <!-- Grid lines -->
+        <line x1="50" y1="20" x2="50" y2="185" stroke="#c8bfaf" stroke-width="0.5"/>
+        <line x1="50" y1="185" x2="410" y2="185" stroke="#c8bfaf" stroke-width="0.5"/>
+        <line x1="50" y1="60" x2="410" y2="60" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+        <line x1="50" y1="100" x2="410" y2="100" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+        <line x1="50" y1="140" x2="410" y2="140" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+
+        <!-- Y axis labels -->
+        <text x="44" y="63" text-anchor="end" font-size="8" fill="#6b6257">30%</text>
+        <text x="44" y="103" text-anchor="end" font-size="8" fill="#6b6257">20%</text>
+        <text x="44" y="143" text-anchor="end" font-size="8" fill="#6b6257">10%</text>
+        <text x="44" y="188" text-anchor="end" font-size="8" fill="#6b6257">0%</text>
+        <text x="5" y="120" text-anchor="middle" font-size="8" fill="#6b6257" transform="rotate(-90 5 120)">ROIIC</text>
+
+        <!-- Hurdle rate line at y=120 (15%) -->
+        <line x1="50" y1="120" x2="410" y2="120" stroke="#b8341b" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="412" y="123" font-size="8" fill="#b8341b">Hurdle</text>
+
+        <!-- ROIIC curve path: Early low, Mid expanding, Late compressing -->
+        <!-- Points mapped: x from 50-410, y from 185(0%) to 20(>35%) -->
+        <!-- Early: starts at y=200 (negative), rises -->
+        <!-- Mid: peaks around y=55 (32%) -->
+        <!-- Late: compresses back to y=145 (8%) -->
+        <path id="roiicCurve"
+          d="M 60,200 C 80,195 100,175 130,155 C 155,138 170,118 195,85 C 215,60 230,52 255,50 C 275,48 285,55 305,70 C 325,88 345,118 375,145 C 390,157 400,162 410,165"
+          fill="none" stroke="#1a4a6b" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- Fill ABOVE hurdle (value creation zone) -->
+        <clipPath id="aboveHurdle">
+          <rect x="50" y="20" width="360" height="100"/>
+        </clipPath>
+        <path
+          d="M 60,200 C 80,195 100,175 130,155 C 155,138 170,118 195,85 C 215,60 230,52 255,50 C 275,48 285,55 305,70 C 325,88 345,118 375,145 C 390,157 400,162 410,165 L 410,120 L 50,120 Z"
+          fill="url(#fillGo)" clip-path="url(#aboveHurdle)"/>
+
+        <!-- Fill BELOW hurdle (value destruction zone) -->
+        <clipPath id="belowHurdle">
+          <rect x="50" y="120" width="360" height="100"/>
+        </clipPath>
+        <path
+          d="M 60,200 C 80,195 100,175 130,155 C 155,138 170,118 195,85 C 215,60 230,52 255,50 C 275,48 285,55 305,70 C 325,88 345,118 375,145 C 390,157 400,162 410,165 L 410,120 L 50,120 Z"
+          fill="url(#fillStop)" clip-path="url(#belowHurdle)"/>
+
+        <!-- Stage labels on x axis -->
+        <text x="100" y="200" text-anchor="middle" font-size="8" fill="#4a4540">EARLY</text>
+        <text x="232" y="200" text-anchor="middle" font-size="8" fill="#4a4540">MID</text>
+        <text x="375" y="200" text-anchor="middle" font-size="8" fill="#4a4540">LATE</text>
+
+        <!-- Stage dividers -->
+        <line x1="165" y1="185" x2="165" y2="192" stroke="#c8bfaf" stroke-width="1"/>
+        <line x1="305" y1="185" x2="305" y2="192" stroke="#c8bfaf" stroke-width="1"/>
+
+        <!-- Annotations -->
+        <g>
+          <circle cx="255" cy="50" r="4" fill="#1a4a6b"/>
+          <line x1="260" y1="46" x2="285" y2="30" stroke="#1a4a6b" stroke-width="0.8"/>
+          <text x="287" y="28" font-size="8" fill="#1a4a6b">Peak ROIIC</text>
+        </g>
+        <g>
+          <rect x="56" y="155" width="62" height="16" rx="2" fill="#b8341b" fill-opacity="0.08"/>
+          <text x="87" y="166" text-anchor="middle" font-size="7.5" fill="#b8341b">Sub-hurdle</text>
+        </g>
+        <g>
+          <rect x="350" y="140" width="58" height="16" rx="2" fill="#b8341b" fill-opacity="0.08"/>
+          <text x="379" y="151" text-anchor="middle" font-size="7.5" fill="#b8341b">Compression</text>
+        </g>
+        <g>
+          <text x="200" y="88" text-anchor="middle" font-size="7.5" fill="#2d6a3f">VALUE CREATION ZONE</text>
+        </g>
+      </svg>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-line" style="background:#1a4a6b;height:2.5px;border-radius:2px"></div>
+        ROIIC Curve
+      </div>
+      <div class="legend-item">
+        <div class="legend-line" style="background:#b8341b;height:1.5px;border-style:dashed;border-color:#b8341b;border-top:1.5px dashed #b8341b;width:18px"></div>
+        Hurdle Rate (15%)
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#2d6a3f;opacity:0.5"></div>
+        Value Creation
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#b8341b;opacity:0.4"></div>
+        Destruction / Sub-Hurdle
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL 2: Waterfall – $1 Test by Investment Type -->
+  <div class="panel">
+    <div class="panel-title">02 — The $1 Test · ROIIC by Initiative Type</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 420 220" width="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="4" stroke="#b8341b" stroke-width="1" stroke-opacity="0.4"/>
+          </pattern>
+        </defs>
+
+        <!-- Axes -->
+        <line x1="50" y1="20" x2="50" y2="175" stroke="#c8bfaf" stroke-width="0.5"/>
+        <line x1="50" y1="175" x2="410" y2="175" stroke="#c8bfaf" stroke-width="0.5"/>
+
+        <!-- Y grid -->
+        <line x1="50" y1="55" x2="410" y2="55" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+        <line x1="50" y1="95" x2="410" y2="95" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+        <line x1="50" y1="135" x2="410" y2="135" stroke="#c8bfaf" stroke-width="0.4" stroke-dasharray="3,3"/>
+
+        <!-- Y labels -->
+        <text x="44" y="58" text-anchor="end" font-size="8" fill="#6b6257">40%</text>
+        <text x="44" y="98" text-anchor="end" font-size="8" fill="#6b6257">25%</text>
+        <text x="44" y="138" text-anchor="end" font-size="8" fill="#6b6257">10%</text>
+        <text x="44" y="178" text-anchor="end" font-size="8" fill="#6b6257">0%</text>
+        <text x="5" y="110" text-anchor="middle" font-size="8" fill="#6b6257" transform="rotate(-90 5 110)">ROIIC</text>
+
+        <!-- Hurdle rate line at y=115 (20%) -->
+        <line x1="50" y1="115" x2="410" y2="115" stroke="#b8341b" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="412" y="118" font-size="8" fill="#b8341b">Hurdle</text>
+
+        <!-- Bar data (ROIIC values, mapped to chart): 
+             GTM Hire: 38% → y=175-38/40*120 = 175-114 = 61
+             Product Build: 24% → 175-72 = 103
+             M&A: 18% → 175-54 = 121
+             Overhead Opex: 6% → 175-18 = 157
+             Legacy Init: -5% → 175+15 = 190 (below axis) -->
+
+        <!-- Bar 1: GTM Hire (GROW) - above hurdle -->
+        <rect x="68" y="60" width="52" height="115" rx="1" fill="#2d6a3f" fill-opacity="0.8"/>
+        <text x="94" y="73" text-anchor="middle" font-size="9" fill="white" font-weight="500">38%</text>
+        <text x="94" y="192" text-anchor="middle" font-size="7.5" fill="#4a4540">GTM</text>
+        <text x="94" y="201" text-anchor="middle" font-size="7.5" fill="#4a4540">Hire</text>
+        <rect x="68" y="192" width="52" height="10" rx="1" fill="#d4edda"/>
+        <text x="94" y="200" text-anchor="middle" font-size="7" fill="#2d6a3f">GROW ✓</text>
+
+        <!-- Bar 2: Product Build (BUILD) - above hurdle -->
+        <rect x="138" y="98" width="52" height="77" rx="1" fill="#1a4a6b" fill-opacity="0.8"/>
+        <text x="164" y="111" text-anchor="middle" font-size="9" fill="white" font-weight="500">24%</text>
+        <text x="164" y="192" text-anchor="middle" font-size="7.5" fill="#4a4540">Product</text>
+        <text x="164" y="201" text-anchor="middle" font-size="7.5" fill="#4a4540">Build</text>
+        <rect x="138" y="192" width="52" height="10" rx="1" fill="#cce0f0"/>
+        <text x="164" y="200" text-anchor="middle" font-size="7" fill="#1a4a6b">BUILD ✓</text>
+
+        <!-- Bar 3: M&A - just above hurdle -->
+        <rect x="208" y="122" width="52" height="53" rx="1" fill="#b87a1b" fill-opacity="0.75"/>
+        <text x="234" y="135" text-anchor="middle" font-size="9" fill="white" font-weight="500">18%</text>
+        <text x="234" y="192" text-anchor="middle" font-size="7.5" fill="#4a4540">M&amp;A</text>
+        <text x="234" y="201" text-anchor="middle" font-size="7.5" fill="#4a4540">Target</text>
+        <rect x="208" y="192" width="52" height="10" rx="1" fill="#f9e8d0"/>
+        <text x="234" y="200" text-anchor="middle" font-size="7" fill="#b87a1b">BUY ~</text>
+
+        <!-- Bar 4: Overhead Opex - below hurdle -->
+        <rect x="278" y="154" width="52" height="21" rx="1" fill="url(#hatch)"/>
+        <rect x="278" y="154" width="52" height="21" rx="1" fill="#b8341b" fill-opacity="0.1"/>
+        <text x="304" y="167" text-anchor="middle" font-size="9" fill="#b8341b" font-weight="500">6%</text>
+        <text x="304" y="192" text-anchor="middle" font-size="7.5" fill="#4a4540">Overhead</text>
+        <text x="304" y="201" text-anchor="middle" font-size="7.5" fill="#4a4540">Opex</text>
+        <rect x="278" y="192" width="52" height="10" rx="1" fill="#fde8e4"/>
+        <text x="304" y="200" text-anchor="middle" font-size="7" fill="#b8341b">SUB-HURDLE ✗</text>
+
+        <!-- Bar 5: Legacy Init - below zero -->
+        <rect x="348" y="175" width="52" height="22" rx="1" fill="#b8341b" fill-opacity="0.7"/>
+        <text x="374" y="189" text-anchor="middle" font-size="9" fill="white" font-weight="500">-5%</text>
+        <text x="374" y="205" text-anchor="middle" font-size="7.5" fill="#4a4540">Legacy</text>
+        <text x="374" y="213" text-anchor="middle" font-size="7.5" fill="#4a4540">Init.</text>
+
+        <!-- Delta arrow from bar 3 to hurdle -->
+        <line x1="234" y1="115" x2="234" y2="122" stroke="#b87a1b" stroke-width="1" marker-end="url(#arrowWarn)"/>
+      </svg>
+    </div>
+    <p class="anno" style="margin-top:8px">Decision rule: ROIIC &gt; hurdle rate → invest · ROIIC &lt; hurdle rate → stop or redesign · Negative ROIIC → immediate exit</p>
+  </div>
+
+  <!-- PANEL 3: Vital Signs Diagnostic -->
+  <div class="panel">
+    <div class="panel-title">03 — Vital Signs · Diagnostic Indicators</div>
+    <div class="vitals-grid">
+      <div class="vital-card ok">
+        <div class="vital-name">01 · Profit Engine Scaling</div>
+        <div class="vital-metric">Gross Profit &gt; Opex Growth</div>
+        <svg class="vital-spark" viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+          <!-- Gross profit bars -->
+          <rect x="4" y="18" width="12" height="14" fill="#2d6a3f" fill-opacity="0.7" rx="1"/>
+          <rect x="22" y="12" width="12" height="20" fill="#2d6a3f" fill-opacity="0.7" rx="1"/>
+          <rect x="40" y="6" width="12" height="26" fill="#2d6a3f" fill-opacity="0.7" rx="1"/>
+          <rect x="58" y="2" width="12" height="30" fill="#2d6a3f" fill-opacity="0.7" rx="1"/>
+          <!-- Opex line (growing slower) -->
+          <polyline points="10,22 28,18 46,14 64,12" fill="none" stroke="#b87a1b" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <text x="82" y="12" font-size="8" fill="#2d6a3f">Gross profit ↑</text>
+          <text x="82" y="22" font-size="8" fill="#b87a1b">- - Opex (controlled)</text>
+        </svg>
+        <div class="vital-fail">✓ Healthy: GP growing faster than controllable opex</div>
+      </div>
+      <div class="vital-card warn">
+        <div class="vital-name">02 · Operating Leverage</div>
+        <div class="vital-metric">Op. Profit vs. Gross Profit</div>
+        <svg class="vital-spark" viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+          <!-- GP bars -->
+          <rect x="4" y="10" width="12" height="22" fill="#2d6a3f" fill-opacity="0.6" rx="1"/>
+          <rect x="22" y="8" width="12" height="24" fill="#2d6a3f" fill-opacity="0.6" rx="1"/>
+          <rect x="40" y="6" width="12" height="26" fill="#2d6a3f" fill-opacity="0.6" rx="1"/>
+          <rect x="58" y="4" width="12" height="28" fill="#2d6a3f" fill-opacity="0.6" rx="1"/>
+          <!-- Op profit line (not keeping up) -->
+          <polyline points="10,20 28,21 46,22 64,24" fill="none" stroke="#b87a1b" stroke-width="1.5"/>
+          <text x="82" y="12" font-size="8" fill="#2d6a3f">Gross profit ↑</text>
+          <text x="82" y="22" font-size="8" fill="#b87a1b">— Op. profit flat</text>
+        </svg>
+        <div class="vital-fail">⚠ Overhead absorbing incremental gross profit — review fixed cost structure</div>
+      </div>
+      <div class="vital-card ok">
+        <div class="vital-name">03 · Cash Conversion</div>
+        <div class="vital-metric">Profit → Free Cash Flow</div>
+        <svg class="vital-spark" viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="4,26 30,18 60,10 90,6" fill="none" stroke="#2d6a3f" stroke-width="2" stroke-linecap="round"/>
+          <polyline points="4,28 30,22 60,16 90,12" fill="none" stroke="#1a4a6b" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <text x="100" y="12" font-size="8" fill="#2d6a3f">EBITDA</text>
+          <text x="100" y="22" font-size="8" fill="#1a4a6b">- - FCF</text>
+        </svg>
+        <div class="vital-fail">✓ FCF tracking EBITDA — no working capital trap or capex bleed</div>
+      </div>
+      <div class="vital-card bad">
+        <div class="vital-name">04 · Financing &amp; Optics</div>
+        <div class="vital-metric">Adjusted vs. Reported</div>
+        <svg class="vital-spark" viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+          <!-- Adjusted (reported to look good) -->
+          <polyline points="4,22 30,16 60,10 90,8" fill="none" stroke="#b87a1b" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <!-- Actual -->
+          <polyline points="4,22 30,22 60,24 90,26" fill="none" stroke="#b8341b" stroke-width="2" stroke-linecap="round"/>
+          <text x="100" y="12" font-size="8" fill="#b87a1b">- - Adjusted</text>
+          <text x="100" y="22" font-size="8" fill="#b8341b">— Actual</text>
+        </svg>
+        <div class="vital-fail">✗ FAILURE: Adjusted metrics diverging from actual — structural issue masked</div>
+      </div>
+    </div>
+    <p class="anno" style="margin-top:12px">Diagnostics detect problems. They do not prove value creation. Interpret alongside ROIIC and NPV.</p>
+  </div>
+
+  <!-- PANEL 4: Three Investment Buckets -->
+  <div class="panel">
+    <div class="panel-title">04 — Investment Buckets · Decision Framework</div>
+    <div class="buckets">
+      <div class="bucket">
+        <div class="bucket-tag grow">GROW</div>
+        <div class="bucket-desc">Revenue expansion via sales, marketing, and headcount. Capital follows demonstrated unit economics.</div>
+        <div class="bucket-metrics">
+          <div class="bm-row"><span class="bm-key">Primary</span><span class="bm-val">Incr. Margin</span></div>
+          <div class="bm-row"><span class="bm-key">Secondary</span><span class="bm-val">Burn Multiple</span></div>
+          <div class="bm-row"><span class="bm-key">Risk Metric</span><span class="bm-val">Payback Period</span></div>
+          <div class="bm-row"><span class="bm-key">Kill Signal</span><span class="bm-val">Margin erosion</span></div>
+        </div>
+      </div>
+      <div class="bucket">
+        <div class="bucket-tag build">BUILD</div>
+        <div class="bucket-desc">Capability creation through product and R&D. Evaluated on duration of competitive advantage.</div>
+        <div class="bucket-metrics">
+          <div class="bm-row"><span class="bm-key">Primary</span><span class="bm-val">Scenario NPV</span></div>
+          <div class="bm-row"><span class="bm-key">Secondary</span><span class="bm-val">ROIIC</span></div>
+          <div class="bm-row"><span class="bm-key">Risk Metric</span><span class="bm-val">Adv. Duration</span></div>
+          <div class="bm-row"><span class="bm-key">Kill Signal</span><span class="bm-val">Moat erosion</span></div>
+        </div>
+      </div>
+      <div class="bucket">
+        <div class="bucket-tag buy">BUY</div>
+        <div class="bucket-desc">External investment via M&A and partnerships. NPV determines go/no-go; IRR used for ranking only.</div>
+        <div class="bucket-metrics">
+          <div class="bm-row"><span class="bm-key">Primary</span><span class="bm-val">NPV</span></div>
+          <div class="bm-row"><span class="bm-key">Secondary</span><span class="bm-val">IRR (rank)</span></div>
+          <div class="bm-row"><span class="bm-key">Risk Metric</span><span class="bm-val">Payback</span></div>
+          <div class="bm-row"><span class="bm-key">Kill Signal</span><span class="bm-val">Synergy miss</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="anno" style="margin-top:14px">Every material initiative requires: investment type · primary return metric · payback period · single value-driving assumption</p>
+  </div>
+
+</div>
+
+<footer>
+  <span>OPERATING PARTNER BRIEF · CAPITAL ALLOCATION SYSTEM</span>
+  <span>ROIIC = Incremental NOPAT ÷ Incremental Invested Capital · Value = PV of Distributable Cash Flows</span>
+</footer>
+
+</body>
+</html>

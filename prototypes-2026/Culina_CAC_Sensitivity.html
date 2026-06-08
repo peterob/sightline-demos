@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culina Health — CAC & EBITDA Sensitivity Model</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0F1E33;
+    --teal: #1D9E75;
+    --teal-l: #E1F5EE;
+    --teal-d: #0F6E56;
+    --amber: #BA7517;
+    --amber-l: #FAEEDA;
+    --red: #A32D2D;
+    --red-l: #FCEBEB;
+    --blue: #378ADD;
+    --blue-l: #E6F1FB;
+    --slate: #3A5470;
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --surface2: #F0F2F5;
+    --border: rgba(0,0,0,0.08);
+    --text: #1A1A2E;
+    --text2: #5A6478;
+    --text3: #8A96A8;
+    --mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  header {
+    background: var(--navy);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--teal);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 32px; height: 32px; background: var(--teal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; }
+  .logo-text { font-size: 15px; font-weight: 600; color: #fff; }
+  .logo-sub { font-size: 10px; color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+  .header-tag { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+  .page-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-bottom: 24px; }
+
+  .layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+
+  /* CONTROLS PANEL */
+  .panel { background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+  .panel-hdr { background: var(--navy); padding: 14px 18px; }
+  .panel-hdr-title { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 0.1em; text-transform: uppercase; }
+  .panel-body { padding: 16px 18px; }
+
+  .section-tag { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin: 16px 0 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .section-tag:first-child { margin-top: 0; }
+
+  .slider-row { margin-bottom: 14px; }
+  .slider-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+  .slider-label span:first-child { font-size: 12px; color: var(--text2); }
+  .slider-value { font-size: 13px; font-weight: 600; color: var(--text); min-width: 52px; text-align: right; }
+  .slider-value.key { color: var(--teal-d); }
+  input[type=range] {
+    width: 100%; height: 4px; appearance: none; background: var(--surface2);
+    border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    appearance: none; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--navy); border: 2px solid var(--teal); cursor: pointer;
+  }
+  .key-lever { background: var(--amber-l); border-radius: 6px; padding: 2px 4px 4px; margin-bottom: 14px; }
+  .key-lever .slider-label span:first-child { color: var(--amber); }
+  .key-lever .slider-value { color: var(--amber); }
+
+  /* METRICS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .metric-card { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; letter-spacing: 0.03em; }
+  .metric-value { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1.1; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .metric-value.good { color: var(--teal); }
+  .metric-value.warn { color: var(--amber); }
+  .metric-value.bad  { color: var(--red); }
+
+  .metrics-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+
+  /* FORMULA BOX */
+  .formula-box {
+    background: var(--navy); border-radius: 10px; padding: 16px 20px;
+    font-family: var(--mono); font-size: 12px; line-height: 2;
+    color: rgba(255,255,255,0.5); margin-bottom: 16px;
+    border-left: 3px solid var(--teal);
+  }
+  .formula-box .hl { color: var(--teal); font-weight: bold; }
+  .formula-box .white { color: rgba(255,255,255,0.9); }
+
+  /* CHARTS */
+  .charts-row { display: grid; grid-template-columns: 1fr 1.6fr; gap: 14px; margin-bottom: 16px; }
+  .chart-card { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 16px; }
+  .chart-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* WATERFALL */
+  .waterfall-section { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+  .wf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .wf-label { font-size: 12px; color: var(--text2); width: 180px; flex-shrink: 0; }
+  .wf-label.total { font-weight: 600; color: var(--text); }
+  .wf-track { flex: 1; background: var(--surface2); border-radius: 3px; height: 24px; overflow: hidden; }
+  .wf-bar { height: 100%; border-radius: 3px; transition: width 0.2s ease; }
+  .wf-val { font-size: 12px; font-weight: 600; min-width: 90px; text-align: right; }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: var(--surface); border-radius: 10px; border: 1px solid var(--border);
+    border-left: 3px solid var(--teal); padding: 14px 18px;
+    font-size: 13px; color: var(--text2); line-height: 1.7;
+  }
+  .insight-box strong { color: var(--text); font-weight: 600; }
+  .insight-box .good { color: var(--teal-d); font-weight: 600; }
+  .insight-box .bad  { color: var(--red); font-weight: 600; }
+
+  /* SENSITIVITY TABLE */
+  .sens-table-wrap { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; overflow-x: auto; }
+  .sens-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .sens-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 12px; margin-top: -8px; }
+  table.sens { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.sens th { background: var(--navy); color: rgba(255,255,255,0.8); padding: 8px 10px; text-align: center; font-weight: 500; font-size: 11px; white-space: nowrap; }
+  table.sens th.row-hdr { text-align: left; min-width: 150px; }
+  table.sens td { padding: 7px 10px; text-align: right; border: 1px solid var(--border); font-family: var(--mono); font-size: 11px; }
+  table.sens td.row-hdr { background: var(--navy); color: rgba(255,255,255,0.8); text-align: left; font-family: -apple-system,sans-serif; font-size: 11px; font-weight: 500; border-color: rgba(255,255,255,0.1); }
+  table.sens td.base-cell { outline: 2px solid var(--teal); outline-offset: -2px; font-weight: 700; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .section-hdr { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">CH</div>
+    <div>
+      <div class="logo-text">Culina Health</div>
+      <div class="logo-sub">CAC &amp; EBITDA Sensitivity Model</div>
+    </div>
+  </div>
+  <div class="header-tag">Head of Strategic Operations · April 2026</div>
+</header>
+
+<div class="main">
+  <p class="page-title">Interactive Driver Sensitivity Calculator</p>
+  <p class="page-sub">Drag any slider to see real-time impact on CAC, LTV/CAC, gross profit, and EBITDA. Yellow rows = key levers from scenario model.</p>
+
+  <div class="layout">
+
+    <!-- CONTROLS -->
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-hdr-title">Driver inputs</div></div>
+      <div class="panel-body">
+
+        <div class="section-tag">Acquisition cost</div>
+
+        <div class="key-lever">
+          <div class="slider-row">
+            <div class="slider-label"><span>Provider CAC ($ / patient)</span><span class="slider-value key" id="pCv">$0</span></div>
+            <input type="range" id="pC" min="0" max="200" step="1" value="0">
+          </div>
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label"><span>DTC CAC ($ / patient)</span><span class="slider-value key" id="dCv">$240</span></div>
+            <input type="range" id="dC" min="100" max="500" step="5" value="240">
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>Provider channel mix (%)</span><span class="slider-value" id="pMv">50%</span></div>
+          <input type="range" id="pM" min="0" max="100" step="1" value="50">
+        </div>
+
+        <div class="section-tag">Revenue drivers</div>
+
+        <div class="key-lever">
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label"><span>Session rate ($ / session)</span><span class="slider-value key" id="sRv">$135</span></div>
+            <input type="range" id="sR" min="100" max="165" step="1" value="135">
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>Sessions per patient</span><span class="slider-value" id="sPv">4.5</span></div>
+          <input type="range" id="sP" min="2" max="8" step="0.5" value="4.5">
+        </div>
+
+        <div class="key-lever">
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label"><span>PA approval rate (%)</span><span class="slider-value key" id="pav">87%</span></div>
+            <input type="range" id="pa" min="70" max="99" step="1" value="87">
+          </div>
+        </div>
+
+        <div class="key-lever">
+          <div class="slider-row" style="margin-bottom:0">
+            <div class="slider-label"><span>No-show rate (%)</span><span class="slider-value key" id="nsv">9%</span></div>
+            <input type="range" id="ns" min="2" max="20" step="1" value="9">
+          </div>
+        </div>
+
+        <div class="section-tag">Scale</div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>Active patients</span><span class="slider-value" id="ptv">2,500</span></div>
+          <input type="range" id="pt" min="1000" max="5000" step="100" value="2500">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>RD loaded salary ($k / FTE)</span><span class="slider-value" id="salv">$112k</span></div>
+          <input type="range" id="sal" min="90000" max="135000" step="2500" value="112500">
+        </div>
+
+        <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.6;">
+          Fixed: 15 RD FTEs · $800k tech · 15% ops · 10% G&amp;A · 5% BD · INS mix 93% · LTV mult 2.8x
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div>
+
+      <!-- METRIC CARDS ROW 1 -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Blended CAC</div>
+          <div class="metric-value" id="bCac">$120</div>
+          <div class="metric-sub" id="bCacS">weighted avg</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Patient LTV</div>
+          <div class="metric-value good" id="ltv">$1,870</div>
+          <div class="metric-sub">ARR × 2.8yr</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">LTV / CAC</div>
+          <div class="metric-value" id="lc">∞</div>
+          <div class="metric-sub">target &gt; 8x</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Revenue / patient</div>
+          <div class="metric-value" id="arr">$607</div>
+          <div class="metric-sub">net of PA &amp; no-show</div>
+        </div>
+      </div>
+
+      <!-- METRIC CARDS ROW 2 -->
+      <div class="metrics-grid-3">
+        <div class="metric-card">
+          <div class="metric-label">Gross revenue ($k)</div>
+          <div class="metric-value" id="gr">$1,412k</div>
+          <div class="metric-sub">patients × ARR</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Gross profit ($k)</div>
+          <div class="metric-value bad" id="gp">-$269k</div>
+          <div class="metric-sub" id="gpM">-16.1% margin</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">EBITDA ($k)</div>
+          <div class="metric-value bad" id="eb">-$1,371k</div>
+          <div class="metric-sub" id="ebM">-82.1% margin</div>
+        </div>
+      </div>
+
+      <!-- FORMULA BOX -->
+      <div class="formula-box">
+        <div>Blended CAC = <span class="white">(provider mix × provider CAC) + (DTC mix × DTC CAC)</span></div>
+        <div id="f1"></div>
+        <div id="f2"></div>
+        <div class="hl" id="f3"></div>
+        <div id="f4" style="margin-top:4px;color:rgba(255,255,255,0.4)"></div>
+      </div>
+
+      <!-- CHARTS -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-title">CAC by channel vs blended</div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Provider CAC</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#D85A30"></span>DTC CAC</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#378ADD"></span>Blended CAC</span>
+          </div>
+          <div style="position:relative;height:200px">
+            <canvas id="cC" role="img" aria-label="Bar chart comparing provider CAC, DTC CAC, and blended CAC values">CAC comparison bar chart</canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Blended CAC across all provider mix values — drag mix slider to see position</div>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#1D9E75"></span>Blended CAC at each mix %</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#D85A30;border-radius:50%"></span>Current mix position</span>
+          </div>
+          <div style="position:relative;height:200px">
+            <canvas id="mC" role="img" aria-label="Line chart showing blended CAC from 0 to 100 percent provider mix with current position marked">Mix curve line chart</canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- WATERFALL -->
+      <div class="waterfall-section">
+        <div class="section-hdr">EBITDA waterfall — year 1 ($k)</div>
+        <div id="wf"></div>
+      </div>
+
+      <!-- INSIGHT -->
+      <div class="insight-box" id="ib"></div>
+
+      <div class="divider"></div>
+
+      <!-- 2-VAR SENSITIVITY TABLE: Rate × Patients -->
+      <div class="sens-table-wrap">
+        <div class="sens-title">Two-variable sensitivity: session rate × patient volume → EBITDA ($k)</div>
+        <div class="sens-subtitle">All other drivers held at current slider values. Teal outline = current position. Green = improving, red = deteriorating.</div>
+        <table class="sens" id="tblA"></table>
+      </div>
+
+      <!-- 2-VAR SENSITIVITY TABLE: PA × No-show -->
+      <div class="sens-table-wrap">
+        <div class="sens-title">Two-variable sensitivity: PA approval rate × no-show rate → EBITDA ($k)</div>
+        <div class="sens-subtitle">Shows the combined recovery potential of Rhyme PA automation + $50 no-show enforcement. Current position outlined.</div>
+        <table class="sens" id="tblB"></table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const g = id => document.getElementById(id);
+const RD_FTEs = 15, OPS = 0.15, TECH = 800, GA = 0.10, BD = 0.05, INS = 0.93, LTV_M = 2.8;
+
+function calc(ov = {}) {
+  const pC  = ov.pC  ?? +g('pC').value;
+  const dC  = ov.dC  ?? +g('dC').value;
+  const pM  = (ov.pM  ?? +g('pM').value) / 100;
+  const sR  = ov.sR  ?? +g('sR').value;
+  const sP  = ov.sP  ?? +g('sP').value;
+  const pa  = (ov.pa  ?? +g('pa').value) / 100;
+  const ns  = (ov.ns  ?? +g('ns').value) / 100;
+  const pt  = ov.pt  ?? +g('pt').value;
+  const sal = ov.sal ?? +g('sal').value;
+  const dM  = 1 - pM;
+
+  const bl  = pM * pC + dM * dC;
+  const arr = sP * sR * INS * pa * (1 - ns);
+  const ltv = arr * LTV_M;
+  const lc  = bl > 0 ? ltv / bl : 9999;
+
+  const gRk = Math.round(pt * arr / 1000);
+  const rdK = Math.round(RD_FTEs * sal / 1000);
+  const opK = Math.round(gRk * OPS);
+  const cgK = rdK + opK;
+  const gpK = gRk - cgK;
+  const gpP = gRk > 0 ? gpK / gRk : 0;
+  const mK  = Math.round(pt * 0.55 * bl / 1000);
+  const gaK = Math.round(gRk * GA);
+  const bdK = Math.round(gRk * BD);
+  const sgK = TECH + mK + gaK + bdK;
+  const ebK = gpK - sgK;
+  const ebP = gRk > 0 ? ebK / gRk : 0;
+
+  return { pC, dC, pM, dM, sR, sP, pa, ns, pt, sal, bl, arr, ltv, lc,
+           gRk, rdK, opK, cgK, gpK, gpP, mK, gaK, bdK, sgK, ebK, ebP };
+}
+
+let cC1, cC2;
+
+function initCharts(d) {
+  cC1 = new Chart(g('cC'), {
+    type: 'bar',
+    data: {
+      labels: ['Provider CAC', 'DTC CAC', 'Blended CAC'],
+      datasets: [{ data: [d.pC, d.dC, Math.round(d.bl)],
+        backgroundColor: ['#1D9E75', '#D85A30', '#378ADD'],
+        borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.raw.toLocaleString() } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#8A96A8' } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 11 }, color: '#8A96A8', callback: v => '$' + v } }
+      }
+    }
+  });
+
+  const mx21 = Array.from({ length: 21 }, (_, i) => Math.round(i * 5 / 100 * d.pC + (1 - i * 5 / 100) * d.dC));
+  const dotData = Array(21).fill(null);
+  dotData[Math.round(d.pM * 20)] = Math.round(d.bl);
+
+  cC2 = new Chart(g('mC'), {
+    type: 'line',
+    data: {
+      labels: Array.from({ length: 21 }, (_, i) => i * 5 + '%'),
+      datasets: [
+        { data: mx21, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)',
+          borderWidth: 2, pointRadius: 0, fill: true, tension: 0.1 },
+        { data: dotData, pointStyle: 'circle', pointRadius: 8,
+          pointBackgroundColor: '#D85A30', borderWidth: 0, showLine: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw != null ? '$' + c.raw : '' } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#8A96A8', maxTicksLimit: 6 } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { size: 11 }, color: '#8A96A8', callback: v => '$' + v } }
+      }
+    }
+  });
+}
+
+function updCharts(d) {
+  cC1.data.datasets[0].data = [d.pC, d.dC, Math.round(d.bl)];
+  cC1.update('none');
+  const mx21 = Array.from({ length: 21 }, (_, i) => Math.round(i * 5 / 100 * d.pC + (1 - i * 5 / 100) * d.dC));
+  cC2.data.datasets[0].data = mx21;
+  const dotData = Array(21).fill(null);
+  dotData[Math.round(d.pM * 20)] = Math.round(d.bl);
+  cC2.data.datasets[1].data = dotData;
+  cC2.update('none');
+}
+
+function updWF(d) {
+  const steps = [
+    { l: 'Gross revenue', v: d.gRk, t: 'p' },
+    { l: 'RD labor (' + RD_FTEs + ' FTEs)', v: -d.rdK, t: 'n' },
+    { l: 'Clinical ops (15%)', v: -d.opK, t: 'n' },
+    { l: 'Gross profit', v: d.gpK, t: 't' },
+    { l: 'Tech & platform', v: -TECH, t: 'n' },
+    { l: 'Marketing / CAC', v: -d.mK, t: 'n' },
+    { l: 'G&A (10%)', v: -d.gaK, t: 'n' },
+    { l: 'Provider BD (5%)', v: -d.bdK, t: 'n' },
+    { l: 'EBITDA', v: d.ebK, t: 't' },
+  ];
+  const mx = Math.max(...steps.map(s => Math.abs(s.v)));
+  const cols = { p: '#1D9E75', n: '#D85A30', t: '#378ADD' };
+  g('wf').innerHTML = steps.map(s => {
+    const w = Math.max(2, Math.round(Math.abs(s.v) / mx * 100));
+    const c = cols[s.t], tot = s.t === 't';
+    const disp = (s.v >= 0 ? '+$' : '-$') + Math.abs(Math.round(s.v)).toLocaleString() + 'k';
+    return `<div class="wf-row">
+      <span class="wf-label${tot ? ' total' : ''}">${s.l}</span>
+      <div class="wf-track"><div class="wf-bar" style="width:${w}%;background:${c};opacity:${tot ? 1 : 0.75}"></div></div>
+      <span class="wf-val" style="color:${c}">${disp}</span>
+    </div>`;
+  }).join('');
+}
+
+function updInsight(d) {
+  const be = Math.round(RD_FTEs * d.sal / (d.arr * (1 - OPS) / 1000));
+  const def = d.pt - be;
+  const at80 = Math.round(0.8 * d.pC + 0.2 * d.dC);
+  const sav = Math.round(d.bl) - at80;
+  const paGain = Math.round(d.pt * d.sP * d.sR * INS * (1 - d.ns) * 0.01 / 1000);
+  const nsGain = Math.round(d.pt * d.sP * d.sR * INS * d.pa * 0.01 / 1000);
+  g('ib').innerHTML = `
+    <strong>Breakeven GP > 0</strong> requires ~${be.toLocaleString()} patients at current rates —
+    ${def < 0 ? `<span class="bad">${Math.abs(def).toLocaleString()} patients short.</span>` : `<span class="good">${def.toLocaleString()} patient surplus.</span>`}
+    &nbsp;·&nbsp; LTV/CAC of <strong>${d.lc > 500 ? '∞' : d.lc.toFixed(1) + 'x'}</strong> ${d.lc > 8 ? 'is healthy (target > 8x)' : '<span class="bad">is below the 8x target.</span>'}.
+    &nbsp;·&nbsp; ${sav > 0 ? `Moving to 80% provider mix saves <span class="good">$${sav}/patient</span> in blended CAC.` : 'Already at or above 80% provider mix — CAC is optimised.'}
+    &nbsp;·&nbsp; Each 1% PA improvement recovers <span class="good">~$${paGain}k/yr</span>.
+    &nbsp;·&nbsp; Each 1% no-show reduction recovers <span class="good">~$${nsGain}k/yr</span>.
+  `;
+}
+
+function cellColor(v) {
+  if (v > 200)    return { bg: '#9FE1CB', fg: '#04342C' };
+  if (v > -200)   return { bg: '#C8F0DC', fg: '#085041' };
+  if (v > -600)   return { bg: '#E1F5EE', fg: '#0F6E56' };
+  if (v > -1000)  return { bg: '#FEF9EE', fg: '#854F0B' };
+  if (v > -1400)  return { bg: '#FAEEDA', fg: '#633806' };
+  if (v > -1800)  return { bg: '#FCEBEB', fg: '#791F1F' };
+  return             { bg: '#F7C1C1', fg: '#501313' };
+}
+
+function buildTableA(d) {
+  const rates   = [115, 120, 125, 130, 135, 140, 145, 150, 155];
+  const patients = [1500, 2000, 2200, 2500, 2800, 3200, 3600, 4000];
+  const curRate = d.sR, curPt = d.pt;
+
+  let html = '<thead><tr><th class="row-hdr">Patients ↓ / Rate →</th>';
+  rates.forEach(r => { html += `<th>$${r}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  patients.forEach(pt => {
+    html += `<tr><td class="row-hdr">${pt.toLocaleString()}</td>`;
+    rates.forEach(sr => {
+      const v = Math.round(calc({ sR: sr, pt }).ebK);
+      const { bg, fg } = cellColor(v);
+      const isBase = Math.abs(sr - curRate) < 3 && Math.abs(pt - curPt) < 200;
+      const disp = (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString() + 'k';
+      html += `<td style="background:${bg};color:${fg}" ${isBase ? 'class="base-cell"' : ''}>${disp}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  g('tblA').innerHTML = html;
+}
+
+function buildTableB(d) {
+  const paRates = [0.75, 0.80, 0.85, 0.87, 0.90, 0.92, 0.95, 0.97, 0.99];
+  const nsRates = [0.14, 0.12, 0.10, 0.09, 0.07, 0.05, 0.03];
+  const curPa = d.pa, curNs = d.ns;
+
+  let html = '<thead><tr><th class="row-hdr">No-show ↓ / PA rate →</th>';
+  paRates.forEach(pa => { html += `<th>${Math.round(pa * 100)}%</th>`; });
+  html += '</tr></thead><tbody>';
+
+  nsRates.forEach(ns => {
+    html += `<tr><td class="row-hdr">No-show ${Math.round(ns * 100)}%</td>`;
+    paRates.forEach(pa => {
+      const v = Math.round(calc({ pa: pa * 100, ns: ns * 100 }).ebK);
+      const { bg, fg } = cellColor(v);
+      const isBase = Math.abs(pa - curPa) < 0.015 && Math.abs(ns - curNs) < 0.015;
+      const disp = (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString() + 'k';
+      html += `<td style="background:${bg};color:${fg}" ${isBase ? 'class="base-cell"' : ''}>${disp}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  g('tblB').innerHTML = html;
+}
+
+function update() {
+  const d = calc();
+
+  g('pCv').textContent  = '$' + d.pC;
+  g('dCv').textContent  = '$' + d.dC;
+  g('pMv').textContent  = Math.round(d.pM * 100) + '%';
+  g('sRv').textContent  = '$' + d.sR;
+  g('sPv').textContent  = d.sP.toFixed(1);
+  g('pav').textContent  = Math.round(d.pa * 100) + '%';
+  g('nsv').textContent  = Math.round(d.ns * 100) + '%';
+  g('ptv').textContent  = d.pt.toLocaleString();
+  g('salv').textContent = '$' + Math.round(d.sal / 1000) + 'k';
+
+  const bEl = g('bCac');
+  bEl.textContent = '$' + Math.round(d.bl).toLocaleString();
+  bEl.className = 'metric-value ' + (d.bl < 80 ? 'good' : d.bl < 180 ? 'warn' : 'bad');
+  g('bCacS').textContent = Math.round(d.pM * 100) + '% provider · ' + Math.round(d.dM * 100) + '% DTC';
+
+  g('ltv').textContent = '$' + Math.round(d.ltv).toLocaleString();
+  const lcEl = g('lc');
+  lcEl.textContent = d.lc > 500 ? '∞' : d.lc.toFixed(1) + 'x';
+  lcEl.className = 'metric-value ' + (d.lc > 15 ? 'good' : d.lc > 8 ? '' : 'bad');
+  g('arr').textContent = '$' + Math.round(d.arr).toLocaleString();
+
+  g('gr').textContent = '$' + d.gRk.toLocaleString() + 'k';
+
+  const gpEl = g('gp');
+  gpEl.textContent = (d.gpK < 0 ? '-$' : '+$') + Math.abs(d.gpK).toLocaleString() + 'k';
+  gpEl.className = 'metric-value ' + (d.gpK > 0 ? 'good' : d.gpK > -150 ? 'warn' : 'bad');
+  g('gpM').textContent = (d.gpP * 100).toFixed(1) + '% margin';
+
+  const ebEl = g('eb');
+  ebEl.textContent = (d.ebK < 0 ? '-$' : '+$') + Math.abs(d.ebK).toLocaleString() + 'k';
+  ebEl.className = 'metric-value ' + (d.ebK > 0 ? 'good' : d.ebK > -600 ? 'warn' : 'bad');
+  g('ebM').textContent = (d.ebP * 100).toFixed(1) + '% margin';
+
+  const pp = (d.pM * d.pC).toFixed(2), dp = (d.dM * d.dC).toFixed(2);
+  g('f1').innerHTML = `= <span style="color:rgba(255,255,255,0.5)">(${Math.round(d.pM * 100)}% × $${d.pC}) + (${Math.round(d.dM * 100)}% × $${d.dC})</span>`;
+  g('f2').innerHTML = `= <span style="color:rgba(255,255,255,0.5)">$${pp} + $${dp}</span>`;
+  g('f3').textContent = `= $${(parseFloat(pp) + parseFloat(dp)).toFixed(2)}`;
+  const at80 = Math.round(0.8 * d.pC + 0.2 * d.dC), sav = Math.round(d.bl) - at80;
+  g('f4').innerHTML = sav > 0
+    ? `At 80% provider mix → <span style="color:var(--teal)">$${at80} blended CAC (saves $${sav} vs current)</span>`
+    : `At 80% provider mix → <span style="color:var(--teal)">$${at80} blended CAC</span> (already optimised)`;
+
+  updCharts(d);
+  updWF(d);
+  updInsight(d);
+  buildTableA(d);
+  buildTableB(d);
+}
+
+['pC','dC','pM','sR','sP','pa','ns','pt','sal'].forEach(id => g(id).addEventListener('input', update));
+
+const d0 = calc();
+initCharts(d0);
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST v1 — Build vs. Validate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --teal: #0E7C7B;
+    --teal-light: #0fa8a7;
+    --amber: #C17B2F;
+    --amber-light: #F5C878;
+    --red: #8B1A1A;
+    --red-light: #c94040;
+    --cream: #F7F3EC;
+    --cream-dark: #EDE8DF;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #d4cfc6;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--navy);
+    padding: 48px 64px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,124,123,0.25) 0%, transparent 70%);
+  }
+
+  header::after {
+    content: 'CAST v1';
+    position: absolute;
+    bottom: -20px; right: 64px;
+    font-family: 'Fraunces', serif;
+    font-size: 160px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.04);
+    letter-spacing: -4px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--teal-light);
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 42px;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    max-width: 600px;
+  }
+
+  header h1 em {
+    font-style: italic;
+    color: var(--amber-light);
+  }
+
+  .header-sub {
+    margin-top: 16px;
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    max-width: 500px;
+  }
+
+  .header-legend {
+    display: flex;
+    gap: 24px;
+    margin-top: 32px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.05em;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 56px 64px;
+  }
+
+  /* SECTION HEADERS */
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .section-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CARDS */
+  .cards-grid {
+    display: grid;
+    gap: 2px;
+    margin-bottom: 56px;
+  }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    position: relative;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(27,42,74,0.08);
+    z-index: 1;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .card-tag {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+
+  .tag-build {
+    background: rgba(14,124,123,0.12);
+    color: var(--teal);
+    border: 1px solid rgba(14,124,123,0.25);
+  }
+
+  .tag-decide {
+    background: rgba(193,123,47,0.12);
+    color: var(--amber);
+    border: 1px solid rgba(193,123,47,0.25);
+  }
+
+  .tag-validate {
+    background: rgba(139,26,26,0.1);
+    color: var(--red-light);
+    border: 1px solid rgba(139,26,26,0.2);
+  }
+
+  .card-body {
+    color: #444;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+
+  .card-rationale {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--cream-dark);
+    font-size: 11.5px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .card-accent-bar {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .bar-build { background: var(--teal); }
+  .bar-decide { background: var(--amber); }
+  .bar-validate { background: var(--red-light); }
+
+  /* PRIORITY SEQUENCE */
+  .priority-block {
+    background: var(--navy);
+    padding: 40px 48px;
+    margin-bottom: 56px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .priority-block::after {
+    content: '→';
+    position: absolute;
+    right: 48px; bottom: -20px;
+    font-size: 120px;
+    color: rgba(255,255,255,0.04);
+    font-family: 'Fraunces', serif;
+    line-height: 1;
+  }
+
+  .priority-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--white);
+    margin-bottom: 28px;
+  }
+
+  .priority-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+
+  .priority-step {
+    background: rgba(255,255,255,0.05);
+    padding: 20px 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.15);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+
+  .step-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--teal-light);
+    margin-bottom: 8px;
+  }
+
+  .step-body {
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.6;
+  }
+
+  /* RISKS TABLE */
+  .risks-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 56px;
+  }
+
+  .risks-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 16px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+
+  .risks-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--cream-dark);
+    vertical-align: top;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .risks-table tr:last-child td { border-bottom: none; }
+
+  .risks-table tr:hover td { background: rgba(14,124,123,0.04); }
+
+  .risk-assumption {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .risk-how {
+    color: #555;
+  }
+
+  .risk-signal {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .severity {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .sev-high { background: var(--red-light); }
+  .sev-med  { background: var(--amber); }
+
+  /* DIVIDER */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+    margin: 0 0 56px;
+  }
+
+  /* FOOTER NOTE */
+  .footer-note {
+    border-top: 1px solid var(--border);
+    padding-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .footer-note p {
+    font-size: 11px;
+    color: var(--muted);
+    max-width: 500px;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .footer-date {
+    font-size: 11px;
+    color: var(--border);
+    letter-spacing: 0.05em;
+  }
+
+  /* ANIMATION */
+  .card, .priority-step, .risks-table tr {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+  .card:nth-child(6) { animation-delay: 0.30s; }
+  .card:nth-child(7) { animation-delay: 0.35s; }
+  .card:nth-child(8) { animation-delay: 0.40s; }
+  .card:nth-child(9) { animation-delay: 0.45s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-eyebrow">CAST v1 — Confirm &amp; Pay</div>
+  <h1>What to <em>build</em> now.<br>What to <em>decide</em> first.<br>What to <em>validate</em> before committing.</h1>
+  <p class="header-sub">Implementation analysis from spec review. Three buckets, nine items, one priority sequence.</p>
+  <div class="header-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#0E7C7B"></div>Build now — design requirement</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#C17B2F"></div>Decide first — shapes downstream</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c94040"></div>Validate with buyers — assumption</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- BUILD NOW -->
+  <div class="section-header">
+    <span class="section-label">01</span>
+    <span class="section-title" style="color:var(--teal)">Build now</span>
+    <div class="section-rule"></div>
+    <span class="section-label">design requirements, not questions</span>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-accent-bar bar-build"></div>
+      <div class="card-header">
+        <div class="card-title">Three-track state model</div>
+        <div class="card-tag tag-build">Architecture</div>
+      </div>
+      <div class="card-body">Bilateral, control, and settlement as parallel tracks — not a single status field. This must be correct in the data model before writing the first screen.</div>
+      <div class="card-rationale">Retrofitting parallel tracks after launch is expensive. A collapsed status field can't answer "confirmed by vendor but blocked by policy?" — which is exactly the state that matters most.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-build"></div>
+      <div class="card-header">
+        <div class="card-title">Immutable policy versioning</div>
+        <div class="card-tag tag-build">Data Architecture</div>
+      </div>
+      <div class="card-body">Every bilateral event pins the exact policy version in effect at the time of approval. A policy change later cannot retroactively alter what was approved. This is a data architecture requirement, not a UI feature.</div>
+      <div class="card-rationale">If policy versioning is wrong from day one, the FCA defense story breaks and the audit trail is unreliable. No retrofit path exists — the write is already immutable or it isn't.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-build"></div>
+      <div class="card-header">
+        <div class="card-title">Non-response fallback design</div>
+        <div class="card-tag tag-build">Core Flow</div>
+      </div>
+      <div class="card-body">The spec is silent on what happens when a vendor doesn't respond by deadline. Design this before launch. Proposed path: second attempt, then escalate to mandatory internal approval with override reason appended to the event record.</div>
+      <div class="card-rationale">Blocking payment indefinitely causes the product to be bypassed. But uncontrolled non-response weakens the bilateral proof claim. The override-with-documentation path preserves both properties.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-build"></div>
+      <div class="card-header">
+        <div class="card-title">Vendor bank-change dispute sketch</div>
+        <div class="card-tag tag-build">Exception Flow</div>
+      </div>
+      <div class="card-body">The highest-stakes scenario: a legitimate vendor flags a fraudulent bank-change on a trade message. Doesn't need to be fully built in v1, but needs a defined path — who is notified, what is the resolution sequence, how is the case closed.</div>
+      <div class="card-rationale">No enterprise buyer will sign off without an answer to this. This is the scenario the product was built to prevent. Leaving it undefined in the spec is a sales blocker.</div>
+    </div>
+  </div>
+
+  <!-- DECIDE FIRST -->
+  <div class="section-header">
+    <span class="section-label">02</span>
+    <span class="section-title" style="color:var(--amber)">Decide before building</span>
+    <div class="section-rule"></div>
+    <span class="section-label">commitments with downstream consequences</span>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-accent-bar bar-decide"></div>
+      <div class="card-header">
+        <div class="card-title">ERP integration target</div>
+        <div class="card-tag tag-decide">Product Scope</div>
+      </div>
+      <div class="card-body">Pick one for v1. NetSuite and Sage Intacct cover most of the PE portfolio beachhead. QuickBooks covers the smaller end. "Manual export only" is a legitimate choice but must be explicit in early sales conversations.</div>
+      <div class="card-rationale">This shapes the export schema, field mapping, and implementation estimate. It also determines whether the first pilot company can actually close the loop — or leaves the AP analyst doing manual data entry.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-decide"></div>
+      <div class="card-header">
+        <div class="card-title">Sales channel commitment</div>
+        <div class="card-tag tag-decide">Go-to-Market</div>
+      </div>
+      <div class="card-body">PE operating partners, DFHQ fractional engagements, or direct to portfolio company CFOs — these are different products. A fractional CFO deploying across a portfolio needs multi-entity management. A solo controller deploying at one company doesn't.</div>
+      <div class="card-rationale">The admin/vendor trust setup screen design depends on this answer. Design for the wrong deployer and implementation friction kills the first few deals.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-decide"></div>
+      <div class="card-header">
+        <div class="card-title">Pricing model structure</div>
+        <div class="card-tag tag-decide">Commercial</div>
+      </div>
+      <div class="card-body">Per-message pricing creates the wrong incentive — AP teams will suppress triggers to reduce cost. Platform fee per company with coverage metrics as the value story is probably right. Structure must be set before the first sales conversation.</div>
+      <div class="card-rationale">Pricing structure shapes adoption behavior. The wrong model directly undermines the product's stated goal of covering high-risk AP flows as broadly as possible.</div>
+    </div>
+  </div>
+
+  <!-- VALIDATE FIRST -->
+  <div class="section-header">
+    <span class="section-label">03</span>
+    <span class="section-title" style="color:var(--red-light)">Validate with buyers first</span>
+    <div class="section-rule"></div>
+    <span class="section-label">assumptions, not facts</span>
+  </div>
+
+  <div class="cards-grid">
+    <div class="card">
+      <div class="card-accent-bar bar-validate"></div>
+      <div class="card-header">
+        <div class="card-title">Vendor response rate</div>
+        <div class="card-tag tag-validate">Load-bearing assumption</div>
+      </div>
+      <div class="card-body">The entire bilateral value prop rests on vendors actually responding. Run a manual test before building the automated flow: take 20 real invoices from a friendly portfolio company, send structured confirmation requests by email, measure response rate and friction.</div>
+      <div class="card-rationale">The answer may be high for large recurring vendors and low for small or one-time vendors — which immediately sharpens the trigger policy and scope for v1.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-validate"></div>
+      <div class="card-header">
+        <div class="card-title">Magic link / OTP as sufficient proof</div>
+        <div class="card-tag tag-validate">Proof Standard</div>
+      </div>
+      <div class="card-body">Ask two or three serious buyers directly: "If a vendor confirms via email link and OTP, is that sufficient proof for your audit trail and FCA defense?" Some will say yes. Some will require something stronger. The answer determines whether passkeys are a roadmap feature or a v1 requirement.</div>
+      <div class="card-rationale">An attacker who controls the vendor's email can confirm a fraudulent trade message via magic link. The cryptographic strength of v1 confirmation is directly tied to the defensibility of the bilateral proof claim.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-bar bar-validate"></div>
+      <div class="card-header">
+        <div class="card-title">What "sufficient proof" means to an auditor</div>
+        <div class="card-tag tag-validate">Enterprise Sales Blocker</div>
+      </div>
+      <div class="card-body">Show the event log concept — CAST reference, bilateral confirmation timestamp, policy version, signer identity — to one or two nonprofit compliance officers or grant auditors. Ask whether this record would satisfy their audit evidence requirements.</div>
+      <div class="card-rationale">If yes, the FCA defense story holds as the enterprise sales anchor. If they want something additional, you learn that before building the wrong audit trail UI.</div>
+    </div>
+  </div>
+
+  <!-- PRIORITY SEQUENCE -->
+  <div class="priority-block">
+    <div class="priority-title">Priority sequence if forced to order</div>
+    <div class="priority-steps">
+      <div class="priority-step">
+        <div class="step-num">1</div>
+        <div class="step-label">Foundational</div>
+        <div class="step-body">Three-track state model + immutable policy versioning. Both are foundational. Retrofitting is expensive. Get these right before writing the first screen.</div>
+      </div>
+      <div class="priority-step">
+        <div class="step-num">2</div>
+        <div class="step-label">Shaping</div>
+        <div class="step-body">ERP integration target + sales channel. These shape everything downstream — admin layer design, implementation estimate, and who you're actually building for.</div>
+      </div>
+      <div class="priority-step">
+        <div class="step-num">3</div>
+        <div class="step-label">Pre-build validation</div>
+        <div class="step-body">Vendor response rate — run manually before building automation. This is the load-bearing assumption. Everything else follows from the answers.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSUMPTIONS RISK TABLE -->
+  <div class="section-header">
+    <span class="section-label">04</span>
+    <span class="section-title">Assumption risk register</span>
+    <div class="section-rule"></div>
+    <span class="section-label">validate before building</span>
+  </div>
+
+  <table class="risks-table">
+    <thead>
+      <tr>
+        <th style="width:28%">Assumption</th>
+        <th style="width:32%">How to test</th>
+        <th style="width:28%">If wrong, implication</th>
+        <th style="width:12%">Severity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><div class="risk-assumption">Vendors respond to payment confirmation requests</div></td>
+        <td class="risk-how">20-invoice manual test with a friendly portfolio company. Measure response rate, time, friction by vendor size.</td>
+        <td class="risk-signal">Bilateral proof coverage is much lower than modeled. Trigger policy must narrow significantly.</td>
+        <td><span class="severity sev-high"></span>High</td>
+      </tr>
+      <tr>
+        <td><div class="risk-assumption">Email link + OTP satisfies buyer proof standard</div></td>
+        <td class="risk-how">Direct question to 3 target buyers: "Does email confirmation satisfy your FCA audit evidence requirement?"</td>
+        <td class="risk-signal">Passkeys become v1 requirement, not roadmap. Adds 4–8 weeks of vendor onboarding work before launch.</td>
+        <td><span class="severity sev-high"></span>High</td>
+      </tr>
+      <tr>
+        <td><div class="risk-assumption">PE portfolio company CFOs can drive vendor adoption internally</div></td>
+        <td class="risk-how">Ask one friendly CFO to run the manual test and report back on internal friction encountered.</td>
+        <td class="risk-signal">Sales channel assumption collapses. DFHQ fractional model becomes the only viable path to first 10 deployments.</td>
+        <td><span class="severity sev-med"></span>Medium</td>
+      </tr>
+      <tr>
+        <td><div class="risk-assumption">CAST reference + timestamp satisfies auditor evidence standard</div></td>
+        <td class="risk-how">Show event log mockup to one nonprofit compliance officer or grant auditor. Ask what's missing.</td>
+        <td class="risk-signal">Audit trail UI must be redesigned before enterprise pitch. Sales cycle extends until this is resolved.</td>
+        <td><span class="severity sev-med"></span>Medium</td>
+      </tr>
+      <tr>
+        <td><div class="risk-assumption">Manual export is acceptable for first pilots</div></td>
+        <td class="risk-how">Ask first two pilot candidates whether they would accept manual CSV export for 90 days before native ERP integration.</td>
+        <td class="risk-signal">ERP integration becomes gate to first sale, not roadmap. NetSuite or Intacct integration must be scoped into v1.</td>
+        <td><span class="severity sev-med"></span>Medium</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    <p>This analysis is derived from spec review of CAST v1: Confirm &amp; Pay. Items in the "build now" bucket are design requirements where getting it wrong creates expensive retrofit debt. Items in the "validate" bucket are assumptions that, if wrong, invalidate significant portions of the build plan.</p>
+    <span class="footer-date">DFHQ · CAST v1 · March 2026</span>
+  </div>
+
+</main>
+</body>
+</html>

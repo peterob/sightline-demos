@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PE Finance Function Diagnostic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
+        .glass-card { background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); }
+        .tab-active { border-bottom: 3px solid #6366f1; color: #6366f1; background: white; }
+        .input-field { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; transition: all 0.2s; }
+        .input-field:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+        .btn-primary { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        .btn-secondary { background: white; color: #475569; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; font-weight: 500; }
+        .btn-secondary:hover { background: #f8fafc; }
+        
+        /* Score colors */
+        .score-excellent { color: #059669; }
+        .score-good { color: #0891b2; }
+        .score-fair { color: #d97706; }
+        .score-poor { color: #dc2626; }
+        .score-bg-excellent { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 1px solid #6ee7b7; }
+        .score-bg-good { background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%); border: 1px solid #67e8f9; }
+        .score-bg-fair { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #fcd34d; }
+        .score-bg-poor { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; }
+        
+        /* Score gauge */
+        .score-gauge { width: 120px; height: 120px; border-radius: 50%; position: relative; display: flex; align-items: center; justify-content: center; }
+        .score-gauge-inner { width: 90px; height: 90px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .score-gauge.excellent { background: conic-gradient(#059669 calc(var(--score) * 3.6deg), #e5e7eb calc(var(--score) * 3.6deg)); }
+        .score-gauge.good { background: conic-gradient(#0891b2 calc(var(--score) * 3.6deg), #e5e7eb calc(var(--score) * 3.6deg)); }
+        .score-gauge.fair { background: conic-gradient(#d97706 calc(var(--score) * 3.6deg), #e5e7eb calc(var(--score) * 3.6deg)); }
+        .score-gauge.poor { background: conic-gradient(#dc2626 calc(var(--score) * 3.6deg), #e5e7eb calc(var(--score) * 3.6deg)); }
+        
+        /* Dimension cards */
+        .dimension-card { border-radius: 12px; padding: 1rem; transition: all 0.2s; }
+        .dimension-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px -4px rgba(0,0,0,0.1); }
+        
+        /* Progress bars */
+        .progress-bar { height: 8px; border-radius: 4px; background: #e5e7eb; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        
+        /* Recommendation cards */
+        .rec-high { border-left: 4px solid #dc2626; }
+        .rec-medium { border-left: 4px solid #d97706; }
+        .rec-low { border-left: 4px solid #0891b2; }
+        
+        /* Value badges */
+        .value-strategic { background: #dbeafe; color: #1e40af; }
+        .value-operational { background: #dcfce7; color: #166534; }
+        .value-admin { background: #fef3c7; color: #92400e; }
+        .value-rework { background: #fee2e2; color: #991b1b; }
+        
+        .domain-ap { border-left: 4px solid #3b82f6; }
+        .domain-ar { border-left: 4px solid #10b981; }
+        .domain-gl { border-left: 4px solid #f59e0b; }
+        .domain-fp { border-left: 4px solid #8b5cf6; }
+        .domain-other { border-left: 4px solid #64748b; }
+        
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .modal-content { background: white; border-radius: 16px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        
+        .bar-chart { display: flex; align-items: flex-end; gap: 12px; height: 180px; padding: 10px 0; }
+        .bar-item { display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }
+        .bar-wrapper { width: 100%; height: 140px; display: flex; align-items: flex-end; }
+        .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.3s; min-height: 4px; }
+        .bar-label { font-size: 11px; color: #64748b; margin-top: 8px; text-align: center; }
+        .bar-value { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            .print-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <header class="gradient-header text-white shadow-lg no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center"><span class="text-xl font-bold">⚡</span></div>
+                    <div>
+                        <h1 class="text-xl font-bold">PE Finance Function Diagnostic</h1>
+                        <p class="text-indigo-200 text-sm">Portfolio Company Assessment Platform</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="bg-white/10 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-indigo-200">Overall Score</p>
+                        <p class="text-2xl font-bold" id="header-score">--</p>
+                    </div>
+                    <div class="bg-white/10 rounded-lg px-3 py-2 text-center">
+                        <p class="text-xs text-indigo-200">Grade</p>
+                        <p class="text-2xl font-bold" id="header-grade">--</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex gap-1 mt-4 -mb-4 overflow-x-auto">
+                <button onclick="showTab('profile')" id="tab-profile" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20 tab-active">1. Company</button>
+                <button onclick="showTab('team')" id="tab-team" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">2. Team</button>
+                <button onclick="showTab('tasks')" id="tab-tasks" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">3. Tasks</button>
+                <button onclick="showTab('diagnostic')" id="tab-diagnostic" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">📊 Diagnostic</button>
+                <button onclick="showTab('scorecard')" id="tab-scorecard" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">🎯 Scorecard</button>
+                <button onclick="showTab('benchmarks')" id="tab-benchmarks" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">📈 Benchmarks</button>
+                <button onclick="showTab('recommendations')" id="tab-recommendations" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">💡 Actions</button>
+                <button onclick="showTab('export')" id="tab-export" class="tab-btn px-4 py-2 rounded-t-lg text-sm font-medium bg-white/10 hover:bg-white/20">📄 Export</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Tab: Company Profile -->
+        <section id="content-profile" class="tab-content">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm">
+                <h2 class="text-xl font-bold mb-2">Company Profile</h2>
+                <p class="text-slate-600 mb-6">Enter company details for benchmarking and scoring context.</p>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Company Name *</label>
+                        <input type="text" id="company-name" class="input-field w-full" placeholder="Portfolio Company Inc." value="Acme Manufacturing">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Industry *</label>
+                        <select id="company-industry" class="input-field w-full">
+                            <option value="manufacturing">Manufacturing</option>
+                            <option value="technology">Technology / SaaS</option>
+                            <option value="healthcare">Healthcare Services</option>
+                            <option value="retail">Retail / E-commerce</option>
+                            <option value="services">Professional Services</option>
+                            <option value="distribution">Distribution / Logistics</option>
+                            <option value="financial">Financial Services</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Annual Revenue ($M) *</label>
+                        <input type="number" id="company-revenue" class="input-field w-full" placeholder="50" value="75">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Revenue Tier</label>
+                        <select id="company-tier" class="input-field w-full">
+                            <option value="small">$10-25M</option>
+                            <option value="mid-small">$25-50M</option>
+                            <option value="mid" selected>$50-100M</option>
+                            <option value="mid-large">$100-250M</option>
+                            <option value="large">$250M+</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Total Employees</label>
+                        <input type="number" id="company-employees" class="input-field w-full" value="350">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1"># Legal Entities</label>
+                        <input type="number" id="company-entities" class="input-field w-full" value="3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1"># Currencies</label>
+                        <input type="number" id="company-currencies" class="input-field w-full" value="2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">ERP System</label>
+                        <select id="company-erp" class="input-field w-full">
+                            <option value="netsuite">NetSuite</option>
+                            <option value="sap">SAP</option>
+                            <option value="sage">Sage Intacct</option>
+                            <option value="quickbooks">QuickBooks</option>
+                            <option value="dynamics">Microsoft Dynamics</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Close Cycle (Days)</label>
+                        <input type="number" id="company-close-days" class="input-field w-full" value="12" placeholder="Business days to close">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Assessment Date</label>
+                        <input type="date" id="company-date" class="input-field w-full">
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <h3 class="font-semibold text-indigo-800 mb-2">Complexity Factors</h3>
+                    <div class="grid grid-cols-3 gap-4 text-sm">
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-multistate" checked> Multi-state operations</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-international"> International operations</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-inventory" checked> Inventory management</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-projectbased"> Project-based revenue</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-subscription"> Subscription/recurring</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="cx-regulated"> Regulated industry</label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end mt-6">
+                    <button onclick="saveProfile(); showTab('team')" class="btn-primary">Save & Continue →</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Team -->
+        <section id="content-team" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold">Finance Team</h2>
+                        <p class="text-slate-600">Sample team pre-loaded. Edit to match actual structure.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="loadSampleData()" class="btn-secondary text-sm">🔄 Reset Sample</button>
+                        <button onclick="openAddMemberModal()" class="btn-primary">+ Add</button>
+                    </div>
+                </div>
+                <div id="team-list" class="space-y-2"></div>
+            </div>
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">FTEs</p><p class="text-2xl font-bold" id="team-fte">0</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Annual Cost</p><p class="text-2xl font-bold" id="team-cost">$0</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">% of Revenue</p><p class="text-2xl font-bold" id="team-pct-rev">0%</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Avg Salary</p><p class="text-2xl font-bold" id="team-avg-sal">$0</p></div>
+            </div>
+            <div class="flex justify-between">
+                <button onclick="showTab('profile')" class="btn-secondary">← Back</button>
+                <button onclick="showTab('tasks')" class="btn-primary">Continue to Tasks →</button>
+            </div>
+        </section>
+
+        <!-- Tab: Tasks -->
+        <section id="content-tasks" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <select id="task-member-select" onchange="loadMemberTasks()" class="input-field flex-1 max-w-xs"><option value="">-- Select Member --</option></select>
+                    <button onclick="openAddTaskModal()" class="btn-primary" id="add-task-btn" disabled>+ Add Task</button>
+                </div>
+                <div id="member-task-summary" class="hidden mb-4">
+                    <div class="bg-slate-50 rounded-lg p-3 flex justify-between items-center">
+                        <div><span class="font-semibold" id="selected-member-name">-</span> <span class="text-slate-500" id="selected-member-role">-</span></div>
+                        <div class="flex gap-4 text-sm">
+                            <span><strong id="member-task-count">0</strong> tasks</span>
+                            <span><strong id="member-hours-month">0</strong> hrs/mo</span>
+                            <span id="member-utilization" class="font-semibold">0%</span> util
+                        </div>
+                    </div>
+                </div>
+                <div id="member-tasks-list" class="space-y-2"><div class="text-center py-6 text-slate-400">Select a team member to view/add tasks</div></div>
+            </div>
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Total Tasks</p><p class="text-2xl font-bold" id="tasks-total">0</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Hours/Month</p><p class="text-2xl font-bold" id="tasks-hours">0</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Strategic %</p><p class="text-2xl font-bold text-blue-600" id="tasks-strategic">0%</p></div>
+                <div class="glass-card rounded-xl p-4 border"><p class="text-sm text-slate-500">Admin+Rework %</p><p class="text-2xl font-bold text-amber-600" id="tasks-lowvalue">0%</p></div>
+            </div>
+            <div class="flex justify-between">
+                <button onclick="showTab('team')" class="btn-secondary">← Back</button>
+                <button onclick="runDiagnostic(); showTab('diagnostic')" class="btn-primary">Run Diagnostic →</button>
+            </div>
+        </section>
+
+        <!-- Tab: Diagnostic Dashboard -->
+        <section id="content-diagnostic" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold" id="diag-company-name">Finance Function Diagnostic</h2>
+                        <p class="text-slate-500" id="diag-date">Assessment Date: --</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-slate-500">Overall Health Score</p>
+                        <div class="flex items-center gap-3">
+                            <div id="overall-gauge" class="score-gauge" style="--score: 0;">
+                                <div class="score-gauge-inner">
+                                    <span id="overall-score" class="text-3xl font-bold">--</span>
+                                    <span class="text-xs text-slate-500">/ 100</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p id="overall-grade" class="text-4xl font-bold">--</p>
+                                <p id="overall-label" class="text-sm text-slate-500">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Six Dimension Scores -->
+                <h3 class="font-semibold mb-3">Dimension Scores</h3>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div id="dim-cost" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Cost Efficiency</p><p class="text-xs text-slate-500">20% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-cost">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-cost" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-cost">--</p>
+                    </div>
+                    <div id="dim-strategic" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Strategic Focus</p><p class="text-xs text-slate-500">20% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-strategic">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-strategic" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-strategic">--</p>
+                    </div>
+                    <div id="dim-scalability" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Scalability</p><p class="text-xs text-slate-500">15% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-scalability">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-scalability" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-scalability">--</p>
+                    </div>
+                    <div id="dim-risk" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Risk & Continuity</p><p class="text-xs text-slate-500">15% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-risk">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-risk" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-risk">--</p>
+                    </div>
+                    <div id="dim-close" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Close Performance</p><p class="text-xs text-slate-500">15% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-close">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-close" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-close">--</p>
+                    </div>
+                    <div id="dim-capacity" class="dimension-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <div><p class="font-semibold">Team Capacity</p><p class="text-xs text-slate-500">15% weight</p></div>
+                            <span class="text-2xl font-bold" id="score-capacity">--</span>
+                        </div>
+                        <div class="progress-bar"><div id="bar-capacity" class="progress-fill" style="width:0%"></div></div>
+                        <p class="text-xs text-slate-500 mt-2" id="detail-capacity">--</p>
+                    </div>
+                </div>
+                
+                <!-- Key Metrics -->
+                <h3 class="font-semibold mb-3">Key Metrics</h3>
+                <div class="grid grid-cols-6 gap-3 mb-6">
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">Finance FTEs</p><p class="text-lg font-bold" id="metric-fte">--</p></div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">Cost % Rev</p><p class="text-lg font-bold" id="metric-cost-pct">--</p></div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">Strategic %</p><p class="text-lg font-bold" id="metric-strategic">--</p></div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">High Risk</p><p class="text-lg font-bold" id="metric-risk">--</p></div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">Utilization</p><p class="text-lg font-bold" id="metric-util">--</p></div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center"><p class="text-xs text-slate-500">Close Days</p><p class="text-lg font-bold" id="metric-close">--</p></div>
+                </div>
+                
+                <!-- Value Creation -->
+                <h3 class="font-semibold mb-3">💰 Value Creation Opportunity</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <p class="text-sm text-green-800 font-medium">Efficiency Gains</p>
+                        <p class="text-2xl font-bold text-green-700" id="value-efficiency">$0</p>
+                        <p class="text-xs text-green-600" id="value-efficiency-detail">--</p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-sm text-blue-800 font-medium">Risk Mitigation</p>
+                        <p class="text-2xl font-bold text-blue-700" id="value-risk">$0</p>
+                        <p class="text-xs text-blue-600" id="value-risk-detail">--</p>
+                    </div>
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <p class="text-sm text-purple-800 font-medium">Strategic Capacity</p>
+                        <p class="text-2xl font-bold text-purple-700" id="value-strategic">+0 hrs</p>
+                        <p class="text-xs text-purple-600" id="value-strategic-detail">--</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Benchmarks -->
+        <section id="content-benchmarks" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold mb-2">📈 Benchmark Comparison</h2>
+                <p class="text-slate-600 mb-6">How does this portfolio company compare to peers?</p>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <!-- Finance Cost -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Finance Cost as % of Revenue</h3>
+                        <div id="bench-cost-chart" class="bar-chart"></div>
+                        <p class="text-sm text-slate-500 mt-2" id="bench-cost-insight">--</p>
+                    </div>
+                    <!-- Strategic Time -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">% Time on Strategic Work</h3>
+                        <div id="bench-strategic-chart" class="bar-chart"></div>
+                        <p class="text-sm text-slate-500 mt-2" id="bench-strategic-insight">--</p>
+                    </div>
+                    <!-- Close Days -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Monthly Close (Business Days)</h3>
+                        <div id="bench-close-chart" class="bar-chart"></div>
+                        <p class="text-sm text-slate-500 mt-2" id="bench-close-insight">--</p>
+                    </div>
+                    <!-- Utilization -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-semibold mb-3">Team Utilization %</h3>
+                        <div id="bench-util-chart" class="bar-chart"></div>
+                        <p class="text-sm text-slate-500 mt-2" id="bench-util-insight">--</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+                    <h3 class="font-semibold mb-2">Benchmark Sources</h3>
+                    <p class="text-sm text-slate-600">Benchmarks based on aggregated data from PE-backed companies in the $50-100M revenue range. Industry-specific adjustments applied for Manufacturing sector. Close cycle benchmarks from APQC and Hackett Group studies.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Scorecard - Gap Analysis -->
+        <section id="content-scorecard" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold">🎯 Performance Scorecard</h2>
+                        <p class="text-slate-600">Current vs Target vs Benchmark across all dimensions</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span class="flex items-center gap-2"><span class="w-4 h-4 rounded" style="background:#6366f1"></span> Current</span>
+                        <span class="flex items-center gap-2"><span class="w-4 h-4 rounded" style="background:#10b981"></span> Target</span>
+                        <span class="flex items-center gap-2"><span class="w-4 h-4 rounded" style="background:#f59e0b"></span> Best-in-Class</span>
+                    </div>
+                </div>
+                
+                <!-- Overall Score -->
+                <div class="bg-slate-800 text-white rounded-xl p-6 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold mb-1">Overall Finance Function Score</h3>
+                            <p class="text-slate-400 text-sm" id="sc-company-name">--</p>
+                        </div>
+                        <div class="flex items-center gap-8">
+                            <div class="text-center">
+                                <p class="text-4xl font-bold" id="sc-overall-current">--</p>
+                                <p class="text-xs text-slate-400">CURRENT</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-4xl font-bold text-emerald-400" id="sc-overall-target">80</p>
+                                <p class="text-xs text-slate-400">TARGET</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-4xl font-bold text-amber-400" id="sc-overall-best">90</p>
+                                <p class="text-xs text-slate-400">BEST</p>
+                            </div>
+                            <div class="text-center border-l border-slate-600 pl-8">
+                                <p class="text-2xl font-bold" id="sc-overall-gap">--</p>
+                                <p class="text-xs text-slate-400">GAP TO TARGET</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="h-4 bg-slate-700 rounded-full overflow-hidden relative">
+                            <div id="sc-overall-bar-current" class="absolute h-full rounded-full" style="background:#6366f1;width:0%"></div>
+                            <div id="sc-overall-bar-target" class="absolute h-1 top-1.5 rounded" style="background:#10b981;width:80%;left:0"></div>
+                            <div id="sc-overall-bar-best" class="absolute h-1 top-1.5 rounded" style="background:#f59e0b;width:90%;left:0"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- By Dimension -->
+                <h3 class="font-semibold mb-4">📊 Score by Dimension</h3>
+                <div class="space-y-4 mb-8" id="sc-dimensions">
+                    <!-- Generated dynamically -->
+                </div>
+
+                <!-- By Domain -->
+                <h3 class="font-semibold mb-4">🏢 Score by Domain</h3>
+                <div class="grid grid-cols-2 gap-4 mb-8" id="sc-domains">
+                    <!-- Generated dynamically -->
+                </div>
+
+                <!-- By Person -->
+                <h3 class="font-semibold mb-4">👤 Score by Team Member</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="text-left py-3 px-4">Name</th>
+                                <th class="text-left py-3 px-4">Role</th>
+                                <th class="text-center py-3 px-4">Utilization</th>
+                                <th class="text-center py-3 px-4">Strategic %</th>
+                                <th class="text-center py-3 px-4">Risk Tasks</th>
+                                <th class="text-center py-3 px-4">Efficiency</th>
+                                <th class="text-center py-3 px-4">Individual Score</th>
+                                <th class="text-left py-3 px-4 w-48">Gap to Target</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sc-persons" class="divide-y">
+                            <!-- Generated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-4 gap-4">
+                <div class="glass-card rounded-xl p-4 border border-slate-200">
+                    <p class="text-sm text-slate-500">Dimensions at Target</p>
+                    <p class="text-3xl font-bold text-emerald-600" id="sc-dims-at-target">0/6</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200">
+                    <p class="text-sm text-slate-500">Domains at Target</p>
+                    <p class="text-3xl font-bold text-emerald-600" id="sc-domains-at-target">0/4</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200">
+                    <p class="text-sm text-slate-500">People at Target</p>
+                    <p class="text-3xl font-bold text-emerald-600" id="sc-people-at-target">0/0</p>
+                </div>
+                <div class="glass-card rounded-xl p-4 border border-slate-200">
+                    <p class="text-sm text-slate-500">Largest Gap</p>
+                    <p class="text-xl font-bold text-red-600" id="sc-largest-gap">--</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Recommendations -->
+        <section id="content-recommendations" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm mb-6">
+                <h2 class="text-xl font-bold mb-2">💡 Recommended Actions</h2>
+                <p class="text-slate-600 mb-6">Prioritized improvement opportunities based on diagnostic results.</p>
+                
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-red-700" id="rec-high-count">0</p>
+                        <p class="text-sm text-red-600">High Priority</p>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-amber-700" id="rec-med-count">0</p>
+                        <p class="text-sm text-amber-600">Medium Priority</p>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-blue-700" id="rec-low-count">0</p>
+                        <p class="text-sm text-blue-600">Quick Wins</p>
+                    </div>
+                </div>
+                
+                <div id="recommendations-list" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Export -->
+        <section id="content-export" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-slate-200 shadow-sm">
+                <h2 class="text-xl font-bold mb-4">📄 Export Assessment</h2>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold mb-3">Executive Report</h3>
+                        <div class="space-y-2">
+                            <button onclick="exportExecutiveSummary()" class="btn-primary w-full">📊 Executive Summary (Text)</button>
+                            <button onclick="exportFullJSON()" class="btn-secondary w-full">💾 Full Data (JSON)</button>
+                            <button onclick="exportCSV()" class="btn-secondary w-full">📋 Task Data (CSV)</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-3">Print Report</h3>
+                        <button onclick="window.print()" class="btn-secondary w-full mb-2">🖨️ Print / Save as PDF</button>
+                        <p class="text-sm text-slate-500">Use browser print to save as PDF with diagnostic results.</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+                    <h3 class="font-semibold mb-2">Import Previous Assessment</h3>
+                    <input type="file" id="import-file" accept=".json" onchange="importJSON(event)" class="input-field w-full">
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Member Modal -->
+    <div id="add-member-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-4">Add Team Member</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Name *</label><input type="text" id="member-name" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Role *</label><input type="text" id="member-role" class="input-field w-full"></div>
+                <div><label class="block text-sm font-medium mb-1">Domain</label>
+                    <select id="member-domain" class="input-field w-full"><option value="ap">AP</option><option value="ar">AR</option><option value="gl">GL</option><option value="fp">FP&A</option><option value="other">Other</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">FTE</label><input type="number" id="member-fte" class="input-field w-full" value="1.0" step="0.1"></div>
+                <div><label class="block text-sm font-medium mb-1">Salary</label><input type="number" id="member-salary" class="input-field w-full" value="65000"></div>
+                <div><label class="block text-sm font-medium mb-1">Manager</label><input type="text" id="member-manager" class="input-field w-full"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddMemberModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveMember()" class="btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="add-task-modal" class="modal-overlay hidden">
+        <div class="modal-content p-6">
+            <h3 class="text-lg font-bold mb-2">Add Task for <span id="task-modal-member-name">-</span></h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium mb-1">Job Category *</label><input type="text" id="task-job" class="input-field w-full" placeholder="Invoice Processing"></div>
+                <div><label class="block text-sm font-medium mb-1">Task Name *</label><input type="text" id="task-name" class="input-field w-full" placeholder="Match to PO"></div>
+                <div><label class="block text-sm font-medium mb-1">Frequency</label>
+                    <select id="task-frequency" class="input-field w-full"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="quarterly">Quarterly</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Volume/Period</label><input type="number" id="task-volume" class="input-field w-full" value="10"></div>
+                <div><label class="block text-sm font-medium mb-1">Actual Min/Item</label><input type="number" id="task-time" class="input-field w-full" value="15"></div>
+                <div><label class="block text-sm font-medium mb-1">Goal Min/Item</label><input type="number" id="task-goal-time" class="input-field w-full" value="10"></div>
+                <div><label class="block text-sm font-medium mb-1">Value Classification</label>
+                    <select id="task-value" class="input-field w-full"><option value="operational">Operational</option><option value="strategic">Strategic</option><option value="admin">Administrative</option><option value="rework">Rework</option></select>
+                </div>
+                <div><label class="block text-sm font-medium mb-1">Complexity</label>
+                    <select id="task-complexity" class="input-field w-full"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="expert">Expert</option></select>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium mb-1">Peak Periods</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-month"> Month</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-quarter"> Quarter</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-year"> Year</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" id="peak-audit"> Audit</label>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeAddTaskModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveTask()" class="btn-primary">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA ====================
+        let companyProfile = {};
+        let teamMembers = [];
+        let tasks = [];
+        let diagnosticResults = null;
+        
+        const freqMult = {daily:22, weekly:4.33, monthly:1, quarterly:0.33};
+        
+        // Benchmarks by revenue tier
+        const benchmarks = {
+            'small': { costPct: 2.5, strategic: 30, closeDays: 15, utilization: 75 },
+            'mid-small': { costPct: 2.0, strategic: 35, closeDays: 12, utilization: 78 },
+            'mid': { costPct: 1.5, strategic: 40, closeDays: 10, utilization: 80 },
+            'mid-large': { costPct: 1.2, strategic: 45, closeDays: 8, utilization: 82 },
+            'large': { costPct: 1.0, strategic: 50, closeDays: 6, utilization: 85 }
+        };
+        
+        const bestInClass = { costPct: 0.8, strategic: 55, closeDays: 5, utilization: 85 };
+
+        // ==================== SAMPLE DATA ====================
+        const sampleData = {
+            teamMembers: [
+                {id:0,name:'Sarah Chen',role:'AP Manager',domain:'ap',fte:1,salary:78000,manager:'CFO'},
+                {id:1,name:'Michael Torres',role:'AP Specialist',domain:'ap',fte:1,salary:56000,manager:'Sarah Chen'},
+                {id:2,name:'Jennifer Walsh',role:'AP Clerk',domain:'ap',fte:1,salary:48000,manager:'Sarah Chen'},
+                {id:3,name:'Amanda Rodriguez',role:'AR Manager',domain:'ar',fte:1,salary:75000,manager:'CFO'},
+                {id:4,name:'James Wilson',role:'AR Specialist',domain:'ar',fte:1,salary:54000,manager:'Amanda Rodriguez'},
+                {id:5,name:'Robert Martinez',role:'Controller',domain:'gl',fte:1,salary:145000,manager:'CFO'},
+                {id:6,name:'Emily Thompson',role:'Sr Accountant',domain:'gl',fte:1,salary:85000,manager:'Robert Martinez'},
+                {id:7,name:'Chris Anderson',role:'Staff Accountant',domain:'gl',fte:1,salary:62000,manager:'Robert Martinez'},
+                {id:8,name:'Kevin Brown',role:'Financial Analyst',domain:'fp',fte:1,salary:82000,manager:'CFO'}
+            ],
+            tasks: [
+                {id:0,memberId:0,job:'Invoice Processing',name:'Review exceptions',frequency:'daily',volume:12,time:10,goalTime:8,value:'strategic',complexity:'high',peakPeriods:['month']},
+                {id:1,memberId:0,job:'Invoice Processing',name:'Approve >$10K',frequency:'daily',volume:5,time:8,goalTime:5,value:'strategic',complexity:'medium',peakPeriods:[]},
+                {id:2,memberId:0,job:'Vendor Mgmt',name:'Escalations',frequency:'daily',volume:3,time:20,goalTime:15,value:'strategic',complexity:'high',peakPeriods:[]},
+                {id:3,memberId:0,job:'Management',name:'Team meetings',frequency:'weekly',volume:4,time:45,goalTime:45,value:'operational',complexity:'medium',peakPeriods:[]},
+                {id:4,memberId:1,job:'Invoice Processing',name:'Match to PO',frequency:'daily',volume:35,time:6,goalTime:4,value:'operational',complexity:'low',peakPeriods:['month']},
+                {id:5,memberId:1,job:'Invoice Processing',name:'Route approval',frequency:'daily',volume:30,time:3,goalTime:2,value:'admin',complexity:'low',peakPeriods:[]},
+                {id:6,memberId:1,job:'Invoice Processing',name:'Research discrepancies',frequency:'daily',volume:8,time:18,goalTime:12,value:'rework',complexity:'medium',peakPeriods:['month']},
+                {id:7,memberId:1,job:'Payment',name:'Payment batch',frequency:'weekly',volume:1,time:90,goalTime:60,value:'operational',complexity:'medium',peakPeriods:['month']},
+                {id:8,memberId:2,job:'Data Entry',name:'Enter invoices',frequency:'daily',volume:45,time:5,goalTime:3,value:'admin',complexity:'low',peakPeriods:['month']},
+                {id:9,memberId:2,job:'Data Entry',name:'Scan docs',frequency:'daily',volume:45,time:2,goalTime:1,value:'admin',complexity:'low',peakPeriods:[]},
+                {id:10,memberId:2,job:'Filing',name:'Organize files',frequency:'daily',volume:1,time:30,goalTime:15,value:'admin',complexity:'low',peakPeriods:[]},
+                {id:11,memberId:3,job:'Collections',name:'Review aging',frequency:'daily',volume:1,time:30,goalTime:20,value:'strategic',complexity:'medium',peakPeriods:['month','quarter']},
+                {id:12,memberId:3,job:'Collections',name:'Escalations',frequency:'daily',volume:4,time:25,goalTime:20,value:'strategic',complexity:'high',peakPeriods:['quarter']},
+                {id:13,memberId:3,job:'Credit',name:'Credit apps',frequency:'weekly',volume:3,time:30,goalTime:25,value:'strategic',complexity:'high',peakPeriods:[]},
+                {id:14,memberId:4,job:'Cash App',name:'Apply payments',frequency:'daily',volume:50,time:3,goalTime:2,value:'operational',complexity:'low',peakPeriods:['month']},
+                {id:15,memberId:4,job:'Cash App',name:'Research unapplied',frequency:'daily',volume:8,time:15,goalTime:10,value:'rework',complexity:'medium',peakPeriods:['month']},
+                {id:16,memberId:4,job:'Collections',name:'Collection calls',frequency:'daily',volume:20,time:6,goalTime:5,value:'operational',complexity:'medium',peakPeriods:['quarter']},
+                {id:17,memberId:5,job:'Close',name:'Review JEs',frequency:'monthly',volume:60,time:8,goalTime:6,value:'strategic',complexity:'high',peakPeriods:['month','quarter','year']},
+                {id:18,memberId:5,job:'Close',name:'BS recon review',frequency:'monthly',volume:25,time:15,goalTime:12,value:'strategic',complexity:'expert',peakPeriods:['month','quarter','year']},
+                {id:19,memberId:5,job:'Close',name:'Flux analysis',frequency:'monthly',volume:1,time:180,goalTime:120,value:'strategic',complexity:'expert',peakPeriods:['month','quarter']},
+                {id:20,memberId:5,job:'Audit',name:'Auditor requests',frequency:'quarterly',volume:20,time:60,goalTime:45,value:'operational',complexity:'high',peakPeriods:['audit']},
+                {id:21,memberId:6,job:'Recon',name:'Bank recon',frequency:'monthly',volume:5,time:40,goalTime:30,value:'operational',complexity:'medium',peakPeriods:['month']},
+                {id:22,memberId:6,job:'Recon',name:'BS recons',frequency:'monthly',volume:35,time:20,goalTime:15,value:'operational',complexity:'medium',peakPeriods:['month','quarter']},
+                {id:23,memberId:6,job:'JEs',name:'Complex JEs',frequency:'monthly',volume:15,time:25,goalTime:20,value:'operational',complexity:'high',peakPeriods:['month']},
+                {id:24,memberId:6,job:'IC',name:'IC recon',frequency:'monthly',volume:1,time:180,goalTime:120,value:'operational',complexity:'high',peakPeriods:['month','quarter']},
+                {id:25,memberId:7,job:'JEs',name:'Standard JEs',frequency:'monthly',volume:30,time:12,goalTime:8,value:'operational',complexity:'low',peakPeriods:['month']},
+                {id:26,memberId:7,job:'JEs',name:'Accruals',frequency:'monthly',volume:20,time:15,goalTime:10,value:'operational',complexity:'medium',peakPeriods:['month','quarter']},
+                {id:27,memberId:7,job:'Recon',name:'CC recon',frequency:'monthly',volume:8,time:35,goalTime:25,value:'operational',complexity:'medium',peakPeriods:['month']},
+                {id:28,memberId:7,job:'Expense',name:'Review expenses',frequency:'weekly',volume:25,time:8,goalTime:5,value:'admin',complexity:'low',peakPeriods:[]},
+                {id:29,memberId:8,job:'Reporting',name:'Monthly package',frequency:'monthly',volume:1,time:720,goalTime:480,value:'strategic',complexity:'high',peakPeriods:['month','quarter']},
+                {id:30,memberId:8,job:'Reporting',name:'Weekly flash',frequency:'weekly',volume:1,time:90,goalTime:60,value:'operational',complexity:'medium',peakPeriods:[]},
+                {id:31,memberId:8,job:'Analysis',name:'Ad-hoc',frequency:'weekly',volume:4,time:75,goalTime:60,value:'strategic',complexity:'high',peakPeriods:['quarter']},
+                {id:32,memberId:8,job:'Budget',name:'BvA analysis',frequency:'monthly',volume:1,time:300,goalTime:200,value:'strategic',complexity:'high',peakPeriods:['month']},
+                {id:33,memberId:8,job:'Forecast',name:'Rolling forecast',frequency:'monthly',volume:1,time:240,goalTime:180,value:'strategic',complexity:'high',peakPeriods:['quarter']}
+            ]
+        };
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('company-date').valueAsDate = new Date();
+            loadSampleData();
+        });
+
+        function loadSampleData() {
+            teamMembers = JSON.parse(JSON.stringify(sampleData.teamMembers));
+            tasks = JSON.parse(JSON.stringify(sampleData.tasks));
+            refreshTeam();
+            refreshTasks();
+        }
+
+        // ==================== TABS ====================
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+            document.getElementById('content-' + id).classList.remove('hidden');
+            document.getElementById('tab-' + id).classList.add('tab-active');
+            
+            if (id === 'benchmarks') renderBenchmarks();
+            if (id === 'scorecard') renderScorecard();
+            if (id === 'recommendations') renderRecommendations();
+        }
+
+        // ==================== CALCULATIONS ====================
+        function calcHours(t) { return (t.volume * t.time / 60) * (freqMult[t.frequency] || 1); }
+        function calcGoalHours(t) { return (t.volume * (t.goalTime || t.time) / 60) * (freqMult[t.frequency] || 1); }
+        function memberHours(mid) { return tasks.filter(t => t.memberId === mid).reduce((s, t) => s + calcHours(t), 0); }
+
+        // ==================== PROFILE ====================
+        function saveProfile() {
+            companyProfile = {
+                name: document.getElementById('company-name').value,
+                industry: document.getElementById('company-industry').value,
+                revenue: parseFloat(document.getElementById('company-revenue').value) || 0,
+                tier: document.getElementById('company-tier').value,
+                employees: parseInt(document.getElementById('company-employees').value) || 0,
+                entities: parseInt(document.getElementById('company-entities').value) || 1,
+                currencies: parseInt(document.getElementById('company-currencies').value) || 1,
+                erp: document.getElementById('company-erp').value,
+                closeDays: parseInt(document.getElementById('company-close-days').value) || 10,
+                date: document.getElementById('company-date').value,
+                complexity: {
+                    multistate: document.getElementById('cx-multistate').checked,
+                    international: document.getElementById('cx-international').checked,
+                    inventory: document.getElementById('cx-inventory').checked,
+                    projectbased: document.getElementById('cx-projectbased').checked,
+                    subscription: document.getElementById('cx-subscription').checked,
+                    regulated: document.getElementById('cx-regulated').checked
+                }
+            };
+            refreshTeam();
+        }
+
+        // ==================== TEAM ====================
+        function openAddMemberModal() { document.getElementById('add-member-modal').classList.remove('hidden'); }
+        function closeAddMemberModal() { document.getElementById('add-member-modal').classList.add('hidden'); }
+        
+        function saveMember() {
+            const name = document.getElementById('member-name').value.trim();
+            const role = document.getElementById('member-role').value.trim();
+            if (!name || !role) { alert('Name and role required'); return; }
+            const newId = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 0;
+            teamMembers.push({
+                id: newId, name, role,
+                domain: document.getElementById('member-domain').value,
+                fte: parseFloat(document.getElementById('member-fte').value) || 1,
+                salary: parseFloat(document.getElementById('member-salary').value) || 0,
+                manager: document.getElementById('member-manager').value.trim()
+            });
+            closeAddMemberModal();
+            refreshTeam();
+        }
+        
+        function deleteMember(id) {
+            if (!confirm('Delete member and their tasks?')) return;
+            teamMembers = teamMembers.filter(m => m.id !== id);
+            tasks = tasks.filter(t => t.memberId !== id);
+            refreshTeam();
+            refreshTasks();
+        }
+
+        function refreshTeam() {
+            const list = document.getElementById('team-list');
+            if (!teamMembers.length) { list.innerHTML = '<p class="text-center py-4 text-slate-400">No team members</p>'; return; }
+            
+            list.innerHTML = teamMembers.map(m => {
+                const hrs = memberHours(m.id);
+                const tc = tasks.filter(t => t.memberId === m.id).length;
+                return `<div class="border rounded-lg p-3 domain-${m.domain} flex justify-between items-center">
+                    <div><span class="font-semibold">${m.name}</span> <span class="text-slate-500 text-sm">${m.role}</span></div>
+                    <div class="flex items-center gap-4 text-sm">
+                        <span>${tc} tasks</span>
+                        <span>${Math.round(hrs)} hrs</span>
+                        <span>$${(m.salary/1000).toFixed(0)}k</span>
+                        <button onclick="deleteMember(${m.id})" class="text-red-500">✕</button>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            const totalFte = teamMembers.reduce((s, m) => s + m.fte, 0);
+            const totalCost = teamMembers.reduce((s, m) => s + m.salary, 0);
+            const revenue = (parseFloat(document.getElementById('company-revenue').value) || 75) * 1000000;
+            const pctRev = revenue > 0 ? (totalCost / revenue * 100) : 0;
+            
+            document.getElementById('team-fte').textContent = totalFte.toFixed(1);
+            document.getElementById('team-cost').textContent = '$' + totalCost.toLocaleString();
+            document.getElementById('team-pct-rev').textContent = pctRev.toFixed(2) + '%';
+            document.getElementById('team-avg-sal').textContent = '$' + Math.round(totalCost / teamMembers.length).toLocaleString();
+            
+            populateMemberSelect();
+        }
+
+        // ==================== TASKS ====================
+        function populateMemberSelect() {
+            document.getElementById('task-member-select').innerHTML = '<option value="">-- Select --</option>' +
+                teamMembers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        }
+
+        function loadMemberTasks() {
+            const mid = parseInt(document.getElementById('task-member-select').value);
+            const btn = document.getElementById('add-task-btn');
+            const sum = document.getElementById('member-task-summary');
+            const list = document.getElementById('member-tasks-list');
+            
+            if (isNaN(mid)) {
+                btn.disabled = true;
+                sum.classList.add('hidden');
+                list.innerHTML = '<div class="text-center py-6 text-slate-400">Select a team member</div>';
+                return;
+            }
+            
+            btn.disabled = false;
+            sum.classList.remove('hidden');
+            
+            const m = teamMembers.find(x => x.id === mid);
+            const mt = tasks.filter(t => t.memberId === mid);
+            const hrs = memberHours(mid);
+            const cap = m.fte * 160;
+            const util = cap > 0 ? Math.round(hrs / cap * 100) : 0;
+            
+            document.getElementById('selected-member-name').textContent = m.name;
+            document.getElementById('selected-member-role').textContent = '(' + m.role + ')';
+            document.getElementById('member-task-count').textContent = mt.length;
+            document.getElementById('member-hours-month').textContent = Math.round(hrs);
+            document.getElementById('member-utilization').textContent = util + '%';
+            
+            if (!mt.length) {
+                list.innerHTML = '<div class="text-center py-6 text-slate-400">No tasks</div>';
+                return;
+            }
+            
+            list.innerHTML = mt.map(t => 
+                `<div class="border rounded-lg p-2 flex justify-between items-center text-sm">
+                    <div>
+                        <span class="font-medium">${t.name}</span>
+                        <span class="value-${t.value} px-1 py-0.5 rounded text-xs ml-2">${t.value}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-slate-500">${t.volume}×${t.time}min</span>
+                        <span class="font-semibold">${calcHours(t).toFixed(1)}h</span>
+                        <button onclick="deleteTask(${t.id})" class="text-red-400">✕</button>
+                    </div>
+                </div>`
+            ).join('');
+        }
+
+        function openAddTaskModal() {
+            const mid = document.getElementById('task-member-select').value;
+            if (!mid) return;
+            const m = teamMembers.find(x => x.id === parseInt(mid));
+            document.getElementById('task-modal-member-name').textContent = m.name;
+            document.getElementById('add-task-modal').classList.remove('hidden');
+            document.getElementById('task-frequency').value = 'daily';
+            document.getElementById('task-volume').value = '10';
+            document.getElementById('task-time').value = '15';
+            document.getElementById('task-goal-time').value = '10';
+            document.getElementById('task-value').value = 'operational';
+        }
+        
+        function closeAddTaskModal() { document.getElementById('add-task-modal').classList.add('hidden'); }
+
+        function saveTask() {
+            const mid = parseInt(document.getElementById('task-member-select').value);
+            const job = document.getElementById('task-job').value.trim();
+            const name = document.getElementById('task-name').value.trim();
+            if (!job || !name) { alert('Job and task required'); return; }
+            
+            const peaks = [];
+            if (document.getElementById('peak-month').checked) peaks.push('month');
+            if (document.getElementById('peak-quarter').checked) peaks.push('quarter');
+            if (document.getElementById('peak-year').checked) peaks.push('year');
+            if (document.getElementById('peak-audit').checked) peaks.push('audit');
+            
+            const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 0;
+            tasks.push({
+                id: newId, memberId: mid, job, name,
+                frequency: document.getElementById('task-frequency').value,
+                volume: parseInt(document.getElementById('task-volume').value) || 1,
+                time: parseInt(document.getElementById('task-time').value) || 1,
+                goalTime: parseInt(document.getElementById('task-goal-time').value) || 1,
+                value: document.getElementById('task-value').value,
+                complexity: document.getElementById('task-complexity').value,
+                peakPeriods: peaks
+            });
+            closeAddTaskModal();
+            loadMemberTasks();
+            refreshTasks();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            loadMemberTasks();
+            refreshTasks();
+        }
+
+        function refreshTasks() {
+            const totalHrs = tasks.reduce((s, t) => s + calcHours(t), 0);
+            const byValue = {strategic: 0, operational: 0, admin: 0, rework: 0};
+            tasks.forEach(t => { byValue[t.value] = (byValue[t.value] || 0) + calcHours(t); });
+            
+            const strategicPct = totalHrs > 0 ? Math.round(byValue.strategic / totalHrs * 100) : 0;
+            const lowValuePct = totalHrs > 0 ? Math.round((byValue.admin + byValue.rework) / totalHrs * 100) : 0;
+            
+            document.getElementById('tasks-total').textContent = tasks.length;
+            document.getElementById('tasks-hours').textContent = Math.round(totalHrs);
+            document.getElementById('tasks-strategic').textContent = strategicPct + '%';
+            document.getElementById('tasks-lowvalue').textContent = lowValuePct + '%';
+        }
+
+        // ==================== DIAGNOSTIC ENGINE ====================
+        function runDiagnostic() {
+            saveProfile();
+            
+            const revenue = (companyProfile.revenue || 75) * 1000000;
+            const tier = companyProfile.tier || 'mid';
+            const bench = benchmarks[tier];
+            const closeDays = companyProfile.closeDays || 10;
+            
+            // Calculate metrics
+            const totalFte = teamMembers.reduce((s, m) => s + m.fte, 0);
+            const totalCost = teamMembers.reduce((s, m) => s + m.salary, 0);
+            const totalHrs = tasks.reduce((s, t) => s + calcHours(t), 0);
+            const totalGoalHrs = tasks.reduce((s, t) => s + calcGoalHours(t), 0);
+            const capacity = totalFte * 160;
+            const utilization = capacity > 0 ? totalHrs / capacity * 100 : 0;
+            const costPctRev = revenue > 0 ? totalCost / revenue * 100 : 0;
+            
+            // Value breakdown
+            const byValue = {strategic: 0, operational: 0, admin: 0, rework: 0};
+            tasks.forEach(t => { byValue[t.value] = (byValue[t.value] || 0) + calcHours(t); });
+            const strategicPct = totalHrs > 0 ? byValue.strategic / totalHrs * 100 : 0;
+            
+            // Risk analysis
+            const taskCounts = {};
+            tasks.forEach(t => { taskCounts[t.name] = (taskCounts[t.name] || 0) + 1; });
+            const highRiskTasks = tasks.filter(t => taskCounts[t.name] === 1).length;
+            
+            // Peak period stress
+            const peakHrs = tasks.reduce((s, t) => s + ((t.peakPeriods || []).includes('month') ? calcHours(t) * 0.5 : 0), 0);
+            const peakUtil = capacity > 0 ? (totalHrs + peakHrs) / capacity * 100 : 0;
+            
+            // ==================== SCORING ====================
+            // 1. Cost Efficiency (20%)
+            let scoreCost;
+            if (costPctRev <= bench.costPct * 0.8) scoreCost = 100;
+            else if (costPctRev <= bench.costPct) scoreCost = 85;
+            else if (costPctRev <= bench.costPct * 1.25) scoreCost = 70;
+            else if (costPctRev <= bench.costPct * 1.5) scoreCost = 50;
+            else scoreCost = 30;
+            
+            // 2. Strategic Focus (20%)
+            let scoreStrategic;
+            if (strategicPct >= 50) scoreStrategic = 100;
+            else if (strategicPct >= 40) scoreStrategic = 85;
+            else if (strategicPct >= 30) scoreStrategic = 70;
+            else if (strategicPct >= 20) scoreStrategic = 50;
+            else scoreStrategic = 30;
+            
+            // 3. Scalability (15%) - based on goal vs actual variance
+            const variancePct = totalHrs > 0 ? (totalHrs - totalGoalHrs) / totalHrs * 100 : 0;
+            let scoreScalability;
+            if (variancePct <= 10) scoreScalability = 100;
+            else if (variancePct <= 20) scoreScalability = 80;
+            else if (variancePct <= 30) scoreScalability = 60;
+            else if (variancePct <= 40) scoreScalability = 40;
+            else scoreScalability = 25;
+            
+            // 4. Risk & Continuity (15%)
+            const riskPct = tasks.length > 0 ? highRiskTasks / tasks.length * 100 : 0;
+            let scoreRisk;
+            if (riskPct <= 20) scoreRisk = 100;
+            else if (riskPct <= 40) scoreRisk = 80;
+            else if (riskPct <= 60) scoreRisk = 60;
+            else if (riskPct <= 80) scoreRisk = 40;
+            else scoreRisk = 20;
+            
+            // 5. Close Performance (15%)
+            let scoreClose;
+            if (closeDays <= bench.closeDays * 0.6) scoreClose = 100;
+            else if (closeDays <= bench.closeDays * 0.8) scoreClose = 85;
+            else if (closeDays <= bench.closeDays) scoreClose = 70;
+            else if (closeDays <= bench.closeDays * 1.25) scoreClose = 50;
+            else scoreClose = 30;
+            
+            // 6. Team Capacity (15%)
+            let scoreCapacity;
+            if (utilization >= 70 && utilization <= 85) scoreCapacity = 100;
+            else if (utilization >= 60 && utilization <= 90) scoreCapacity = 80;
+            else if (utilization >= 50 && utilization <= 95) scoreCapacity = 60;
+            else scoreCapacity = 40;
+            
+            // Overall score (weighted)
+            const overall = Math.round(
+                scoreCost * 0.20 +
+                scoreStrategic * 0.20 +
+                scoreScalability * 0.15 +
+                scoreRisk * 0.15 +
+                scoreClose * 0.15 +
+                scoreCapacity * 0.15
+            );
+            
+            // Grade
+            let grade, label;
+            if (overall >= 90) { grade = 'A'; label = 'Excellent'; }
+            else if (overall >= 80) { grade = 'B'; label = 'Good'; }
+            else if (overall >= 70) { grade = 'C+'; label = 'Above Average'; }
+            else if (overall >= 60) { grade = 'C'; label = 'Average'; }
+            else if (overall >= 50) { grade = 'D'; label = 'Below Average'; }
+            else { grade = 'F'; label = 'Needs Work'; }
+            
+            // Value creation
+            const efficiencyHrs = totalHrs - totalGoalHrs;
+            const avgHourlyRate = totalCost / (totalFte * 2080);
+            const efficiencyValue = efficiencyHrs * avgHourlyRate * 12;
+            const riskValue = highRiskTasks * avgHourlyRate * 40; // 1 week disruption per risk task
+            const strategicHrsGain = (byValue.admin + byValue.rework) * 0.5;
+            
+            diagnosticResults = {
+                overall, grade, label,
+                scores: { cost: scoreCost, strategic: scoreStrategic, scalability: scoreScalability, risk: scoreRisk, close: scoreClose, capacity: scoreCapacity },
+                metrics: { fte: totalFte, costPctRev, strategicPct, highRiskTasks, utilization, closeDays, totalHrs, capacity, peakUtil },
+                value: { efficiencyValue, riskValue, strategicHrsGain, efficiencyHrs },
+                bench, tier
+            };
+            
+            renderDiagnostic();
+        }
+
+        function renderDiagnostic() {
+            const r = diagnosticResults;
+            if (!r) return;
+            
+            // Header
+            document.getElementById('header-score').textContent = r.overall;
+            document.getElementById('header-grade').textContent = r.grade;
+            
+            // Company info
+            document.getElementById('diag-company-name').textContent = companyProfile.name || 'Finance Function Diagnostic';
+            document.getElementById('diag-date').textContent = 'Assessment: ' + (companyProfile.date || new Date().toLocaleDateString());
+            
+            // Overall gauge
+            const gaugeClass = r.overall >= 80 ? 'excellent' : r.overall >= 60 ? 'good' : r.overall >= 40 ? 'fair' : 'poor';
+            const gauge = document.getElementById('overall-gauge');
+            gauge.style.setProperty('--score', r.overall);
+            gauge.className = 'score-gauge ' + gaugeClass;
+            document.getElementById('overall-score').textContent = r.overall;
+            document.getElementById('overall-grade').textContent = r.grade;
+            document.getElementById('overall-grade').className = 'text-4xl font-bold score-' + gaugeClass;
+            document.getElementById('overall-label').textContent = r.label;
+            
+            // Dimension scores
+            const dims = ['cost', 'strategic', 'scalability', 'risk', 'close', 'capacity'];
+            dims.forEach(d => {
+                const score = r.scores[d];
+                const cls = score >= 80 ? 'excellent' : score >= 60 ? 'good' : score >= 40 ? 'fair' : 'poor';
+                document.getElementById('dim-' + d).className = 'dimension-card score-bg-' + cls;
+                document.getElementById('score-' + d).textContent = score;
+                document.getElementById('score-' + d).className = 'text-2xl font-bold score-' + cls;
+                document.getElementById('bar-' + d).style.width = score + '%';
+                document.getElementById('bar-' + d).className = 'progress-fill bg-' + (cls === 'excellent' ? 'emerald' : cls === 'good' ? 'cyan' : cls === 'fair' ? 'amber' : 'red') + '-500';
+            });
+            
+            // Dimension details
+            document.getElementById('detail-cost').textContent = `${r.metrics.costPctRev.toFixed(2)}% of revenue (target: ${r.bench.costPct}%)`;
+            document.getElementById('detail-strategic').textContent = `${Math.round(r.metrics.strategicPct)}% strategic time (target: ${r.bench.strategic}%)`;
+            document.getElementById('detail-scalability').textContent = `${Math.round((r.metrics.totalHrs - r.metrics.totalHrs * (r.scores.scalability/100)) / r.metrics.totalHrs * 100)}% improvement potential`;
+            document.getElementById('detail-risk').textContent = `${r.metrics.highRiskTasks} single-owner tasks`;
+            document.getElementById('detail-close').textContent = `${r.metrics.closeDays} days (target: ${r.bench.closeDays})`;
+            document.getElementById('detail-capacity').textContent = `${Math.round(r.metrics.utilization)}% utilization (optimal: 70-85%)`;
+            
+            // Key metrics
+            document.getElementById('metric-fte').textContent = r.metrics.fte.toFixed(1);
+            document.getElementById('metric-cost-pct').textContent = r.metrics.costPctRev.toFixed(2) + '%';
+            document.getElementById('metric-strategic').textContent = Math.round(r.metrics.strategicPct) + '%';
+            document.getElementById('metric-risk').textContent = r.metrics.highRiskTasks;
+            document.getElementById('metric-util').textContent = Math.round(r.metrics.utilization) + '%';
+            document.getElementById('metric-close').textContent = r.metrics.closeDays;
+            
+            // Value creation
+            document.getElementById('value-efficiency').textContent = '$' + Math.round(r.value.efficiencyValue).toLocaleString();
+            document.getElementById('value-efficiency-detail').textContent = `${Math.round(r.value.efficiencyHrs)} hrs/mo recoverable`;
+            document.getElementById('value-risk').textContent = '$' + Math.round(r.value.riskValue).toLocaleString();
+            document.getElementById('value-risk-detail').textContent = `Reduce ${r.metrics.highRiskTasks} key-person risks`;
+            document.getElementById('value-strategic').textContent = '+' + Math.round(r.value.strategicHrsGain) + ' hrs';
+            document.getElementById('value-strategic-detail').textContent = 'Monthly strategic capacity';
+        }
+
+        // ==================== BENCHMARKS ====================
+        function renderBenchmarks() {
+            if (!diagnosticResults) { runDiagnostic(); }
+            const r = diagnosticResults;
+            const bench = r.bench;
+            
+            // Cost chart
+            renderBarChart('bench-cost-chart', [
+                { label: 'This Co', value: r.metrics.costPctRev, color: '#6366f1' },
+                { label: 'Peer Avg', value: bench.costPct, color: '#94a3b8' },
+                { label: 'Best', value: bestInClass.costPct, color: '#10b981' }
+            ], '%', true);
+            document.getElementById('bench-cost-insight').textContent = r.metrics.costPctRev <= bench.costPct ? 
+                '✅ Below peer average — cost efficient' : '⚠️ Above peer average — opportunity to optimize';
+            
+            // Strategic chart
+            renderBarChart('bench-strategic-chart', [
+                { label: 'This Co', value: Math.round(r.metrics.strategicPct), color: '#6366f1' },
+                { label: 'Peer Avg', value: bench.strategic, color: '#94a3b8' },
+                { label: 'Best', value: bestInClass.strategic, color: '#10b981' }
+            ], '%');
+            document.getElementById('bench-strategic-insight').textContent = r.metrics.strategicPct >= bench.strategic ?
+                '✅ Above average strategic focus' : '⚠️ Below peer average — too much time on low-value work';
+            
+            // Close chart
+            renderBarChart('bench-close-chart', [
+                { label: 'This Co', value: r.metrics.closeDays, color: '#6366f1' },
+                { label: 'Peer Avg', value: bench.closeDays, color: '#94a3b8' },
+                { label: 'Best', value: bestInClass.closeDays, color: '#10b981' }
+            ], ' days', true);
+            document.getElementById('bench-close-insight').textContent = r.metrics.closeDays <= bench.closeDays ?
+                '✅ Faster than peer average' : '⚠️ Slower than peers — close process needs work';
+            
+            // Utilization chart
+            renderBarChart('bench-util-chart', [
+                { label: 'This Co', value: Math.round(r.metrics.utilization), color: '#6366f1' },
+                { label: 'Optimal', value: 80, color: '#10b981' },
+                { label: 'Peer Avg', value: bench.utilization, color: '#94a3b8' }
+            ], '%');
+            document.getElementById('bench-util-insight').textContent = r.metrics.utilization >= 70 && r.metrics.utilization <= 85 ?
+                '✅ Healthy utilization range' : (r.metrics.utilization < 70 ? '⚠️ Potentially overstaffed' : '⚠️ At risk of burnout');
+        }
+
+        function renderBarChart(containerId, data, suffix = '', lowerIsBetter = false) {
+            const maxVal = Math.max(...data.map(d => d.value)) * 1.1;
+            document.getElementById(containerId).innerHTML = data.map(d => {
+                const pct = maxVal > 0 ? (d.value / maxVal * 100) : 0;
+                const heightPx = Math.max(8, Math.round(pct * 1.4)); // Convert to pixels (max ~140px)
+                return `<div class="bar-item">
+                    <span class="bar-value">${typeof d.value === 'number' ? d.value.toFixed(d.value < 10 ? 2 : 0) : d.value}${suffix}</span>
+                    <div class="bar-wrapper">
+                        <div class="bar" style="height:${heightPx}px;background:${d.color};"></div>
+                    </div>
+                    <span class="bar-label">${d.label}</span>
+                </div>`;
+            }).join('');
+        }
+
+        // ==================== SCORECARD ====================
+        function renderScorecard() {
+            if (!diagnosticResults) { runDiagnostic(); }
+            const r = diagnosticResults;
+            const bench = r.bench;
+            
+            // Dimension targets and best-in-class
+            const dimConfig = {
+                cost: { name: 'Cost Efficiency', target: 80, best: 95, weight: '20%', icon: '💰' },
+                strategic: { name: 'Strategic Focus', target: 80, best: 95, weight: '20%', icon: '🎯' },
+                scalability: { name: 'Scalability', target: 75, best: 90, weight: '15%', icon: '📈' },
+                risk: { name: 'Risk & Continuity', target: 80, best: 95, weight: '15%', icon: '🛡️' },
+                close: { name: 'Close Performance', target: 75, best: 90, weight: '15%', icon: '⏱️' },
+                capacity: { name: 'Team Capacity', target: 80, best: 95, weight: '15%', icon: '👥' }
+            };
+            
+            // Overall scores
+            document.getElementById('sc-company-name').textContent = companyProfile.name || 'Portfolio Company';
+            document.getElementById('sc-overall-current').textContent = r.overall;
+            document.getElementById('sc-overall-gap').textContent = r.overall >= 80 ? '✓ At Target' : (80 - r.overall) + ' pts';
+            document.getElementById('sc-overall-gap').className = r.overall >= 80 ? 'text-2xl font-bold text-emerald-400' : 'text-2xl font-bold text-red-400';
+            document.getElementById('sc-overall-bar-current').style.width = r.overall + '%';
+            
+            // Dimension rows
+            let dimsAtTarget = 0;
+            let largestGap = { name: '', gap: 0 };
+            
+            document.getElementById('sc-dimensions').innerHTML = Object.entries(dimConfig).map(([key, cfg]) => {
+                const current = r.scores[key];
+                const gap = cfg.target - current;
+                const atTarget = current >= cfg.target;
+                if (atTarget) dimsAtTarget++;
+                if (gap > largestGap.gap) largestGap = { name: cfg.name, gap };
+                
+                const currentColor = current >= 80 ? '#10b981' : current >= 60 ? '#f59e0b' : '#ef4444';
+                
+                return `<div class="border rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">${cfg.icon}</span>
+                            <div>
+                                <p class="font-semibold">${cfg.name}</p>
+                                <p class="text-xs text-slate-500">Weight: ${cfg.weight}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6 text-center">
+                            <div>
+                                <p class="text-2xl font-bold" style="color:${currentColor}">${current}</p>
+                                <p class="text-xs text-slate-500">Current</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-emerald-600">${cfg.target}</p>
+                                <p class="text-xs text-slate-500">Target</p>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-amber-500">${cfg.best}</p>
+                                <p class="text-xs text-slate-500">Best</p>
+                            </div>
+                            <div class="border-l pl-4">
+                                <p class="text-lg font-bold ${atTarget ? 'text-emerald-600' : 'text-red-500'}">${atTarget ? '✓' : '-' + gap}</p>
+                                <p class="text-xs text-slate-500">Gap</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative h-6 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="absolute h-full rounded-full transition-all" style="width:${current}%;background:${currentColor}"></div>
+                        <div class="absolute h-full w-1 bg-emerald-600" style="left:${cfg.target}%"></div>
+                        <div class="absolute h-full w-1 bg-amber-500" style="left:${cfg.best}%"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-xs font-semibold ${current > 50 ? 'text-white' : 'text-slate-700'}">${current}/100</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                        <span>0</span>
+                        <span class="text-emerald-600">Target: ${cfg.target}</span>
+                        <span class="text-amber-500">Best: ${cfg.best}</span>
+                        <span>100</span>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            // Domain scores
+            const domainConfig = {
+                ap: { name: 'Accounts Payable', color: '#3b82f6', icon: '📤' },
+                ar: { name: 'Accounts Receivable', color: '#10b981', icon: '📥' },
+                gl: { name: 'General Ledger', color: '#f59e0b', icon: '📒' },
+                fp: { name: 'FP&A', color: '#8b5cf6', icon: '📊' }
+            };
+            
+            let domainsAtTarget = 0;
+            const domainTargets = { utilization: 80, strategic: 40, efficiency: 85 };
+            
+            document.getElementById('sc-domains').innerHTML = Object.entries(domainConfig).map(([key, cfg]) => {
+                const domainMembers = teamMembers.filter(m => m.domain === key);
+                const domainTasks = tasks.filter(t => domainMembers.some(m => m.id === t.memberId));
+                
+                if (domainMembers.length === 0) return '';
+                
+                const domainHrs = domainTasks.reduce((s, t) => s + calcHours(t), 0);
+                const domainGoalHrs = domainTasks.reduce((s, t) => s + calcGoalHours(t), 0);
+                const domainCap = domainMembers.reduce((s, m) => s + m.fte * 160, 0);
+                const domainUtil = domainCap > 0 ? Math.round(domainHrs / domainCap * 100) : 0;
+                
+                const strategicHrs = domainTasks.filter(t => t.value === 'strategic').reduce((s, t) => s + calcHours(t), 0);
+                const strategicPct = domainHrs > 0 ? Math.round(strategicHrs / domainHrs * 100) : 0;
+                
+                const efficiency = domainHrs > 0 ? Math.round((1 - (domainHrs - domainGoalHrs) / domainHrs) * 100) : 100;
+                
+                // Domain score (average of 3 metrics normalized)
+                const utilScore = domainUtil >= 70 && domainUtil <= 85 ? 100 : (domainUtil < 70 ? domainUtil / 70 * 100 : Math.max(0, 100 - (domainUtil - 85) * 3));
+                const stratScore = Math.min(100, strategicPct / 40 * 100);
+                const effScore = Math.min(100, efficiency);
+                const domainScore = Math.round((utilScore + stratScore + effScore) / 3);
+                
+                const atTarget = domainScore >= 75;
+                if (atTarget) domainsAtTarget++;
+                
+                return `<div class="border rounded-lg p-4" style="border-left: 4px solid ${cfg.color}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">${cfg.icon}</span>
+                            <div>
+                                <p class="font-semibold">${cfg.name}</p>
+                                <p class="text-xs text-slate-500">${domainMembers.length} people, ${domainTasks.length} tasks</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold" style="color:${domainScore >= 75 ? '#10b981' : domainScore >= 50 ? '#f59e0b' : '#ef4444'}">${domainScore}</p>
+                            <p class="text-xs ${atTarget ? 'text-emerald-600' : 'text-red-500'}">${atTarget ? '✓ At Target' : 'Gap: ' + (75 - domainScore)}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-slate-600">Utilization</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width:${Math.min(100, domainUtil)}%;background:${domainUtil >= 70 && domainUtil <= 85 ? '#10b981' : '#f59e0b'}"></div>
+                                </div>
+                                <span class="w-12 text-right font-medium">${domainUtil}%</span>
+                                <span class="w-16 text-xs text-slate-400">/ 70-85%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-slate-600">Strategic %</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width:${Math.min(100, strategicPct * 2)}%;background:${strategicPct >= 40 ? '#10b981' : '#f59e0b'}"></div>
+                                </div>
+                                <span class="w-12 text-right font-medium">${strategicPct}%</span>
+                                <span class="w-16 text-xs text-slate-400">/ 40%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-slate-600">Efficiency</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width:${efficiency}%;background:${efficiency >= 85 ? '#10b981' : '#f59e0b'}"></div>
+                                </div>
+                                <span class="w-12 text-right font-medium">${efficiency}%</span>
+                                <span class="w-16 text-xs text-slate-400">/ 85%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            // Person scores
+            let peopleAtTarget = 0;
+            const personRows = teamMembers.map(m => {
+                const memberTasks = tasks.filter(t => t.memberId === m.id);
+                const hrs = memberHours(m.id);
+                const goalHrs = memberTasks.reduce((s, t) => s + calcGoalHours(t), 0);
+                const cap = m.fte * 160;
+                const util = cap > 0 ? Math.round(hrs / cap * 100) : 0;
+                
+                const strategicHrs = memberTasks.filter(t => t.value === 'strategic').reduce((s, t) => s + calcHours(t), 0);
+                const strategicPct = hrs > 0 ? Math.round(strategicHrs / hrs * 100) : 0;
+                
+                const taskCounts = {};
+                tasks.forEach(t => { taskCounts[t.name] = (taskCounts[t.name] || 0) + 1; });
+                const riskTasks = memberTasks.filter(t => taskCounts[t.name] === 1).length;
+                
+                const efficiency = hrs > 0 ? Math.round(goalHrs / hrs * 100) : 100;
+                
+                // Individual score
+                const utilScore = util >= 70 && util <= 85 ? 100 : (util < 70 ? util / 70 * 80 : Math.max(0, 100 - (util - 85) * 3));
+                const stratScore = Math.min(100, strategicPct / 40 * 100);
+                const riskScore = memberTasks.length > 0 ? Math.max(0, 100 - riskTasks * 15) : 100;
+                const effScore = Math.min(100, efficiency);
+                const personScore = Math.round((utilScore + stratScore + riskScore + effScore) / 4);
+                
+                const atTarget = personScore >= 75;
+                if (atTarget) peopleAtTarget++;
+                const gap = 75 - personScore;
+                
+                const scoreColor = personScore >= 80 ? '#10b981' : personScore >= 60 ? '#f59e0b' : '#ef4444';
+                const utilColor = util >= 70 && util <= 85 ? '#10b981' : util > 90 ? '#ef4444' : '#f59e0b';
+                const stratColor = strategicPct >= 40 ? '#10b981' : strategicPct >= 25 ? '#f59e0b' : '#ef4444';
+                const riskColor = riskTasks === 0 ? '#10b981' : riskTasks <= 2 ? '#f59e0b' : '#ef4444';
+                const effColor = efficiency >= 85 ? '#10b981' : efficiency >= 70 ? '#f59e0b' : '#ef4444';
+                
+                return `<tr>
+                    <td class="py-3 px-4 font-medium">${m.name}</td>
+                    <td class="py-3 px-4 text-slate-600">${m.role}</td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-block px-2 py-1 rounded text-sm font-medium" style="background:${utilColor}20;color:${utilColor}">${util}%</span>
+                        <span class="text-xs text-slate-400 block">/ 70-85%</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-block px-2 py-1 rounded text-sm font-medium" style="background:${stratColor}20;color:${stratColor}">${strategicPct}%</span>
+                        <span class="text-xs text-slate-400 block">/ 40%</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-block px-2 py-1 rounded text-sm font-medium" style="background:${riskColor}20;color:${riskColor}">${riskTasks}</span>
+                        <span class="text-xs text-slate-400 block">/ 0</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="inline-block px-2 py-1 rounded text-sm font-medium" style="background:${effColor}20;color:${effColor}">${efficiency}%</span>
+                        <span class="text-xs text-slate-400 block">/ 85%</span>
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <span class="text-xl font-bold" style="color:${scoreColor}">${personScore}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 h-3 bg-slate-200 rounded-full overflow-hidden relative">
+                                <div class="h-full rounded-full" style="width:${personScore}%;background:${scoreColor}"></div>
+                                <div class="absolute h-full w-0.5 bg-emerald-600" style="left:75%"></div>
+                            </div>
+                            <span class="text-sm font-medium w-16 ${atTarget ? 'text-emerald-600' : 'text-red-500'}">${atTarget ? '✓' : '-' + gap}</span>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            
+            document.getElementById('sc-persons').innerHTML = personRows.join('');
+            
+            // Summary cards
+            document.getElementById('sc-dims-at-target').textContent = dimsAtTarget + '/6';
+            document.getElementById('sc-domains-at-target').textContent = domainsAtTarget + '/4';
+            document.getElementById('sc-people-at-target').textContent = peopleAtTarget + '/' + teamMembers.length;
+            document.getElementById('sc-largest-gap').textContent = largestGap.gap > 0 ? largestGap.name + ' (-' + largestGap.gap + ')' : 'None';
+        }
+
+        // ==================== RECOMMENDATIONS ====================
+        function renderRecommendations() {
+            if (!diagnosticResults) { runDiagnostic(); }
+            const r = diagnosticResults;
+            const recs = [];
+            
+            // Generate recommendations based on scores
+            if (r.scores.cost < 70) {
+                recs.push({ priority: 'high', title: 'Reduce Finance Cost', desc: `Finance cost at ${r.metrics.costPctRev.toFixed(2)}% of revenue exceeds ${r.bench.costPct}% benchmark. Review headcount, consider automation for high-volume tasks.`, impact: `Potential savings: $${Math.round(r.value.efficiencyValue * 0.3).toLocaleString()}/year` });
+            }
+            
+            if (r.scores.strategic < 70) {
+                recs.push({ priority: 'high', title: 'Shift Time to Strategic Work', desc: `Only ${Math.round(r.metrics.strategicPct)}% of time on strategic activities vs ${r.bench.strategic}% target. Automate admin tasks, eliminate rework.`, impact: `Free up ${Math.round(r.value.strategicHrsGain)} hours/month for analysis` });
+            }
+            
+            if (r.scores.risk < 70) {
+                recs.push({ priority: 'high', title: 'Address Key Person Risk', desc: `${r.metrics.highRiskTasks} tasks have only one person who can perform them. Cross-train team and document processes.`, impact: `Reduce disruption risk worth ~$${Math.round(r.value.riskValue).toLocaleString()}` });
+            }
+            
+            if (r.scores.close < 70) {
+                recs.push({ priority: 'medium', title: 'Accelerate Month-End Close', desc: `${r.metrics.closeDays} day close vs ${r.bench.closeDays} day benchmark. Implement close calendar, automate reconciliations.`, impact: `Target: ${r.bench.closeDays} business days` });
+            }
+            
+            if (r.scores.scalability < 70) {
+                recs.push({ priority: 'medium', title: 'Improve Process Efficiency', desc: `Actual task times exceed goals by significant margin. Focus on high-variance tasks for standardization and automation.`, impact: `Recover ${Math.round(r.value.efficiencyHrs)} hours/month` });
+            }
+            
+            if (r.scores.capacity < 70) {
+                if (r.metrics.utilization > 90) {
+                    recs.push({ priority: 'high', title: 'Address Capacity Constraints', desc: `Team at ${Math.round(r.metrics.utilization)}% utilization — unsustainable. Add headcount or automate.`, impact: 'Reduce burnout risk, improve retention' });
+                } else if (r.metrics.utilization < 60) {
+                    recs.push({ priority: 'low', title: 'Optimize Staffing Levels', desc: `Team at ${Math.round(r.metrics.utilization)}% utilization — potential overstaffing. Review workload distribution.`, impact: 'Potential headcount optimization' });
+                }
+            }
+            
+            // Add quick wins
+            const lowValueTasks = tasks.filter(t => t.value === 'admin' || t.value === 'rework').sort((a, b) => calcHours(b) - calcHours(a)).slice(0, 3);
+            if (lowValueTasks.length > 0) {
+                recs.push({ priority: 'low', title: 'Automate Top Admin Tasks', desc: `Top candidates: ${lowValueTasks.map(t => t.name).join(', ')}`, impact: `${Math.round(lowValueTasks.reduce((s, t) => s + calcHours(t), 0))} hours/month` });
+            }
+            
+            // Sort by priority
+            const priorityOrder = { high: 0, medium: 1, low: 2 };
+            recs.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+            
+            // Update counts
+            document.getElementById('rec-high-count').textContent = recs.filter(r => r.priority === 'high').length;
+            document.getElementById('rec-med-count').textContent = recs.filter(r => r.priority === 'medium').length;
+            document.getElementById('rec-low-count').textContent = recs.filter(r => r.priority === 'low').length;
+            
+            // Render list
+            document.getElementById('recommendations-list').innerHTML = recs.map(rec => 
+                `<div class="border rounded-lg p-4 rec-${rec.priority}">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold">${rec.title}</h4>
+                            <p class="text-sm text-slate-600 mt-1">${rec.desc}</p>
+                        </div>
+                        <span class="px-2 py-1 rounded text-xs font-medium ${rec.priority === 'high' ? 'bg-red-100 text-red-700' : rec.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}">${rec.priority.toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm text-green-700 mt-2 font-medium">💰 ${rec.impact}</p>
+                </div>`
+            ).join('');
+        }
+
+        // ==================== EXPORT ====================
+        function exportExecutiveSummary() {
+            if (!diagnosticResults) { runDiagnostic(); }
+            const r = diagnosticResults;
+            const p = companyProfile;
+            
+            const report = `
+PE FINANCE FUNCTION DIAGNOSTIC
+==============================
+${p.name || 'Portfolio Company'}
+Assessment Date: ${p.date || new Date().toLocaleDateString()}
+Industry: ${p.industry || 'N/A'} | Revenue: $${p.revenue || 0}M | Tier: ${r.tier}
+
+OVERALL SCORE: ${r.overall}/100 (Grade: ${r.grade} - ${r.label})
+
+DIMENSION SCORES
+----------------
+Cost Efficiency:    ${r.scores.cost}/100  (${r.metrics.costPctRev.toFixed(2)}% of revenue)
+Strategic Focus:    ${r.scores.strategic}/100  (${Math.round(r.metrics.strategicPct)}% strategic time)
+Scalability:        ${r.scores.scalability}/100
+Risk & Continuity:  ${r.scores.risk}/100  (${r.metrics.highRiskTasks} high-risk tasks)
+Close Performance:  ${r.scores.close}/100  (${r.metrics.closeDays} days)
+Team Capacity:      ${r.scores.capacity}/100  (${Math.round(r.metrics.utilization)}% utilization)
+
+KEY METRICS
+-----------
+Finance FTEs: ${r.metrics.fte.toFixed(1)}
+Monthly Hours: ${Math.round(r.metrics.totalHrs)}
+Capacity: ${Math.round(r.metrics.capacity)} hrs/mo
+
+VALUE CREATION OPPORTUNITY
+--------------------------
+Efficiency Gains: $${Math.round(r.value.efficiencyValue).toLocaleString()}/year
+Risk Mitigation: $${Math.round(r.value.riskValue).toLocaleString()}
+Strategic Capacity: +${Math.round(r.value.strategicHrsGain)} hrs/month
+
+BENCHMARKS (${r.tier} tier)
+---------------------------
+Cost % Revenue: ${r.metrics.costPctRev.toFixed(2)}% vs ${r.bench.costPct}% target
+Strategic Time: ${Math.round(r.metrics.strategicPct)}% vs ${r.bench.strategic}% target
+Close Days: ${r.metrics.closeDays} vs ${r.bench.closeDays} target
+Utilization: ${Math.round(r.metrics.utilization)}% vs ${r.bench.utilization}% target
+
+Generated by PE Finance Function Diagnostic
+            `.trim();
+            
+            downloadFile(report, `${p.name || 'Company'}_Finance_Diagnostic.txt`, 'text/plain');
+        }
+
+        function exportFullJSON() {
+            const data = {
+                exportDate: new Date().toISOString(),
+                version: '1.0',
+                companyProfile,
+                teamMembers,
+                tasks,
+                diagnosticResults
+            };
+            downloadFile(JSON.stringify(data, null, 2), 'Finance_Diagnostic_Full.json', 'application/json');
+        }
+
+        function exportCSV() {
+            const headers = ['Task', 'Owner', 'Job', 'Frequency', 'Volume', 'Minutes', 'Value', 'Hours/Mo'];
+            const rows = tasks.map(t => {
+                const m = teamMembers.find(x => x.id === t.memberId);
+                return [t.name, m?.name || '', t.job, t.frequency, t.volume, t.time, t.value, calcHours(t).toFixed(1)];
+            });
+            const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+            downloadFile(csv, 'Finance_Tasks.csv', 'text/csv');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.companyProfile) companyProfile = data.companyProfile;
+                    if (data.teamMembers) teamMembers = data.teamMembers;
+                    if (data.tasks) tasks = data.tasks;
+                    refreshTeam();
+                    refreshTasks();
+                    alert('Import successful!');
+                    showTab('profile');
+                } catch (err) {
+                    alert('Import error: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([content], { type: mimeType }));
+            a.download = filename;
+            a.click();
+        }
+    </script>
+</body>
+</html>

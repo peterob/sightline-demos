@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST v1 — Confirm & Pay</title>
+<style>
+:root {
+  --navy: #1B2A4A; --navy-mid: #243660; --navy-light: #2e4275;
+  --teal: #0E7C7B; --teal-light: #0fa8a7; --teal-bg: #e1f5ee;
+  --amber: #C17B2F; --amber-bg: #fff8e8;
+  --red: #8B1A1A; --red-bg: #feefef;
+  --green: #0F6E56; --green-bg: #edf7f4;
+  --gray: #f4f4f1; --border: #e0ddd6; --muted: #888;
+  --text: #1a1a1a; --text-sec: #555;
+  --white: #ffffff;
+  --radius: 10px; --radius-sm: 6px;
+  --mono: 'Courier New', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: #f0ede8; color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Shell ── */
+.shell { display: flex; flex: 1; min-height: 100vh; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 220px; flex-shrink: 0; background: var(--navy);
+  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+}
+.sidebar-brand {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.brand-name { font-size: 16px; font-weight: 600; color: #fff; letter-spacing: 0.01em; }
+.brand-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.nav-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 18px 4px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.55); cursor: pointer;
+  border-left: 3px solid transparent; transition: all 0.12s;
+}
+.nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
+.nav-item.active { color: #fff; background: rgba(255,255,255,0.08); border-left-color: var(--teal); }
+.nav-icon { font-size: 14px; width: 18px; text-align: center; }
+.nav-badge {
+  margin-left: auto; background: var(--teal); color: #fff;
+  font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px;
+}
+.nav-badge.red { background: #b32020; }
+.sidebar-footer { padding: 14px 18px; border-top: 1px solid rgba(255,255,255,0.08); }
+.entity-pill { font-size: 11px; color: rgba(255,255,255,0.35); }
+.entity-name { font-size: 12px; color: rgba(255,255,255,0.6); font-weight: 500; margin-top: 2px; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  background: var(--white); border-bottom: 1px solid var(--border);
+  padding: 0 28px; height: 56px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 10;
+}
+.topbar-title { font-size: 16px; font-weight: 600; color: var(--navy); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-meta { font-size: 12px; color: var(--muted); }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: 5px; }
+
+.content { padding: 24px 28px; flex: 1; }
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Stat row ── */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat-val { font-size: 26px; font-weight: 600; color: var(--navy); }
+.stat-val.teal { color: var(--teal); }
+.stat-val.amber { color: var(--amber); }
+.stat-val.red { color: var(--red); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ── Section header ── */
+.sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.sec-title { font-size: 14px; font-weight: 600; color: var(--navy); }
+.btn {
+  font-size: 12px; font-weight: 500; padding: 6px 14px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--white); color: var(--text); cursor: pointer;
+  transition: background 0.1s;
+}
+.btn:hover { background: var(--gray); }
+.btn-teal { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-teal:hover { background: var(--teal-light); }
+
+/* ── Table ── */
+.table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead { background: #fafaf8; }
+th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafaf8; }
+
+/* ── Badges ── */
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+  border-radius: 20px; white-space: nowrap;
+}
+.badge-confirmed { background: var(--green-bg); color: var(--green); }
+.badge-pending { background: var(--amber-bg); color: var(--amber); }
+.badge-disputed { background: var(--red-bg); color: var(--red); }
+.badge-sent { background: #e8f0fb; color: #185FA5; }
+.badge-approved { background: var(--green-bg); color: var(--green); }
+.badge-blocked { background: var(--red-bg); color: var(--red); }
+.badge-posted { background: var(--teal-bg); color: var(--teal); }
+.badge-export { background: var(--amber-bg); color: var(--amber); }
+.badge-open { background: var(--red-bg); color: var(--red); }
+.badge-resolved { background: var(--green-bg); color: var(--green); }
+.badge-active { background: var(--teal-bg); color: var(--teal); }
+.badge-gray { background: var(--gray); color: var(--muted); }
+
+/* ── Cards ── */
+.card-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+}
+.card-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+/* ── Event log ── */
+.event-item {
+  display: flex; gap: 14px; padding: 13px 16px;
+  border-bottom: 1px solid var(--border); align-items: flex-start;
+}
+.event-item:last-child { border-bottom: none; }
+.event-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+}
+.ev-bilateral { background: var(--teal); }
+.ev-proposed { background: #aaa; }
+.ev-policy { background: var(--amber); }
+.ev-exception { background: var(--red); }
+.ev-settlement { background: #185FA5; }
+.event-main { flex: 1; min-width: 0; }
+.event-type { font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+.event-desc { font-size: 12px; color: var(--text-sec); }
+.event-meta { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+.event-hash { font-size: 10px; color: #ccc; font-family: var(--mono); margin-top: 2px; }
+
+/* ── Policy card ── */
+.policy-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+}
+.policy-head {
+  padding: 12px 16px; background: #fafaf8;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.policy-name { font-size: 13px; font-weight: 600; color: var(--navy); }
+.policy-version { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.policy-body { padding: 14px 16px; }
+.policy-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid #f0ede8; }
+.policy-row:last-child { border-bottom: none; }
+.policy-key { color: var(--muted); }
+.policy-val { color: var(--text); font-weight: 500; font-family: var(--mono); }
+.policy-pinned { font-size: 11px; color: var(--green); margin-top: 8px; }
+
+/* ── Ledger ── */
+.ledger-hash {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  background: var(--gray); padding: 2px 6px; border-radius: 4px;
+}
+.ledger-intact { font-size: 11px; color: var(--green); font-weight: 600; }
+
+/* ── Exception card ── */
+.exc-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+}
+.exc-card.resolved { border-left-color: var(--teal); }
+.exc-title { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+.exc-detail { font-size: 12px; color: var(--text-sec); margin-bottom: 10px; }
+.exc-meta { font-size: 11px; color: var(--muted); }
+.exc-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ── Trade message preview ── */
+.tm-preview {
+  background: var(--navy); border-radius: var(--radius);
+  padding: 18px; color: #fff; max-width: 320px;
+}
+.tm-company { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 5px; }
+.tm-invoice { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.tm-amount { font-size: 28px; font-weight: 600; color: #0DCFCE; }
+.tm-detail { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.tm-deadline { font-size: 11px; color: rgba(255,255,255,0.35); margin: 10px 0 14px; }
+.tm-btns { display: flex; gap: 8px; }
+.tm-btn {
+  flex: 1; padding: 9px 6px; border-radius: 5px; text-align: center;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #fff;
+}
+.tm-btn.primary { background: var(--teal); border-color: var(--teal); }
+
+/* ── State tracker ── */
+.state-tracks { display: flex; flex-direction: column; gap: 10px; }
+.track { display: flex; align-items: center; gap: 10px; }
+.track-label { font-size: 11px; font-weight: 600; color: var(--muted); width: 80px; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.track-steps { display: flex; gap: 4px; flex: 1; }
+.step {
+  height: 24px; flex: 1; border-radius: 3px; display: flex; align-items: center;
+  justify-content: center; font-size: 10px; font-weight: 600;
+  background: var(--gray); color: var(--muted);
+}
+.step.done { background: var(--teal-bg); color: var(--teal); }
+.step.active { background: var(--teal); color: #fff; }
+.step.blocked { background: var(--red-bg); color: var(--red); }
+.step.pending { background: var(--amber-bg); color: var(--amber); }
+
+/* ── Proof record ── */
+.proof-block {
+  background: var(--gray); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px;
+  font-family: var(--mono); font-size: 11px; line-height: 1.9;
+}
+.pf { color: var(--navy); font-weight: 600; }
+.pv { color: var(--teal); }
+.ph { color: var(--amber); word-break: break-all; }
+
+/* ── Two col layout ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+.callout {
+  background: var(--teal-bg); border-left: 3px solid var(--teal);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 14px; font-size: 12px; color: #085041; margin-bottom: 16px;
+}
+.callout.amber { background: var(--amber-bg); border-left-color: var(--amber); color: #633806; }
+
+/* ── Coverage meter ── */
+.meter-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.meter-fill { height: 100%; background: var(--teal); border-radius: 4px; transition: width 0.4s; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">CAST v1</div>
+      <div class="brand-sub">Confirm &amp; Pay</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="nav('dashboard')">
+        <span class="nav-icon">▦</span> Dashboard
+      </div>
+      <div class="nav-label">Primitives</div>
+      <div class="nav-item" onclick="nav('events')">
+        <span class="nav-icon">⚡</span> Events
+        <span class="nav-badge">14</span>
+      </div>
+      <div class="nav-item" onclick="nav('policies')">
+        <span class="nav-icon">⚖</span> Policies
+      </div>
+      <div class="nav-item" onclick="nav('workorders')">
+        <span class="nav-icon">✉</span> Work Orders
+        <span class="nav-badge">6</span>
+      </div>
+      <div class="nav-item" onclick="nav('ledger')">
+        <span class="nav-icon">≡</span> Ledger
+      </div>
+      <div class="nav-item" onclick="nav('exceptions')">
+        <span class="nav-icon">⚠</span> Exceptions
+        <span class="nav-badge red">2</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="entity-pill">Active entity</div>
+      <div class="entity-name">BrightPath Holdings LLC</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <span class="topbar-meta"><span class="status-dot"></span>Policy v4.2 active</span>
+        <span class="topbar-meta">March 13, 2026</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-label">Trade Messages sent</div>
+            <div class="stat-val teal">47</div>
+            <div class="stat-sub">Last 30 days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Vendor confirm rate</div>
+            <div class="stat-val teal">83%</div>
+            <div class="stat-sub">Within deadline</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Awaiting response</div>
+            <div class="stat-val amber">6</div>
+            <div class="stat-sub">4 within deadline</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Open exceptions</div>
+            <div class="stat-val red">2</div>
+            <div class="stat-sub">1 fraud risk</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div>
+            <div class="sec-head">
+              <div class="sec-title">AP queue — action required</div>
+              <button class="btn btn-teal" onclick="nav('workorders')">View all</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Vendor</th><th>Amount</th><th>Status</th><th>Due</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Apex Electrical</strong><br><span style="font-size:11px;color:var(--muted)">INV-1048</span></td>
+                    <td>$47,200</td>
+                    <td><span class="badge badge-pending">Awaiting confirm</span></td>
+                    <td style="font-size:12px">Today 5pm</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Metro Cleaning</strong><br><span style="font-size:11px;color:var(--muted)">INV-2201</span></td>
+                    <td>$8,400</td>
+                    <td><span class="badge badge-approved">Approved</span></td>
+                    <td style="font-size:12px">Mar 15</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Lakeside Security</strong><br><span style="font-size:11px;color:var(--muted)">INV-0884</span></td>
+                    <td>$23,750</td>
+                    <td><span class="badge badge-disputed">Disputed</span></td>
+                    <td style="font-size:12px;color:var(--red)">Blocked</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Vertex Supply Co.</strong><br><span style="font-size:11px;color:var(--muted)">INV-3310</span></td>
+                    <td>$11,900</td>
+                    <td><span class="badge badge-confirmed">Confirmed</span></td>
+                    <td style="font-size:12px">Mar 18</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="sec-head">
+              <div class="sec-title">Open exceptions</div>
+              <button class="btn" onclick="nav('exceptions')">View all</button>
+            </div>
+            <div class="exc-card">
+              <div class="exc-title">Bank instruction changed — Lakeside Security</div>
+              <div class="exc-detail">Vendor disputed INV-0884. Payment blocked. Case open.</div>
+              <div class="exc-meta">Opened Mar 13 · Case #EXC-0042 · High severity</div>
+              <div class="exc-actions">
+                <button class="btn" style="font-size:11px">View case</button>
+                <button class="btn" style="font-size:11px;color:var(--red)">Keep blocked</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="sec-head"><div class="sec-title">Coverage this month</div></div>
+            <div class="card" style="margin-bottom:14px">
+              <div class="stat-label">AP spend covered by bilateral proof</div>
+              <div style="font-size:22px;font-weight:600;color:var(--navy);margin:6px 0 2px">$412,800 / $680,000</div>
+              <div class="meter-bar"><div class="meter-fill" style="width:61%"></div></div>
+              <div style="font-size:11px;color:var(--muted);margin-top:6px">61% — growing as vendor onboarding completes</div>
+            </div>
+
+            <div class="sec-head"><div class="sec-title">Recent bilateral events</div></div>
+            <div class="table-wrap">
+              <div class="event-item">
+                <div class="event-dot ev-bilateral"></div>
+                <div class="event-main">
+                  <div class="event-type">BILATERAL_EVENT — Confirmed</div>
+                  <div class="event-desc">Vertex Supply Co. confirmed INV-3310 · $11,900</div>
+                  <div class="event-meta">2026-03-13T11:42:07Z · vendor_portal_passkey</div>
+                </div>
+              </div>
+              <div class="event-item">
+                <div class="event-dot ev-exception"></div>
+                <div class="event-main">
+                  <div class="event-type">CASE_OPENED — Dispute</div>
+                  <div class="event-desc">Lakeside Security disputed INV-0884 · Payment blocked</div>
+                  <div class="event-meta">2026-03-13T09:18:22Z · vendor_portal_passkey</div>
+                </div>
+              </div>
+              <div class="event-item">
+                <div class="event-dot ev-bilateral"></div>
+                <div class="event-main">
+                  <div class="event-type">BILATERAL_EVENT — Confirmed</div>
+                  <div class="event-desc">Metro Cleaning confirmed INV-2201 · $8,400</div>
+                  <div class="event-meta">2026-03-12T16:03:44Z · otp_challenge</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div class="panel" id="panel-events">
+        <div class="callout">Proposed Events are unilateral — they cannot generate a Posting. A Bilateral Event is created only when the vendor co-authors the record. The non-nullable FK from Posting to Bilateral Event is enforced at the schema level.</div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-label">Bilateral events</div><div class="stat-val teal">39</div><div class="stat-sub">Confirmed by vendor</div></div>
+          <div class="stat-card"><div class="stat-label">Proposed events</div><div class="stat-val amber">8</div><div class="stat-sub">Awaiting vendor action</div></div>
+          <div class="stat-card"><div class="stat-label">Expired / canceled</div><div class="stat-val" style="font-size:22px;color:var(--muted)">3</div><div class="stat-sub">No posting generated</div></div>
+          <div class="stat-card"><div class="stat-label">Hash integrity</div><div class="stat-val teal">✓</div><div class="stat-sub">All chains intact</div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Event log — append-only, immutable</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn">Bilateral only</button>
+            <button class="btn">Proposed only</button>
+            <button class="btn">All types</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="event-item">
+            <div class="event-dot ev-bilateral"></div>
+            <div class="event-main">
+              <div class="event-type">BILATERAL_EVENT · #BE-0039</div>
+              <div class="event-desc">Vertex Supply Co. confirmed INV-3310 · $11,900 · bank destination unchanged</div>
+              <div class="event-meta">2026-03-13T11:42:07Z · vendor_portal_passkey · POL-v4.2</div>
+              <div class="event-hash">lineage_hash: a7f3d2c8…e7f8a · INTACT</div>
+            </div>
+            <span class="badge badge-confirmed">Bilateral</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot ev-exception"></div>
+            <div class="event-main">
+              <div class="event-type">CASE_OPENED · #EXC-0042</div>
+              <div class="event-desc">Lakeside Security disputed INV-0884 — reason: bank change not authorized by vendor</div>
+              <div class="event-meta">2026-03-13T09:18:22Z · vendor_portal_passkey · POL-v4.2</div>
+              <div class="event-hash">lineage_hash: b2c3d4e5…f9a0b · INTACT</div>
+            </div>
+            <span class="badge badge-disputed">Dispute</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot ev-proposed"></div>
+            <div class="event-main">
+              <div class="event-type">PROPOSED_EVENT · #PE-0014</div>
+              <div class="event-desc">Apex Electrical — INV-1048 · $47,200 · awaiting vendor confirmation</div>
+              <div class="event-meta">2026-03-12T08:00:00Z · system_generated · POL-v4.2</div>
+              <div class="event-hash">Cannot generate Posting — no bilateral co-authorship yet</div>
+            </div>
+            <span class="badge badge-pending">Proposed</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot ev-bilateral"></div>
+            <div class="event-main">
+              <div class="event-type">BILATERAL_EVENT · #BE-0038</div>
+              <div class="event-desc">Metro Cleaning confirmed INV-2201 · $8,400</div>
+              <div class="event-meta">2026-03-12T16:03:44Z · otp_challenge · POL-v4.2</div>
+              <div class="event-hash">lineage_hash: c3d4e5f6…a1b2c · INTACT</div>
+            </div>
+            <span class="badge badge-confirmed">Bilateral</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot ev-policy"></div>
+            <div class="event-main">
+              <div class="event-type">POLICY_VERSION_ACTIVATED · POL-v4.2</div>
+              <div class="event-desc">Policy version 4.2 activated — threshold updated to $10,000, dual-approval added for new vendors</div>
+              <div class="event-meta">2026-01-01T00:00:00Z · system_admin</div>
+              <div class="event-hash">Retroactive modification: not permitted — prior events remain pinned to POL-v4.1</div>
+            </div>
+            <span class="badge badge-active">Policy</span>
+          </div>
+          <div class="event-item">
+            <div class="event-dot ev-settlement"></div>
+            <div class="event-main">
+              <div class="event-type">SETTLEMENT_POSTED · #SE-0031</div>
+              <div class="event-desc">Clearview HVAC — INV-0771 · $31,500 — exported to NetSuite, payment initiated</div>
+              <div class="event-meta">2026-03-11T14:20:00Z · controller_export · POL-v4.2</div>
+              <div class="event-hash">lineage_hash: d4e5f6a7…b2c3d · INTACT</div>
+            </div>
+            <span class="badge badge-posted">Settled</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- POLICIES -->
+      <div class="panel" id="panel-policies">
+        <div class="callout">Every Trade Message pins the policy version active at time of processing. A policy change does not retroactively alter prior approvals. This is a data architecture requirement — it is what makes the proof record defensible in an audit.</div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-label">Active version</div><div class="stat-val teal">POL-v4.2</div><div class="stat-sub">Since Jan 1, 2026</div></div>
+          <div class="stat-card"><div class="stat-label">Prior versions</div><div class="stat-val" style="font-size:22px;color:var(--muted)">4</div><div class="stat-sub">Immutable — read-only</div></div>
+          <div class="stat-card"><div class="stat-label">Auto-approve rate</div><div class="stat-val teal">64%</div><div class="stat-sub">Under current policy</div></div>
+          <div class="stat-card"><div class="stat-label">Manual review rate</div><div class="stat-val amber">36%</div><div class="stat-sub">Triggered by policy rules</div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Active policy — POL-v4.2</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn">Version history</button>
+            <button class="btn btn-teal">Propose change</button>
+          </div>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-head">
+            <div>
+              <div class="policy-name">Trigger conditions — when a Trade Message is required</div>
+              <div class="policy-version">POL-v4.2 · activated 2026-01-01</div>
+            </div>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="policy-body">
+            <div class="policy-row"><span class="policy-key">First payment to vendor</span><span class="policy-val">always</span></div>
+            <div class="policy-row"><span class="policy-key">Bank instruction changed</span><span class="policy-val">always</span></div>
+            <div class="policy-row"><span class="policy-key">Amount threshold</span><span class="policy-val">&gt; $10,000</span></div>
+            <div class="policy-row"><span class="policy-key">Amount anomaly vs. history</span><span class="policy-val">&gt; 25% variance</span></div>
+            <div class="policy-row"><span class="policy-key">Duplicate detection window</span><span class="policy-val">30 days</span></div>
+            <div class="policy-row"><span class="policy-key">Rush payment</span><span class="policy-val">always</span></div>
+            <div class="policy-row"><span class="policy-key">Blocked vendor</span><span class="policy-val">always</span></div>
+            <div class="policy-row"><span class="policy-key">Missing PO/SOW above threshold</span><span class="policy-val">always</span></div>
+          </div>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-head">
+            <div>
+              <div class="policy-name">Auto-approve conditions — ALL must be true</div>
+              <div class="policy-version">POL-v4.2</div>
+            </div>
+          </div>
+          <div class="policy-body">
+            <div class="policy-row"><span class="policy-key">Vendor confirmed via registered channel</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">Signer identity verified</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">Bank destination unchanged</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">No duplicate detected</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">Amount within tolerance + budget</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">No blocked-vendor flag</span><span class="policy-val">required</span></div>
+            <div class="policy-row"><span class="policy-key">No mandatory approver missing</span><span class="policy-val">required</span></div>
+            <div class="policy-pinned">✓ Pinned to all bilateral events processed under this version</div>
+          </div>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-head">
+            <div>
+              <div class="policy-name">Version history — prior versions (read-only)</div>
+            </div>
+          </div>
+          <div class="policy-body">
+            <div class="policy-row"><span class="policy-key">POL-v4.1</span><span class="policy-val" style="color:var(--muted)">2025-06-01 → 2025-12-31 · threshold $5,000</span></div>
+            <div class="policy-row"><span class="policy-key">POL-v4.0</span><span class="policy-val" style="color:var(--muted)">2025-01-01 → 2025-05-31</span></div>
+            <div class="policy-row"><span class="policy-key">POL-v3.x</span><span class="policy-val" style="color:var(--muted)">2024 and prior</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORK ORDERS -->
+      <div class="panel" id="panel-workorders">
+        <div class="callout">The Trade Message is the canonical v1 Work Order object. Every Work Order has three parallel state tracks — Bilateral (vendor agreement), Control (internal governance), and Settlement (downstream execution). These tracks are never collapsed into a single status field.</div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-label">Total open</div><div class="stat-val teal">6</div></div>
+          <div class="stat-card"><div class="stat-label">Awaiting vendor</div><div class="stat-val amber">3</div></div>
+          <div class="stat-card"><div class="stat-label">Awaiting approval</div><div class="stat-val amber">1</div></div>
+          <div class="stat-card"><div class="stat-label">Ready to pay</div><div class="stat-val teal">2</div></div>
+        </div>
+
+        <!-- Detail: INV-1048 -->
+        <div class="sec-head">
+          <div class="sec-title">WO #TM-0047 — Apex Electrical Services · INV-1048</div>
+          <button class="btn">Send reminder</button>
+        </div>
+
+        <div class="two-col" style="margin-bottom:20px">
+          <div class="tm-preview">
+            <div class="tm-company">BrightPath Holdings → Apex Electrical</div>
+            <div class="tm-invoice">INV-1048 · Payment confirmation</div>
+            <div class="tm-amount">$47,200</div>
+            <div class="tm-detail">March 28 · Account ending 9921</div>
+            <div class="tm-detail">PO-882 / Phase 2 retrofit</div>
+            <div class="tm-deadline">Reply by 5:00 PM ET today</div>
+            <div class="tm-btns">
+              <div class="tm-btn primary">Confirm</div>
+              <div class="tm-btn">Change</div>
+              <div class="tm-btn">Dispute</div>
+            </div>
+          </div>
+          <div>
+            <div class="card-label" style="margin-bottom:10px">Three-track state</div>
+            <div class="state-tracks">
+              <div class="track">
+                <div class="track-label">Bilateral</div>
+                <div class="track-steps">
+                  <div class="step done">Sent</div>
+                  <div class="step done">Viewed</div>
+                  <div class="step active">Pending</div>
+                  <div class="step">Confirmed</div>
+                </div>
+              </div>
+              <div class="track">
+                <div class="track-label">Control</div>
+                <div class="track-steps">
+                  <div class="step done">Policy</div>
+                  <div class="step active">Awaiting</div>
+                  <div class="step">Approved</div>
+                  <div class="step">Cleared</div>
+                </div>
+              </div>
+              <div class="track">
+                <div class="track-label">Settlement</div>
+                <div class="track-steps">
+                  <div class="step active">Waiting</div>
+                  <div class="step">Export</div>
+                  <div class="step">Initiated</div>
+                  <div class="step">Posted</div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:14px;font-size:12px;color:var(--muted)">
+              Trigger: amount above $10K · First payment to vendor<br>
+              Sent: Mar 12 · Channel: vendor_portal_passkey<br>
+              Policy version: POL-v4.2
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-head"><div class="sec-title">All open work orders</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>WO #</th><th>Vendor</th><th>Amount</th><th>Bilateral</th><th>Control</th><th>Settlement</th><th>Due</th></tr></thead>
+            <tbody>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0047</td>
+                <td><strong>Apex Electrical</strong><br><span style="font-size:11px;color:var(--muted)">INV-1048</span></td>
+                <td>$47,200</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td><span class="badge badge-pending">Awaiting</span></td>
+                <td><span class="badge badge-gray">Waiting</span></td>
+                <td style="font-size:12px;color:var(--red)">Today</td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0046</td>
+                <td><strong>Metro Cleaning</strong><br><span style="font-size:11px;color:var(--muted)">INV-2201</span></td>
+                <td>$8,400</td>
+                <td><span class="badge badge-confirmed">Confirmed</span></td>
+                <td><span class="badge badge-approved">Approved</span></td>
+                <td><span class="badge badge-export">Awaiting export</span></td>
+                <td style="font-size:12px">Mar 15</td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0045</td>
+                <td><strong>Lakeside Security</strong><br><span style="font-size:11px;color:var(--muted)">INV-0884</span></td>
+                <td>$23,750</td>
+                <td><span class="badge badge-disputed">Disputed</span></td>
+                <td><span class="badge badge-blocked">Blocked</span></td>
+                <td><span class="badge badge-gray">Halted</span></td>
+                <td style="font-size:12px;color:var(--red)">Blocked</td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0044</td>
+                <td><strong>Vertex Supply Co.</strong><br><span style="font-size:11px;color:var(--muted)">INV-3310</span></td>
+                <td>$11,900</td>
+                <td><span class="badge badge-confirmed">Confirmed</span></td>
+                <td><span class="badge badge-approved">Approved</span></td>
+                <td><span class="badge badge-export">Awaiting export</span></td>
+                <td style="font-size:12px">Mar 18</td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0043</td>
+                <td><strong>Clearview HVAC</strong><br><span style="font-size:11px;color:var(--muted)">INV-0991</span></td>
+                <td>$18,600</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+                <td><span class="badge badge-pending">Awaiting</span></td>
+                <td><span class="badge badge-gray">Waiting</span></td>
+                <td style="font-size:12px">Mar 16</td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px">TM-0042</td>
+                <td><strong>NorthStar Supplies</strong><br><span style="font-size:11px;color:var(--muted)">INV-4422</span></td>
+                <td>$6,200</td>
+                <td><span class="badge badge-confirmed">Confirmed</span></td>
+                <td><span class="badge badge-approved">Auto-approved</span></td>
+                <td><span class="badge badge-posted">Posted</span></td>
+                <td style="font-size:12px">Mar 14</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- LEDGER -->
+      <div class="panel" id="panel-ledger">
+        <div class="callout">A Posting has a non-nullable foreign key to a Bilateral Event. There is no schema path from a Proposed Event to a Posting. Every journal entry carries a lineage hash. Modification breaks the hash chain.</div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-label">Posting-ready</div><div class="stat-val teal">8</div><div class="stat-sub">Awaiting export</div></div>
+          <div class="stat-card"><div class="stat-label">Exported this month</div><div class="stat-val" style="font-size:22px;color:var(--navy)">31</div><div class="stat-sub">To NetSuite</div></div>
+          <div class="stat-card"><div class="stat-label">Total value posted</div><div class="stat-val teal">$412K</div><div class="stat-sub">With bilateral proof</div></div>
+          <div class="stat-card"><div class="stat-label">Hash integrity</div><div class="stat-val teal">✓</div><div class="stat-sub">All chains intact</div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Posting preview — ready to export</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn">Export CSV</button>
+            <button class="btn btn-teal">Export to NetSuite</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>CAST Ref</th><th>Vendor</th><th>Amount</th><th>Account</th><th>Bilateral event</th><th>Policy</th><th>Hash</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td style="font-family:var(--mono);font-size:10px">#PS-0088</td>
+                <td>Metro Cleaning</td>
+                <td>$8,400</td>
+                <td style="font-size:11px;font-family:var(--mono)">AP / 6100</td>
+                <td style="font-size:10px;font-family:var(--mono)">#BE-0038</td>
+                <td style="font-size:10px;font-family:var(--mono)">v4.2</td>
+                <td><span class="ledger-hash">c3d4…b2c</span> <span class="ledger-intact">✓</span></td>
+                <td><span class="badge badge-export">Ready</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--mono);font-size:10px">#PS-0089</td>
+                <td>Vertex Supply Co.</td>
+                <td>$11,900</td>
+                <td style="font-size:11px;font-family:var(--mono)">AP / 6200</td>
+                <td style="font-size:10px;font-family:var(--mono)">#BE-0039</td>
+                <td style="font-size:10px;font-family:var(--mono)">v4.2</td>
+                <td><span class="ledger-hash">a7f3…e7f</span> <span class="ledger-intact">✓</span></td>
+                <td><span class="badge badge-export">Ready</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="sec-head"><div class="sec-title">Sample bilateral proof record</div></div>
+        <div class="proof-block">
+          <div><span class="pf">cast_reference:</span>    <span class="pv">#CAST-2026-0042371</span></div>
+          <div><span class="pf">event_type:</span>         <span class="pv">bilateral_event</span></div>
+          <div><span class="pf">payer:</span>              <span class="pv">BrightPath Holdings LLC</span></div>
+          <div><span class="pf">vendor:</span>             <span class="pv">Apex Electrical Services Inc.</span></div>
+          <div><span class="pf">amount:</span>             <span class="pv">$47,200.00 USD</span></div>
+          <div><span class="pf">confirmation_method:</span><span class="pv">vendor_portal_passkey</span></div>
+          <div><span class="pf">vendor_signed_at:</span>   <span class="pv">2026-03-24T14:32:07Z</span></div>
+          <div><span class="pf">policy_version:</span>     <span class="pv">POL-v4.2 (active 2026-01-01)</span></div>
+          <div><span class="pf">approver:</span>           <span class="pv">J. Harmon (Controller) — 2026-03-24T15:01:44Z</span></div>
+          <div><span class="pf">lineage_hash:</span>       <span class="ph">a7f3d2c891b04e56f2a3c7d8e1f09b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a</span></div>
+          <div><span class="pf">hash_status:</span>        <span class="pv">INTACT — verified 2026-03-28T09:00:00Z</span></div>
+          <div><span class="pf">posting_fk:</span>         <span class="pv">non-nullable → bilateral_event_id required</span></div>
+        </div>
+      </div>
+
+      <!-- EXCEPTIONS -->
+      <div class="panel" id="panel-exceptions">
+        <div class="callout amber">A Case appends resolution to the event record — it does not unwrite events. Every override reason is an immutable entry in the event log. Blocking payment indefinitely is not a permitted non-response outcome — that path bypasses the product.</div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-label">Open cases</div><div class="stat-val red">2</div></div>
+          <div class="stat-card"><div class="stat-label">Resolved this month</div><div class="stat-val teal">7</div></div>
+          <div class="stat-card"><div class="stat-label">Override with reason</div><div class="stat-val amber">3</div><div class="stat-sub">Documented in log</div></div>
+          <div class="stat-card"><div class="stat-label">Payment blocked</div><div class="stat-val red">1</div><div class="stat-sub">Fraud risk — Lakeside</div></div>
+        </div>
+
+        <div class="sec-head">
+          <div class="sec-title">Open exceptions</div>
+          <button class="btn">Resolved cases</button>
+        </div>
+
+        <div class="exc-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div class="exc-title">EXC-0042 — Lakeside Security · INV-0884 · $23,750</div>
+            <span class="badge badge-open">High severity</span>
+          </div>
+          <div class="exc-detail">Vendor disputed invoice. Stated reason: bank change not authorized by their organization — suspected fraudulent instruction. Payment blocked immediately on dispute submission. Case type: vendor_dispute / suspected_BEC.</div>
+          <div class="exc-meta">Opened: 2026-03-13T09:18:22Z · Case owner: J. Harmon · Policy: POL-v4.2</div>
+          <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+            <strong style="color:var(--navy)">Required before resolution:</strong> Verify correct bank destination with vendor via out-of-band channel. Document verification method. Controller override required to release payment.
+          </div>
+          <div class="exc-actions">
+            <button class="btn btn-teal" style="font-size:12px">Log verification</button>
+            <button class="btn" style="font-size:12px">View event record</button>
+            <button class="btn" style="font-size:12px;color:var(--red)">Escalate</button>
+          </div>
+        </div>
+
+        <div class="exc-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div class="exc-title">EXC-0041 — Apex Electrical · INV-1048 · $47,200</div>
+            <span class="badge badge-pending">Awaiting response</span>
+          </div>
+          <div class="exc-detail">Trade Message sent March 12. Vendor viewed but did not respond within deadline. Second attempt sent March 13 at 8:00 AM. Still no response as of 3:00 PM. Requires mandatory internal approval with override reason before payment proceeds.</div>
+          <div class="exc-meta">Opened: 2026-03-13T15:00:00Z · Non-response fallback triggered · Policy: POL-v4.2</div>
+          <div style="margin-top:12px">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px"><strong style="color:var(--navy)">Override requires:</strong> Document reason for proceeding without vendor confirmation. Appended to event record as immutable entry.</div>
+            <textarea style="width:100%;font-size:12px;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--sans);resize:vertical;min-height:60px" placeholder="Override reason (required)..."></textarea>
+          </div>
+          <div class="exc-actions">
+            <button class="btn btn-teal" style="font-size:12px">Approve with override</button>
+            <button class="btn" style="font-size:12px">Extend deadline</button>
+            <button class="btn" style="font-size:12px;color:var(--red)">Cancel Trade Message</button>
+          </div>
+        </div>
+
+        <div class="sec-head" style="margin-top:8px"><div class="sec-title">Recently resolved</div></div>
+        <div class="exc-card resolved">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div class="exc-title">EXC-0039 — Clearview HVAC · INV-0771 · $31,500</div>
+            <span class="badge badge-resolved">Resolved</span>
+          </div>
+          <div class="exc-detail">Vendor requested change — corrected invoice amount from $34,200 to $31,500. Revised Trade Message confirmed by vendor. Override: none required.</div>
+          <div class="exc-meta">Resolved: 2026-03-11T12:44:00Z · Change request path · Bilateral event #BE-0035</div>
+        </div>
+
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const titles = {
+  dashboard: 'Dashboard',
+  events: 'Events',
+  policies: 'Policies',
+  workorders: 'Work Orders',
+  ledger: 'Ledger',
+  exceptions: 'Exceptions'
+};
+
+function nav(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.querySelector(`[onclick="nav('${id}')"]`).classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[id];
+}
+</script>
+</body>
+</html>

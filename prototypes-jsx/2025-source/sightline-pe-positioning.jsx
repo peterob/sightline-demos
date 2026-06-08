@@ -1,0 +1,408 @@
+import React from 'react';
+
+const PEPositioningOnePager = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0a0f',
+      color: '#e0e0e0',
+      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+      padding: '40px',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{
+        maxWidth: '900px',
+        margin: '0 auto',
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '12px',
+        padding: '40px'
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ width: '10px', height: '10px', background: '#22c55e', borderRadius: '2px' }}/>
+              <span style={{ fontSize: '20px', color: '#fff', fontWeight: '600' }}>sightline</span>
+              <span style={{
+                fontSize: '10px',
+                color: '#8b5cf6',
+                padding: '2px 8px',
+                background: 'rgba(139, 92, 246, 0.15)',
+                borderRadius: '4px'
+              }}>
+                FOR PE
+              </span>
+            </div>
+            <div style={{ fontSize: '13px', color: '#666' }}>
+              PE Portfolio Positioning — v1.0
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '12px', color: '#888' }}>
+            Confidential
+            <div style={{ color: '#666', marginTop: '4px' }}>December 2025</div>
+          </div>
+        </div>
+
+        {/* Core Position */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(34, 197, 94, 0.05))',
+          borderRadius: '10px',
+          padding: '28px',
+          marginBottom: '28px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '10px', color: '#8b5cf6', letterSpacing: '2px', marginBottom: '12px' }}>
+            POSITIONING STATEMENT
+          </div>
+          <div style={{ fontSize: '18px', color: '#fff', lineHeight: '1.5', maxWidth: '700px', margin: '0 auto' }}>
+            For <span style={{ color: '#22c55e' }}>PE operating partners</span> who need visibility 
+            into portfolio company financials, Sightline provides{' '}
+            <span style={{ color: '#8b5cf6' }}>real-time transaction validation</span> that surfaces 
+            problems in days instead of quarters—without replacing existing ERPs.
+          </div>
+        </div>
+
+        {/* ICP and Buyer */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '20px',
+          marginBottom: '28px'
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '8px',
+            padding: '20px'
+          }}>
+            <div style={{ fontSize: '10px', color: '#22c55e', letterSpacing: '1px', marginBottom: '12px' }}>
+              IDEAL CUSTOMER PROFILE
+            </div>
+            <div style={{ fontSize: '14px', color: '#fff', marginBottom: '12px' }}>
+              Mid-market PE / Growth Equity
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
+              <div style={{ marginBottom: '6px' }}>• 10-50 portfolio companies</div>
+              <div style={{ marginBottom: '6px' }}>• $50M-$500M revenue per company</div>
+              <div style={{ marginBottom: '6px' }}>• Operationally complex (inventory, multi-entity, services)</div>
+              <div>• Active ops team (not just board seats)</div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            borderRadius: '8px',
+            padding: '20px'
+          }}>
+            <div style={{ fontSize: '10px', color: '#3b82f6', letterSpacing: '1px', marginBottom: '12px' }}>
+              PRIMARY BUYER
+            </div>
+            <div style={{ fontSize: '14px', color: '#fff', marginBottom: '12px' }}>
+              Operating Partner / VP Portfolio Ops
+            </div>
+            <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.6' }}>
+              <div style={{ marginBottom: '6px' }}>• Owns portfolio-wide operational improvement</div>
+              <div style={{ marginBottom: '6px' }}>• Measured on value creation, not just deal flow</div>
+              <div style={{ marginBottom: '6px' }}>• Has budget for portfolio-wide initiatives</div>
+              <div>• Frustrated by inconsistent financial data</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Trigger Events */}
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.05)',
+          border: '1px solid rgba(239, 68, 68, 0.15)',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '28px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#ef4444', letterSpacing: '1px', marginBottom: '16px' }}>
+            BUYING TRIGGERS — WHEN THEY'RE READY TO ACT
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '12px'
+          }}>
+            {[
+              { trigger: 'Post-acquisition chaos', timing: 'Days 30-90', urgency: 'High' },
+              { trigger: 'Missed board numbers', timing: 'After the fact', urgency: 'Very High' },
+              { trigger: 'Controller turnover', timing: 'Immediate', urgency: 'High' },
+              { trigger: 'Exit prep / QoE', timing: '6-12 mo before', urgency: 'Medium' }
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: 'rgba(0,0,0,0.2)',
+                padding: '12px',
+                borderRadius: '6px'
+              }}>
+                <div style={{ fontSize: '12px', color: '#fff', marginBottom: '6px' }}>{item.trigger}</div>
+                <div style={{ fontSize: '10px', color: '#888', marginBottom: '4px' }}>{item.timing}</div>
+                <div style={{
+                  fontSize: '9px',
+                  color: item.urgency === 'Very High' ? '#ef4444' : item.urgency === 'High' ? '#f59e0b' : '#888'
+                }}>
+                  {item.urgency} urgency
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Value Prop by Stakeholder */}
+        <div style={{
+          marginBottom: '28px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#888', letterSpacing: '1px', marginBottom: '16px' }}>
+            VALUE PROPOSITION BY STAKEHOLDER
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '16px'
+          }}>
+            {[
+              {
+                who: 'Operating Partner',
+                color: '#8b5cf6',
+                needs: 'Portfolio visibility, early warning, consistent data',
+                message: '"See which companies are on track and which need intervention—before the quarterly review."'
+              },
+              {
+                who: 'Portfolio Company CFO',
+                color: '#3b82f6',
+                needs: 'Faster close, clean audit, less firefighting',
+                message: '"Cut your close from 15 days to 5. Evidence attached automatically. Audit-ready always."'
+              },
+              {
+                who: 'Deal Partner',
+                color: '#22c55e',
+                needs: 'Diligence speed, post-close derisking',
+                message: '"Day 1 visibility into the numbers you just paid 8x for."'
+              }
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: `${item.color}10`,
+                border: `1px solid ${item.color}30`,
+                borderRadius: '8px',
+                padding: '16px'
+              }}>
+                <div style={{ fontSize: '12px', color: item.color, marginBottom: '8px' }}>{item.who}</div>
+                <div style={{ fontSize: '11px', color: '#888', marginBottom: '10px' }}>{item.needs}</div>
+                <div style={{ fontSize: '11px', color: '#ddd', fontStyle: 'italic' }}>{item.message}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Competitive Position */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '28px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#f59e0b', letterSpacing: '1px', marginBottom: '16px' }}>
+            COMPETITIVE DIFFERENTIATION
+          </div>
+          <div style={{ display: 'grid', gap: '10px' }}>
+            {[
+              { vs: 'vs "Wait for the monthly close"', response: 'You\'ll know there\'s a problem 6 weeks too late.' },
+              { vs: 'vs Consultants + Excel', response: 'Point-in-time. Stale by next week. Doesn\'t scale to 20 companies.' },
+              { vs: 'vs ERP upgrades (NetSuite, etc)', response: '6-month implementation per company. We\'re live in 3 weeks.' },
+              { vs: 'vs BI/dashboards (Looker, Tableau)', response: 'Dashboards show you the mess. We prevent it.' }
+            ].map((item, i) => (
+              <div key={i} style={{
+                display: 'grid',
+                gridTemplateColumns: '200px 1fr',
+                gap: '16px',
+                padding: '10px 12px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '4px'
+              }}>
+                <div style={{ fontSize: '11px', color: '#f59e0b' }}>{item.vs}</div>
+                <div style={{ fontSize: '11px', color: '#ddd' }}>"{item.response}"</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Proof Points */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '12px',
+          marginBottom: '28px'
+        }}>
+          {[
+            { metric: '67%', label: 'Close time reduction' },
+            { metric: '90%', label: 'Audit prep time saved' },
+            { metric: '3 weeks', label: 'Average deployment' },
+            { metric: '$1.2M', label: 'Annual savings (12-co portfolio)' }
+          ].map((item, i) => (
+            <div key={i} style={{
+              background: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid rgba(34, 197, 94, 0.2)',
+              borderRadius: '8px',
+              padding: '16px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '24px', color: '#22c55e', fontWeight: '600', marginBottom: '4px' }}>
+                {item.metric}
+              </div>
+              <div style={{ fontSize: '10px', color: '#888' }}>{item.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Pricing */}
+        <div style={{
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '28px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#888', letterSpacing: '1px', marginBottom: '16px' }}>
+            PRICING MODEL
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '16px'
+          }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px' }}>PORTFOLIO LICENSE</div>
+              <div style={{ fontSize: '20px', color: '#fff' }}>$5-15K/mo</div>
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>Based on portfolio size</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px' }}>PER COMPANY</div>
+              <div style={{ fontSize: '20px', color: '#fff' }}>~$500-1K/mo</div>
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>Effective rate</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '11px', color: '#666', marginBottom: '8px' }}>IMPLEMENTATION</div>
+              <div style={{ fontSize: '20px', color: '#fff' }}>Included</div>
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>No PS fees</div>
+            </div>
+          </div>
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            background: 'rgba(34, 197, 94, 0.1)',
+            borderRadius: '4px',
+            fontSize: '11px',
+            color: '#22c55e',
+            textAlign: 'center'
+          }}>
+            No per-user fees. No transaction volume fees. Add companies as you acquire.
+          </div>
+        </div>
+
+        {/* Sales Motion */}
+        <div style={{
+          marginBottom: '28px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#888', letterSpacing: '1px', marginBottom: '16px' }}>
+            SALES MOTION
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '12px'
+          }}>
+            {[
+              { step: '1', action: 'Portfolio Assessment', detail: 'Review 2-3 companies, show gaps', time: '45 min' },
+              { step: '2', action: 'Pilot Proposal', detail: '1-2 highest-need companies', time: '2-4 weeks' },
+              { step: '3', action: 'Expand', detail: 'Add 5-10 based on results', time: 'Weeks 5-12' },
+              { step: '4', action: 'Portfolio Standard', detail: 'Day 1 playbook for new deals', time: 'Ongoing' }
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: 'rgba(139, 92, 246, 0.1)',
+                border: '1px solid rgba(139, 92, 246, 0.2)',
+                borderRadius: '8px',
+                padding: '14px'
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: '#8b5cf6',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  marginBottom: '10px'
+                }}>
+                  {item.step}
+                </div>
+                <div style={{ fontSize: '12px', color: '#fff', marginBottom: '4px' }}>{item.action}</div>
+                <div style={{ fontSize: '10px', color: '#888', marginBottom: '6px' }}>{item.detail}</div>
+                <div style={{ fontSize: '10px', color: '#8b5cf6' }}>{item.time}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Key Messages */}
+        <div style={{
+          background: 'rgba(34, 197, 94, 0.05)',
+          border: '1px solid rgba(34, 197, 94, 0.2)',
+          borderRadius: '8px',
+          padding: '20px'
+        }}>
+          <div style={{ fontSize: '10px', color: '#22c55e', letterSpacing: '1px', marginBottom: '16px' }}>
+            KEY MESSAGES — USE THESE
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px'
+          }}>
+            {[
+              'You paid 8x EBITDA. Can you trust the numbers?',
+              'See problems in days, not quarters.',
+              'Deploy across your portfolio in weeks.',
+              'No rip-and-replace. Connects to existing ERP.',
+              'One price for the whole portfolio.',
+              'Built by operators who\'ve lived post-acquisition chaos.'
+            ].map((msg, i) => (
+              <div key={i} style={{
+                fontSize: '11px',
+                color: '#ddd',
+                padding: '8px 12px',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: '4px',
+                borderLeft: '2px solid rgba(34, 197, 94, 0.4)'
+              }}>
+                {msg}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          marginTop: '32px',
+          paddingTop: '20px',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          textAlign: 'center',
+          fontSize: '11px',
+          color: '#666'
+        }}>
+          Internal positioning document. Update quarterly based on customer feedback.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PEPositioningOnePager;

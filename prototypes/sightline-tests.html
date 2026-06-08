@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline Test Suite</title>
+  <style>
+    :root {
+      --bg: #16181f;
+      --bg-card: #1e2128;
+      --bdr: #2a2e38;
+      --tx: #e8eaf0;
+      --tx-2: #9ba3b8;
+      --ac-green: #00d4aa;
+      --ac-red: #ff6b6b;
+      --ac-orange: #ff9f43;
+      --ac-blue: #4da6ff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--tx);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      padding: 28px 32px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: var(--tx); }
+    .subtitle { color: var(--tx-2); font-size: 12px; margin-bottom: 24px; }
+    .summary {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 28px;
+      padding: 18px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--bdr);
+      border-radius: 8px;
+      align-items: center;
+    }
+    .summary-item { display: flex; flex-direction: column; gap: 2px; min-width: 70px; }
+    .summary-num { font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+    .summary-label { font-size: 10px; color: var(--tx-2); text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
+    .pass-num  { color: var(--ac-green); }
+    .fail-num  { color: var(--ac-red); }
+    .pend-num  { color: var(--ac-orange); }
+    .divider   { width: 1px; height: 40px; background: var(--bdr); }
+    .tier-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--tx-2);
+      margin: 28px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--bdr);
+    }
+    .suite {
+      margin-bottom: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--bdr);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .suite-header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--bdr);
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--tx);
+    }
+    .suite-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+    .badge-pass { background: rgba(0,212,170,.14); color: var(--ac-green); }
+    .badge-fail { background: rgba(255,107,107,.14); color: var(--ac-red); }
+    .badge-pend { background: rgba(255,159,67,.14); color: var(--ac-orange); }
+    .tier2-note {
+      padding: 9px 16px;
+      font-size: 11px;
+      color: var(--tx-2);
+      font-style: italic;
+      border-bottom: 1px solid rgba(42,46,56,.5);
+    }
+    .test-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 7px 16px;
+      border-bottom: 1px solid rgba(42,46,56,.4);
+    }
+    .test-row:last-child { border-bottom: none; }
+    .test-icon { font-size: 12px; flex-shrink: 0; width: 14px; margin-top: 1px; }
+    .test-label { flex: 1; line-height: 1.4; }
+    .pass-label  { color: var(--tx); }
+    .fail-label  { color: var(--ac-red); }
+    .pend-label  { color: var(--tx-2); font-style: italic; }
+    .test-error {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      font-family: 'SF Mono', 'Fira Mono', monospace;
+      color: var(--ac-red);
+      background: rgba(255,107,107,.07);
+      padding: 4px 8px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>⚗️ Sightline Test Suite</h1>
+  <p class="subtitle">Vanilla JS · Zero dependencies · CAST Protocol business logic</p>
+
+  <div class="summary">
+    <div class="summary-item">
+      <span class="summary-num pass-num" id="sum-pass">—</span>
+      <span class="summary-label">Passed</span>
+    </div>
+    <div class="divider"></div>
+    <div class="summary-item">
+      <span class="summary-num fail-num" id="sum-fail">—</span>
+      <span class="summary-label">Failed</span>
+    </div>
+    <div class="divider"></div>
+    <div class="summary-item">
+      <span class="summary-num pend-num" id="sum-pend">—</span>
+      <span class="summary-label">Pending</span>
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+<!-- ============================================================
+     ZONE A — MICRO TEST FRAMEWORK
+     ~60 lines, zero dependencies, renders dark-themed HTML
+     ============================================================ -->
+<script>
+(function () {
+  const registry = [];
+  let currentSuite = null;
+  let totalPass = 0, totalFail = 0, totalPend = 0;
+
+  /* ── Public API ── */
+  window.suite = function (name, fn) {
+    currentSuite = { name, tests: [] };
+    registry.push(currentSuite);
+    try { fn(); } catch (e) { /* individual tests catch their own errors */ }
+    currentSuite = null;
+  };
+
+  window.test = function (label, fn) {
+    const entry = { label, kind: 'runnable', pass: false, error: null };
+    try {
+      fn();
+      entry.pass = true;
+      totalPass++;
+    } catch (e) {
+      entry.error = e.message || String(e);
+      totalFail++;
+    }
+    currentSuite.tests.push(entry);
+  };
+
+  window.spec = function (label) {
+    currentSuite.tests.push({ label, kind: 'spec', pass: false, error: null });
+    totalPend++;
+  };
+
+  window.expect = function (actual) {
+    return {
+      toBe(expected) {
+        if (actual !== expected)
+          throw new Error('Expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+      },
+      toEqual(expected) {
+        if (JSON.stringify(actual) !== JSON.stringify(expected))
+          throw new Error('Expected ' + JSON.stringify(expected) + ', got ' + JSON.stringify(actual));
+      },
+      toBeCloseTo(expected, digits) {
+        if (digits === undefined) digits = 5;
+        const f = Math.pow(10, digits);
+        if (Math.round(actual * f) !== Math.round(expected * f))
+          throw new Error('Expected ≈' + expected + ' (' + digits + 'dp), got ' + actual);
+      },
+      toBeTruthy() {
+        if (!actual) throw new Error('Expected truthy, got ' + JSON.stringify(actual));
+      },
+      toBeFalsy() {
+        if (actual) throw new Error('Expected falsy, got ' + JSON.stringify(actual));
+      },
+      toBe_true() { // alias
+        if (actual !== true) throw new Error('Expected true, got ' + JSON.stringify(actual));
+      },
+      toBeGreaterThan(n) {
+        if (!(actual > n)) throw new Error('Expected ' + actual + ' > ' + n);
+      },
+      toBeLessThan(n) {
+        if (!(actual < n)) throw new Error('Expected ' + actual + ' < ' + n);
+      },
+      toThrow() {
+        if (typeof actual !== 'function') throw new Error('expect(fn).toThrow() requires a function');
+        let threw = false;
+        try { actual(); } catch (e) { threw = true; }
+        if (!threw) throw new Error('Expected function to throw, but it did not');
+      }
+    };
+  };
+
+  /* ── Render results into DOM ── */
+  window._renderResults = function () {
+    document.getElementById('sum-pass').textContent = totalPass;
+    document.getElementById('sum-fail').textContent = totalFail;
+    document.getElementById('sum-pend').textContent = totalPend;
+
+    const container = document.getElementById('results');
+
+    registry.forEach(function (s) {
+      const sp = s.tests.filter(function (t) { return t.kind === 'runnable' && t.pass; }).length;
+      const sf = s.tests.filter(function (t) { return t.kind === 'runnable' && !t.pass; }).length;
+      const sk = s.tests.filter(function (t) { return t.kind === 'spec'; }).length;
+
+      const el = document.createElement('div');
+      el.className = 'suite';
+
+      /* Header */
+      const hdr = document.createElement('div');
+      hdr.className = 'suite-header';
+      hdr.textContent = s.name;
+
+      const badge = document.createElement('span');
+      badge.className = 'suite-badge ' + (sf > 0 ? 'badge-fail' : sk > 0 && sp === 0 ? 'badge-pend' : 'badge-pass');
+      if (sk > 0 && sp === 0 && sf === 0) {
+        badge.textContent = sk + ' pending';
+      } else {
+        badge.textContent = sp + ' passed' + (sf ? ' · ' + sf + ' failed' : '') + (sk ? ' · ' + sk + ' pending' : '');
+      }
+      hdr.appendChild(badge);
+      el.appendChild(hdr);
+
+      /* Tier 2 note */
+      if (sk > 0 && sp === 0 && sf === 0) {
+        const note = document.createElement('div');
+        note.className = 'tier2-note';
+        note.textContent = 'Tier 2 — specification stubs documenting intended production backend behaviour';
+        el.appendChild(note);
+      }
+
+      /* Test rows */
+      s.tests.forEach(function (t) {
+        const row = document.createElement('div');
+        row.className = 'test-row';
+
+        if (t.kind === 'spec') {
+          row.innerHTML = '<span class="test-icon" style="color:var(--ac-orange)">⏸</span>' +
+            '<span class="test-label pend-label">' + t.label + '</span>';
+        } else if (t.pass) {
+          row.innerHTML = '<span class="test-icon" style="color:var(--ac-green)">✓</span>' +
+            '<span class="test-label pass-label">' + t.label + '</span>';
+        } else {
+          row.innerHTML = '<span class="test-icon" style="color:var(--ac-red)">✗</span>' +
+            '<div class="test-label fail-label">' + t.label +
+            (t.error ? '<span class="test-error">' + t.error + '</span>' : '') +
+            '</div>';
+        }
+        el.appendChild(row);
+      });
+
+      container.appendChild(el);
+    });
+  };
+})();
+</script>
+
+<!-- ============================================================
+     ZONE B — PURE FUNCTIONS
+     Duplicated verbatim from source HTML files.
+     memberAutoRate / memberHumanHours / memberAllHours adapted to
+     accept `tasks` as 2nd param instead of using global closure —
+     this is the only intentional signature change.
+     ============================================================ -->
+<script>
+
+/* ── From Sightline_Onboarding_Configuration.html ── */
+const freqMult = {daily:22, weekly:4.33, monthly:1, quarterly:0.33};
+
+function calcHours(t) { return (t.volume * t.time / 60) * (freqMult[t.frequency] || 1); }
+function calcGoalHours(t) { return (t.volume * (t.goalTime || t.time) / 60) * (freqMult[t.frequency] || 1); }
+function calcMonthlyVolume(t) { return t.volume * (freqMult[t.frequency] || 1); }
+function utilClass(u) { return u < 70 ? 'utilization-good' : u < 90 ? 'utilization-warning' : 'utilization-critical'; }
+
+/* Adapted for testability — accepts tasks array as 2nd parameter */
+function memberAutoRate(mid, tasks) {
+  const mt = tasks.filter(function (t) { return t.memberId === mid; });
+  if (!mt.length) return 0;
+  const auto = mt.filter(function (t) { return t.automation === 'auto'; }).length;
+  return Math.round(auto / mt.length * 100);
+}
+function memberHumanHours(mid, tasks) {
+  return tasks.filter(function (t) { return t.memberId === mid && t.automation === 'human'; })
+              .reduce(function (s, t) { return s + calcHours(t); }, 0);
+}
+function memberAllHours(mid, tasks) {
+  return tasks.filter(function (t) { return t.memberId === mid; })
+              .reduce(function (s, t) { return s + calcHours(t); }, 0);
+}
+
+/* ── From Sightline_Final_Prototype.html ── */
+const titles = {
+  dashboard: 'Dashboard',
+  cash:      'Cash Position',
+  forecast:  '13-Week Forecast',
+  ar:        'Collections (AR)',
+  ap:        'Payables (AP)',
+  po:        'Purchase Orders',
+  approvals: 'Approvals',
+  exceptions:'Exceptions',
+  payments:  'Payment Runs',
+  jobs:      'Jobs & Tasks',
+  agents:    'Agents & Skills',
+  policies:  'Policies',
+  integrity: 'Integrity',
+  events:    'Event Log',
+  config:    'Configuration'
+};
+
+/* ── New business logic functions (specified in PRD & critical assessment) ── */
+
+/**
+ * Classify AP invoice variance against policy tolerance tiers.
+ * < 1%  → auto-approve
+ * 1–3%  → human-review
+ * > 3%  → reject
+ */
+function classifyVariance(pct) {
+  if (pct < 1)  return 'auto-approve';
+  if (pct <= 3) return 'human-review';
+  return 'reject';
+}
+
+/**
+ * Classify required approval authority by dollar amount.
+ * < $10k    → manager
+ * $10k–50k  → vp
+ * > $50k    → cfo-required
+ */
+function classifyAuthority(amount) {
+  if (amount < 10000)  return 'manager';
+  if (amount <= 50000) return 'vp';
+  return 'cfo-required';
+}
+
+/**
+ * Determine whether an early-payment discount is worth capturing
+ * by comparing effective APR against a 36% hurdle rate.
+ *
+ * APR = (discountPct / (100 - discountPct)) × (360 / daysEarly)
+ *
+ * Example: 2/10 net 30  → APR ≈ 73.5% → true  (capture it)
+ *          2/30 net 60  → APR ≈ 24.5% → false (don't bother)
+ */
+function discountWorthCapturing(discountPct, daysEarly /*, netDays */) {
+  var apr = (discountPct / (100 - discountPct)) * (360 / daysEarly);
+  return apr > 0.36;
+}
+
+/* ── Test fixtures ── */
+const FX = {
+  // Six tasks across four members — used by Suites E, F, G
+  tasks: [
+    { id: 't1', memberId: 'm1', volume: 10, time: 60, frequency: 'monthly', automation: 'human' },
+    { id: 't2', memberId: 'm1', volume:  5, time: 60, frequency: 'monthly', automation: 'auto'  },
+    { id: 't3', memberId: 'm2', volume:  8, time: 60, frequency: 'monthly', automation: 'human' },
+    { id: 't4', memberId: 'm3', volume: 20, time: 60, frequency: 'monthly', automation: 'auto'  },
+    { id: 't5', memberId: 'm4', volume:  3, time: 60, frequency: 'monthly', automation: 'human' },
+    { id: 't6', memberId: 'm4', volume:  3, time: 60, frequency: 'monthly', automation: 'auto'  },
+  ]
+};
+
+</script>
+
+<!-- ============================================================
+     ZONE C — TEST SUITES A–P
+     ============================================================ -->
+<script>
+
+// ── TIER 1: RUNNABLE TESTS (Suites A–L) ───────────────────────
+
+suite('A · calcHours — frequency multipliers & edge cases', function () {
+
+  test('daily: 1 task × 60 min → 22 h/month', function () {
+    expect(calcHours({volume:1, time:60, frequency:'daily'})).toBeCloseTo(22, 4);
+  });
+  test('monthly: 1 task × 60 min → 1 h/month', function () {
+    expect(calcHours({volume:1, time:60, frequency:'monthly'})).toBeCloseTo(1, 4);
+  });
+  test('weekly: 1 task × 60 min → 4.33 h/month', function () {
+    expect(calcHours({volume:1, time:60, frequency:'weekly'})).toBeCloseTo(4.33, 2);
+  });
+  test('quarterly: 1 task × 60 min → 0.33 h/month', function () {
+    expect(calcHours({volume:1, time:60, frequency:'quarterly'})).toBeCloseTo(0.33, 2);
+  });
+  test('unknown frequency falls back to multiplier = 1', function () {
+    expect(calcHours({volume:1, time:60, frequency:'biannual'})).toBeCloseTo(1, 4);
+  });
+  test('zero volume → 0', function () {
+    expect(calcHours({volume:0, time:60, frequency:'daily'})).toBe(0);
+  });
+  test('30-min daily task → 11 h/month', function () {
+    expect(calcHours({volume:1, time:30, frequency:'daily'})).toBeCloseTo(11, 4);
+  });
+  test('100 tasks × 60 min monthly → 100 h/month', function () {
+    expect(calcHours({volume:100, time:60, frequency:'monthly'})).toBeCloseTo(100, 4);
+  });
+  test('10 tasks × 60 min daily → 220 h/month', function () {
+    expect(calcHours({volume:10, time:60, frequency:'daily'})).toBeCloseTo(220, 4);
+  });
+
+});
+
+suite('B · calcGoalHours — goalTime override & falsy edge case', function () {
+
+  test('goalTime set: uses goalTime not time  (1×30min daily → 11 h)', function () {
+    expect(calcGoalHours({volume:1, time:60, goalTime:30, frequency:'daily'})).toBeCloseTo(11, 4);
+  });
+  test('goalTime equals time: same result as calcHours', function () {
+    expect(calcGoalHours({volume:1, time:60, goalTime:60, frequency:'daily'})).toBeCloseTo(22, 4);
+  });
+  test('goalTime undefined: falls back to time', function () {
+    expect(calcGoalHours({volume:1, time:60, frequency:'daily'})).toBeCloseTo(22, 4);
+  });
+  test('⚠ REGRESSION GUARD — goalTime:0 is falsy → falls back to t.time', function () {
+    // `t.goalTime || t.time` evaluates goalTime:0 as falsy.
+    // If a 0-minute goal is ever intentional, the expression must change to:
+    //   t.goalTime !== undefined ? t.goalTime : t.time
+    // This test documents current behaviour so any future change is caught.
+    expect(calcGoalHours({volume:1, time:60, goalTime:0, frequency:'daily'})).toBeCloseTo(22, 4);
+  });
+  test('monthly with goal reduction: 1×30min → 0.5 h', function () {
+    expect(calcGoalHours({volume:1, time:60, goalTime:30, frequency:'monthly'})).toBeCloseTo(0.5, 4);
+  });
+  test('weekly with goal reduction: (1×30/60)×4.33 ≈ 2.165 h', function () {
+    expect(calcGoalHours({volume:1, time:60, goalTime:30, frequency:'weekly'})).toBeCloseTo(2.165, 2);
+  });
+  test('zero volume → 0 regardless of goalTime', function () {
+    expect(calcGoalHours({volume:0, time:60, goalTime:30, frequency:'daily'})).toBe(0);
+  });
+  test('large volume with goal: 10×monthly, goalTime:30 → 5 h', function () {
+    expect(calcGoalHours({volume:10, time:60, goalTime:30, frequency:'monthly'})).toBeCloseTo(5, 4);
+  });
+
+});
+
+suite('C · calcMonthlyVolume — volume × frequency multiplier', function () {
+
+  test('daily: 100 × 22 = 2200', function () {
+    expect(calcMonthlyVolume({volume:100, frequency:'daily'})).toBeCloseTo(2200, 4);
+  });
+  test('weekly: 50 × 4.33 = 216.5', function () {
+    expect(calcMonthlyVolume({volume:50, frequency:'weekly'})).toBeCloseTo(216.5, 1);
+  });
+  test('monthly: 10 × 1 = 10', function () {
+    expect(calcMonthlyVolume({volume:10, frequency:'monthly'})).toBeCloseTo(10, 4);
+  });
+  test('quarterly: 5 × 0.33 = 1.65', function () {
+    expect(calcMonthlyVolume({volume:5, frequency:'quarterly'})).toBeCloseTo(1.65, 2);
+  });
+  test('unknown frequency falls back to ×1', function () {
+    expect(calcMonthlyVolume({volume:7, frequency:'biannual'})).toBeCloseTo(7, 4);
+  });
+  test('zero volume → 0', function () {
+    expect(calcMonthlyVolume({volume:0, frequency:'daily'})).toBe(0);
+  });
+
+});
+
+suite('D · utilClass — utilization thresholds (strict < boundaries)', function () {
+
+  test('0%  → utilization-good', function () {
+    expect(utilClass(0)).toBe('utilization-good');
+  });
+  test('69% → utilization-good (just under warning threshold)', function () {
+    expect(utilClass(69)).toBe('utilization-good');
+  });
+  test('70% → utilization-warning  (u<70 is good; 70 crosses into warning)', function () {
+    expect(utilClass(70)).toBe('utilization-warning');
+  });
+  test('89% → utilization-warning', function () {
+    expect(utilClass(89)).toBe('utilization-warning');
+  });
+  test('90% → utilization-critical (u<90 is warning; 90 crosses into critical)', function () {
+    expect(utilClass(90)).toBe('utilization-critical');
+  });
+  test('100% → utilization-critical', function () {
+    expect(utilClass(100)).toBe('utilization-critical');
+  });
+
+});
+
+suite('E · memberAutoRate — automation % of task count', function () {
+
+  var allHuman = [
+    {memberId:'mA', volume:1, time:60, frequency:'monthly', automation:'human'},
+    {memberId:'mA', volume:1, time:60, frequency:'monthly', automation:'human'},
+  ];
+  var allAuto = [
+    {memberId:'mB', volume:1, time:60, frequency:'monthly', automation:'auto'},
+    {memberId:'mB', volume:1, time:60, frequency:'monthly', automation:'auto'},
+  ];
+  var oneOfTwo = [
+    {memberId:'mC', volume:1, time:60, frequency:'monthly', automation:'human'},
+    {memberId:'mC', volume:1, time:60, frequency:'monthly', automation:'auto'},
+  ];
+  var oneOfThree = [
+    {memberId:'mD', volume:1, time:60, frequency:'monthly', automation:'human'},
+    {memberId:'mD', volume:1, time:60, frequency:'monthly', automation:'human'},
+    {memberId:'mD', volume:1, time:60, frequency:'monthly', automation:'auto'},
+  ];
+
+  test('all-human member → 0%', function () {
+    expect(memberAutoRate('mA', allHuman)).toBe(0);
+  });
+  test('all-auto member → 100%', function () {
+    expect(memberAutoRate('mB', allAuto)).toBe(100);
+  });
+  test('1 of 2 auto → 50%', function () {
+    expect(memberAutoRate('mC', oneOfTwo)).toBe(50);
+  });
+  test('1 of 3 auto → 33% (Math.round(33.33))', function () {
+    expect(memberAutoRate('mD', oneOfThree)).toBe(33);
+  });
+  test('no tasks for member → 0', function () {
+    expect(memberAutoRate('mZ', allHuman)).toBe(0);
+  });
+
+});
+
+suite('F · memberHumanHours — only human automation tasks counted', function () {
+
+  // FX.tasks:  m1: human(10h) + auto(5h)   m2: human(8h)
+  //            m3: auto(20h)                m4: human(3h) + auto(3h)
+
+  test('m1 has 1 human task (10 vol × 60 min monthly) → 10 h', function () {
+    expect(memberHumanHours('m1', FX.tasks)).toBeCloseTo(10, 4);
+  });
+  test('m3 has only auto tasks → 0 human hours', function () {
+    expect(memberHumanHours('m3', FX.tasks)).toBeCloseTo(0, 4);
+  });
+  test('m4 has 1 human + 1 auto: only human 3 h counted', function () {
+    expect(memberHumanHours('m4', FX.tasks)).toBeCloseTo(3, 4);
+  });
+  test('unknown member → 0', function () {
+    expect(memberHumanHours('mZ', FX.tasks)).toBe(0);
+  });
+
+});
+
+suite('G · memberAllHours — all tasks regardless of automation type', function () {
+
+  test('m1: human(10 h) + auto(5 h) → 15 h total', function () {
+    expect(memberAllHours('m1', FX.tasks)).toBeCloseTo(15, 4);
+  });
+  test('m2: only human task → 8 h', function () {
+    expect(memberAllHours('m2', FX.tasks)).toBeCloseTo(8, 4);
+  });
+  test('m4: human(3 h) + auto(3 h) → 6 h', function () {
+    expect(memberAllHours('m4', FX.tasks)).toBeCloseTo(6, 4);
+  });
+  test('unknown member → 0', function () {
+    expect(memberAllHours('mZ', FX.tasks)).toBe(0);
+  });
+
+});
+
+suite('H · freqMult — multiplier constant values', function () {
+
+  test('daily  = 22   (working days per month)', function () {
+    expect(freqMult.daily).toBe(22);
+  });
+  test('weekly = 4.33 (52 weeks ÷ 12 months)', function () {
+    expect(freqMult.weekly).toBe(4.33);
+  });
+  test('monthly = 1', function () {
+    expect(freqMult.monthly).toBe(1);
+  });
+  test('quarterly = 0.33 (4 quarters ÷ 12 months)', function () {
+    expect(freqMult.quarterly).toBe(0.33);
+  });
+
+});
+
+suite('I · classifyVariance — AP invoice tolerance tiers', function () {
+
+  test('0%    → auto-approve', function () {
+    expect(classifyVariance(0)).toBe('auto-approve');
+  });
+  test('0.99% → auto-approve (just under 1% threshold)', function () {
+    expect(classifyVariance(0.99)).toBe('auto-approve');
+  });
+  test('1.0%  → human-review (at lower threshold — pct < 1 is auto)', function () {
+    expect(classifyVariance(1.0)).toBe('human-review');
+  });
+  test('2.6%  → human-review  ← INV-4892 TechSupply demo case', function () {
+    expect(classifyVariance(2.6)).toBe('human-review');
+  });
+  test('3.0%  → human-review (at upper threshold — pct <= 3 is still review)', function () {
+    expect(classifyVariance(3.0)).toBe('human-review');
+  });
+  test('3.01% → reject (just over 3% threshold)', function () {
+    expect(classifyVariance(3.01)).toBe('reject');
+  });
+  test('10%   → reject', function () {
+    expect(classifyVariance(10)).toBe('reject');
+  });
+
+});
+
+suite('J · classifyAuthority — approval authority tiers by amount', function () {
+
+  test('$0       → manager', function () {
+    expect(classifyAuthority(0)).toBe('manager');
+  });
+  test('$9,999   → manager (just under $10k)', function () {
+    expect(classifyAuthority(9999)).toBe('manager');
+  });
+  test('$10,000  → vp (at threshold — amount < 10000 is manager)', function () {
+    expect(classifyAuthority(10000)).toBe('vp');
+  });
+  test('$50,000  → vp (at upper threshold — amount <= 50000 is vp)', function () {
+    expect(classifyAuthority(50000)).toBe('vp');
+  });
+  test('$50,001  → cfo-required (just over $50k)', function () {
+    expect(classifyAuthority(50001)).toBe('cfo-required');
+  });
+  test('$62,000  → cfo-required  ← PO-892 DataCenter Corp demo case', function () {
+    expect(classifyAuthority(62000)).toBe('cfo-required');
+  });
+
+});
+
+suite('K · discountWorthCapturing — early-payment APR analysis', function () {
+
+  // APR = (discountPct / (100 − discountPct)) × (360 / daysEarly)
+  // Threshold: APR > 36%  →  capture the discount
+
+  test('2/10 net 30 → true  (APR ≈ 73.5% — standard favourable terms)', function () {
+    expect(discountWorthCapturing(2, 10, 30)).toBe(true);
+  });
+  test('2/30 net 60 → false (APR ≈ 24.5% — too slow to benefit)', function () {
+    expect(discountWorthCapturing(2, 30, 60)).toBe(false);
+  });
+  test('1/20 net 30 → false (APR ≈ 18.2% — weak discount)', function () {
+    expect(discountWorthCapturing(1, 20, 30)).toBe(false);
+  });
+  test('3/10 net 30 → true  (APR ≈ 111% — strong discount)', function () {
+    expect(discountWorthCapturing(3, 10, 30)).toBe(true);
+  });
+  test('1/10 net 30 → true  (APR ≈ 36.4% — just above 36% hurdle rate)', function () {
+    // APR = (1/99) × 36 ≈ 0.3636 > 0.36
+    expect(discountWorthCapturing(1, 10, 30)).toBe(true);
+  });
+
+});
+
+suite('L · titles map — navigation page ID registry', function () {
+
+  var pageIds = [
+    'dashboard','cash','forecast','ar','ap','po',
+    'approvals','exceptions','payments','jobs',
+    'agents','policies','integrity','events','config'
+  ];
+
+  pageIds.forEach(function (id) {
+    test('titles["' + id + '"] is a non-empty string', function () {
+      expect(typeof titles[id]).toBe('string');
+      expect(titles[id].length).toBeGreaterThan(0);
+    });
+  });
+
+  test('"exceptions" maps to "Exceptions" (added in critical-assessment fix)', function () {
+    expect(titles['exceptions']).toBe('Exceptions');
+  });
+
+  test('all 15 page IDs resolve — no missing entries', function () {
+    var missing = pageIds.filter(function (id) { return !titles[id]; });
+    if (missing.length) throw new Error('Missing titles: ' + missing.join(', '));
+  });
+
+});
+
+
+// ── TIER 2: SPECIFICATION STUBS (Suites M–P) ──────────────────
+
+suite('M · Hash Chain Integrity [Tier 2]', function () {
+  spec('genesis event has previous_hash of 64-char zero string');
+  spec('event_hash = SHA-256(event_id + JSON.stringify(event_data) + previous_hash)');
+  spec('tampered event_data invalidates all subsequent hashes in chain');
+  spec('inserting an event mid-chain invalidates all subsequent hashes');
+  spec('deleting an event invalidates the chain from that point forward');
+  spec('replay of N events produces identical hash sequence');
+  spec('chain validation returns true for unmodified event sequence');
+  spec('chain validation returns false and reports first bad index for tampered chain');
+  spec('hash function uses SHA-256 (not MD5, SHA-1, or CRC32)');
+  spec('event_id is globally unique (UUID v4 format)');
+});
+
+suite('N · Policy Engine [Tier 2]', function () {
+  spec('exact-match policy takes precedence over wildcard for the same event_type');
+  spec('most-recent policy version used when multiple versions are active');
+  spec('expired policy (end_date < now) is not evaluated');
+  spec('no matching policy creates exception with type "no_matching_policy"');
+  spec('policy with numeric threshold correctly evaluates event_data field');
+  spec('policy conditions are evaluated with AND semantics — all must pass');
+  spec('policy can reference nested fields in event_data via dot notation');
+  spec('policy evaluation result stored in work_order.metadata.policy_id');
+  spec('policy evaluation is synchronous and deterministic (same input → same output)');
+  spec('policy evaluation result written to event log as POLICY_EVALUATED event');
+});
+
+suite('O · Work Order State Machine [Tier 2]', function () {
+  spec('valid state graph: draft → submitted → assigned → in_progress → completed');
+  spec('invalid state transition raises WorkOrderStateError');
+  spec('draft → submitted transition requires non-null work_order_id');
+  spec('submitted → assigned transition requires available agent with required_capability');
+  spec('completed work order is immutable — no field updates permitted');
+  spec('SLA breach transitions state to exception with type "sla_breach"');
+  spec('cancelled work order cannot be reassigned or reactivated');
+  spec('work_order.metadata includes policy_id that triggered creation');
+  spec('work order completion writes LEDGER event with corresponding amount');
+});
+
+suite('P · End-to-End CAST Pipeline [Tier 2]', function () {
+  spec('InvoiceReceived event triggers ThreeWayMatch policy evaluation');
+  spec('duplicate invoice (same vendor + amount + date) rejected before event log write');
+  spec('ThreeWayMatch pass (variance < 1%) → JournalAutoPost work order created');
+  spec('ThreeWayMatch fail (variance > 3%) → exception work order with no_matching_policy');
+  spec('PO amount > $50k creates authority_gap exception requiring cfo-required authority');
+  spec('approved exception closes with resolution metadata including approver_id + timestamp');
+  spec('policy learning loop suggests new policy from recurring exception pattern');
+  spec('AI skill output captured in event_data before policy evaluation (preserves replay integrity)');
+  spec('ledger entry hash matches event_hash of corresponding WORK_ORDER_COMPLETED event');
+});
+
+</script>
+
+<!-- ============================================================
+     ZONE D — AUTO-RUN ON LOAD
+     ============================================================ -->
+<script>
+window.addEventListener('load', function () {
+  _renderResults();
+});
+</script>
+
+</body>
+</html>

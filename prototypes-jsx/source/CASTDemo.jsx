@@ -1,0 +1,731 @@
+import { useState, useEffect, useRef } from "react";
+
+// ── Inline styles as CSS-in-JS to keep single-file ──────────────────────────
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0b0d;
+    --surface:   #111318;
+    --border:    #1e2128;
+    --border2:   #2a2f3a;
+    --amber:     #f0a500;
+    --amber-dim: #7a5400;
+    --green:     #00c896;
+    --green-dim: #005a43;
+    --red:       #ff4d4d;
+    --red-dim:   #5a1a1a;
+    --blue:      #4d9fff;
+    --text:      #e8eaf0;
+    --text-2:    #8892a4;
+    --text-3:    #4a5568;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Scanline texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes glow { 0%,100% { box-shadow: 0 0 8px rgba(0,200,150,0.3); } 50% { box-shadow: 0 0 20px rgba(0,200,150,0.6); } }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    color: var(--amber);
+    text-transform: uppercase;
+  }
+  .logo span { color: var(--text-3); }
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+    text-align: right;
+    line-height: 1.8;
+  }
+  .live-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .panel-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  /* Queue item */
+  .queue-item {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .queue-item:hover { background: rgba(255,255,255,0.02); }
+  .queue-item.active { background: rgba(240,165,0,0.04); border-left: 2px solid var(--amber); }
+  .queue-vendor {
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .queue-amount {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--amber);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .queue-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .queue-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+
+  /* Status badges */
+  .badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .badge-pending  { background: rgba(240,165,0,0.12); color: var(--amber); border: 1px solid var(--amber-dim); }
+  .badge-pass     { background: rgba(0,200,150,0.1);  color: var(--green); border: 1px solid var(--green-dim); }
+  .badge-fail     { background: rgba(255,77,77,0.1);  color: var(--red);   border: 1px solid var(--red-dim); }
+  .badge-blocked  { background: rgba(255,77,77,0.1);  color: var(--red);   border: 1px solid var(--red-dim); }
+  .badge-ready    { background: rgba(0,200,150,0.1);  color: var(--green); border: 1px solid var(--green-dim); animation: glow 2s infinite; }
+  .badge-neutral  { background: rgba(255,255,255,0.04); color: var(--text-2); border: 1px solid var(--border2); }
+
+  /* Proof bars */
+  .proof-bar {
+    display: flex;
+    gap: 3px;
+    margin-top: 8px;
+  }
+  .proof-pip {
+    height: 3px;
+    flex: 1;
+    border-radius: 1px;
+    transition: background 0.4s ease;
+  }
+  .proof-pip.satisfied { background: var(--green); }
+  .proof-pip.pending   { background: var(--border2); }
+  .proof-pip.failed    { background: var(--red); }
+
+  /* Right panel sections */
+  .detail-section {
+    padding: 16px 14px;
+    border-bottom: 1px solid var(--border);
+    animation: slideIn 0.25s ease;
+  }
+  .detail-section:last-child { border-bottom: none; }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Invoice card */
+  .invoice-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .inv-field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+    margin-bottom: 3px;
+    letter-spacing: 0.1em;
+  }
+  .inv-field value {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+  }
+  .inv-amount {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--amber);
+    letter-spacing: -0.03em;
+    margin: 4px 0 12px;
+  }
+
+  /* Policy checks */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s ease;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-icon { width: 16px; text-align: center; font-size: 11px; flex-shrink: 0; }
+  .check-name { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+  .check-result { font-family: var(--mono); font-size: 10px; }
+  .check-result.pass    { color: var(--green); }
+  .check-result.flag    { color: var(--amber); }
+  .check-result.pending { color: var(--text-3); animation: pulse 2s infinite; }
+
+  /* Proof requirements */
+  .proof-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    transition: all 0.35s ease;
+  }
+  .proof-row:last-child { border-bottom: none; }
+  .proof-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .proof-body { flex: 1; }
+  .proof-type { font-family: var(--mono); font-size: 11px; color: var(--text); margin-bottom: 2px; }
+  .proof-assignee { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+  .proof-status { font-family: var(--mono); font-size: 10px; flex-shrink: 0; margin-top: 2px; }
+  .proof-status.satisfied { color: var(--green); }
+  .proof-status.pending   { color: var(--amber); }
+  .proof-status.failed    { color: var(--red); }
+
+  /* Explanation timeline */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 6px; bottom: 6px;
+    width: 1px;
+    background: var(--border2);
+  }
+  .tl-entry {
+    position: relative;
+    padding: 0 0 14px 14px;
+    animation: slideIn 0.3s ease;
+  }
+  .tl-entry::before {
+    content: '';
+    position: absolute;
+    left: -15px; top: 5px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 1px solid var(--bg);
+  }
+  .tl-ts {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+    margin-bottom: 2px;
+  }
+  .tl-actor { font-family: var(--mono); font-size: 10px; color: var(--amber); margin-bottom: 1px; }
+  .tl-action { font-size: 11px; color: var(--text-2); margin-bottom: 1px; }
+  .tl-result { font-family: var(--mono); font-size: 10px; color: var(--green); }
+
+  /* Action buttons */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+  }
+  .action-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .action-btn:hover:not(:disabled) {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: rgba(240,165,0,0.04);
+  }
+  .action-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .action-btn.done {
+    border-color: var(--green-dim);
+    color: var(--green);
+    background: rgba(0,200,150,0.04);
+  }
+  .action-btn .btn-icon { font-size: 13px; }
+  .action-btn .btn-num {
+    font-size: 9px;
+    color: var(--text-3);
+    background: var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-left: auto;
+  }
+
+  .reset-btn {
+    margin: 0 14px 14px;
+    padding: 8px;
+    border: 1px dashed var(--border2);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    width: calc(100% - 28px);
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+  }
+  .reset-btn:hover { color: var(--red); border-color: var(--red-dim); }
+
+  /* Obligation + settlement */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+  }
+  .stat-box label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .stat-box value {
+    display: block;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .stat-box value.active { color: var(--amber); }
+  .stat-box value.settled { color: var(--green); }
+  .stat-box value.empty { color: var(--text-3); }
+
+  /* Empty state */
+  .empty { padding: 32px 14px; text-align: center; color: var(--text-3); font-family: var(--mono); font-size: 11px; }
+
+  /* Scrollable right panel */
+  .right-panel { max-height: calc(100vh - 100px); overflow-y: auto; }
+  .right-panel::-webkit-scrollbar { width: 3px; }
+  .right-panel::-webkit-scrollbar-track { background: transparent; }
+  .right-panel::-webkit-scrollbar-thumb { background: var(--border2); }
+`;
+
+// ── Initial demo state ───────────────────────────────────────────────────────
+const INITIAL_STATE = {
+  event: {
+    id: 'a1b2c3d4-0002',
+    type: 'proposed',
+    status: 'received',
+    amount: 275000,
+    currency: 'USD',
+    counterparty: 'Axiom Strategy Partners',
+    description: 'Strategic advisory services — Q1 2026 engagement',
+    invoice_number: 'AXM-2026-0041',
+    invoice_date: '2026-04-01',
+    due_date: '2026-05-01',
+    created_at: '2026-04-14 09:00:00',
+  },
+  policy: {
+    version: '2.1',
+    status: 'pending',
+    checks: [
+      { name: 'vendor_active',           result: 'pass',    detail: 'Axiom Strategy Partners is active' },
+      { name: 'no_counterparty_block',   result: 'pass',    detail: 'No sanctions or block flags' },
+      { name: 'large_invoice_threshold', result: 'flag',    detail: 'Amount $275,000 exceeds $50,000 threshold' },
+      { name: 'po_exists',               result: 'flag',    detail: 'No PO — alternate proof path required' },
+      { name: 'service_acceptance',      result: 'pending', detail: 'Internal owner must confirm delivery' },
+      { name: 'finance_approval',        result: 'pending', detail: 'Finance approver required above threshold' },
+    ],
+  },
+  proofs: [
+    { id: 'proof-svc',  type: 'service_acceptance',    status: 'pending', assigned_to: 'Jordan Mills — VP Engineering' },
+    { id: 'proof-auth', type: 'invoice_authenticity',  status: 'pending', assigned_to: 'Axiom Strategy Partners (vendor portal)' },
+    { id: 'proof-appr', type: 'approver_confirmation', status: 'pending', assigned_to: 'Sam Rivera — CFO' },
+  ],
+  work_order: { status: 'sent', assigned_to: 'Jordan Mills' },
+  obligation: null,
+  settlement: null,
+  explanation: [
+    { ts: '09:00:00', actor: 'system',        action: 'Invoice received',                result: 'ProposedEvent created' },
+    { ts: '09:00:02', actor: 'policy v2.1',   action: 'Policy evaluation run',           result: '3 proof requirements generated' },
+    { ts: '09:01:00', actor: 'system',        action: 'Work order sent to Jordan Mills', result: 'SLA clock started' },
+  ],
+  steps_done: [],
+};
+
+const STEPS = [
+  { id: 'vendor',   label: 'Vendor confirms invoice',         icon: '📨', actor: 'Axiom Strategy Partners' },
+  { id: 'service',  label: 'Jordan Mills confirms delivery',  icon: '✅', actor: 'Jordan Mills — VP Engineering' },
+  { id: 'cfo',      label: 'CFO approves',                    icon: '🔐', actor: 'Sam Rivera — CFO' },
+  { id: 'release',  label: 'Release payment',                 icon: '🚀', actor: 'system' },
+  { id: 'bank',     label: 'Bank confirms settlement',        icon: '🏦', actor: 'Chase Bank' },
+];
+
+function applyStep(state, stepId) {
+  const s = JSON.parse(JSON.stringify(state));
+  const now = new Date();
+  const ts = now.toTimeString().slice(0, 8);
+
+  if (stepId === 'vendor') {
+    s.proofs.find(p => p.id === 'proof-auth').status = 'satisfied';
+    s.explanation.push({ ts, actor: 'Axiom Strategy Partners', action: 'Invoice authenticity confirmed via vendor portal', result: 'invoice_authenticity → satisfied' });
+  }
+  if (stepId === 'service') {
+    s.proofs.find(p => p.id === 'proof-svc').status = 'satisfied';
+    s.work_order.status = 'completed';
+    s.explanation.push({ ts, actor: 'Jordan Mills — VP Engineering', action: 'Service delivery confirmed — Q1 engagement accepted', result: 'service_acceptance → satisfied. Work order closed.' });
+  }
+  if (stepId === 'cfo') {
+    s.proofs.find(p => p.id === 'proof-appr').status = 'satisfied';
+    s.policy.status = 'passed';
+    s.policy.checks = s.policy.checks.map(c => ({ ...c, result: 'pass', detail: c.detail.replace('pending', 'pass') }));
+    s.obligation = { amount: 275000, status: 'created' };
+    s.event.status = 'confirmed';
+    s.explanation.push({ ts, actor: 'Sam Rivera — CFO', action: 'Finance approval granted above threshold', result: 'Policy → passed. Obligation created: $275,000.' });
+  }
+  if (stepId === 'release') {
+    s.settlement = { status: 'pending', ref: 'TXN-DEMO-001' };
+    s.explanation.push({ ts, actor: 'system', action: 'Payment instruction released to bank rail', result: 'Settlement initiated. Ref: TXN-DEMO-001' });
+  }
+  if (stepId === 'bank') {
+    s.settlement.status = 'settled';
+    s.obligation.status = 'fully_satisfied';
+    s.explanation.push({ ts, actor: 'Chase Bank', action: 'Transfer TXN-DEMO-001 confirmed settled', result: 'Obligation fully satisfied. Event complete.' });
+  }
+  s.steps_done.push(stepId);
+  return s;
+}
+
+function queueStatus(state) {
+  const allSatisfied = state.proofs.every(p => p.status === 'satisfied');
+  if (state.settlement?.status === 'settled') return 'settled';
+  if (state.policy.status === 'passed' && allSatisfied) return 'ready_to_pay';
+  return 'awaiting_proof';
+}
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+const CHECK_ICONS = { pass: '◉', flag: '◈', pending: '◌' };
+const PROOF_ICONS = { satisfied: '◉', pending: '◌', failed: '✕' };
+
+// ── Component ────────────────────────────────────────────────────────────────
+export default function CASTDemo() {
+  const [state, setState] = useState(INITIAL_STATE);
+  const [selected, setSelected] = useState('a1b2c3d4-0002');
+  const styleRef = useRef(null);
+
+  useEffect(() => {
+    if (!styleRef.current) {
+      const el = document.createElement('style');
+      el.textContent = CSS;
+      document.head.appendChild(el);
+      styleRef.current = el;
+    }
+    return () => { if (styleRef.current) { styleRef.current.remove(); styleRef.current = null; } };
+  }, []);
+
+  const handleStep = (stepId) => {
+    setState(prev => applyStep(prev, stepId));
+  };
+
+  const handleReset = () => setState(INITIAL_STATE);
+
+  const qs = queueStatus(state);
+  const proofsSatisfied = state.proofs.filter(p => p.status === 'satisfied').length;
+
+  return (
+    <div className="app">
+      {/* Header */}
+      <div className="header">
+        <div>
+          <div className="logo">CAST <span>//</span> Control State</div>
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>
+            Financial obligation intelligence — demo environment
+          </div>
+        </div>
+        <div className="header-meta">
+          <div><span className="live-dot" />LIVE STATE</div>
+          <div>Policy v2.1 active</div>
+          <div>2026-04-14</div>
+        </div>
+      </div>
+
+      <div className="layout">
+        {/* Left: Queue + Actions */}
+        <div>
+          {/* Queue */}
+          <div className="panel" style={{ marginBottom: 12 }}>
+            <div className="panel-header">
+              <span className="panel-title">Obligation Queue</span>
+              <span className="panel-badge badge-neutral">1 item</span>
+            </div>
+
+            <div
+              className={`queue-item ${selected === 'a1b2c3d4-0002' ? 'active' : ''}`}
+              onClick={() => setSelected('a1b2c3d4-0002')}
+            >
+              <div className="queue-vendor">{state.event.counterparty}</div>
+              <div className="queue-amount">${state.event.amount.toLocaleString()}</div>
+              <div className="queue-meta">{state.event.invoice_number} · Due {state.event.due_date}</div>
+              <div className="queue-status-row">
+                <span className={`badge badge-${qs === 'settled' ? 'pass' : qs === 'ready_to_pay' ? 'ready' : qs === 'blocked' ? 'blocked' : 'pending'}`}>
+                  {qs === 'settled' ? 'SETTLED' : qs === 'ready_to_pay' ? 'READY TO PAY' : 'AWAITING PROOF'}
+                </span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-3)' }}>
+                  {proofsSatisfied}/3
+                </span>
+              </div>
+              <div className="proof-bar">
+                {state.proofs.map(p => (
+                  <div key={p.id} className={`proof-pip ${p.status}`} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Demo controls */}
+          <div className="panel">
+            <div className="panel-header">
+              <span className="panel-title">Demo Controls</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--text-3)' }}>
+                {state.steps_done.length}/5 steps
+              </span>
+            </div>
+            <div className="actions">
+              {STEPS.map((step, i) => {
+                const done = state.steps_done.includes(step.id);
+                const prevDone = i === 0 || state.steps_done.includes(STEPS[i-1].id);
+                const disabled = done || !prevDone;
+                return (
+                  <button
+                    key={step.id}
+                    className={`action-btn ${done ? 'done' : ''}`}
+                    disabled={disabled}
+                    onClick={() => handleStep(step.id)}
+                  >
+                    <span className="btn-icon">{done ? '◉' : step.icon}</span>
+                    <span>{step.label}</span>
+                    <span className="btn-num">{i + 1}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button className="reset-btn" onClick={handleReset}>⟳ RESET DEMO</button>
+          </div>
+        </div>
+
+        {/* Right: Detail */}
+        <div className="panel right-panel">
+          {/* Invoice */}
+          <div className="detail-section">
+            <div className="section-label">Proposed Event — Invoice</div>
+            <div className="inv-amount">${state.event.amount.toLocaleString()}<span style={{ fontSize: 14, color: 'var(--text-3)', fontWeight: 400 }}> USD</span></div>
+            <div className="invoice-card">
+              <div className="inv-field"><label>VENDOR</label><value>{state.event.counterparty}</value></div>
+              <div className="inv-field"><label>STATUS</label><value style={{ color: state.event.status === 'confirmed' ? 'var(--green)' : 'var(--amber)' }}>{state.event.status.toUpperCase()}</value></div>
+              <div className="inv-field"><label>INVOICE #</label><value>{state.event.invoice_number}</value></div>
+              <div className="inv-field"><label>POLICY VER</label><value>{state.policy.version}</value></div>
+              <div className="inv-field"><label>INVOICE DATE</label><value>{state.event.invoice_date}</value></div>
+              <div className="inv-field"><label>DUE DATE</label><value>{state.event.due_date}</value></div>
+            </div>
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>
+              {state.event.description}
+            </div>
+          </div>
+
+          {/* Policy */}
+          <div className="detail-section">
+            <div className="section-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>Policy Evaluation v{state.policy.version}</span>
+              <span className={`badge badge-${state.policy.status === 'passed' ? 'pass' : 'pending'}`}>
+                {state.policy.status.toUpperCase()}
+              </span>
+            </div>
+            {state.policy.checks.map((c, i) => (
+              <div className="check-row" key={i}>
+                <span className="check-icon" style={{ color: c.result === 'pass' ? 'var(--green)' : c.result === 'flag' ? 'var(--amber)' : 'var(--text-3)' }}>
+                  {CHECK_ICONS[c.result] || '◌'}
+                </span>
+                <span className="check-name">{c.name.replace(/_/g, ' ')}</span>
+                <span className={`check-result ${c.result}`}>{c.result}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Proofs */}
+          <div className="detail-section">
+            <div className="section-label">Proof Requirements</div>
+            {state.proofs.map(p => (
+              <div className="proof-row" key={p.id}>
+                <span className="proof-icon" style={{ color: p.status === 'satisfied' ? 'var(--green)' : 'var(--amber)' }}>
+                  {PROOF_ICONS[p.status]}
+                </span>
+                <div className="proof-body">
+                  <div className="proof-type">{p.type.replace(/_/g, ' ')}</div>
+                  <div className="proof-assignee">{p.assigned_to}</div>
+                </div>
+                <span className={`proof-status ${p.status}`}>{p.status}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Obligation + Settlement */}
+          <div className="detail-section">
+            <div className="section-label">Obligation & Settlement</div>
+            <div className="stat-grid">
+              <div className="stat-box">
+                <label>OBLIGATION</label>
+                {state.obligation
+                  ? <value className={state.obligation.status === 'fully_satisfied' ? 'settled' : 'active'}>${state.obligation.amount.toLocaleString()}</value>
+                  : <value className="empty">—</value>}
+              </div>
+              <div className="stat-box">
+                <label>OBL STATUS</label>
+                <value className={state.obligation?.status === 'fully_satisfied' ? 'settled' : 'active'}>
+                  {state.obligation?.status?.replace(/_/g, ' ').toUpperCase() || '—'}
+                </value>
+              </div>
+              <div className="stat-box">
+                <label>SETTLEMENT</label>
+                <value className={state.settlement?.status === 'settled' ? 'settled' : 'active'}>
+                  {state.settlement?.ref || '—'}
+                </value>
+              </div>
+              <div className="stat-box">
+                <label>RAIL STATUS</label>
+                <value className={state.settlement?.status === 'settled' ? 'settled' : 'active'}>
+                  {state.settlement?.status?.toUpperCase() || '—'}
+                </value>
+              </div>
+            </div>
+          </div>
+
+          {/* Explanation */}
+          <div className="detail-section">
+            <div className="section-label">Explanation Record — Causal Chain</div>
+            <div className="timeline">
+              {state.explanation.map((e, i) => (
+                <div className="tl-entry" key={i}>
+                  <div className="tl-ts">{e.ts}</div>
+                  <div className="tl-actor">{e.actor}</div>
+                  <div className="tl-action">{e.action}</div>
+                  <div className="tl-result">{e.result}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
