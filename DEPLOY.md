@@ -1,7 +1,7 @@
 # Deploy Guide — sightline-demos
 
 **Repo name:** `sightline-demos`
-**Final URL:** `https://YOUR-USERNAME.github.io/sightline-demos/`
+**Final URL:** `https://peterob.github.io/sightline-demos/`
 
 ## What you're about to publish
 
@@ -41,11 +41,11 @@ git init
 git add .
 git commit -m "Initial prototype gallery — 137 prototypes, Dec 2025 to Jun 2026"
 git branch -M main
-git remote add origin https://github.com/YOUR-USERNAME/sightline-demos.git
+git remote add origin https://github.com/peterob/sightline-demos.git
 git push -u origin main
 ```
 
-Replace `YOUR-USERNAME` with your actual GitHub username. If you tell me your username I can give you the exact line.
+Replace `peterob` with your actual GitHub username. If you tell me your username I can give you the exact line.
 
 You'll be prompted to authenticate — if you haven't used `git push` with GitHub before, the easiest path is to install the GitHub CLI (`brew install gh && gh auth login`) and re-run the push.
 
@@ -58,7 +58,7 @@ You'll be prompted to authenticate — if you haven't used `git push` with GitHu
    - **Branch:** `main` · **Folder:** `/ (root)`
 4. Click **Save**
 
-The page will refresh and show a banner: *"Your site is live at https://YOUR-USERNAME.github.io/sightline-demos/"* — usually within 1–2 minutes. First load can take longer; subsequent pushes deploy in ~30 seconds.
+The page will refresh and show a banner: *"Your site is live at https://peterob.github.io/sightline-demos/"* — usually within 1–2 minutes. First load can take longer; subsequent pushes deploy in ~30 seconds.
 
 ## Step 4: Verify
 
@@ -91,7 +91,7 @@ If you ever need real privacy (password gate or SSO), the upgrade path is **Clou
 If you'd rather use `demos.digitalfinancehq.com`:
 
 1. In repo **Settings → Pages → Custom domain**, enter the domain
-2. In your DNS provider, add a CNAME: `demos → YOUR-USERNAME.github.io`
+2. In your DNS provider, add a CNAME: `demos → peterob.github.io`
 3. Wait for DNS propagation (5 min – 24 hours)
 4. GitHub provisions SSL automatically
 
