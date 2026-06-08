@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST | Financial Coordination Infrastructure</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #111318;
+            --bg-tertiary: #181b22;
+            --bg-card: #13151a;
+            --border-subtle: #1e2128;
+            --border-active: #2a2f3a;
+            --text-primary: #f0f2f5;
+            --text-secondary: #8b919e;
+            --text-muted: #5a5f6b;
+            --accent-blue: #3b82f6;
+            --accent-blue-dim: rgba(59, 130, 246, 0.15);
+            --accent-green: #10b981;
+            --accent-green-dim: rgba(16, 185, 129, 0.15);
+            --accent-amber: #f59e0b;
+            --accent-amber-dim: rgba(245, 158, 11, 0.15);
+            --accent-purple: #8b5cf6;
+            --accent-purple-dim: rgba(139, 92, 246, 0.15);
+            --accent-rose: #f43f5e;
+            --accent-rose-dim: rgba(244, 63, 94, 0.15);
+            --accent-cyan: #06b6d4;
+            --accent-cyan-dim: rgba(6, 182, 212, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0 32px;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-mark {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-left: 8px;
+            font-size: 13px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--accent-green-dim);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-green);
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Pipeline Flow */
+        .pipeline-section {
+            margin-bottom: 40px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .pipeline {
+            display: flex;
+            align-items: stretch;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 6px;
+            overflow-x: auto;
+        }
+
+        .pipeline-stage {
+            flex: 1;
+            min-width: 140px;
+            padding: 20px 16px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .pipeline-stage:hover {
+            border-color: var(--border-active);
+            transform: translateY(-2px);
+        }
+
+        .pipeline-stage.active {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 20px var(--accent-blue-dim);
+        }
+
+        .stage-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .stage-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .stage-event .stage-icon { background: var(--accent-blue-dim); color: var(--accent-blue); }
+        .stage-policy .stage-icon { background: var(--accent-purple-dim); color: var(--accent-purple); }
+        .stage-workorder .stage-icon { background: var(--accent-amber-dim); color: var(--accent-amber); }
+        .stage-capacity .stage-icon { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
+        .stage-ledger .stage-icon { background: var(--accent-green-dim); color: var(--accent-green); }
+        .stage-lineage .stage-icon { background: var(--accent-rose-dim); color: var(--accent-rose); }
+
+        .stage-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .stage-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .stage-role {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stage-arrow {
+            position: absolute;
+            right: -14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 16px;
+            z-index: 2;
+        }
+
+        .pipeline-stage:last-child .stage-arrow {
+            display: none;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .card-body {
+            padding: 20px 24px;
+        }
+
+        /* Work Orders Table */
+        .work-orders-card {
+            margin-bottom: 24px;
+        }
+
+        .work-order-table {
+            width: 100%;
+        }
+
+        .wo-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 120px 100px 100px 80px;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            align-items: center;
+            font-size: 13px;
+            transition: background 0.15s ease;
+        }
+
+        .wo-row:hover {
+            background: var(--bg-tertiary);
+            margin: 0 -24px;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        .wo-row:last-child {
+            border-bottom: none;
+        }
+
+        .wo-header {
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .wo-header:hover {
+            background: transparent;
+        }
+
+        .wo-id {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-blue);
+            font-size: 12px;
+        }
+
+        .wo-policy {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .wo-policy-tag {
+            padding: 4px 8px;
+            background: var(--accent-purple-dim);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--accent-purple);
+            font-weight: 500;
+        }
+
+        .wo-capability {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .wo-slot {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .slot-type-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .slot-human { background: var(--accent-blue-dim); color: var(--accent-blue); }
+        .slot-ai { background: var(--accent-purple-dim); color: var(--accent-purple); }
+        .slot-api { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
+        .slot-rpa { background: var(--accent-amber-dim); color: var(--accent-amber); }
+
+        .wo-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-pending { background: var(--accent-amber-dim); color: var(--accent-amber); }
+        .status-in-progress { background: var(--accent-blue-dim); color: var(--accent-blue); }
+        .status-completed { background: var(--accent-green-dim); color: var(--accent-green); }
+        .status-exception { background: var(--accent-rose-dim); color: var(--accent-rose); }
+
+        .wo-sla {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .sla-ok { color: var(--accent-green); }
+        .sla-warning { color: var(--accent-amber); }
+        .sla-breach { color: var(--accent-rose); }
+
+        /* Execution Slots */
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .slot-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .slot-card:hover {
+            border-color: var(--border-active);
+        }
+
+        .slot-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .slot-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slot-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .slot-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .slot-type {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .slot-status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .slot-available { background: var(--accent-green); }
+        .slot-busy { background: var(--accent-amber); }
+        .slot-offline { background: var(--text-muted); }
+
+        .slot-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .slot-metric {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+        .slot-metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slot-metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Lineage Panel */
+        .lineage-card {
+            height: fit-content;
+        }
+
+        .lineage-entry {
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .lineage-entry:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .lineage-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .lineage-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .lineage-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .lineage-account {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .lineage-chain {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chain-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .chain-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .chain-event { background: var(--accent-blue-dim); color: var(--accent-blue); }
+        .chain-policy { background: var(--accent-purple-dim); color: var(--accent-purple); }
+        .chain-slot { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
+
+        .chain-label {
+            color: var(--text-muted);
+            width: 50px;
+            flex-shrink: 0;
+        }
+
+        .chain-value {
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lineage-hash {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive { color: var(--accent-green); }
+        .stat-change.negative { color: var(--accent-rose); }
+
+        /* Determinism Badge */
+        .determinism-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, var(--accent-blue-dim) 0%, var(--accent-purple-dim) 100%);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            margin-top: 16px;
+        }
+
+        .determinism-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .determinism-content {
+            flex: 1;
+        }
+
+        .determinism-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .determinism-subtitle {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .determinism-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Right Panel */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Exceptions Alert */
+        .exceptions-alert {
+            background: var(--accent-rose-dim);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        .exception-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .exception-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--accent-rose);
+        }
+
+        .exception-count {
+            background: var(--accent-rose);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .exception-item {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .exception-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .exception-type {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-amber);
+            margin-bottom: 4px;
+        }
+
+        .exception-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .exception-action {
+            font-size: 11px;
+            color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .exception-action:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .wo-row {
+                grid-template-columns: 120px 1fr 100px 80px;
+            }
+            
+            .wo-row > *:nth-child(3),
+            .wo-row > *:nth-child(5) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pipeline {
+                flex-direction: column;
+            }
+            
+            .stage-arrow {
+                display: none;
+            }
+            
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .slots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-mark">C</div>
+                <div class="logo-text">CAST <span>Financial Coordination Infrastructure</span></div>
+            </div>
+            <div class="header-right">
+                <div class="status-badge">System Operational</div>
+                <div class="header-time" id="current-time">2026-01-06 14:32:18 UTC</div>
+            </div>
+        </header>
+
+        <!-- Pipeline Flow -->
+        <section class="pipeline-section">
+            <div class="section-label">Processing Pipeline</div>
+            <div class="pipeline">
+                <div class="pipeline-stage stage-event">
+                    <div class="stage-header">
+                        <div class="stage-icon">⚡</div>
+                        <div class="stage-count">2,847</div>
+                    </div>
+                    <div class="stage-name">Event</div>
+                    <div class="stage-role">Trigger</div>
+                    <div class="stage-arrow">→</div>
+                </div>
+                <div class="pipeline-stage stage-policy">
+                    <div class="stage-header">
+                        <div class="stage-icon">§</div>
+                        <div class="stage-count">156</div>
+                    </div>
+                    <div class="stage-name">Policy</div>
+                    <div class="stage-role">Logic</div>
+                    <div class="stage-arrow">→</div>
+                </div>
+                <div class="pipeline-stage stage-workorder active">
+                    <div class="stage-header">
+                        <div class="stage-icon">📋</div>
+                        <div class="stage-count">342</div>
+                    </div>
+                    <div class="stage-name">Work Order</div>
+                    <div class="stage-role">Contract</div>
+                    <div class="stage-arrow">→</div>
+                </div>
+                <div class="pipeline-stage stage-capacity">
+                    <div class="stage-header">
+                        <div class="stage-icon">⚙</div>
+                        <div class="stage-count">24</div>
+                    </div>
+                    <div class="stage-name">Capacity</div>
+                    <div class="stage-role">Constraint</div>
+                    <div class="stage-arrow">→</div>
+                </div>
+                <div class="pipeline-stage stage-ledger">
+                    <div class="stage-header">
+                        <div class="stage-icon">📒</div>
+                        <div class="stage-count">18.4K</div>
+                    </div>
+                    <div class="stage-name">Ledger</div>
+                    <div class="stage-role">Output</div>
+                    <div class="stage-arrow">→</div>
+                </div>
+                <div class="pipeline-stage stage-lineage">
+                    <div class="stage-header">
+                        <div class="stage-icon">🔗</div>
+                        <div class="stage-count">100%</div>
+                    </div>
+                    <div class="stage-name">Lineage</div>
+                    <div class="stage-role">Proof</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Events Today</div>
+                <div class="stat-value">2,847</div>
+                <div class="stat-change positive">↑ 12.3% vs yesterday</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Work Orders Active</div>
+                <div class="stat-value">342</div>
+                <div class="stat-change negative">↑ 8 pending capacity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Throughput/Hour</div>
+                <div class="stat-value">847</div>
+                <div class="stat-change positive">↑ 94% SLA compliance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Ledger Entries</div>
+                <div class="stat-value">$4.2M</div>
+                <div class="stat-change positive">↑ All with lineage</div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <div class="left-panel">
+                <!-- Work Orders -->
+                <div class="card work-orders-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon" style="background: var(--accent-amber-dim); color: var(--accent-amber);">📋</div>
+                            Active Work Orders
+                        </div>
+                        <div class="stage-count">342 total</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="work-order-table">
+                            <div class="wo-row wo-header">
+                                <div>Order ID</div>
+                                <div>Policy</div>
+                                <div>Capability</div>
+                                <div>Slot</div>
+                                <div>Status</div>
+                                <div>SLA</div>
+                            </div>
+                            <div class="wo-row">
+                                <div class="wo-id">WO-2024-8847</div>
+                                <div class="wo-policy">
+                                    <span class="wo-policy-tag">WATERFALL-001</span>
+                                    GPU Revenue Split
+                                </div>
+                                <div class="wo-capability">TREASURY_L2</div>
+                                <div class="wo-slot">
+                                    <span class="slot-type-badge slot-ai">AI</span>
+                                    Treasury Bot
+                                </div>
+                                <div><span class="wo-status status-in-progress">● In Progress</span></div>
+                                <div class="wo-sla sla-ok">4m 32s</div>
+                            </div>
+                            <div class="wo-row">
+                                <div class="wo-id">WO-2024-8846</div>
+                                <div class="wo-policy">
+                                    <span class="wo-policy-tag">AP-INV-10K</span>
+                                    Invoice Approval
+                                </div>
+                                <div class="wo-capability">APPROVER_L4</div>
+                                <div class="wo-slot">
+                                    <span class="slot-type-badge slot-human">👤</span>
+                                    CFO Review
+                                </div>
+                                <div><span class="wo-status status-pending">○ Pending</span></div>
+                                <div class="wo-sla sla-warning">12m 08s</div>
+                            </div>
+                            <div class="wo-row">
+                                <div class="wo-id">WO-2024-8845</div>
+                                <div class="wo-policy">
+                                    <span class="wo-policy-tag">RECONCILE-001</span>
+                                    Bank Reconciliation
+                                </div>
+                                <div class="wo-capability">RECON_STD</div>
+                                <div class="wo-slot">
+                                    <span class="slot-type-badge slot-rpa">⚙</span>
+                                    Recon Bot
+                                </div>
+                                <div><span class="wo-status status-completed">✓ Completed</span></div>
+                                <div class="wo-sla sla-ok">—</div>
+                            </div>
+                            <div class="wo-row">
+                                <div class="wo-id">WO-2024-8844</div>
+                                <div class="wo-policy">
+                                    <span class="wo-policy-tag">MEZZ-ALLOC</span>
+                                    Mezzanine Allocation
+                                </div>
+                                <div class="wo-capability">TREASURY_L3</div>
+                                <div class="wo-slot">
+                                    <span class="slot-type-badge slot-api">⚡</span>
+                                    Fund API
+                                </div>
+                                <div><span class="wo-status status-in-progress">● In Progress</span></div>
+                                <div class="wo-sla sla-ok">2m 15s</div>
+                            </div>
+                            <div class="wo-row">
+                                <div class="wo-id">WO-2024-8843</div>
+                                <div class="wo-policy">
+                                    <span class="wo-policy-tag">AUTH-GAP</span>
+                                    Authority Override
+                                </div>
+                                <div class="wo-capability">ADMIN_L5</div>
+                                <div class="wo-slot">
+                                    <span class="slot-type-badge slot-human">👤</span>
+                                    Unassigned
+                                </div>
+                                <div><span class="wo-status status-exception">⚠ Exception</span></div>
+                                <div class="wo-sla sla-breach">BREACH</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Execution Slots -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon" style="background: var(--accent-cyan-dim); color: var(--accent-cyan);">⚙</div>
+                            Execution Slots
+                        </div>
+                        <div class="stage-count">24 slots</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="slots-grid">
+                            <div class="slot-card">
+                                <div class="slot-header">
+                                    <div class="slot-info">
+                                        <div class="slot-avatar" style="background: var(--accent-purple-dim); color: var(--accent-purple);">🤖</div>
+                                        <div>
+                                            <div class="slot-name">Treasury AI Agent</div>
+                                            <div class="slot-type">ai_agent • TREASURY_L2</div>
+                                        </div>
+                                    </div>
+                                    <div class="slot-status-indicator slot-available"></div>
+                                </div>
+                                <div class="slot-metrics">
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Queue</div>
+                                        <div class="slot-metric-value">3</div>
+                                    </div>
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Rate/hr</div>
+                                        <div class="slot-metric-value">240</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slot-card">
+                                <div class="slot-header">
+                                    <div class="slot-info">
+                                        <div class="slot-avatar" style="background: var(--accent-blue-dim); color: var(--accent-blue);">👤</div>
+                                        <div>
+                                            <div class="slot-name">Sarah Chen (CFO)</div>
+                                            <div class="slot-type">human • APPROVER_L5</div>
+                                        </div>
+                                    </div>
+                                    <div class="slot-status-indicator slot-busy"></div>
+                                </div>
+                                <div class="slot-metrics">
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Queue</div>
+                                        <div class="slot-metric-value">7</div>
+                                    </div>
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Rate/hr</div>
+                                        <div class="slot-metric-value">12</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slot-card">
+                                <div class="slot-header">
+                                    <div class="slot-info">
+                                        <div class="slot-avatar" style="background: var(--accent-amber-dim); color: var(--accent-amber);">⚙</div>
+                                        <div>
+                                            <div class="slot-name">Recon Bot</div>
+                                            <div class="slot-type">rpa • RECON_STD</div>
+                                        </div>
+                                    </div>
+                                    <div class="slot-status-indicator slot-available"></div>
+                                </div>
+                                <div class="slot-metrics">
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Queue</div>
+                                        <div class="slot-metric-value">0</div>
+                                    </div>
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Rate/hr</div>
+                                        <div class="slot-metric-value">480</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slot-card">
+                                <div class="slot-header">
+                                    <div class="slot-info">
+                                        <div class="slot-avatar" style="background: var(--accent-cyan-dim); color: var(--accent-cyan);">⚡</div>
+                                        <div>
+                                            <div class="slot-name">Fund Admin API</div>
+                                            <div class="slot-type">api • TREASURY_L3</div>
+                                        </div>
+                                    </div>
+                                    <div class="slot-status-indicator slot-available"></div>
+                                </div>
+                                <div class="slot-metrics">
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Queue</div>
+                                        <div class="slot-metric-value">12</div>
+                                    </div>
+                                    <div class="slot-metric">
+                                        <div class="slot-metric-label">Rate/hr</div>
+                                        <div class="slot-metric-value">1.2K</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="determinism-badge">
+                            <div class="determinism-icon">🔒</div>
+                            <div class="determinism-content">
+                                <div class="determinism-title">Determinism Guarantee Active</div>
+                                <div class="determinism-subtitle">Slot type does not affect ledger outcomes</div>
+                            </div>
+                            <div class="determinism-status">VERIFIED</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <!-- Exceptions Alert -->
+                <div class="exceptions-alert">
+                    <div class="exception-header">
+                        <div class="exception-title">
+                            ⚠ Active Exceptions
+                        </div>
+                        <div class="exception-count">3</div>
+                    </div>
+                    <div class="exception-item">
+                        <div class="exception-type">NO_AVAILABLE_SLOT</div>
+                        <div class="exception-desc">WO-8843 requires ADMIN_L5 authority. No slots available.</div>
+                        <div class="exception-action">→ Grant one-time authority</div>
+                    </div>
+                    <div class="exception-item">
+                        <div class="exception-type">NO_MATCHING_POLICY</div>
+                        <div class="exception-desc">Event E-29847: Unrecognized revenue type "compute_burst_premium"</div>
+                        <div class="exception-action">→ Create policy from exception</div>
+                    </div>
+                    <div class="exception-item">
+                        <div class="exception-type">SLA_BREACH</div>
+                        <div class="exception-desc">WO-8821 exceeded 30m SLA. Treasury review backlog.</div>
+                        <div class="exception-action">→ Escalate to backup slot</div>
+                    </div>
+                </div>
+
+                <!-- Lineage Card -->
+                <div class="card lineage-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-title-icon" style="background: var(--accent-rose-dim); color: var(--accent-rose);">🔗</div>
+                            Recent Lineage
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="lineage-entry">
+                            <div class="lineage-header">
+                                <div class="lineage-amount">$47,231.89</div>
+                                <div class="lineage-account">4100-SENIOR-REV</div>
+                            </div>
+                            <div class="lineage-chain">
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-event">⚡</div>
+                                    <div class="chain-label">Event</div>
+                                    <div class="chain-value">GPU_USAGE_BILLED • Cust-4472</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-policy">§</div>
+                                    <div class="chain-label">Policy</div>
+                                    <div class="chain-value">WATERFALL-001 • Senior First</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-slot">⚙</div>
+                                    <div class="chain-label">Slot</div>
+                                    <div class="chain-value">Treasury AI Agent • ai_agent</div>
+                                </div>
+                            </div>
+                            <div class="lineage-hash">
+                                hash: 8f4a2b...c91e • prev: 7d3f1a...b82d
+                            </div>
+                        </div>
+
+                        <div class="lineage-entry">
+                            <div class="lineage-header">
+                                <div class="lineage-amount">$12,847.00</div>
+                                <div class="lineage-account">4200-MEZZ-ALLOC</div>
+                            </div>
+                            <div class="lineage-chain">
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-event">⚡</div>
+                                    <div class="chain-label">Event</div>
+                                    <div class="chain-value">PAYMENT_RECEIVED • Cust-4472</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-policy">§</div>
+                                    <div class="chain-label">Policy</div>
+                                    <div class="chain-value">MEZZ-ALLOC • 18% after senior</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-slot">⚙</div>
+                                    <div class="chain-label">Slot</div>
+                                    <div class="chain-value">Fund Admin API • api</div>
+                                </div>
+                            </div>
+                            <div class="lineage-hash">
+                                hash: 2c8e4f...a73b • prev: 8f4a2b...c91e
+                            </div>
+                        </div>
+
+                        <div class="lineage-entry">
+                            <div class="lineage-header">
+                                <div class="lineage-amount">$8,500.00</div>
+                                <div class="lineage-account">5100-MAINT-RESERVE</div>
+                            </div>
+                            <div class="lineage-chain">
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-event">⚡</div>
+                                    <div class="chain-label">Event</div>
+                                    <div class="chain-value">PAYMENT_RECEIVED • Cust-4472</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-policy">§</div>
+                                    <div class="chain-label">Policy</div>
+                                    <div class="chain-value">RESERVE-HOLD • 5% holdback</div>
+                                </div>
+                                <div class="chain-item">
+                                    <div class="chain-icon chain-slot">⚙</div>
+                                    <div class="chain-label">Slot</div>
+                                    <div class="chain-value">Treasury AI Agent • ai_agent</div>
+                                </div>
+                            </div>
+                            <div class="lineage-hash">
+                                hash: 5a1d9c...e42f • prev: 2c8e4f...a73b
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            const formatted = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            document.getElementById('current-time').textContent = formatted;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Pipeline stage click handling
+        document.querySelectorAll('.pipeline-stage').forEach(stage => {
+            stage.addEventListener('click', function() {
+                document.querySelectorAll('.pipeline-stage').forEach(s => s.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Simulate real-time updates
+        function simulateActivity() {
+            const eventCount = document.querySelector('.stage-event .stage-count');
+            const current = parseInt(eventCount.textContent.replace(',', ''));
+            eventCount.textContent = (current + Math.floor(Math.random() * 3)).toLocaleString();
+        }
+        setInterval(simulateActivity, 3000);
+    </script>
+</body>
+</html>

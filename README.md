@@ -4,8 +4,8 @@ Private prototype gallery for customer demos, sales conversations, and CFO advis
 
 ## What's Inside
 
-- **245 prototypes** — 22 curated + 125 HTML + 91 JSX (React wrapped) + 7 foundational Claude chat saves — spanning **Mar 2025 → Jun 2026** (the full ZTA → HOA → Sightline → CAST arc)
-- **63 entries flagged "ORIGINS"** (gold left border) trace the pre-Sightline ZTA/HOA period
+- **324 prototypes** — 22 curated + 204 HTML + 91 JSX (React wrapped) + 7 foundational Claude chat saves — spanning **Mar 2025 → Jun 2026** (the full ZTA → HOA → Sightline → CAST arc)
+- **140+ entries flagged "ORIGINS"** (gold left border) trace the pre-Sightline ZTA/HOA/Bridge period (Mar 2025 – Feb 2026)
 - **Master lead-sheet** as the new homepage (`index.html`) — dense vertical list, sorted newest first, search/filter by category, status, and type
 - **Curated gallery view** preserved at `gallery.html` (the original card-style grid)
 - **6 strategy documents** in `docs/` (catalog, feature matrix, demo paths, design insights, settlement architecture, proof-based settlement)

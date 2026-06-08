@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | DSO Dental Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1115; --bg-card: #1a1d24; --bg-elevated: #22262f;
+            --border: #2d323c; --border-light: #3d4450;
+            --text: #f0f2f5; --text-secondary: #9ca3af; --text-muted: #6b7280;
+            --blue: #3b82f6; --green: #10b981; --amber: #f59e0b; --red: #ef4444; --purple: #8b5cf6; --cyan: #00d4ff;
+            --font-mono: 'JetBrains Mono', monospace; --font-sans: 'Inter', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+        
+        /* Layout */
+        .app { display: flex; min-height: 100vh; }
+        .sidebar { width: 220px; background: var(--bg-card); border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; }
+        .main { flex: 1; padding: 24px 32px; overflow-y: auto; }
+        
+        /* Logo */
+        .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 28px; }
+        .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--blue), var(--purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; }
+        .logo-text { font-family: var(--font-mono); font-weight: 700; font-size: 16px; }
+        
+        /* Nav */
+        .nav-section { margin-bottom: 20px; }
+        .nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 12px; margin-bottom: 6px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; font-weight: 500; transition: all 0.15s; }
+        .nav-item:hover { background: var(--bg-elevated); color: var(--text); }
+        .nav-item.active { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+        .nav-item svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+        .header-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .header-subtitle { color: var(--text-secondary); font-size: 13px; }
+        .header-actions { display: flex; gap: 10px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--blue); color: white; }
+        .btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
+        .btn svg { width: 14px; height: 14px; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 2px; background: var(--bg-card); padding: 3px; border-radius: 8px; margin-bottom: 20px; width: fit-content; }
+        .tab { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; border: none; background: transparent; transition: all 0.15s; }
+        .tab:hover { color: var(--text); }
+        .tab.active { background: var(--blue); color: white; }
+        
+        /* Views */
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Cards */
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+        .card-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-body { padding: 18px; }
+        
+        /* KPI Grid */
+        .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 20px; }
+        .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+        .kpi-label { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+        .kpi-value { font-family: var(--font-mono); font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .kpi-change { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; padding: 2px 6px; border-radius: 4px; }
+        .kpi-change.up { color: var(--green); background: rgba(16, 185, 129, 0.12); }
+        .kpi-change.down { color: var(--red); background: rgba(239, 68, 68, 0.12); }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; padding: 10px 14px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .mono { font-family: var(--font-mono); font-size: 11px; }
+        
+        /* Variance */
+        .var-pos { color: var(--green); }
+        .var-neg { color: var(--red); }
+        
+        /* Source badges */
+        .src { display: inline-flex; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; }
+        .src-pms { background: rgba(59,130,246,0.15); color: #3b82f6; }
+        .src-erp { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+        .src-bank { background: rgba(16,185,129,0.15); color: #10b981; }
+        .src-payroll { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .src-ins { background: rgba(236,72,153,0.15); color: #ec4899; }
+        .src-calc { background: rgba(6,182,212,0.15); color: #06b6d4; }
+        .src-manual { background: rgba(107,114,128,0.15); color: #9ca3af; }
+        
+        /* Status */
+        .status { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+        .status-ok { background: rgba(16,185,129,0.12); color: var(--green); }
+        .status-ok::before { background: var(--green); }
+        .status-warn { background: rgba(245,158,11,0.12); color: var(--amber); }
+        .status-warn::before { background: var(--amber); }
+        .status-err { background: rgba(239,68,68,0.12); color: var(--red); }
+        .status-err::before { background: var(--red); }
+        
+        /* Two-column grid */
+        .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+        
+        /* Unit Economics */
+        .unit-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 20px; }
+        .unit-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .unit-card-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+        .unit-card-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .unit-card-detail { font-size: 11px; color: var(--text-secondary); }
+        .unit-card.revenue { border-left: 3px solid var(--blue); }
+        .unit-card.cost { border-left: 3px solid var(--amber); }
+        
+        /* Rollup visual */
+        .rollup { background: var(--bg-elevated); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .rollup-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; }
+        .rollup-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; }
+        .rollup-label { width: 100px; color: var(--text-secondary); }
+        .rollup-calc { font-family: var(--font-mono); font-size: 11px; background: var(--bg-card); padding: 4px 8px; border-radius: 4px; }
+        .rollup-arrow { color: var(--text-muted); }
+        .rollup-result { font-family: var(--font-mono); font-weight: 600; }
+        .rollup-final { background: rgba(59,130,246,0.1); margin: 8px -16px -16px; padding: 12px 16px; border-radius: 0 0 8px 8px; }
+        .rollup-final .rollup-result { color: var(--blue); }
+        
+        /* Variance bridge */
+        .bridge { display: flex; align-items: flex-end; gap: 4px; height: 180px; padding: 20px; }
+        .bridge-bar { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .bridge-bar-inner { width: 40px; border-radius: 4px 4px 0 0; transition: height 0.4s ease; }
+        .bridge-bar-label { font-size: 10px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+        .bridge-bar-value { font-family: var(--font-mono); font-size: 11px; margin-bottom: 4px; }
+        .bridge-bar.positive .bridge-bar-inner { background: var(--green); }
+        .bridge-bar.negative .bridge-bar-inner { background: var(--red); }
+        .bridge-bar.total .bridge-bar-inner { background: var(--blue); }
+        
+        /* Practice cards */
+        .practice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .practice-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.2s; }
+        .practice-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+        .practice-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+        .practice-name { font-weight: 600; font-size: 14px; }
+        .practice-id { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+        .practice-metrics { display: grid; grid-template-columns: repeat(2, 1fr); }
+        .practice-metric { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        .practice-metric:nth-child(odd) { border-right: 1px solid var(--border); }
+        .practice-metric-label { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+        .practice-metric-value { font-family: var(--font-mono); font-size: 16px; font-weight: 600; }
+        
+        /* Location detail */
+        .location-detail { display: none; }
+        .location-detail.active { display: block; }
+        .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; cursor: pointer; margin-bottom: 16px; }
+        .back-link:hover { color: var(--text); }
+        
+        /* Data dictionary */
+        .dict-filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+        .filter-btn { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); transition: all 0.15s; }
+        .filter-btn:hover { border-color: var(--border-light); color: var(--text); }
+        .filter-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
+        .dict-category td { background: var(--bg-elevated); font-weight: 600; color: var(--text); }
+        .formula { font-family: var(--font-mono); font-size: 10px; color: var(--purple); }
+        .desc { color: var(--text-secondary); max-width: 280px; }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 800px; max-height: 80vh; overflow: hidden; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .modal-title { font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; }
+        .modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        
+        @media (max-width: 1400px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } .unit-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 1000px) { .grid-2 { grid-template-columns: 1fr; } .practice-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M2 12h5l3-9 4 18 3-9h5"/></svg></div>
+            <span class="logo-text">Sightline</span>
+        </div>
+        <nav>
+            <div class="nav-section">
+                <div class="nav-label">Views</div>
+                <div class="nav-item active" data-view="executive"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Executive Summary</div>
+                <div class="nav-item" data-view="unit-econ"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="4"/></svg>Unit Economics</div>
+                <div class="nav-item" data-view="operations"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Operations</div>
+                <div class="nav-item" data-view="financials"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Financials</div>
+                <div class="nav-item" data-view="locations"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Locations</div>
+                <div class="nav-item" data-view="data-dict"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Data Dictionary</div>
+            </div>
+        </nav>
+    </aside>
+    
+    <main class="main">
+        <!-- ========== EXECUTIVE SUMMARY ========== -->
+        <div id="executive-view" class="view active">
+            <div class="header">
+                <div><h1 class="header-title">DSO Executive Dashboard</h1><p class="header-subtitle">Consolidated view • January 2025 MTD</p></div>
+                <div class="header-actions"><button class="btn btn-secondary"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button></div>
+            </div>
+            
+            <div class="kpi-grid">
+                <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value">$487,250</div><div class="kpi-change up">↑ +8.2% vs Budget</div></div>
+                <div class="kpi"><div class="kpi-label">EBITDA</div><div class="kpi-value">$174,850</div><div class="kpi-change up">↑ +12.4% vs Budget</div></div>
+                <div class="kpi"><div class="kpi-label">EBITDA Margin</div><div class="kpi-value">35.9%</div><div class="kpi-change up">↑ +1.4pp</div></div>
+                <div class="kpi"><div class="kpi-label">Cash Position</div><div class="kpi-value">$342,100</div><div class="kpi-change up">↑ +$28K</div></div>
+                <div class="kpi"><div class="kpi-label">A/R Balance</div><div class="kpi-value">$156,200</div><div class="kpi-change down">↓ DSO: 34 days</div></div>
+                <div class="kpi"><div class="kpi-label">Collection Rate</div><div class="kpi-value">94.2%</div><div class="kpi-change up">↑ +1.8pp</div></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">EBITDA Variance Bridge</div><span class="src src-calc">Derived</span></div>
+                    <div class="card-body">
+                        <div class="bridge">
+                            <div class="bridge-bar total"><div class="bridge-bar-value">$155K</div><div class="bridge-bar-inner" style="height:120px"></div><div class="bridge-bar-label">Budget</div></div>
+                            <div class="bridge-bar positive"><div class="bridge-bar-value">+$18K</div><div class="bridge-bar-inner" style="height:45px"></div><div class="bridge-bar-label">Volume</div></div>
+                            <div class="bridge-bar positive"><div class="bridge-bar-value">+$12K</div><div class="bridge-bar-inner" style="height:30px"></div><div class="bridge-bar-label">Price/Mix</div></div>
+                            <div class="bridge-bar negative"><div class="bridge-bar-value">-$8K</div><div class="bridge-bar-inner" style="height:20px"></div><div class="bridge-bar-label">Labor</div></div>
+                            <div class="bridge-bar negative"><div class="bridge-bar-value">-$5K</div><div class="bridge-bar-inner" style="height:12px"></div><div class="bridge-bar-label">Supplies</div></div>
+                            <div class="bridge-bar positive"><div class="bridge-bar-value">+$3K</div><div class="bridge-bar-inner" style="height:8px"></div><div class="bridge-bar-label">Other</div></div>
+                            <div class="bridge-bar total"><div class="bridge-bar-value">$175K</div><div class="bridge-bar-inner" style="height:140px"></div><div class="bridge-bar-label">Actual</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Variance Drivers</div></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Driver</th><th>Source</th><th>Impact</th></tr></thead>
+                            <tbody>
+                                <tr><td>Patient volume +4.8%</td><td><span class="src src-pms">PMS</span></td><td class="var-pos">+$18,200</td></tr>
+                                <tr><td>Procedure mix shift</td><td><span class="src src-pms">PMS</span></td><td class="var-pos">+$8,400</td></tr>
+                                <tr><td>Payer rate increase</td><td><span class="src src-ins">INS</span></td><td class="var-pos">+$3,600</td></tr>
+                                <tr><td>Overtime hours +12%</td><td><span class="src src-payroll">PAYROLL</span></td><td class="var-neg">-$8,100</td></tr>
+                                <tr><td>Supply cost inflation</td><td><span class="src src-erp">ERP</span></td><td class="var-neg">-$4,800</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><div class="card-title">Practice Performance</div></div>
+                <div class="card-body">
+                    <div class="practice-grid">
+                        <div class="practice-card" onclick="showLocation('dso-001')">
+                            <div class="practice-header"><span class="practice-name">Charleston Main</span><span class="practice-id">DSO-001</span></div>
+                            <div class="practice-metrics">
+                                <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$198,400</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value">$75,200</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value">37.9%</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value">78%</div></div>
+                            </div>
+                        </div>
+                        <div class="practice-card" onclick="showLocation('dso-002')">
+                            <div class="practice-header"><span class="practice-name">Mt Pleasant</span><span class="practice-id">DSO-002</span></div>
+                            <div class="practice-metrics">
+                                <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$156,200</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value">$55,300</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value">35.4%</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value">76%</div></div>
+                            </div>
+                        </div>
+                        <div class="practice-card" onclick="showLocation('dso-003')">
+                            <div class="practice-header"><span class="practice-name">West Ashley</span><span class="practice-id">DSO-003</span></div>
+                            <div class="practice-metrics">
+                                <div class="practice-metric"><div class="practice-metric-label">Revenue</div><div class="practice-metric-value">$132,650</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">EBITDA</div><div class="practice-metric-value">$44,350</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Margin</div><div class="practice-metric-value var-neg">33.4%</div></div>
+                                <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value var-neg">68%</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== UNIT ECONOMICS ========== -->
+        <div id="unit-econ-view" class="view">
+            <div class="header">
+                <div><h1 class="header-title">Unit Economics</h1><p class="header-subtitle">Operational metrics that drive financial performance</p></div>
+            </div>
+            
+            <div class="unit-grid">
+                <div class="unit-card revenue"><div class="unit-card-label">Rev / Chair Hour</div><div class="unit-card-value">$285</div><div class="unit-card-detail">Target: $270 | <span class="var-pos">+5.6%</span></div></div>
+                <div class="unit-card revenue"><div class="unit-card-label">Rev / Patient Visit</div><div class="unit-card-value">$433</div><div class="unit-card-detail">Prior: $412 | <span class="var-pos">+5.1%</span></div></div>
+                <div class="unit-card revenue"><div class="unit-card-label">Rev / Provider FTE</div><div class="unit-card-value">$69,607</div><div class="unit-card-detail">7 FTEs | <span class="var-pos">+7.2%</span></div></div>
+                <div class="unit-card revenue"><div class="unit-card-label">Avg Procedure Value</div><div class="unit-card-value">$187</div><div class="unit-card-detail">2,605 procs | <span class="var-pos">+3.3%</span></div></div>
+                <div class="unit-card cost"><div class="unit-card-label">Labor Cost / Visit</div><div class="unit-card-value">$165</div><div class="unit-card-detail">Target: $160 | <span class="var-neg">+3.1%</span></div></div>
+                <div class="unit-card cost"><div class="unit-card-label">Supply Cost / Visit</div><div class="unit-card-value">$46</div><div class="unit-card-detail">Target: $43 | <span class="var-neg">+7.0%</span></div></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><div class="card-title">Revenue Rollup Reconciliation</div><span class="src src-calc">Derived</span></div>
+                <div class="card-body">
+                    <div class="rollup">
+                        <div class="rollup-title">How Operational Metrics Roll Up to Financials</div>
+                        <div class="rollup-row"><span class="rollup-label">Patient Visits</span><span class="rollup-calc">1,124 visits × $433 avg ticket</span><span class="rollup-arrow">=</span><span class="rollup-result">$486,692</span></div>
+                        <div class="rollup-row"><span class="rollup-label">Chair Hours</span><span class="rollup-calc">1,710 hrs × $285 rev/hr</span><span class="rollup-arrow">=</span><span class="rollup-result">$487,350</span></div>
+                        <div class="rollup-row"><span class="rollup-label">Procedures</span><span class="rollup-calc">2,605 procs × $187 avg</span><span class="rollup-arrow">=</span><span class="rollup-result">$487,135</span></div>
+                        <div class="rollup-row rollup-final"><span class="rollup-label" style="font-weight:600;">Reported Revenue</span><span class="rollup-calc" style="background:rgba(59,130,246,0.2);">Reconciled</span><span class="rollup-arrow">=</span><span class="rollup-result">$487,250</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><div class="card-title">Unit Economics by Practice</div></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Metric</th><th>DSO-001</th><th>DSO-002</th><th>DSO-003</th><th>Consolidated</th></tr></thead>
+                        <tbody>
+                            <tr><td>Rev / Chair Hour</td><td class="mono">$298</td><td class="mono">$291</td><td class="mono var-neg">$262</td><td class="mono">$285</td></tr>
+                            <tr><td>Rev / Patient Visit</td><td class="mono">$481</td><td class="mono">$428</td><td class="mono var-neg">$382</td><td class="mono">$433</td></tr>
+                            <tr><td>Chair Utilization</td><td class="mono">78%</td><td class="mono">76%</td><td class="mono var-neg">68%</td><td class="mono">74%</td></tr>
+                            <tr><td>Labor Cost / Visit</td><td class="mono">$158</td><td class="mono">$162</td><td class="mono var-neg">$178</td><td class="mono">$165</td></tr>
+                            <tr><td>Contribution Margin</td><td class="mono var-pos">62%</td><td class="mono">58%</td><td class="mono var-neg">51%</td><td class="mono">57%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== OPERATIONS ========== -->
+        <div id="operations-view" class="view">
+            <div class="header">
+                <div><h1 class="header-title">Operational Metrics</h1><p class="header-subtitle">Practice-level operational performance</p></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header"><div class="card-title">Operations by Practice</div><span class="src src-pms">PMS</span></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Metric</th><th>DSO-001</th><th>DSO-002</th><th>DSO-003</th><th>Total</th><th>Target</th><th>Var</th></tr></thead>
+                        <tbody>
+                            <tr><td>Patient Visits</td><td class="mono">412</td><td class="mono">365</td><td class="mono">347</td><td class="mono"><strong>1,124</strong></td><td class="mono">1,072</td><td class="var-pos">+4.8%</td></tr>
+                            <tr><td>New Patients</td><td class="mono">48</td><td class="mono">42</td><td class="mono">38</td><td class="mono"><strong>128</strong></td><td class="mono">115</td><td class="var-pos">+11.3%</td></tr>
+                            <tr><td>Chair Hours</td><td class="mono">665</td><td class="mono">536</td><td class="mono">509</td><td class="mono"><strong>1,710</strong></td><td class="mono">1,680</td><td class="var-pos">+1.8%</td></tr>
+                            <tr><td>Chair Utilization</td><td class="mono">78%</td><td class="mono">76%</td><td class="mono var-neg">68%</td><td class="mono"><strong>74%</strong></td><td class="mono">75%</td><td class="var-neg">-1.3%</td></tr>
+                            <tr><td>Procedures</td><td class="mono">1,048</td><td class="mono">842</td><td class="mono">715</td><td class="mono"><strong>2,605</strong></td><td class="mono">2,480</td><td class="var-pos">+5.0%</td></tr>
+                            <tr><td>Cancellation Rate</td><td class="mono">8.2%</td><td class="mono">9.1%</td><td class="mono var-neg">12.4%</td><td class="mono"><strong>9.8%</strong></td><td class="mono">8.0%</td><td class="var-neg">+1.8pp</td></tr>
+                            <tr><td>Case Acceptance</td><td class="mono">72%</td><td class="mono">68%</td><td class="mono var-neg">61%</td><td class="mono"><strong>67%</strong></td><td class="mono">70%</td><td class="var-neg">-3pp</td></tr>
+                            <tr><td>Collection Rate</td><td class="mono">96.1%</td><td class="mono">94.8%</td><td class="mono var-neg">91.2%</td><td class="mono"><strong>94.2%</strong></td><td class="mono">95%</td><td class="var-neg">-0.8pp</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="grid-2" style="margin-top:16px;">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Provider Productivity</div><span class="src src-pms">PMS</span></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Provider</th><th>Location</th><th>Production</th><th>Collection</th><th>Procs</th></tr></thead>
+                            <tbody>
+                                <tr><td>Dr. Johnson</td><td class="mono">DSO-001</td><td class="mono">$98,200</td><td class="mono">95.2%</td><td class="mono">524</td></tr>
+                                <tr><td>Dr. Smith</td><td class="mono">DSO-001</td><td class="mono">$100,200</td><td class="mono">97.1%</td><td class="mono">524</td></tr>
+                                <tr><td>Dr. Williams</td><td class="mono">DSO-002</td><td class="mono">$82,400</td><td class="mono">94.8%</td><td class="mono">438</td></tr>
+                                <tr><td>Dr. Brown</td><td class="mono">DSO-002</td><td class="mono">$73,800</td><td class="mono">94.8%</td><td class="mono">404</td></tr>
+                                <tr><td>Dr. Davis</td><td class="mono">DSO-003</td><td class="mono">$68,200</td><td class="mono var-neg">89.4%</td><td class="mono">378</td></tr>
+                                <tr><td>Dr. Miller</td><td class="mono">DSO-003</td><td class="mono">$64,450</td><td class="mono var-neg">93.1%</td><td class="mono">337</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Procedure Mix</div><span class="src src-pms">PMS</span></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Category</th><th>Volume</th><th>Avg Fee</th><th>Revenue</th></tr></thead>
+                            <tbody>
+                                <tr><td>Preventive (D0-D1)</td><td class="mono">1,042</td><td class="mono">$85</td><td class="mono">$88,570</td></tr>
+                                <tr><td>Restorative (D2)</td><td class="mono">624</td><td class="mono">$245</td><td class="mono">$152,880</td></tr>
+                                <tr><td>Endodontics (D3)</td><td class="mono">156</td><td class="mono">$890</td><td class="mono">$138,840</td></tr>
+                                <tr><td>Periodontics (D4)</td><td class="mono">312</td><td class="mono">$185</td><td class="mono">$57,720</td></tr>
+                                <tr><td>Prosthodontics (D5-D6)</td><td class="mono">78</td><td class="mono">$620</td><td class="mono">$48,360</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== FINANCIALS ========== -->
+        <div id="financials-view" class="view">
+            <div class="header">
+                <div><h1 class="header-title">Financial Statements</h1><p class="header-subtitle">Consolidated P&L and Cash Flow</p></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Income Statement - MTD</div></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Line Item</th><th>Actual</th><th>Budget</th><th>Var</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>Gross Revenue</strong></td><td class="mono">$487,250</td><td class="mono">$450,000</td><td class="var-pos">+8.2%</td></tr>
+                                <tr><td style="padding-left:20px;">Patient Revenue</td><td class="mono">$121,800</td><td class="mono">$112,500</td><td class="var-pos">+8.3%</td></tr>
+                                <tr><td style="padding-left:20px;">Insurance Revenue</td><td class="mono">$365,450</td><td class="mono">$337,500</td><td class="var-pos">+8.3%</td></tr>
+                                <tr><td>Adjustments & Write-offs</td><td class="mono">($24,400)</td><td class="mono">($22,500)</td><td class="var-neg">+8.4%</td></tr>
+                                <tr style="background:var(--bg-elevated);"><td><strong>Net Revenue</strong></td><td class="mono"><strong>$462,850</strong></td><td class="mono">$427,500</td><td class="var-pos">+8.3%</td></tr>
+                                <tr><td><strong>Operating Expenses</strong></td><td class="mono">$288,000</td><td class="mono">$272,500</td><td class="var-neg">+5.7%</td></tr>
+                                <tr><td style="padding-left:20px;">Payroll & Benefits</td><td class="mono">$185,400</td><td class="mono">$171,200</td><td class="var-neg">+8.3%</td></tr>
+                                <tr><td style="padding-left:20px;">Dental Supplies</td><td class="mono">$51,700</td><td class="mono">$48,500</td><td class="var-neg">+6.6%</td></tr>
+                                <tr><td style="padding-left:20px;">Lab Fees</td><td class="mono">$24,200</td><td class="mono">$26,100</td><td class="var-pos">-7.3%</td></tr>
+                                <tr><td style="padding-left:20px;">Occupancy</td><td class="mono">$18,200</td><td class="mono">$18,200</td><td>0%</td></tr>
+                                <tr><td style="padding-left:20px;">Other OpEx</td><td class="mono">$8,500</td><td class="mono">$8,500</td><td>0%</td></tr>
+                                <tr style="background:var(--bg-elevated);"><td><strong>EBITDA</strong></td><td class="mono"><strong>$174,850</strong></td><td class="mono">$155,000</td><td class="var-pos">+12.8%</td></tr>
+                                <tr><td>EBITDA Margin</td><td class="mono">35.9%</td><td class="mono">34.4%</td><td class="var-pos">+1.5pp</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Cash Flow - MTD</div></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Line Item</th><th>Amount</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>Beginning Cash</strong></td><td class="mono">$314,100</td></tr>
+                                <tr><td colspan="2" style="background:var(--bg-elevated);font-weight:600;">Operating Activities</td></tr>
+                                <tr><td style="padding-left:20px;">Collections</td><td class="mono var-pos">+$458,600</td></tr>
+                                <tr><td style="padding-left:20px;">Payroll</td><td class="mono var-neg">-$185,400</td></tr>
+                                <tr><td style="padding-left:20px;">Supplier Payments</td><td class="mono var-neg">-$72,100</td></tr>
+                                <tr><td style="padding-left:20px;">Occupancy & Utilities</td><td class="mono var-neg">-$21,400</td></tr>
+                                <tr><td style="padding-left:20px;">Other Operating</td><td class="mono var-neg">-$12,200</td></tr>
+                                <tr><td><strong>Net Operating Cash</strong></td><td class="mono var-pos">+$167,500</td></tr>
+                                <tr><td colspan="2" style="background:var(--bg-elevated);font-weight:600;">Investing Activities</td></tr>
+                                <tr><td style="padding-left:20px;">Equipment Purchase</td><td class="mono var-neg">-$45,000</td></tr>
+                                <tr><td colspan="2" style="background:var(--bg-elevated);font-weight:600;">Financing Activities</td></tr>
+                                <tr><td style="padding-left:20px;">Loan Payment</td><td class="mono var-neg">-$8,500</td></tr>
+                                <tr><td style="padding-left:20px;">Owner Distribution</td><td class="mono var-neg">-$86,000</td></tr>
+                                <tr style="background:var(--bg-elevated);"><td><strong>Ending Cash</strong></td><td class="mono"><strong>$342,100</strong></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><div class="card-title">P&L by Practice</div></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Practice</th><th>Revenue</th><th>EBITDA</th><th>Margin</th><th>vs Budget</th></tr></thead>
+                        <tbody>
+                            <tr><td>DSO-001 (Charleston Main)</td><td class="mono">$198,400</td><td class="mono">$75,200</td><td class="mono">37.9%</td><td class="var-pos">+10.2%</td></tr>
+                            <tr><td>DSO-002 (Mt Pleasant)</td><td class="mono">$156,200</td><td class="mono">$55,300</td><td class="mono">35.4%</td><td class="var-pos">+6.8%</td></tr>
+                            <tr><td>DSO-003 (West Ashley)</td><td class="mono">$132,650</td><td class="mono">$44,350</td><td class="mono var-neg">33.4%</td><td class="var-neg">-2.1%</td></tr>
+                            <tr style="background:var(--bg-elevated);"><td><strong>Consolidated</strong></td><td class="mono"><strong>$487,250</strong></td><td class="mono"><strong>$174,850</strong></td><td class="mono"><strong>35.9%</strong></td><td class="var-pos">+8.2%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== LOCATIONS ========== -->
+        <div id="locations-view" class="view">
+            <div id="locations-list">
+                <div class="header">
+                    <div><h1 class="header-title">Practice Locations</h1><p class="header-subtitle">Individual location performance and drill-down</p></div>
+                </div>
+                
+                <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="kpi"><div class="kpi-label">Total Locations</div><div class="kpi-value">3</div></div>
+                    <div class="kpi"><div class="kpi-label">Avg Revenue/Location</div><div class="kpi-value">$162K</div><div class="kpi-change up">+8.2% vs LY</div></div>
+                    <div class="kpi"><div class="kpi-label">Top Performer</div><div class="kpi-value">DSO-001</div><div class="kpi-change up">37.9% margin</div></div>
+                    <div class="kpi"><div class="kpi-label">Needs Attention</div><div class="kpi-value">DSO-003</div><div class="kpi-change down">68% util</div></div>
+                </div>
+                
+                <div class="practice-grid">
+                    <div class="practice-card" onclick="showLocation('dso-001')">
+                        <div class="practice-header"><span class="practice-name">Charleston Main</span><span class="status status-ok">Active</span></div>
+                        <div class="practice-metrics">
+                            <div class="practice-metric"><div class="practice-metric-label">YTD Revenue</div><div class="practice-metric-value">$198,400</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value var-pos">+10.2%</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Patient Visits</div><div class="practice-metric-value">412</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value">78%</div></div>
+                        </div>
+                    </div>
+                    <div class="practice-card" onclick="showLocation('dso-002')">
+                        <div class="practice-header"><span class="practice-name">Mt Pleasant</span><span class="status status-ok">Active</span></div>
+                        <div class="practice-metrics">
+                            <div class="practice-metric"><div class="practice-metric-label">YTD Revenue</div><div class="practice-metric-value">$156,200</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value var-pos">+6.8%</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Patient Visits</div><div class="practice-metric-value">365</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value">76%</div></div>
+                        </div>
+                    </div>
+                    <div class="practice-card" onclick="showLocation('dso-003')">
+                        <div class="practice-header"><span class="practice-name">West Ashley</span><span class="status status-warn">Review</span></div>
+                        <div class="practice-metrics">
+                            <div class="practice-metric"><div class="practice-metric-label">YTD Revenue</div><div class="practice-metric-value">$132,650</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">vs Budget</div><div class="practice-metric-value var-neg">-2.1%</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Patient Visits</div><div class="practice-metric-value">347</div></div>
+                            <div class="practice-metric"><div class="practice-metric-label">Chair Util</div><div class="practice-metric-value var-neg">68%</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="location-detail" class="location-detail">
+                <div class="back-link" onclick="hideLocation()">← Back to all locations</div>
+                <div class="header">
+                    <div><h1 class="header-title" id="loc-name">Charleston Main</h1><p class="header-subtitle" id="loc-id">DSO-001 • 123 King Street, Charleston, SC</p></div>
+                    <span class="status status-ok" id="loc-status">Active</span>
+                </div>
+                
+                <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-value" id="loc-revenue">$198,400</div><div class="kpi-change up" id="loc-rev-var">+10.2%</div></div>
+                    <div class="kpi"><div class="kpi-label">EBITDA</div><div class="kpi-value" id="loc-ebitda">$75,200</div><div class="kpi-change up">37.9% margin</div></div>
+                    <div class="kpi"><div class="kpi-label">Patient Visits</div><div class="kpi-value" id="loc-visits">412</div><div class="kpi-change up">+12%</div></div>
+                    <div class="kpi"><div class="kpi-label">Collection Rate</div><div class="kpi-value" id="loc-collection">96.1%</div></div>
+                </div>
+                
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header"><div class="card-title">Recent Events</div></div>
+                    <div class="card-body">
+                        <table>
+                            <thead><tr><th>Timestamp</th><th>Source</th><th>Event</th><th>Amount</th><th>Status</th></tr></thead>
+                            <tbody id="loc-events">
+                                <tr><td class="mono">2025-01-05 14:32</td><td><span class="src src-ins">INS</span></td><td>Delta Dental - Claim #DD-00142</td><td class="mono">$1,245</td><td><span class="status status-ok">Approved</span></td></tr>
+                                <tr><td class="mono">2025-01-05 11:15</td><td><span class="src src-pms">PMS</span></td><td>Patient payment - Crown procedure</td><td class="mono">$850</td><td><span class="status status-ok">Received</span></td></tr>
+                                <tr><td class="mono">2025-01-04 16:42</td><td><span class="src src-erp">ERP</span></td><td>Patterson Dental - Supply order</td><td class="mono">$2,180</td><td><span class="status status-warn">Pending</span></td></tr>
+                                <tr><td class="mono">2025-01-04 09:00</td><td><span class="src src-bank">BANK</span></td><td>Daily deposit batch</td><td class="mono">$8,420</td><td><span class="status status-ok">Confirmed</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== DATA DICTIONARY ========== -->
+        <div id="data-dict-view" class="view">
+            <div class="header">
+                <div><h1 class="header-title">Master Data Dictionary</h1><p class="header-subtitle">All data fields with source documentation and transformation logic</p></div>
+                <div class="header-actions"><button class="btn btn-primary"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Schema</button></div>
+            </div>
+            
+            <div class="card" style="margin-bottom:16px;">
+                <div class="card-header"><div class="card-title">Source Systems</div></div>
+                <div class="card-body" style="display:flex;flex-wrap:wrap;gap:20px;">
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-pms">PMS</span><span style="font-size:12px;">Practice Management (Dentrix)</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-erp">ERP</span><span style="font-size:12px;">Accounting (QuickBooks)</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-bank">BANK</span><span style="font-size:12px;">Banking (Chase)</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-payroll">PAYROLL</span><span style="font-size:12px;">Payroll (ADP)</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-ins">INS</span><span style="font-size:12px;">Insurance Clearinghouse</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-calc">CALC</span><span style="font-size:12px;">Calculated/Derived</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;"><span class="src src-manual">MANUAL</span><span style="font-size:12px;">User Input</span></div>
+                </div>
+            </div>
+            
+            <div class="dict-filters">
+                <button class="filter-btn active" onclick="filterDict('all',this)">All Fields</button>
+                <button class="filter-btn" onclick="filterDict('pms',this)">PMS</button>
+                <button class="filter-btn" onclick="filterDict('erp',this)">ERP</button>
+                <button class="filter-btn" onclick="filterDict('bank',this)">Bank</button>
+                <button class="filter-btn" onclick="filterDict('payroll',this)">Payroll</button>
+                <button class="filter-btn" onclick="filterDict('ins',this)">Insurance</button>
+                <button class="filter-btn" onclick="filterDict('calc',this)">Calculated</button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="max-height:55vh;overflow-y:auto;">
+                    <table id="dict-table">
+                        <thead><tr><th>Source</th><th>Field Name</th><th>Type</th><th>Description</th><th>Formula / Logic</th><th>Used In</th></tr></thead>
+                        <tbody>
+                            <tr class="dict-category"><td colspan="6">Revenue & Collections</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">gross_production</td><td class="mono">DECIMAL</td><td class="desc">Total procedures at full fee schedule</td><td class="formula">SUM(procedure.fee_amount)</td><td>Dashboard, P&L</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">net_production</td><td class="mono">DECIMAL</td><td class="desc">Production after adjustments</td><td class="formula">gross_production - adjustments</td><td>Dashboard, P&L</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">patient_payment</td><td class="mono">DECIMAL</td><td class="desc">Direct patient payments</td><td class="formula">SUM(payment WHERE src='patient')</td><td>Dashboard, AR</td></tr>
+                            <tr data-src="ins"><td><span class="src src-ins">INS</span></td><td class="mono">insurance_payment</td><td class="mono">DECIMAL</td><td class="desc">Payments from carriers via ERA</td><td class="formula">SUM(era.payment_amount)</td><td>Dashboard, AR</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">total_collections</td><td class="mono">DECIMAL</td><td class="desc">Combined collections</td><td class="formula">patient_payment + insurance_payment</td><td>Dashboard</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">collection_rate</td><td class="mono">PERCENT</td><td class="desc">% of net production collected</td><td class="formula">(total_collections / net_production) × 100</td><td>KPIs</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Accounts Receivable</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">ar_current</td><td class="mono">DECIMAL</td><td class="desc">Receivables 0-30 days</td><td class="formula">SUM(balance WHERE age='0-30')</td><td>AR Aging</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">ar_31_60</td><td class="mono">DECIMAL</td><td class="desc">Receivables 31-60 days</td><td class="formula">SUM(balance WHERE age='31-60')</td><td>AR Aging</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">ar_over_90</td><td class="mono">DECIMAL</td><td class="desc">Receivables 90+ days</td><td class="formula">SUM(balance WHERE age='90+')</td><td>AR Aging, Alerts</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">days_sales_outstanding</td><td class="mono">INT</td><td class="desc">Avg days to collect</td><td class="formula">ar_total / (net_prod / days)</td><td>Dashboard</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Insurance Claims</td></tr>
+                            <tr data-src="ins"><td><span class="src src-ins">INS</span></td><td class="mono">claims_submitted</td><td class="mono">INT</td><td class="desc">Claims sent to carriers</td><td class="formula">COUNT(claim WHERE status='submitted')</td><td>Claims</td></tr>
+                            <tr data-src="ins"><td><span class="src src-ins">INS</span></td><td class="mono">claims_accepted</td><td class="mono">INT</td><td class="desc">Claims accepted for processing</td><td class="formula">COUNT(claim WHERE status='accepted')</td><td>Claims</td></tr>
+                            <tr data-src="ins"><td><span class="src src-ins">INS</span></td><td class="mono">claims_denied</td><td class="mono">INT</td><td class="desc">Claims rejected</td><td class="formula">COUNT(claim WHERE status='denied')</td><td>Claims, Alerts</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">clean_claim_rate</td><td class="mono">PERCENT</td><td class="desc">First-pass acceptance rate</td><td class="formula">(accepted / submitted) × 100</td><td>KPIs</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Expenses</td></tr>
+                            <tr data-src="erp"><td><span class="src src-erp">ERP</span></td><td class="mono">supplies_expense</td><td class="mono">DECIMAL</td><td class="desc">Dental supplies purchased</td><td class="formula">SUM(expense WHERE cat='supplies')</td><td>P&L</td></tr>
+                            <tr data-src="erp"><td><span class="src src-erp">ERP</span></td><td class="mono">lab_expense</td><td class="mono">DECIMAL</td><td class="desc">Lab fees for prosthetics</td><td class="formula">SUM(expense WHERE cat='lab')</td><td>P&L</td></tr>
+                            <tr data-src="payroll"><td><span class="src src-payroll">PAYROLL</span></td><td class="mono">payroll_expense</td><td class="mono">DECIMAL</td><td class="desc">Total payroll cost</td><td class="formula">gross_wages + taxes + benefits</td><td>P&L</td></tr>
+                            <tr data-src="payroll"><td><span class="src src-payroll">PAYROLL</span></td><td class="mono">fte_count</td><td class="mono">INT</td><td class="desc">Full-time equivalents</td><td class="formula">SUM(hours / 2080)</td><td>Staffing</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">total_opex</td><td class="mono">DECIMAL</td><td class="desc">Total operating expenses</td><td class="formula">SUM(all expense categories)</td><td>P&L, Dashboard</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Banking & Cash</td></tr>
+                            <tr data-src="bank"><td><span class="src src-bank">BANK</span></td><td class="mono">bank_balance</td><td class="mono">DECIMAL</td><td class="desc">Current available balance</td><td class="formula">Direct bank API feed</td><td>Cash Dashboard</td></tr>
+                            <tr data-src="bank"><td><span class="src src-bank">BANK</span></td><td class="mono">deposits</td><td class="mono">DECIMAL</td><td class="desc">Total credits</td><td class="formula">SUM(txn WHERE type='credit')</td><td>Cash, Recon</td></tr>
+                            <tr data-src="bank"><td><span class="src src-bank">BANK</span></td><td class="mono">withdrawals</td><td class="mono">DECIMAL</td><td class="desc">Total debits</td><td class="formula">SUM(txn WHERE type='debit')</td><td>Cash, Recon</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">days_cash_on_hand</td><td class="mono">INT</td><td class="desc">Days ops covered</td><td class="formula">balance / (opex / days)</td><td>Dashboard</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Unit Economics</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">rev_per_chair_hour</td><td class="mono">DECIMAL</td><td class="desc">Revenue per chair hour</td><td class="formula">net_production / chair_hours</td><td>Unit Econ</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">rev_per_visit</td><td class="mono">DECIMAL</td><td class="desc">Revenue per patient visit</td><td class="formula">net_production / patient_visits</td><td>Unit Econ</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">labor_cost_per_visit</td><td class="mono">DECIMAL</td><td class="desc">Labor cost per visit</td><td class="formula">payroll_expense / patient_visits</td><td>Unit Econ</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">contribution_margin</td><td class="mono">PERCENT</td><td class="desc">Margin after variable costs</td><td class="formula">(rev - var_costs) / rev × 100</td><td>Unit Econ</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">chair_utilization</td><td class="mono">PERCENT</td><td class="desc">% of available hours used</td><td class="formula">used_hours / available_hours × 100</td><td>Operations</td></tr>
+                            <tr data-src="pms"><td><span class="src src-pms">PMS</span></td><td class="mono">patient_visits</td><td class="mono">INT</td><td class="desc">Completed appointments</td><td class="formula">COUNT(appt WHERE status='complete')</td><td>All views</td></tr>
+                            
+                            <tr class="dict-category"><td colspan="6">Location & Budget</td></tr>
+                            <tr data-src="manual"><td><span class="src src-manual">MANUAL</span></td><td class="mono">location_id</td><td class="mono">VARCHAR</td><td class="desc">Unique location identifier</td><td class="formula">System-assigned: DSO-XXX</td><td>All views</td></tr>
+                            <tr data-src="manual"><td><span class="src src-manual">MANUAL</span></td><td class="mono">budget_revenue</td><td class="mono">DECIMAL</td><td class="desc">Planned revenue target</td><td class="formula">User-defined</td><td>Budget</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">variance_pct</td><td class="mono">PERCENT</td><td class="desc">% variance from budget</td><td class="formula">((actual - budget) / budget) × 100</td><td>Dashboard</td></tr>
+                            <tr data-src="calc"><td><span class="src src-calc">CALC</span></td><td class="mono">ebitda_margin</td><td class="mono">PERCENT</td><td class="desc">EBITDA as % of revenue</td><td class="formula">(ebitda / revenue) × 100</td><td>Dashboard, P&L</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top:16px;">
+                <div class="card-header"><div class="card-title">Data Lineage Summary</div></div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>Source</th><th>Integration</th><th>Refresh</th><th>Fields</th><th>Trust Level</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="src src-pms">PMS</span> Practice Mgmt</td><td class="mono">API / Direct DB</td><td>Real-time</td><td class="mono">12</td><td><span class="status status-ok">High</span></td></tr>
+                            <tr><td><span class="src src-ins">INS</span> Clearinghouse</td><td class="mono">EDI 835/837</td><td>Daily</td><td class="mono">6</td><td><span class="status status-ok">High</span></td></tr>
+                            <tr><td><span class="src src-bank">BANK</span> Banking</td><td class="mono">Plaid API</td><td>Daily</td><td class="mono">4</td><td><span class="status status-ok">High</span></td></tr>
+                            <tr><td><span class="src src-erp">ERP</span> Accounting</td><td class="mono">API</td><td>Hourly</td><td class="mono">5</td><td><span class="status status-warn">Medium</span></td></tr>
+                            <tr><td><span class="src src-payroll">PAYROLL</span> Payroll</td><td class="mono">API</td><td>Per period</td><td class="mono">4</td><td><span class="status status-ok">High</span></td></tr>
+                            <tr><td><span class="src src-calc">CALC</span> Calculated</td><td class="mono">Internal</td><td>On-demand</td><td class="mono">12</td><td><span class="status status-ok">Derived</span></td></tr>
+                            <tr><td><span class="src src-manual">MANUAL</span> User Input</td><td class="mono">Direct</td><td>As needed</td><td class="mono">3</td><td><span class="status status-warn">Verify</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const view = item.dataset.view;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(view + '-view').classList.add('active');
+            hideLocation();
+        });
+    });
+    
+    // Location detail
+    const locations = {
+        'dso-001': { name: 'Charleston Main', id: 'DSO-001', addr: '123 King Street, Charleston, SC', revenue: '$198,400', ebitda: '$75,200', visits: '412', collection: '96.1%', revVar: '+10.2%', status: 'ok' },
+        'dso-002': { name: 'Mt Pleasant', id: 'DSO-002', addr: '456 Coleman Blvd, Mt Pleasant, SC', revenue: '$156,200', ebitda: '$55,300', visits: '365', collection: '94.8%', revVar: '+6.8%', status: 'ok' },
+        'dso-003': { name: 'West Ashley', id: 'DSO-003', addr: '789 Sam Rittenberg Blvd, Charleston, SC', revenue: '$132,650', ebitda: '$44,350', visits: '347', collection: '91.2%', revVar: '-2.1%', status: 'warn' }
+    };
+    
+    function showLocation(id) {
+        const loc = locations[id];
+        if (!loc) return;
+        document.getElementById('loc-name').textContent = loc.name;
+        document.getElementById('loc-id').textContent = loc.id + ' • ' + loc.addr;
+        document.getElementById('loc-revenue').textContent = loc.revenue;
+        document.getElementById('loc-ebitda').textContent = loc.ebitda;
+        document.getElementById('loc-visits').textContent = loc.visits;
+        document.getElementById('loc-collection').textContent = loc.collection;
+        document.getElementById('loc-rev-var').textContent = loc.revVar;
+        document.getElementById('loc-rev-var').className = 'kpi-change ' + (loc.revVar.startsWith('+') ? 'up' : 'down');
+        document.getElementById('loc-status').className = 'status status-' + loc.status;
+        document.getElementById('locations-list').style.display = 'none';
+        document.getElementById('location-detail').classList.add('active');
+    }
+    
+    function hideLocation() {
+        document.getElementById('location-detail').classList.remove('active');
+        document.getElementById('locations-list').style.display = 'block';
+    }
+    
+    // Data dictionary filter
+    function filterDict(src, btn) {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('#dict-table tbody tr').forEach(row => {
+            if (row.classList.contains('dict-category')) { row.style.display = ''; return; }
+            row.style.display = (src === 'all' || row.dataset.src === src) ? '' : 'none';
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>As-Known-Then Replay Proof</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+        
+        h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-bottom: 16px;
+            margin-top: 40px;
+        }
+        
+        /* Timeline slider */
+        .timeline-section {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .current-time {
+            font-size: 1.1rem;
+            color: #60a5fa;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .replay-mode {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        
+        .timeline-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #2a2a30;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            color: #555;
+        }
+        
+        /* Event log */
+        .events-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .event-log, .reference-data {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .event-item, .ref-item {
+            padding: 12px;
+            border-bottom: 1px solid #1a1a1f;
+            font-size: 0.8rem;
+            transition: opacity 0.3s;
+        }
+        
+        .event-item:last-child, .ref-item:last-child {
+            border-bottom: none;
+        }
+        
+        .event-item.hidden, .ref-item.hidden {
+            opacity: 0.25;
+        }
+        
+        .event-item.visible, .ref-item.visible {
+            opacity: 1;
+        }
+        
+        .event-type {
+            color: #60a5fa;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .event-times {
+            display: flex;
+            gap: 16px;
+            font-size: 0.7rem;
+            color: #666;
+            margin-bottom: 6px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .event-times span {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .event-times .label {
+            color: #444;
+        }
+        
+        .event-payload {
+            color: #aaa;
+        }
+        
+        .ref-name {
+            color: #10b981;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .ref-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: #aaa;
+        }
+        
+        .ref-times {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        /* Computed state */
+        .computed-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        .balances, .journal {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .balance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #1a1a1f;
+        }
+        
+        .balance-item:last-child {
+            border-bottom: none;
+        }
+        
+        .balance-name {
+            color: #aaa;
+        }
+        
+        .balance-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            color: #fff;
+        }
+        
+        .balance-value.positive {
+            color: #10b981;
+        }
+        
+        .balance-value.negative {
+            color: #ef4444;
+        }
+        
+        .journal-entry {
+            padding: 10px 0;
+            border-bottom: 1px solid #1a1a1f;
+            font-size: 0.8rem;
+        }
+        
+        .journal-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .journal-date {
+            color: #666;
+            font-size: 0.7rem;
+            margin-bottom: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .journal-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        
+        .journal-account {
+            color: #aaa;
+        }
+        
+        .journal-debit, .journal-credit {
+            font-family: 'SF Mono', Monaco, monospace;
+            width: 80px;
+            text-align: right;
+        }
+        
+        .journal-debit {
+            color: #60a5fa;
+        }
+        
+        .journal-credit {
+            color: #f472b6;
+        }
+        
+        /* Proof section */
+        .proof-section {
+            background: #0f1a2e;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 32px;
+        }
+        
+        .proof-section h2 {
+            color: #60a5fa;
+            margin-top: 0;
+        }
+        
+        .proof-text {
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.7;
+        }
+        
+        .proof-text strong {
+            color: #fff;
+        }
+        
+        .scenario-note {
+            background: #1a1a1f;
+            border-left: 3px solid #3b82f6;
+            padding: 16px;
+            margin: 20px 0;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        
+        .scenario-note strong {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>As-Known-Then Replay Proof</h1>
+        <p class="subtitle">Drag the timeline to replay financials using only what was known at that moment</p>
+        
+        <div class="scenario-note">
+            <strong>Scenario:</strong> A company sells $10,000 of goods to a European customer. 
+            The sale occurs on Mar 1. The EUR/USD rate is initially recorded as 1.08, then corrected to 1.10 on Mar 5. 
+            Payment arrives Mar 7, but is recorded late on Mar 10. Watch how "as-known-then" replay shows different states at different times.
+        </div>
+        
+        <div class="timeline-section">
+            <div class="timeline-header">
+                <div>
+                    <span class="replay-mode">Replaying as-known-then at:</span>
+                    <div class="current-time" id="currentTime">Mar 1, 2025 12:00</div>
+                </div>
+                <div style="text-align: right; font-size: 0.75rem; color: #666;">
+                    <div>Events visible: <span id="eventCount">0</span></div>
+                    <div>Reference data version: <span id="refVersion">—</span></div>
+                </div>
+            </div>
+            <input type="range" class="timeline-slider" id="timeline" min="0" max="10" value="0" step="1">
+            <div class="timeline-labels">
+                <span>Mar 1</span>
+                <span>Mar 3</span>
+                <span>Mar 5</span>
+                <span>Mar 7</span>
+                <span>Mar 10</span>
+                <span>Mar 12</span>
+            </div>
+        </div>
+        
+        <div class="events-section">
+            <div class="event-log">
+                <h2>Event Log (Bitemporal)</h2>
+                <div id="eventList"></div>
+            </div>
+            <div class="reference-data">
+                <h2>Reference Data (Versioned)</h2>
+                <div id="refList"></div>
+            </div>
+        </div>
+        
+        <div class="computed-section">
+            <div class="balances">
+                <h2>Computed Balances</h2>
+                <div id="balanceList"></div>
+            </div>
+            <div class="journal">
+                <h2>Journal Entries (Derived)</h2>
+                <div id="journalList"></div>
+            </div>
+        </div>
+        
+        <div class="proof-section">
+            <h2>What This Proves</h2>
+            <div class="proof-text" id="proofText"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Timeline points (system time = when we knew it)
+        const timePoints = [
+            { label: "Mar 1, 12:00", systemTime: 1 },
+            { label: "Mar 2, 12:00", systemTime: 2 },
+            { label: "Mar 3, 12:00", systemTime: 3 },
+            { label: "Mar 4, 12:00", systemTime: 4 },
+            { label: "Mar 5, 12:00", systemTime: 5 },
+            { label: "Mar 6, 12:00", systemTime: 6 },
+            { label: "Mar 7, 12:00", systemTime: 7 },
+            { label: "Mar 8, 12:00", systemTime: 8 },
+            { label: "Mar 10, 12:00", systemTime: 10 },
+            { label: "Mar 11, 12:00", systemTime: 11 },
+            { label: "Mar 12, 12:00", systemTime: 12 }
+        ];
+        
+        // Events with bitemporal timestamps
+        const events = [
+            {
+                id: 1,
+                type: "sale.completed",
+                occurredAt: "Mar 1",
+                recordedAt: 1,
+                payload: "Sold goods to EU customer, €9,259.26 ($10,000 at 1.08)"
+            },
+            {
+                id: 2,
+                type: "invoice.issued",
+                occurredAt: "Mar 1",
+                recordedAt: 1,
+                payload: "Invoice #1001 issued, €9,259.26"
+            },
+            {
+                id: 3,
+                type: "shipment.departed",
+                occurredAt: "Mar 2",
+                recordedAt: 2,
+                payload: "Goods shipped via DHL, tracking #12345"
+            },
+            {
+                id: 4,
+                type: "payment.cleared",
+                occurredAt: "Mar 7",
+                recordedAt: 10,  // Late recording!
+                payload: "Received €9,259.26, cleared as $10,185.19 at 1.10"
+            }
+        ];
+        
+        // Reference data with versioning
+        const refData = [
+            {
+                name: "EUR/USD Rate",
+                versions: [
+                    { value: "1.0800", systemFrom: 1, systemTo: 5, note: "Initial rate" },
+                    { value: "1.1000", systemFrom: 5, systemTo: 999, note: "Corrected rate" }
+                ]
+            },
+            {
+                name: "Customer: Acme GmbH",
+                versions: [
+                    { value: "Credit limit: $50,000", systemFrom: 1, systemTo: 999, note: "No changes" }
+                ]
+            },
+            {
+                name: "Revenue Recognition Policy",
+                versions: [
+                    { value: "v2.1 - Recognize on shipment", systemFrom: 1, systemTo: 999, note: "ASC 606" }
+                ]
+            }
+        ];
+        
+        function getVisibleEvents(systemTime) {
+            return events.filter(e => e.recordedAt <= systemTime);
+        }
+        
+        function getRefDataAtTime(systemTime) {
+            return refData.map(ref => {
+                const version = ref.versions.find(v => v.systemFrom <= systemTime && systemTime < v.systemTo);
+                return {
+                    name: ref.name,
+                    ...version
+                };
+            });
+        }
+        
+        function computeBalances(systemTime) {
+            const visibleEvents = getVisibleEvents(systemTime);
+            const refs = getRefDataAtTime(systemTime);
+            const fxRate = parseFloat(refs.find(r => r.name === "EUR/USD Rate")?.value || 1.08);
+            
+            let cash = 0;
+            let ar = 0;
+            let revenue = 0;
+            let fxGainLoss = 0;
+            
+            const hasSale = visibleEvents.some(e => e.type === "sale.completed");
+            const hasPayment = visibleEvents.some(e => e.type === "payment.cleared");
+            
+            if (hasSale) {
+                revenue = 10000;
+                ar = 10000;
+            }
+            
+            if (hasPayment) {
+                // Payment was €9,259.26, converted at current known rate
+                const paymentUSD = 9259.26 * fxRate;
+                cash = paymentUSD;
+                fxGainLoss = paymentUSD - 10000;
+                ar = 0;
+            }
+            
+            return { cash, ar, revenue, fxGainLoss };
+        }
+        
+        function computeJournalEntries(systemTime) {
+            const visibleEvents = getVisibleEvents(systemTime);
+            const refs = getRefDataAtTime(systemTime);
+            const fxRate = parseFloat(refs.find(r => r.name === "EUR/USD Rate")?.value || 1.08);
+            
+            const entries = [];
+            
+            const hasSale = visibleEvents.some(e => e.type === "sale.completed");
+            const hasShipment = visibleEvents.some(e => e.type === "shipment.departed");
+            const hasPayment = visibleEvents.some(e => e.type === "payment.cleared");
+            
+            if (hasSale && hasShipment) {
+                entries.push({
+                    date: "Mar 2",
+                    description: "Revenue recognition (on shipment)",
+                    lines: [
+                        { account: "Accounts Receivable", debit: 10000, credit: null },
+                        { account: "Revenue", debit: null, credit: 10000 }
+                    ]
+                });
+            }
+            
+            if (hasPayment) {
+                const paymentUSD = Math.round(9259.26 * fxRate * 100) / 100;
+                const fxDiff = Math.round((paymentUSD - 10000) * 100) / 100;
+                
+                if (fxDiff >= 0) {
+                    entries.push({
+                        date: "Mar 7",
+                        description: "Payment received",
+                        lines: [
+                            { account: "Cash", debit: paymentUSD, credit: null },
+                            { account: "Accounts Receivable", debit: null, credit: 10000 },
+                            { account: "FX Gain", debit: null, credit: fxDiff }
+                        ]
+                    });
+                } else {
+                    entries.push({
+                        date: "Mar 7",
+                        description: "Payment received",
+                        lines: [
+                            { account: "Cash", debit: paymentUSD, credit: null },
+                            { account: "FX Loss", debit: Math.abs(fxDiff), credit: null },
+                            { account: "Accounts Receivable", debit: null, credit: 10000 }
+                        ]
+                    });
+                }
+            }
+            
+            return entries;
+        }
+        
+        function getProofText(systemTime) {
+            const timeLabel = timePoints[document.getElementById('timeline').value].label;
+            
+            if (systemTime < 2) {
+                return `<strong>At ${timeLabel}:</strong> Sale recorded but goods not yet shipped. Under ASC 606 (recognize on shipment), no revenue yet. AR and Revenue both $0 until shipment event is recorded.`;
+            } else if (systemTime < 5) {
+                return `<strong>At ${timeLabel}:</strong> Shipment recorded. Revenue recognized at $10,000 using FX rate of 1.08 (the rate we knew at this time). AR = $10,000. No payment yet visible in the system.`;
+            } else if (systemTime < 10) {
+                return `<strong>At ${timeLabel}:</strong> FX rate corrected to 1.10. AR still shows $10,000 (original transaction rate). Payment occurred on Mar 7 but <strong>hasn't been recorded yet</strong>—so as-known-then replay correctly shows no cash. This is the key: we only see what the system knew.`;
+            } else {
+                return `<strong>At ${timeLabel}:</strong> Payment finally recorded (late entry). Cash received = €9,259.26 × 1.10 = $10,185.19. FX Gain of $185.19 recognized. AR cleared. <strong>The proof:</strong> Replaying at Mar 8 vs Mar 10 shows different states—not because reality changed, but because our knowledge changed. That's as-known-then replay.`;
+            }
+        }
+        
+        function render() {
+            const sliderValue = parseInt(document.getElementById('timeline').value);
+            const systemTime = timePoints[sliderValue].systemTime;
+            
+            // Update current time display
+            document.getElementById('currentTime').textContent = timePoints[sliderValue].label;
+            
+            // Render events
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = events.map(e => {
+                const visible = e.recordedAt <= systemTime;
+                return `
+                    <div class="event-item ${visible ? 'visible' : 'hidden'}">
+                        <div class="event-type">${e.type}</div>
+                        <div class="event-times">
+                            <span><span class="label">occurred:</span> ${e.occurredAt}</span>
+                            <span><span class="label">recorded:</span> Mar ${e.recordedAt}</span>
+                        </div>
+                        <div class="event-payload">${e.payload}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Render reference data
+            const refs = getRefDataAtTime(systemTime);
+            const refList = document.getElementById('refList');
+            refList.innerHTML = refData.map(ref => {
+                const currentVersion = ref.versions.find(v => v.systemFrom <= systemTime && systemTime < v.systemTo);
+                return `
+                    <div class="ref-item visible">
+                        <div class="ref-name">${ref.name}</div>
+                        <div class="ref-value">${currentVersion?.value || 'N/A'}</div>
+                        <div class="ref-times">valid from Mar ${currentVersion?.systemFrom} · ${currentVersion?.note}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update counts
+            document.getElementById('eventCount').textContent = getVisibleEvents(systemTime).length;
+            document.getElementById('refVersion').textContent = `as of Mar ${systemTime}`;
+            
+            // Render balances
+            const balances = computeBalances(systemTime);
+            const balanceList = document.getElementById('balanceList');
+            balanceList.innerHTML = `
+                <div class="balance-item">
+                    <span class="balance-name">Cash</span>
+                    <span class="balance-value ${balances.cash > 0 ? 'positive' : ''}">${formatCurrency(balances.cash)}</span>
+                </div>
+                <div class="balance-item">
+                    <span class="balance-name">Accounts Receivable</span>
+                    <span class="balance-value">${formatCurrency(balances.ar)}</span>
+                </div>
+                <div class="balance-item">
+                    <span class="balance-name">Revenue</span>
+                    <span class="balance-value">${formatCurrency(balances.revenue)}</span>
+                </div>
+                <div class="balance-item">
+                    <span class="balance-name">FX Gain/(Loss)</span>
+                    <span class="balance-value ${balances.fxGainLoss > 0 ? 'positive' : balances.fxGainLoss < 0 ? 'negative' : ''}">${formatCurrency(balances.fxGainLoss)}</span>
+                </div>
+            `;
+            
+            // Render journal entries
+            const entries = computeJournalEntries(systemTime);
+            const journalList = document.getElementById('journalList');
+            if (entries.length === 0) {
+                journalList.innerHTML = '<div style="color: #555; font-size: 0.8rem; padding: 12px 0;">No entries yet (revenue recognized on shipment)</div>';
+            } else {
+                journalList.innerHTML = entries.map(entry => `
+                    <div class="journal-entry">
+                        <div class="journal-date">${entry.date} · ${entry.description}</div>
+                        ${entry.lines.map(line => `
+                            <div class="journal-line">
+                                <span class="journal-account">${line.credit ? '&nbsp;&nbsp;&nbsp;&nbsp;' : ''}${line.account}</span>
+                                <span class="journal-debit">${line.debit ? formatCurrency(line.debit) : ''}</span>
+                                <span class="journal-credit">${line.credit ? formatCurrency(line.credit) : ''}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            }
+            
+            // Render proof text
+            document.getElementById('proofText').innerHTML = getProofText(systemTime);
+        }
+        
+        function formatCurrency(amount) {
+            if (amount === 0) return '$0.00';
+            return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        document.getElementById('timeline').addEventListener('input', render);
+        render();
+    </script>
+</body>
+</html>

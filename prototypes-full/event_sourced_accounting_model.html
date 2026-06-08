@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event-Sourced Accounting Data Model</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 48px;
+            font-size: 1rem;
+        }
+        
+        .model-container {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        
+        /* Layer styling */
+        .layer {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        
+        .layer-label {
+            width: 140px;
+            flex-shrink: 0;
+            padding-top: 20px;
+        }
+        
+        .layer-label h3 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .layer-label .level {
+            font-size: 0.65rem;
+            color: #444;
+        }
+        
+        .layer-content {
+            flex: 1;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        /* Entity cards */
+        .entity {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 200px;
+            max-width: 280px;
+            flex: 1;
+        }
+        
+        .entity.primary {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #141418 0%, #1a1a2e 100%);
+        }
+        
+        .entity.derived {
+            border-color: #444;
+            opacity: 0.85;
+        }
+        
+        .entity h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .entity.primary h4 {
+            color: #60a5fa;
+        }
+        
+        .entity.derived h4 {
+            color: #999;
+        }
+        
+        .badge {
+            font-size: 0.55rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        
+        .badge.atomic {
+            background: #1e3a5f;
+            color: #60a5fa;
+        }
+        
+        .badge.computed {
+            background: #2a2a30;
+            color: #888;
+        }
+        
+        .entity p {
+            font-size: 0.8rem;
+            color: #888;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        
+        .fields {
+            border-top: 1px solid #2a2a30;
+            padding-top: 12px;
+        }
+        
+        .field {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.75rem;
+        }
+        
+        .field-name {
+            color: #aaa;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .field-type {
+            color: #666;
+            font-size: 0.65rem;
+        }
+        
+        /* Connection lines */
+        .connections {
+            display: flex;
+            justify-content: center;
+            padding: 8px 0;
+            margin-left: 164px;
+        }
+        
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+        
+        .arrow-line {
+            width: 2px;
+            height: 24px;
+            background: linear-gradient(to bottom, #3b82f6, #333);
+        }
+        
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #333;
+        }
+        
+        .arrow-label {
+            font-size: 0.65rem;
+            color: #555;
+            margin-top: 4px;
+        }
+        
+        /* Key insight box */
+        .insight {
+            background: #0f1419;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 40px;
+        }
+        
+        .insight h3 {
+            font-size: 0.8rem;
+            color: #60a5fa;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+        
+        .insight p {
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.7;
+        }
+        
+        .insight code {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            color: #60a5fa;
+        }
+        
+        /* Physics parallel */
+        .parallel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 40px;
+        }
+        
+        .parallel-box {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .parallel-box h4 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        
+        .parallel-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #1a1a1f;
+            font-size: 0.8rem;
+        }
+        
+        .parallel-item:last-child {
+            border-bottom: none;
+        }
+        
+        .parallel-item .concept {
+            color: #aaa;
+        }
+        
+        .parallel-item .equiv {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Event-Sourced Accounting Data Model</h1>
+        <p class="subtitle">From atomic events to derived financial statements</p>
+        
+        <div class="model-container">
+            <!-- Layer 0: Events (Atomic) -->
+            <div class="layer">
+                <div class="layer-label">
+                    <h3>Layer 0</h3>
+                    <span class="level">Atomic / Immutable</span>
+                </div>
+                <div class="layer-content">
+                    <div class="entity primary">
+                        <h4>Event <span class="badge atomic">Atomic</span></h4>
+                        <p>A singular, irreversible fact about something that happened at a specific point in time. The source of truth.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">event_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">event_type</span>
+                                <span class="field-type">enum</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">occurred_at</span>
+                                <span class="field-type">timestamp</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">recorded_at</span>
+                                <span class="field-type">timestamp</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">actor_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">payload</span>
+                                <span class="field-type">jsonb</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">proof_hash</span>
+                                <span class="field-type">sha256</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">causal_parent</span>
+                                <span class="field-type">uuid | null</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="entity primary">
+                        <h4>Event Types <span class="badge atomic">Examples</span></h4>
+                        <p>Domain-specific facts captured as they occur in the real world.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">shipment.departed</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">shipment.received</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">payment.initiated</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">payment.cleared</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">invoice.issued</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">contract.signed</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">inventory.counted</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">price.agreed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="connections">
+                <div class="arrow">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-head"></div>
+                    <span class="arrow-label">derived from</span>
+                </div>
+            </div>
+            
+            <!-- Layer 1: Movements -->
+            <div class="layer">
+                <div class="layer-label">
+                    <h3>Layer 1</h3>
+                    <span class="level">Computed / Deterministic</span>
+                </div>
+                <div class="layer-content">
+                    <div class="entity derived">
+                        <h4>Movement <span class="badge computed">Computed</span></h4>
+                        <p>A single-sided change to an account balance, computed from one or more events via policy rules.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">movement_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">source_event_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">account_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">direction</span>
+                                <span class="field-type">debit | credit</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">amount</span>
+                                <span class="field-type">decimal</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">effective_at</span>
+                                <span class="field-type">timestamp</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">policy_version</span>
+                                <span class="field-type">string</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="entity derived">
+                        <h4>Policy Rule <span class="badge computed">Config</span></h4>
+                        <p>Deterministic mapping from event types to account movements. The "how" of interpretation.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">policy_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">event_type</span>
+                                <span class="field-type">enum</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">conditions</span>
+                                <span class="field-type">expression</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">debit_account</span>
+                                <span class="field-type">account_ref</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">credit_account</span>
+                                <span class="field-type">account_ref</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">amount_expr</span>
+                                <span class="field-type">expression</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="connections">
+                <div class="arrow">
+                    <div class="arrow-line" style="background: linear-gradient(to bottom, #333, #333);"></div>
+                    <div class="arrow-head"></div>
+                    <span class="arrow-label">grouped into</span>
+                </div>
+            </div>
+            
+            <!-- Layer 2: Journal Entries -->
+            <div class="layer">
+                <div class="layer-label">
+                    <h3>Layer 2</h3>
+                    <span class="level">Traditional View</span>
+                </div>
+                <div class="layer-content">
+                    <div class="entity derived">
+                        <h4>Journal Entry <span class="badge computed">View</span></h4>
+                        <p>A balanced set of movements, materialized as a view. What traditional systems store as the primitive.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">entry_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">entry_date</span>
+                                <span class="field-type">date</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">movements[]</span>
+                                <span class="field-type">movement_id[]</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">memo</span>
+                                <span class="field-type">string</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">source_events[]</span>
+                                <span class="field-type">event_id[]</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="entity derived">
+                        <h4>Account Balance <span class="badge computed">View</span></h4>
+                        <p>Running total of movements in an account. A projection, not a stored fact.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">account_id</span>
+                                <span class="field-type">uuid</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">as_of</span>
+                                <span class="field-type">timestamp</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">balance</span>
+                                <span class="field-type">decimal</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">movement_count</span>
+                                <span class="field-type">integer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="connections">
+                <div class="arrow">
+                    <div class="arrow-line" style="background: linear-gradient(to bottom, #333, #222);"></div>
+                    <div class="arrow-head"></div>
+                    <span class="arrow-label">aggregated into</span>
+                </div>
+            </div>
+            
+            <!-- Layer 3: Financial Statements -->
+            <div class="layer">
+                <div class="layer-label">
+                    <h3>Layer 3</h3>
+                    <span class="level">Reporting / GAAP</span>
+                </div>
+                <div class="layer-content">
+                    <div class="entity derived">
+                        <h4>Financial Statements <span class="badge computed">Aggregation</span></h4>
+                        <p>Period-based summaries for external reporting. Multiple valid views from the same events.</p>
+                        <div class="fields">
+                            <div class="field">
+                                <span class="field-name">balance_sheet</span>
+                                <span class="field-type">point-in-time</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">income_statement</span>
+                                <span class="field-type">period</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">cash_flow</span>
+                                <span class="field-type">period</span>
+                            </div>
+                            <div class="field">
+                                <span class="field-name">reporting_basis</span>
+                                <span class="field-type">GAAP | IFRS | Cash</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Key Insight -->
+        <div class="insight">
+            <h3>The Ledger Engineer's Insight</h3>
+            <p>
+                Traditional accounting stores <code>journal entries</code> as the source of truth and discards the underlying events. 
+                This is like physics storing only velocity while discarding position and acceleration—you lose the ability to 
+                reconstruct what actually happened. Event-sourcing inverts this: store the <code>events</code>, compute everything else. 
+                Journal entries become views. Account balances become projections. Financial statements become aggregations. 
+                The same event stream can produce cash basis, accrual basis, or any other valid interpretation—deterministically and auditably.
+            </p>
+        </div>
+        
+        <!-- Physics Parallel -->
+        <div class="parallel">
+            <div class="parallel-box">
+                <h4>Physics</h4>
+                <div class="parallel-item">
+                    <span class="concept">Event (spacetime point)</span>
+                    <span class="equiv">→ Invariant primitive</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">World line</span>
+                    <span class="equiv">→ Causal chain of events</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Conservation laws</span>
+                    <span class="equiv">→ Constraint equations</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Reference frame</span>
+                    <span class="equiv">→ Observer's interpretation</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Measurement</span>
+                    <span class="equiv">→ Derived quantity</span>
+                </div>
+            </div>
+            <div class="parallel-box">
+                <h4>Accounting</h4>
+                <div class="parallel-item">
+                    <span class="concept">Event</span>
+                    <span class="equiv">→ Invariant primitive</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Transaction chain</span>
+                    <span class="equiv">→ Causal chain of events</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Debits = Credits</span>
+                    <span class="equiv">→ Constraint equations</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Reporting basis</span>
+                    <span class="equiv">→ Observer's interpretation</span>
+                </div>
+                <div class="parallel-item">
+                    <span class="concept">Account balance</span>
+                    <span class="equiv">→ Derived quantity</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

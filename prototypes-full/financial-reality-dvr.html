@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reality DVR</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-forecast: #58a6ff; /* Forecast - Blue */
+            --accent-actuals: #3fb950; /* Actuals - Green */
+            --accent-event: #d29922; /* Events - Amber */
+            --accent-variance: #f85149; /* Variance - Red */
+            --font-mono: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .terminal-container {
+            width: 1100px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #010409;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            color: var(--text-muted);
+        }
+
+        .header-subtitle {
+            font-size: 11px;
+            color: #484f58;
+            font-style: italic;
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: #1f2428;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* --- MAIN STAGE (Chart & DVR) --- */
+        .stage {
+            padding: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+            background: radial-gradient(circle at center, #13171f 0%, #0d1117 100%);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            background: rgba(0,0,0,0.8);
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        .legend-item .label { color: var(--text-muted); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-forecast { background: var(--accent-forecast); }
+        .dot-actuals { background: var(--accent-actuals); }
+
+        .chart-ylabel {
+            position: absolute;
+            left: -5px;
+            top: 50%;
+            transform: rotate(-90deg) translateX(-50%);
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-xlabel {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- CONTROLS --- */
+        .controls-area {
+            background: #1c2128;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .scrubber-wrapper {
+            margin-bottom: 15px;
+        }
+
+        .scrubber-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .current-date {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .scrubber-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            background: var(--border);
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 10px;
+            background: var(--text-main);
+            margin-top: -8px;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        .scrubber-caption {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        button {
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background: #30363d;
+            border-color: var(--text-muted);
+        }
+
+        button.primary {
+            background: var(--accent-actuals);
+            color: #0d1117;
+            border: none;
+            font-weight: 600;
+        }
+        button.primary:hover { background: #2ea043; }
+
+        /* --- EVENT MARKERS --- */
+        .event-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+        .event-marker {
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid transparent;
+        }
+        .event-marker:hover { 
+            opacity: 1; 
+            border-color: var(--border);
+            background: rgba(255,255,255,0.06);
+        }
+        .marker-icon { font-size: 16px; }
+        .marker-label { color: var(--text-muted); }
+        .marker-day { 
+            font-family: var(--font-mono); 
+            font-size: 9px;
+            color: #484f58;
+        }
+
+        /* --- DASHBOARD GRID --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .metric-card {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .metric-card.highlight-variance {
+            border-color: var(--accent-variance);
+            border-width: 1px;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: var(--font-mono);
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .metric-value.forecast { color: var(--accent-forecast); }
+        .metric-value.actuals { color: var(--accent-actuals); }
+        .metric-value.variance { color: var(--accent-variance); }
+        .metric-value.neutral { color: var(--text-main); }
+
+        .metric-subtext {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .metric-subtext.positive { color: var(--accent-actuals); }
+        .metric-subtext.negative { color: var(--accent-variance); }
+
+        .confidence-bar {
+            height: 4px;
+            background: #30363d;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* --- EVENT LOG --- */
+        .event-log-section {
+            grid-column: span 4;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .event-log-header {
+            padding: 10px 15px;
+            background: #161b22;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .event-log-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .event-log-content {
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            line-height: 1.8;
+            min-height: 80px;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 0;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .event-item:last-child { border-bottom: none; }
+
+        .event-icon {
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .event-type {
+            font-size: 10px;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+
+        .event-type.cash-in { background: rgba(63, 185, 80, 0.2); color: var(--accent-actuals); }
+        .event-type.cash-out { background: rgba(248, 81, 73, 0.2); color: var(--accent-variance); }
+        .event-type.accrual { background: rgba(88, 166, 255, 0.2); color: var(--accent-forecast); }
+        .event-type.adjustment { background: rgba(210, 153, 34, 0.2); color: var(--accent-event); }
+
+        .event-description { color: var(--text-main); }
+        .event-amount { 
+            margin-left: auto; 
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .event-amount.positive { color: var(--accent-actuals); }
+        .event-amount.negative { color: var(--accent-variance); }
+
+        .event-meta {
+            font-size: 10px;
+            color: #484f58;
+            margin-top: 2px;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 11px;
+            color: #484f58;
+            border-top: 1px solid var(--border);
+            background: #010409;
+        }
+
+        /* --- EXPLAINER MODAL --- */
+        .hidden-explanation {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #161b22;
+            border: 1px solid var(--accent-forecast);
+            padding: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            z-index: 100;
+            width: 400px;
+            border-radius: 8px;
+        }
+
+        .explainer-title {
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: var(--accent-forecast);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .explainer-content {
+            font-size: 13px;
+            color: #c9d1d9;
+            line-height: 1.7;
+        }
+
+        .explainer-content p { margin: 0 0 12px 0; }
+        .explainer-content strong { color: var(--text-main); }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 99;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="terminal-container">
+    <header>
+        <div class="header-left">
+            <h1>Financial Reality DVR</h1>
+            <span class="header-subtitle">Forecast vs. Actuals with Event-Level Causality</span>
+        </div>
+        <div class="status-badge" id="status-badge">Day 30 of 30</div>
+    </header>
+
+    <div class="stage">
+        
+        <div class="chart-container">
+            <div class="chart-ylabel">Cash Position ($)</div>
+            <div class="chart-xlabel">Day of Month</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="dot dot-forecast"></div>
+                    <span class="label">Forecast</span>
+                </div>
+                <div class="legend-item">
+                    <div class="dot dot-actuals"></div>
+                    <span class="label">Actuals</span>
+                </div>
+            </div>
+            <canvas id="financeChart"></canvas>
+        </div>
+
+        <div class="controls-area">
+            
+            <div class="event-markers">
+                <div class="event-marker" onclick="jumpTo(1)">
+                    <span class="marker-icon">📋</span>
+                    <span class="marker-label">Month Start</span>
+                    <span class="marker-day">Day 1</span>
+                </div>
+                <div class="event-marker" onclick="jumpTo(8)">
+                    <span class="marker-icon">📦</span>
+                    <span class="marker-label">Inventory Received</span>
+                    <span class="marker-day">Day 8</span>
+                </div>
+                <div class="event-marker" onclick="jumpTo(12)">
+                    <span class="marker-icon">⚠️</span>
+                    <span class="marker-label">Unplanned Refund</span>
+                    <span class="marker-day">Day 12</span>
+                </div>
+                <div class="event-marker" onclick="jumpTo(18)">
+                    <span class="marker-icon">💳</span>
+                    <span class="marker-label">Customer Payment</span>
+                    <span class="marker-day">Day 18</span>
+                </div>
+                <div class="event-marker" onclick="jumpTo(26)">
+                    <span class="marker-icon">📊</span>
+                    <span class="marker-label">Reconciliation</span>
+                    <span class="marker-day">Day 26</span>
+                </div>
+            </div>
+
+            <div class="scrubber-wrapper">
+                <div class="scrubber-header">
+                    <span class="scrubber-label">Scrub Timeline</span>
+                    <span class="current-date" id="current-date">December 30</span>
+                </div>
+                <input type="range" id="timeSlider" min="0" max="30" value="30" step="1">
+                <div class="scrubber-caption">Scrub to see what we forecasted vs. what actually happened at any point in time</div>
+            </div>
+
+            <div class="button-row">
+                <button onclick="rewind()">⏮ Start of Month</button>
+                <button id="playBtn" class="primary" onclick="togglePlay()">▶ Play Month</button>
+                <button onclick="fastForward()">⏭ End of Month</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        
+        <div class="metric-card">
+            <div class="metric-label">Forecasted Cash</div>
+            <div class="metric-value forecast" id="val-forecast">$0</div>
+            <div class="metric-subtext">What we predicted</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-label">Actual Cash</div>
+            <div class="metric-value actuals" id="val-actuals">$0</div>
+            <div class="metric-subtext">Confirmed bank balance</div>
+        </div>
+
+        <div class="metric-card highlight-variance" id="variance-card">
+            <div class="metric-label">Variance</div>
+            <div class="metric-value variance" id="val-variance">$0</div>
+            <div class="metric-subtext" id="variance-subtext">Forecast − Actuals</div>
+        </div>
+
+        <div class="metric-card">
+            <div class="metric-label">Forecast Confidence</div>
+            <div class="metric-value neutral" id="val-confidence">100%</div>
+            <div class="confidence-bar"><div class="confidence-fill" id="bar-confidence" style="width: 100%"></div></div>
+            <div class="metric-subtext" id="confidence-subtext">Based on data completeness</div>
+        </div>
+
+        <div class="event-log-section">
+            <div class="event-log-header">
+                <span class="event-log-title">Event Log — Causal Chain</span>
+                <button style="font-size: 11px; padding: 4px 10px;" onclick="explainVariance()">Explain Variance</button>
+            </div>
+            <div class="event-log-content" id="event-log">
+                <div style="color: var(--text-muted); font-style: italic;">Scrub to a day to see events...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        The gap between forecast and actuals is explained by events. That's the point.
+    </footer>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeExplain()"></div>
+<div class="hidden-explanation" id="explainBox">
+    <h3 class="explainer-title">Variance Explanation</h3>
+    <div class="explainer-content" id="explainer-content">
+        <!-- Populated dynamically -->
+    </div>
+    <button onclick="closeExplain()" style="margin-top:15px; width:100%;">Close</button>
+</div>
+
+<script>
+    // --- Configuration ---
+    const days = 30;
+    const startingCash = 150000;
+    const monthName = "December";
+    
+    // --- Event Definitions ---
+    // These are the causal events that drive the numbers
+    const events = [
+        { day: 1, type: 'accrual', desc: 'Opening balance from prior month', forecastImpact: 0, actualImpact: 0, inForecast: true },
+        { day: 3, type: 'cash-out', desc: 'Payroll processed', forecastImpact: -45000, actualImpact: -45000, inForecast: true },
+        { day: 5, type: 'cash-in', desc: 'Customer invoice #1042 paid', forecastImpact: 28000, actualImpact: 28000, inForecast: true },
+        { day: 8, type: 'cash-out', desc: 'Inventory PO #887 — Net 30 triggered', forecastImpact: -18000, actualImpact: -18000, inForecast: true },
+        { day: 10, type: 'cash-in', desc: 'Subscription revenue batch', forecastImpact: 12000, actualImpact: 11200, inForecast: true, note: 'Actual $800 less due to 2 churned accounts' },
+        { day: 12, type: 'cash-out', desc: 'Customer refund — order #4455 disputed', forecastImpact: 0, actualImpact: -8500, inForecast: false, note: 'Unplanned: CS approved return not in forecast' },
+        { day: 14, type: 'cash-out', desc: 'AWS monthly invoice', forecastImpact: -6200, actualImpact: -7100, inForecast: true, note: 'Overage due to Black Friday traffic' },
+        { day: 15, type: 'accrual', desc: 'Accrued vendor liability (not yet paid)', forecastImpact: -5000, actualImpact: 0, inForecast: true, note: 'Forecast includes accrual; Actuals = cash basis' },
+        { day: 18, type: 'cash-in', desc: 'Enterprise deal closed — first payment', forecastImpact: 0, actualImpact: 35000, inForecast: false, note: 'Unplanned upside: Sales closed Q1 deal early' },
+        { day: 20, type: 'cash-out', desc: 'Marketing campaign spend', forecastImpact: -15000, actualImpact: -15000, inForecast: true },
+        { day: 22, type: 'cash-in', desc: 'Customer invoice #1051 paid', forecastImpact: 22000, actualImpact: 22000, inForecast: true },
+        { day: 24, type: 'cash-out', desc: 'Contractor payments', forecastImpact: -8000, actualImpact: -8000, inForecast: true },
+        { day: 26, type: 'adjustment', desc: 'Month-end reconciliation adjustment', forecastImpact: 0, actualImpact: 0, inForecast: true, note: 'Forecast updated to reflect actuals' },
+        { day: 28, type: 'cash-in', desc: 'Partner revenue share received', forecastImpact: 9500, actualImpact: 9500, inForecast: true },
+    ];
+
+    // --- Generate Cumulative Data ---
+    const dataForecast = [];
+    const dataActuals = [];
+    
+    let runningForecast = startingCash;
+    let runningActuals = startingCash;
+    
+    for (let i = 0; i <= days; i++) {
+        // Apply events for this day
+        const dayEvents = events.filter(e => e.day === i);
+        
+        dayEvents.forEach(e => {
+            runningForecast += e.forecastImpact;
+            runningActuals += e.actualImpact;
+        });
+        
+        // After day 26, forecast "catches up" to actuals (reconciliation)
+        if (i >= 26) {
+            runningForecast = runningActuals;
+        }
+        
+        dataForecast.push(runningForecast);
+        dataActuals.push(runningActuals);
+    }
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('financeChart');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('timeSlider');
+    const valForecast = document.getElementById('val-forecast');
+    const valActuals = document.getElementById('val-actuals');
+    const valVariance = document.getElementById('val-variance');
+    const varianceCard = document.getElementById('variance-card');
+    const varianceSubtext = document.getElementById('variance-subtext');
+    const valConfidence = document.getElementById('val-confidence');
+    const barConfidence = document.getElementById('bar-confidence');
+    const confidenceSubtext = document.getElementById('confidence-subtext');
+    const eventLog = document.getElementById('event-log');
+    const currentDateEl = document.getElementById('current-date');
+    const statusBadge = document.getElementById('status-badge');
+    const playBtn = document.getElementById('playBtn');
+
+    // --- Resize Canvas ---
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        drawChart(parseInt(slider.value));
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Format Currency ---
+    function formatCurrency(val) {
+        const absVal = Math.abs(val);
+        const formatted = '$' + absVal.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        return val < 0 ? '-' + formatted : formatted;
+    }
+
+    // --- Drawing Logic ---
+    function drawChart(currentDay) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 40;
+        
+        // Scales
+        const allVals = [...dataForecast.slice(0, currentDay + 1), ...dataActuals.slice(0, currentDay + 1)];
+        const maxVal = Math.max(...allVals) * 1.05;
+        const minVal = Math.min(...allVals) * 0.95;
+        const range = maxVal - minVal;
+        
+        function getX(day) { return padding + (day / days) * (width - 2 * padding); }
+        function getY(val) { return height - padding - ((val - minVal) / range) * (height - 2 * padding); }
+
+        // Draw grid lines
+        ctx.strokeStyle = '#21262d';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+            const y = padding + (i / 4) * (height - 2 * padding);
+            ctx.beginPath();
+            ctx.moveTo(padding, y);
+            ctx.lineTo(width - padding, y);
+            ctx.stroke();
+        }
+
+        // Draw variance area (shaded region between lines)
+        if (currentDay > 0) {
+            ctx.beginPath();
+            ctx.moveTo(getX(0), getY(dataForecast[0]));
+            
+            for (let i = 1; i <= currentDay; i++) {
+                ctx.lineTo(getX(i), getY(dataForecast[i]));
+            }
+            for (let i = currentDay; i >= 0; i--) {
+                ctx.lineTo(getX(i), getY(dataActuals[i]));
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(248, 81, 73, 0.1)';
+            ctx.fill();
+        }
+
+        // Draw Forecast line (Blue)
+        ctx.beginPath();
+        ctx.strokeStyle = '#58a6ff';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.moveTo(getX(0), getY(dataForecast[0]));
+        
+        for (let i = 1; i <= currentDay; i++) {
+            ctx.lineTo(getX(i), getY(dataForecast[i]));
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw Actuals line (Green)
+        ctx.beginPath();
+        ctx.strokeStyle = '#3fb950';
+        ctx.lineWidth = 3;
+        ctx.moveTo(getX(0), getY(dataActuals[0]));
+        
+        for (let i = 1; i <= currentDay; i++) {
+            ctx.lineTo(getX(i), getY(dataActuals[i]));
+        }
+        ctx.stroke();
+
+        // Draw event markers on chart
+        events.filter(e => e.day <= currentDay && e.day > 0).forEach(e => {
+            const x = getX(e.day);
+            const y = getY(dataActuals[e.day]);
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            
+            if (!e.inForecast) {
+                ctx.fillStyle = '#d29922'; // Amber for unplanned
+            } else if (e.forecastImpact !== e.actualImpact) {
+                ctx.fillStyle = '#f85149'; // Red for variance
+            } else {
+                ctx.fillStyle = '#3fb950'; // Green for on-plan
+            }
+            ctx.fill();
+        });
+
+        // Draw Scrubber Line
+        const scrubberX = getX(currentDay);
+        ctx.beginPath();
+        ctx.strokeStyle = '#c9d1d9';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1;
+        ctx.moveTo(scrubberX, padding);
+        ctx.lineTo(scrubberX, height - padding);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Update Dashboard
+        updateDashboard(currentDay);
+    }
+
+    // --- Dashboard Logic ---
+    function updateDashboard(day) {
+        const forecast = dataForecast[day];
+        const actuals = dataActuals[day];
+        const variance = forecast - actuals;
+        
+        // Update values
+        valForecast.innerText = formatCurrency(forecast);
+        valActuals.innerText = formatCurrency(actuals);
+        valVariance.innerText = formatCurrency(variance);
+        
+        // Variance styling
+        if (Math.abs(variance) < 100) {
+            valVariance.className = 'metric-value neutral';
+            varianceCard.classList.remove('highlight-variance');
+            varianceSubtext.innerText = 'On target';
+            varianceSubtext.className = 'metric-subtext';
+        } else if (variance > 0) {
+            valVariance.className = 'metric-value variance';
+            varianceCard.classList.add('highlight-variance');
+            varianceSubtext.innerText = 'Forecast higher than actuals';
+            varianceSubtext.className = 'metric-subtext negative';
+        } else {
+            valVariance.className = 'metric-value actuals';
+            varianceCard.classList.remove('highlight-variance');
+            varianceSubtext.innerText = 'Actuals exceed forecast';
+            varianceSubtext.className = 'metric-subtext positive';
+        }
+
+        // Confidence logic based on how many events are reconciled
+        const eventsToDate = events.filter(e => e.day <= day);
+        const unreconciledEvents = eventsToDate.filter(e => !e.inForecast || e.forecastImpact !== e.actualImpact);
+        const confidence = day >= 26 ? 98 : Math.max(40, 100 - (unreconciledEvents.length * 12));
+        
+        valConfidence.innerText = Math.round(confidence) + '%';
+        barConfidence.style.width = confidence + '%';
+        
+        if (confidence >= 90) {
+            barConfidence.style.backgroundColor = '#3fb950';
+            confidenceSubtext.innerText = 'Fully reconciled';
+        } else if (confidence >= 70) {
+            barConfidence.style.backgroundColor = '#58a6ff';
+            confidenceSubtext.innerText = 'Minor variances pending';
+        } else if (confidence >= 50) {
+            barConfidence.style.backgroundColor = '#d29922';
+            confidenceSubtext.innerText = 'Unplanned events detected';
+        } else {
+            barConfidence.style.backgroundColor = '#f85149';
+            confidenceSubtext.innerText = 'Significant unexplained variance';
+        }
+
+        // Update date display
+        currentDateEl.innerText = `${monthName} ${day}`;
+        statusBadge.innerText = `Day ${day} of ${days}`;
+
+        // Update event log
+        updateEventLog(day);
+    }
+
+    // --- Event Log ---
+    function updateEventLog(day) {
+        const dayEvents = events.filter(e => e.day === day);
+        const recentEvents = events.filter(e => e.day <= day && e.day >= Math.max(0, day - 3)).reverse();
+        
+        if (recentEvents.length === 0) {
+            eventLog.innerHTML = '<div style="color: var(--text-muted); font-style: italic;">No events recorded yet...</div>';
+            return;
+        }
+
+        let html = '';
+        recentEvents.forEach(e => {
+            const isToday = e.day === day;
+            const amountClass = e.actualImpact >= 0 ? 'positive' : 'negative';
+            const typeClass = e.type;
+            
+            html += `
+                <div class="event-item" style="${isToday ? 'background: rgba(255,255,255,0.03); margin: 0 -15px; padding: 8px 15px;' : ''}">
+                    <div class="event-icon">${getEventIcon(e.type)}</div>
+                    <div style="flex: 1;">
+                        <div>
+                            <span class="event-type ${typeClass}">${e.type.replace('-', ' ')}</span>
+                            <span class="event-description">${e.desc}</span>
+                        </div>
+                        ${e.note ? `<div class="event-meta">↳ ${e.note}</div>` : ''}
+                        ${!e.inForecast ? '<div class="event-meta" style="color: #d29922;">⚠ Not in original forecast</div>' : ''}
+                    </div>
+                    <div class="event-amount ${amountClass}">${formatCurrency(e.actualImpact)}</div>
+                </div>
+            `;
+        });
+        
+        eventLog.innerHTML = html;
+    }
+
+    function getEventIcon(type) {
+        switch(type) {
+            case 'cash-in': return '💵';
+            case 'cash-out': return '💸';
+            case 'accrual': return '📋';
+            case 'adjustment': return '🔧';
+            default: return '•';
+        }
+    }
+
+    // --- Controls ---
+    let isPlaying = false;
+    let playInterval;
+
+    slider.addEventListener('input', (e) => {
+        drawChart(parseInt(e.target.value));
+        if (isPlaying) togglePlay();
+    });
+
+    function togglePlay() {
+        if (isPlaying) {
+            clearInterval(playInterval);
+            playBtn.innerText = "▶ Play Month";
+            isPlaying = false;
+        } else {
+            playBtn.innerText = "⏸ Pause";
+            isPlaying = true;
+            playInterval = setInterval(() => {
+                let val = parseInt(slider.value);
+                if (val < days) {
+                    slider.value = val + 1;
+                    drawChart(val + 1);
+                } else {
+                    togglePlay();
+                }
+            }, 300);
+        }
+    }
+
+    function rewind() {
+        slider.value = 0;
+        drawChart(0);
+    }
+
+    function fastForward() {
+        slider.value = 30;
+        drawChart(30);
+    }
+
+    function jumpTo(day) {
+        slider.value = day;
+        drawChart(day);
+    }
+
+    // --- Variance Explainer Modal ---
+    function explainVariance() {
+        const day = parseInt(slider.value);
+        const variance = dataForecast[day] - dataActuals[day];
+        
+        // Find events causing variance
+        const varianceEvents = events.filter(e => e.day <= day && (!e.inForecast || e.forecastImpact !== e.actualImpact));
+        
+        let html = '';
+        
+        if (Math.abs(variance) < 100) {
+            html = '<p>✓ <strong>No significant variance.</strong> Forecast and actuals are aligned.</p>';
+        } else {
+            html = `<p>Total variance of <strong>${formatCurrency(variance)}</strong> is explained by:</p>`;
+            
+            varianceEvents.forEach(e => {
+                const eventVariance = e.forecastImpact - e.actualImpact;
+                if (eventVariance !== 0 || !e.inForecast) {
+                    html += `<p>• <strong>Day ${e.day}:</strong> ${e.desc}<br>`;
+                    if (!e.inForecast) {
+                        html += `<span style="color: #d29922;">Unplanned event: ${formatCurrency(e.actualImpact)}</span>`;
+                    } else {
+                        html += `<span style="color: #f85149;">Variance: ${formatCurrency(eventVariance)}</span>`;
+                    }
+                    if (e.note) {
+                        html += `<br><span style="color: #8b949e; font-size: 11px;">${e.note}</span>`;
+                    }
+                    html += '</p>';
+                }
+            });
+        }
+        
+        document.getElementById('explainer-content').innerHTML = html;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('explainBox').style.display = 'block';
+    }
+
+    function closeExplain() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('explainBox').style.display = 'none';
+    }
+
+    // Init
+    resizeCanvas();
+    drawChart(30);
+
+</script>
+
+</body>
+</html>

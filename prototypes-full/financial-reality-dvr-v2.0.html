@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reality DVR v2.0 (Commercial Context)</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-cyan: #39c5bb;
+            --accent-pink: #ff7b72;
+            --accent-green: #2ea043;
+            --font-mono: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .terminal-container {
+            width: 1100px; /* Widened for better table */
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: 95vh;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #010409;
+        }
+
+        h1 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 0; }
+        .status-badge { font-family: var(--font-mono); font-size: 12px; background: #1f2428; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); }
+
+        /* --- CHART --- */
+        .stage { padding: 20px; flex-shrink: 0; }
+        .chart-container {
+            position: relative;
+            height: 180px;
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+            background: radial-gradient(circle at center, #13171f 0%, #0d1117 100%);
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* --- CONTROLS --- */
+        .controls-area { background: #1c2128; padding: 15px; border-radius: 6px; border: 1px solid var(--border); }
+        .scrubber-wrapper { margin-bottom: 10px; }
+        input[type=range] { width: 100%; background: transparent; cursor: pointer; -webkit-appearance: none; }
+        input[type=range]::-webkit-slider-runnable-track { background: var(--border); height: 4px; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 8px; background: var(--text-main); margin-top: -6px; border-radius: 2px; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        
+        .tape-markers { display: flex; justify-content: space-between; margin-bottom: 10px; padding: 0 10px; }
+        .tape-marker { font-size: 10px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tape-marker:hover { opacity: 1; }
+
+        /* --- METRICS --- */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; padding: 0 20px 20px 20px; }
+        .metric-card { background: #0d1117; border: 1px solid var(--border); padding: 15px; border-radius: 6px; }
+        .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .metric-value { font-family: var(--font-mono); font-size: 24px; font-weight: 600; }
+
+        /* --- LOG TABLE (REDESIGNED) --- */
+        .log-section { padding: 0 20px 20px 20px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .log-header { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        
+        .table-wrapper { border: 1px solid var(--border); border-radius: 6px; overflow-y: auto; background: #0d1117; height: 250px; }
+        table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+        
+        th { text-align: left; padding: 10px 15px; background: #161b22; color: var(--text-muted); position: sticky; top: 0; border-bottom: 1px solid var(--border); font-weight: 500; }
+        td { padding: 10px 15px; border-bottom: 1px solid #21262d; color: var(--text-main); vertical-align: top; }
+        tr:hover td { background: #1c2128; }
+
+        /* Column Styles */
+        .col-trigger { font-weight: 600; color: #fff; width: 25%; }
+        .col-erp { color: var(--accent-cyan); width: 20%; opacity: 0.9; }
+        .col-actual { color: var(--accent-pink); width: 20%; font-weight: 600; }
+        .col-verdict { color: var(--text-muted); font-style: italic; width: 30%; }
+        
+        .strikethrough { text-decoration: line-through; opacity: 0.5; margin-right: 5px; }
+
+        /* --- FOOTER --- */
+        footer { text-align: center; padding: 10px; font-size: 11px; color: #484f58; border-top: 1px solid var(--border); background: #010409; }
+
+    </style>
+</head>
+<body>
+
+<div class="terminal-container">
+    <header>
+        <h1>Financial Reality DVR <span style="font-size:10px; opacity: 0.6;">// Commercial Logic</span></h1>
+        <div class="status-badge">Mode: RECONCILIATION</div>
+    </header>
+
+    <div class="stage">
+        <div class="chart-container">
+            <canvas id="financeChart"></canvas>
+        </div>
+
+        <div class="controls-area">
+            <div class="tape-markers">
+                <div class="tape-marker" onclick="jumpTo(5)"><span>🟢 Day 5</span></div>
+                <div class="tape-marker" onclick="jumpTo(12)"><span>🟡 Day 12</span></div>
+                <div class="tape-marker" onclick="jumpTo(19)"><span>🟥 Day 19</span></div>
+                <div class="tape-marker" onclick="jumpTo(26)"><span>🏁 Day 26</span></div>
+            </div>
+            <div class="scrubber-wrapper">
+                <input type="range" id="timeSlider" min="0" max="30" value="30" step="1">
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="metric-card">
+            <div class="metric-label">Variance Gap</div>
+            <div class="metric-value" id="val-limbo">$0.00</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Forecast Integrity</div>
+            <div class="metric-value" id="val-conf">100%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Events Logged</div>
+            <div class="metric-value" id="val-events">0</div>
+        </div>
+    </div>
+
+    <div class="log-section">
+        <div class="log-header">
+            <span>Commercial Event Log</span>
+            <span>Current View: Day <span id="log-day-display">30</span></span>
+        </div>
+        <div class="table-wrapper">
+            <table id="eventTable">
+                <thead>
+                    <tr>
+                        <th width="5%">Day</th>
+                        <th class="col-trigger">Commercial Trigger</th>
+                        <th class="col-erp">ERP Expectation (Forecast)</th>
+                        <th class="col-actual">Cash Reality (Actuals)</th>
+                        <th class="col-verdict">Reconciliation Verdict</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        "Confidence is measuring the distance between the spreadsheet and the bank account."
+    </footer>
+</div>
+
+<script>
+    const days = 30;
+    const dataKnown = [];
+    const dataActual = [];
+    
+    // --- Data Gen ---
+    let baseValue = 50000;
+    for(let i=0; i<=days; i++) {
+        let noise = (Math.random() - 0.5) * 500;
+        let actualVal = baseValue + noise + (i * 200);
+        let knownVal = baseValue + noise + (i * 200);
+
+        if (i > 12) actualVal -= 15000; // The Hit
+        if (i > 12 && i < 26) knownVal += (i*100); // The Delusion
+        else if (i >= 26) knownVal = actualVal; // The Fix
+
+        dataActual.push(actualVal);
+        dataKnown.push(knownVal);
+    }
+
+    // --- COMMERCIAL EVENTS DATABASE ---
+    // This is the rewritten language focusing on Commercial vs ERP vs Actuals
+    const eventsDB = [
+        { 
+            day: 2, 
+            trigger: "SaaS Tool Renewal (Auto)", 
+            erp: "Accrued: $2,000", 
+            actual: "Settled: $2,000", 
+            verdict: "Matched. Predictable spend." 
+        },
+        { 
+            day: 5, 
+            trigger: "Client 'BigCorp' Payment", 
+            erp: "Forecast: Inbound $12k", 
+            actual: "Cleared: $12,000", 
+            verdict: "Matched. Sales team hero moment." 
+        },
+        { 
+            day: 12, 
+            trigger: "AWS Usage Spike (Q3)", 
+            erp: "Flat Forecast: $0", 
+            actual: "Auto-Debit: -$15,000", 
+            verdict: "⚠️ Engineering scaled servers without updating Finance. Variance created." 
+        },
+        { 
+            day: 15, 
+            trigger: "Mid-Month Payroll", 
+            erp: "Expected: $45,000", 
+            actual: "Cleared: $45,000", 
+            verdict: "Matched. Humans paid successfully." 
+        },
+        { 
+            day: 19, 
+            trigger: "New Hire Equipment", 
+            erp: "CapEx Budget: $5k", 
+            actual: "Pending (Card Not Charged)", 
+            verdict: "Lag. Procurement delay at vendor." 
+        },
+        { 
+            day: 22, 
+            trigger: "Consultant Retainer", 
+            erp: "AP Scheduled: Day 15", 
+            actual: "Cleared: Day 22", 
+            verdict: "Drift. We held cash 7 extra days (Float benefit)." 
+        },
+        { 
+            day: 26, 
+            trigger: "Manual Ledger Adjustment", 
+            erp: "<span class='strikethrough'>$0</span> -> -$15,000", 
+            actual: "Already Realized", 
+            verdict: "🏁 Accounting finally booked the AWS overage. Reality synced." 
+        }
+    ];
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('financeChart');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('timeSlider');
+    const logBody = document.getElementById('logBody');
+    const logDayDisplay = document.getElementById('log-day-display');
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        drawChart(slider.value);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Draw Logic ---
+    function drawChart(currentDay) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const width = canvas.width, height = canvas.height, padding = 10;
+        
+        const maxVal = Math.max(...dataKnown, ...dataActual) * 1.1;
+        const minVal = Math.min(...dataKnown, ...dataActual) * 0.9;
+        const range = maxVal - minVal;
+        
+        function getX(day) { return padding + (day / days) * (width - 2 * padding); }
+        function getY(val) { return height - padding - ((val - minVal) / range) * (height - 2 * padding); }
+
+        // Actual (Pink)
+        ctx.beginPath(); ctx.strokeStyle = '#ff7b72'; ctx.lineWidth = 3;
+        ctx.moveTo(getX(0), getY(dataActual[0]));
+        for(let i=1; i<=currentDay; i++) ctx.lineTo(getX(i), getY(dataActual[i]));
+        ctx.stroke();
+
+        // Known (Cyan)
+        ctx.beginPath(); ctx.strokeStyle = '#39c5bb'; ctx.lineWidth = 3;
+        ctx.moveTo(getX(0), getY(dataKnown[0]));
+        for(let i=1; i<=currentDay; i++) ctx.lineTo(getX(i), getY(dataKnown[i]));
+        ctx.stroke();
+
+        // Scrubber
+        const sX = getX(currentDay);
+        ctx.beginPath(); ctx.strokeStyle = '#fff'; ctx.setLineDash([5, 5]); ctx.moveTo(sX, 0); ctx.lineTo(sX, height); ctx.stroke(); ctx.setLineDash([]);
+
+        updateTable(currentDay);
+        updateMetrics(currentDay);
+    }
+
+    function updateMetrics(day) {
+        const diff = Math.abs(dataKnown[day] - dataActual[day]);
+        document.getElementById('val-limbo').innerText = "$" + diff.toLocaleString();
+        
+        let conf = 100;
+        if (day > 12 && day < 26) conf = 41;
+        if (day >= 26) conf = 98;
+        document.getElementById('val-conf').innerText = conf + "%";
+        document.getElementById('val-conf').style.color = conf < 90 ? '#ff7b72' : '#2ea043';
+    }
+
+    function updateTable(day) {
+        logDayDisplay.innerText = day;
+        logBody.innerHTML = "";
+        
+        // Show events up to current day
+        const visibleEvents = eventsDB.filter(e => e.day <= day);
+        document.getElementById('val-events').innerText = visibleEvents.length;
+
+        if (visibleEvents.length === 0) {
+            logBody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#8b949e;'>No commercial events recorded.</td></tr>";
+            return;
+        }
+
+        visibleEvents.forEach(e => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="color:#8b949e;">${e.day}</td>
+                <td class="col-trigger">${e.trigger}</td>
+                <td class="col-erp">${e.erp}</td>
+                <td class="col-actual">${e.actual}</td>
+                <td class="col-verdict">${e.verdict}</td>
+            `;
+            logBody.appendChild(row);
+        });
+        
+        // Auto scroll
+        const wrapper = document.querySelector('.table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    function jumpTo(d) { slider.value = d; drawChart(d); }
+    slider.addEventListener('input', (e) => drawChart(parseInt(e.target.value)));
+
+    // Init
+    resizeCanvas();
+    drawChart(30);
+
+</script>
+</body>
+</html>

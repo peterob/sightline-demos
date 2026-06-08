@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>As-Known-Then Replay Proof</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+        
+        h2 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #666;
+            margin-bottom: 16px;
+            margin-top: 32px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            margin-bottom: 24px;
+        }
+        
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            background: #141418;
+            border: 1px solid #2a2a30;
+            color: #888;
+            font-weight: 500;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border: 1px solid #2a2a30;
+            color: #ccc;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+        }
+        
+        tr:hover td {
+            background: #141418;
+        }
+        
+        .event-type { color: #60a5fa; }
+        .timestamp { color: #888; }
+        .amount { text-align: right; color: #4ade80; }
+        .amount.negative { color: #f87171; }
+        
+        .controls {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .control-group label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #666;
+        }
+        
+        select {
+            background: #0a0a0f;
+            border: 1px solid #2a2a30;
+            color: #e0e0e0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #2563eb;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 32px;
+        }
+        
+        .result-box {
+            background: #141418;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .result-box h3 {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        
+        .balance {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .balance.cash { color: #4ade80; }
+        
+        .meta {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        .lineage { margin-top: 24px; }
+        
+        .lineage-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid #1a1a1f;
+            font-size: 0.75rem;
+        }
+        
+        .lineage-item:last-child { border-bottom: none; }
+        
+        .lineage-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3b82f6;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        
+        .lineage-content { flex: 1; }
+        .lineage-event { color: #aaa; }
+        .lineage-time { color: #555; font-size: 0.7rem; }
+        .lineage-amount { color: #4ade80; font-family: 'SF Mono', Monaco, monospace; }
+        .lineage-amount.negative { color: #f87171; }
+        
+        .diff {
+            margin-top: 32px;
+            padding: 20px;
+            background: #0f1419;
+            border: 1px solid #1e3a5f;
+            border-radius: 8px;
+        }
+        
+        .diff h3 {
+            font-size: 0.8rem;
+            color: #60a5fa;
+            margin-bottom: 12px;
+        }
+        
+        .diff-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.8rem;
+        }
+        
+        .diff-label { color: #888; }
+        .diff-value { font-family: 'SF Mono', Monaco, monospace; }
+        .diff-value.match { color: #4ade80; }
+        .diff-value.mismatch { color: #f87171; }
+        
+        .scenario {
+            background: #0f1419;
+            border: 1px solid #2a2a30;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+        
+        .scenario h3 {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+        
+        .scenario p {
+            font-size: 0.85rem;
+            color: #888;
+            line-height: 1.6;
+        }
+        
+        .scenario code {
+            background: #1a1a2e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>As-Known-Then Replay Proof</h1>
+        <p class="subtitle">Demonstrating bitemporal reconstruction with sample transactions</p>
+        
+        <div class="scenario">
+            <h3>Test Scenario</h3>
+            <p>
+                A company records revenue and payments over March 2024. On <code>Mar 20</code>, they close the books 
+                showing $8,590 cash. Later, on <code>Mar 25</code>, a late invoice arrives 
+                dated <code>Mar 10</code>. Also, an FX rate correction happens on <code>Mar 22</code>. 
+                The question: can we replay the <code>Mar 20</code> close and match the original numbers?
+            </p>
+        </div>
+
+        <h2>Event Log (Bitemporal)</h2>
+        <table id="eventTable">
+            <thead>
+                <tr>
+                    <th>Event ID</th>
+                    <th>Type</th>
+                    <th>Entity</th>
+                    <th>Occurred At</th>
+                    <th>Recorded At</th>
+                    <th>Amount</th>
+                    <th>Evidence</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>Reference Data: FX Rates (Bitemporal)</h2>
+        <table id="fxTable">
+            <thead>
+                <tr>
+                    <th>Currency</th>
+                    <th>Rate</th>
+                    <th>Valid From</th>
+                    <th>Valid To</th>
+                    <th>System From</th>
+                    <th>System To</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h2>Replay Controls</h2>
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Known-At Time (System Time)</label>
+                    <select id="knownAt">
+                        <option value="2024-03-15T18:00:00Z">Mar 15, 6pm — mid-month</option>
+                        <option value="2024-03-20T23:59:59Z" selected>Mar 20, midnight — original close</option>
+                        <option value="2024-03-25T12:00:00Z">Mar 25, noon — after late event</option>
+                        <option value="2024-03-31T23:59:59Z">Mar 31, midnight — month end</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Policy Version</label>
+                    <select id="policy">
+                        <option value="v1">Cash Basis v1</option>
+                    </select>
+                </div>
+                <button onclick="runReplay()">Run Replay</button>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <div class="result-box">
+                <h3>Cash Balance (USD)</h3>
+                <div class="balance cash" id="cashBalance">$0.00</div>
+                <div class="meta" id="cashMeta">—</div>
+                <div class="lineage" id="cashLineage"></div>
+            </div>
+            <div class="result-box">
+                <h3>Revenue (Cash Received)</h3>
+                <div class="balance" id="revenueBalance">$0.00</div>
+                <div class="meta" id="revenueMeta">—</div>
+                <div class="lineage" id="revenueLineage"></div>
+            </div>
+        </div>
+
+        <div class="diff" id="diffSection">
+            <h3>Replay Match Test</h3>
+            <div id="diffContent"></div>
+        </div>
+
+        <h2>Run Manifest</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody id="manifestBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // BITEMPORAL EVENT LOG
+        const events = [
+            {
+                event_id: "EVT-001",
+                type: "payment.received",
+                entity: "Customer A",
+                occurred_at: "2024-03-05T10:00:00Z",
+                recorded_at: "2024-03-05T10:05:00Z",
+                amount: 5000,
+                currency: "USD",
+                evidence: "CHK-4521"
+            },
+            {
+                event_id: "EVT-002",
+                type: "payment.received",
+                entity: "Customer B",
+                occurred_at: "2024-03-08T14:30:00Z",
+                recorded_at: "2024-03-08T14:35:00Z",
+                amount: 3500,
+                currency: "USD",
+                evidence: "ACH-8833"
+            },
+            {
+                event_id: "EVT-003",
+                type: "payment.sent",
+                entity: "Vendor X",
+                occurred_at: "2024-03-12T09:00:00Z",
+                recorded_at: "2024-03-12T09:10:00Z",
+                amount: -2000,
+                currency: "USD",
+                evidence: "WIRE-1122"
+            },
+            {
+                event_id: "EVT-004",
+                type: "payment.received",
+                entity: "Customer C",
+                occurred_at: "2024-03-18T16:00:00Z",
+                recorded_at: "2024-03-18T16:20:00Z",
+                amount: 1000,
+                currency: "EUR",
+                evidence: "SEPA-2200"
+            },
+            // Late-arriving: occurred Mar 10, recorded Mar 25
+            {
+                event_id: "EVT-005",
+                type: "payment.received",
+                entity: "Customer D",
+                occurred_at: "2024-03-10T11:00:00Z",
+                recorded_at: "2024-03-25T09:00:00Z",
+                amount: 4500,
+                currency: "USD",
+                evidence: "CHK-7788 (late)"
+            }
+        ];
+
+        // FX RATES (BITEMPORAL)
+        const fxRates = [
+            {
+                currency: "EUR",
+                rate: 1.09,
+                valid_from: "2024-03-01",
+                valid_to: "2024-03-31",
+                system_from: "2024-03-01T00:00:00Z",
+                system_to: "2024-03-22T08:00:00Z"
+            },
+            {
+                currency: "EUR",
+                rate: 1.085,  // corrected
+                valid_from: "2024-03-01",
+                valid_to: "2024-03-31",
+                system_from: "2024-03-22T08:00:00Z",
+                system_to: "9999-12-31T23:59:59Z"
+            },
+            {
+                currency: "USD",
+                rate: 1.00,
+                valid_from: "2024-01-01",
+                valid_to: "2024-12-31",
+                system_from: "2024-01-01T00:00:00Z",
+                system_to: "9999-12-31T23:59:59Z"
+            }
+        ];
+
+        // HISTORICAL CLOSE (ground truth)
+        const historicalCloses = {
+            "2024-03-20T23:59:59Z": {
+                cash: 8590,
+                revenue: 10590,
+                events_included: ["EVT-001", "EVT-002", "EVT-003", "EVT-004"],
+                fx_eur: 1.09
+            }
+        };
+
+        // RENDER
+        function renderEventTable() {
+            const tbody = document.querySelector("#eventTable tbody");
+            tbody.innerHTML = events.map(e => `
+                <tr>
+                    <td>${e.event_id}</td>
+                    <td class="event-type">${e.type}</td>
+                    <td>${e.entity}</td>
+                    <td class="timestamp">${formatDate(e.occurred_at)}</td>
+                    <td class="timestamp">${formatDate(e.recorded_at)}</td>
+                    <td class="amount ${e.amount < 0 ? 'negative' : ''}">${e.currency} ${formatMoney(e.amount)}</td>
+                    <td>${e.evidence}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderFxTable() {
+            const tbody = document.querySelector("#fxTable tbody");
+            tbody.innerHTML = fxRates.map(r => `
+                <tr>
+                    <td>${r.currency}</td>
+                    <td>${r.rate}</td>
+                    <td class="timestamp">${r.valid_from}</td>
+                    <td class="timestamp">${r.valid_to}</td>
+                    <td class="timestamp">${formatDate(r.system_from)}</td>
+                    <td class="timestamp">${r.system_to === "9999-12-31T23:59:59Z" ? "current" : formatDate(r.system_to)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // REPLAY ENGINE
+        function runReplay() {
+            const knownAt = document.getElementById("knownAt").value;
+            const knownAtDate = new Date(knownAt);
+            
+            // Filter events known at T
+            const knownEvents = events.filter(e => new Date(e.recorded_at) <= knownAtDate);
+            
+            // Get FX rate as-known-then
+            function getFxRate(currency, systemTime) {
+                const rate = fxRates.find(r => 
+                    r.currency === currency &&
+                    new Date(r.system_from) <= new Date(systemTime) &&
+                    new Date(r.system_to) > new Date(systemTime)
+                );
+                return rate ? rate.rate : 1.0;
+            }
+            
+            // Compute
+            let cashBalance = 0;
+            let revenueBalance = 0;
+            const cashLineage = [];
+            const revenueLineage = [];
+            let fxRateUsed = null;
+            
+            knownEvents.forEach(e => {
+                const fxRate = getFxRate(e.currency, knownAt);
+                const amountUSD = e.amount * fxRate;
+                
+                if (e.currency === "EUR") fxRateUsed = fxRate;
+                
+                cashBalance += amountUSD;
+                cashLineage.push({ ...e, amountUSD });
+                
+                if (e.type === "payment.received") {
+                    revenueBalance += amountUSD;
+                    revenueLineage.push({ ...e, amountUSD });
+                }
+            });
+            
+            // Render results
+            document.getElementById("cashBalance").textContent = `$${formatMoney(cashBalance)}`;
+            document.getElementById("cashMeta").textContent = `${knownEvents.length} events known at ${formatDate(knownAt)}`;
+            
+            document.getElementById("revenueBalance").textContent = `$${formatMoney(revenueBalance)}`;
+            document.getElementById("revenueMeta").textContent = `${revenueLineage.length} inflows`;
+            
+            document.getElementById("cashLineage").innerHTML = cashLineage.map(l => `
+                <div class="lineage-item">
+                    <div class="lineage-dot"></div>
+                    <div class="lineage-content">
+                        <div class="lineage-event">${l.event_id}: ${l.type} — ${l.entity}</div>
+                        <div class="lineage-time">occurred ${formatDate(l.occurred_at)} · recorded ${formatDate(l.recorded_at)}</div>
+                    </div>
+                    <div class="lineage-amount ${l.amountUSD < 0 ? 'negative' : ''}">$${formatMoney(l.amountUSD)}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById("revenueLineage").innerHTML = revenueLineage.map(l => `
+                <div class="lineage-item">
+                    <div class="lineage-dot"></div>
+                    <div class="lineage-content">
+                        <div class="lineage-event">${l.event_id}: ${l.entity}</div>
+                        <div class="lineage-time">occurred ${formatDate(l.occurred_at)}</div>
+                    </div>
+                    <div class="lineage-amount">$${formatMoney(l.amountUSD)}</div>
+                </div>
+            `).join('');
+            
+            // Diff
+            const historical = historicalCloses[knownAt];
+            let diffHtml = '';
+            
+            if (historical) {
+                const cashMatch = Math.abs(cashBalance - historical.cash) < 0.01;
+                const revenueMatch = Math.abs(revenueBalance - historical.revenue) < 0.01;
+                const fxMatch = fxRateUsed === historical.fx_eur;
+                
+                diffHtml = `
+                    <div class="diff-row">
+                        <span class="diff-label">Cash</span>
+                        <span class="diff-value ${cashMatch ? 'match' : 'mismatch'}">
+                            Replay $${formatMoney(cashBalance)} vs Historical $${formatMoney(historical.cash)} 
+                            ${cashMatch ? '✓' : '✗'}
+                        </span>
+                    </div>
+                    <div class="diff-row">
+                        <span class="diff-label">Revenue</span>
+                        <span class="diff-value ${revenueMatch ? 'match' : 'mismatch'}">
+                            Replay $${formatMoney(revenueBalance)} vs Historical $${formatMoney(historical.revenue)}
+                            ${revenueMatch ? '✓' : '✗'}
+                        </span>
+                    </div>
+                    <div class="diff-row">
+                        <span class="diff-label">EUR/USD</span>
+                        <span class="diff-value ${fxMatch ? 'match' : 'mismatch'}">
+                            Replay ${fxRateUsed} vs Historical ${historical.fx_eur}
+                            ${fxMatch ? '✓' : '✗'}
+                        </span>
+                    </div>
+                    <div class="diff-row">
+                        <span class="diff-label">Verdict</span>
+                        <span class="diff-value ${cashMatch && revenueMatch && fxMatch ? 'match' : 'mismatch'}">
+                            ${cashMatch && revenueMatch && fxMatch ? 'REPLAY MATCHES HISTORICAL CLOSE' : 'DIFFERENCES DETECTED'}
+                        </span>
+                    </div>
+                `;
+            } else {
+                diffHtml = `
+                    <div class="diff-row">
+                        <span class="diff-label">Note</span>
+                        <span class="diff-value">No historical close for this timestamp. Exploratory replay.</span>
+                    </div>
+                    <div class="diff-row">
+                        <span class="diff-label">Events</span>
+                        <span class="diff-value">${knownEvents.map(e => e.event_id).join(', ') || 'none'}</span>
+                    </div>
+                    <div class="diff-row">
+                        <span class="diff-label">EUR/USD used</span>
+                        <span class="diff-value">${fxRateUsed || 'N/A'}</span>
+                    </div>
+                `;
+            }
+            
+            document.getElementById("diffContent").innerHTML = diffHtml;
+            
+            // Manifest
+            document.getElementById("manifestBody").innerHTML = `
+                <tr><td>replay_run_at</td><td>${new Date().toISOString()}</td></tr>
+                <tr><td>known_at</td><td>${knownAt}</td></tr>
+                <tr><td>policy_version</td><td>cash-basis-v1</td></tr>
+                <tr><td>events_count</td><td>${knownEvents.length}</td></tr>
+                <tr><td>events_ids</td><td>${knownEvents.map(e => e.event_id).join(', ')}</td></tr>
+                <tr><td>fx_eur_usd</td><td>${fxRateUsed || 'N/A'}</td></tr>
+            `;
+        }
+
+        function formatDate(iso) {
+            return new Date(iso).toLocaleDateString('en-US', { 
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+            });
+        }
+        
+        function formatMoney(n) {
+            return Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        renderEventTable();
+        renderFxTable();
+        runReplay();
+    </script>
+</body>
+</html>

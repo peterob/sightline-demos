@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAST Layer 0 — Trial Balance as Projection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink:          #0d0d0d;
+    --ink-2:        #2a2a28;
+    --paper:        #f5f1e8;
+    --paper-2:      #ede8da;
+    --paper-3:      #e1dbc9;
+    --rule:         #1a1a18;
+    --rule-soft:    #b8b09a;
+    --mute:         #6b6557;
+
+    /* Three layer accents — same hue language as buyer/seller/verifier */
+    --events:       #2d4a6b;       /* navy — source of truth */
+    --events-soft:  #d9e1ec;
+    --postings:     #7a4a1f;       /* tan — the contributions */
+    --postings-soft:#ebe0cf;
+    --projection:   #a8301a;       /* vermilion — the answer */
+    --projection-soft:#e8d4ce;
+
+    --ok:           #3d5a3a;
+    --mono:         'JetBrains Mono', ui-monospace, monospace;
+    --serif:        'Fraunces', 'Times New Roman', serif;
+    --sans:         'Inter Tight', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.5;
+    font-size: 15px;
+    background-image: radial-gradient(rgba(13,13,13,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 48px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--rule);
+  }
+  .topbar .label { color: var(--paper-3); opacity: 0.7; }
+  .topbar .ident { color: var(--paper); justify-self: end; opacity: 0.85; }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--rule);
+    padding: 28px 48px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 24px;
+  }
+  .wordmark {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .wordmark em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .masthead .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-2);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .masthead .meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .masthead .meta .role {
+    color: var(--projection);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  .masthead .meta div + div { margin-top: 2px; }
+
+  /* ---------- Sub-rule ---------- */
+  .sub-rule {
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 48px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+  }
+  .sub-rule .accent { color: var(--projection); font-weight: 600; }
+
+  /* ---------- Overview ---------- */
+  .overview {
+    padding: 40px 48px 32px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 56px;
+  }
+  .overview .lede {
+    font-family: var(--serif);
+    font-size: 28px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .overview .lede .drop {
+    font-size: 64px;
+    line-height: 0.8;
+    float: left;
+    margin: 6px 10px 0 0;
+    font-weight: 700;
+    color: var(--projection);
+  }
+  .overview .deck {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .overview .deck strong { color: var(--ink); }
+  .overview .deck p + p { margin-top: 10px; }
+
+  /* ---------- Scene ---------- */
+  .scene {
+    padding: 48px 48px 56px;
+    border-bottom: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 32px;
+  }
+  .scene-number {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.85;
+    color: var(--ink);
+    letter-spacing: -0.04em;
+  }
+  .scene-number span {
+    display: block;
+    font-size: 11px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .scene[data-accent="events"] .scene-number span { color: var(--events); }
+  .scene[data-accent="postings"] .scene-number span { color: var(--postings); }
+  .scene[data-accent="projection"] .scene-number span { color: var(--projection); }
+
+  .scene-title {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  .scene-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  .scene-sub {
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 24px;
+    max-width: 62ch;
+  }
+
+  /* ---------- Doc card (the main artifact in each scene) ---------- */
+  .doc {
+    background: #fbf8ee;
+    border: 1px solid var(--rule);
+    padding: 28px 32px 24px;
+    position: relative;
+    box-shadow: 3px 3px 0 var(--rule);
+  }
+  .doc.events    { border-left: 4px solid var(--events); }
+  .doc.postings  { border-left: 4px solid var(--postings); }
+  .doc.projection{ border-left: 4px solid var(--projection); }
+
+  .doc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .doc-header .kicker {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .doc-header .id {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+  .doc-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .doc-subtitle {
+    font-size: 13px;
+    color: var(--mute);
+    margin: 0 0 20px;
+  }
+
+  /* ---------- Events grid ---------- */
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .event-card {
+    background: var(--paper);
+    border: 1px solid var(--rule-soft);
+    padding: 14px 16px;
+    position: relative;
+  }
+  .event-card .evt-id {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--events);
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .event-card .evt-name {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+  .event-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 3px 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+  }
+  .event-card dt {
+    color: var(--mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 9.5px;
+    padding-top: 1px;
+  }
+  .event-card dd {
+    margin: 0;
+    color: var(--ink-2);
+  }
+  .event-card .seal {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--ok);
+    border-radius: 50%;
+    color: var(--ok);
+    font-size: 11px;
+    text-align: center;
+    line-height: 15px;
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  /* ---------- Postings table ---------- */
+  .postings-frame {
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    overflow-x: auto;
+  }
+  table.postings {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 11.5px;
+  }
+  table.postings th {
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--paper-3);
+    border-bottom: 1.5px solid var(--rule);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  table.postings td {
+    padding: 9px 12px;
+    border-bottom: 1px dotted var(--rule-soft);
+    white-space: nowrap;
+  }
+  table.postings tr:last-child td { border-bottom: 0; }
+  table.postings tr:hover td { background: var(--paper-2); }
+  table.postings td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.postings td.fk { color: var(--events); font-weight: 500; }
+  table.postings td.dim { color: var(--mute); }
+  .pin {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 9.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: var(--paper-3);
+    color: var(--ink-2);
+    border: 1px solid var(--rule-soft);
+  }
+  .pin.fund    { background: var(--postings-soft); color: var(--postings); border-color: var(--postings); }
+  .pin.mgmt    { background: var(--events-soft); color: var(--events); border-color: var(--events); }
+  .pin.tax     { background: #e6ecdf; color: var(--ok); border-color: var(--ok); }
+
+  /* ---------- Projection knobs ---------- */
+  .knobs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    margin-bottom: 18px;
+  }
+  .knob {
+    padding: 14px 18px;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .knob:last-child { border-right: 0; }
+  .knob .lbl {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 5px;
+  }
+  .knob .val {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .knob .val em {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 400;
+    color: var(--mute);
+    margin-left: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---------- TB output table ---------- */
+  table.tb {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.tb th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--mute);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.tb td {
+    padding: 7px 0;
+    border-top: 1px dotted var(--rule-soft);
+  }
+  table.tb td.acct {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 14px;
+  }
+  table.tb td.code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mute);
+  }
+  table.tb td.num {
+    font-family: var(--mono);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  table.tb tfoot td {
+    border-top: 1.5px solid var(--rule);
+    font-weight: 600;
+    padding-top: 12px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+  }
+  table.tb tfoot td.num { font-size: 13px; letter-spacing: 0; }
+
+  /* ---------- The function box (like dev-note styling) ---------- */
+  .formula {
+    margin-top: 20px;
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 18px 22px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1.65;
+  }
+  .formula h4 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    color: var(--paper-3);
+  }
+  .formula .ln { display: block; }
+  .formula .cm { color: rgba(255,255,255,0.45); font-style: italic; }
+  .formula .kw { color: #f0b95a; }
+  .formula .pm { color: #9bc4e2; }
+
+  /* ---------- Four-views grid ---------- */
+  .views {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .view-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 16px 18px;
+    border-left-width: 4px;
+  }
+  .view-card.mgmt    { border-left-color: var(--events); }
+  .view-card.fund    { border-left-color: var(--postings); }
+  .view-card.tax     { border-left-color: var(--ok); }
+  .view-card.consol  { border-left-color: var(--projection); }
+  .view-card .vc-tag {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .view-card.mgmt   .vc-tag { color: var(--events); }
+  .view-card.fund   .vc-tag { color: var(--postings); }
+  .view-card.tax    .vc-tag { color: var(--ok); }
+  .view-card.consol .vc-tag { color: var(--projection); }
+  .view-card .vc-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -0.005em;
+  }
+  .view-card .vc-body {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .view-card .vc-rule {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dotted var(--rule-soft);
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--mute);
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Compare panel ---------- */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .compare > div { padding: 22px 26px; }
+  .compare > div:first-child {
+    border-right: 1px solid var(--rule);
+    background: var(--paper-3);
+  }
+  .compare h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 14px;
+    color: var(--mute);
+  }
+  .compare h4.right { color: var(--projection); }
+  .compare h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 14px;
+    letter-spacing: -0.005em;
+  }
+  .compare ul { margin: 0; padding: 0; list-style: none; }
+  .compare li {
+    padding: 8px 0;
+    border-bottom: 1px dotted var(--rule-soft);
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .compare li:last-child { border-bottom: 0; }
+  .compare li::before {
+    content: '— ';
+    color: var(--mute);
+  }
+
+  /* ---------- Flow connector between scenes ---------- */
+  .scene-flow {
+    padding: 0 48px;
+    text-align: center;
+    height: 36px;
+    position: relative;
+    background: var(--paper);
+  }
+  .scene-flow::before {
+    content: '';
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1.5px;
+    background: var(--rule);
+  }
+  .scene-flow span {
+    position: relative;
+    background: var(--paper);
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    top: 8px;
+  }
+
+  /* ---------- Closing colophon ---------- */
+  .colophon {
+    padding: 24px 48px;
+    border-top: 2px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  @media (max-width: 880px) {
+    .masthead, .overview, .scene, .colophon, .sub-rule, .topbar { padding-left: 24px; padding-right: 24px; }
+    .scene { grid-template-columns: 1fr; gap: 16px; }
+    .scene-number { font-size: 64px; }
+    .events-grid, .views, .knobs { grid-template-columns: 1fr; }
+    .knob { border-right: 0; border-bottom: 1px solid var(--rule-soft); }
+    .compare { grid-template-columns: 1fr; }
+    .compare > div:first-child { border-right: 0; border-bottom: 1px solid var(--rule); }
+    .overview { grid-template-columns: 1fr; gap: 24px; }
+    .overview .lede { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="label">CAST · Layer 0</span>
+  <span style="justify-self:center;color:var(--paper-3);">Trial Balance · Projection Architecture</span>
+  <span class="ident">a16z · Corporate Finance</span>
+</div>
+
+<header class="masthead">
+  <div class="wordmark">CAST <em>· Projection Layout</em></div>
+  <div class="tagline">The trial balance is a query, not a table.</div>
+  <div class="meta">
+    <div class="role">CORPORATE FINANCE</div>
+    <div>Layer 0 + Books</div>
+    <div>v1 · 2026</div>
+  </div>
+</header>
+
+<div class="sub-rule">
+  <span>Three layers · One event log · Many projections</span>
+  <span class="accent">Same inputs · Same output · Forever</span>
+</div>
+
+<section class="overview">
+  <div class="lede">
+    <span class="drop">T</span>raditional ERPs store balances. CaST does not. Events are the source of truth, postings are immutable contributions, the trial balance is what falls out when you ask the right question of them.
+  </div>
+  <div class="deck">
+    <p><strong>What the controller sees</strong> is a familiar trial balance — accounts, debits, credits, totals tying to zero. The format is unchanged because that's what the auditor expects.</p>
+    <p><strong>What the schema guarantees</strong> is that every line on the TB is a deterministic function of signed events. There is no balance table to maintain, no period roll-forward, no parallel ledger to reconcile. The TB at any point in time, in any currency, for any entity scope, is the same query with four parameters turned.</p>
+    <p>Three scenes follow. Each one is a layer of the stack. The fourth is what you no longer need.</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SCENE 01 — EVENTS                                              -->
+<!-- ============================================================ -->
+<section class="scene" data-accent="events">
+  <div class="scene-number">
+    01
+    <span>Layer · Source of Truth</span>
+  </div>
+
+  <div>
+    <h2 class="scene-title">Events <em>— signed, immutable, append-only.</em></h2>
+    <p class="scene-sub">
+      Every fact the firm cares about enters as a signed event. Each row carries a registered agent, a versioned policy reference, a canonical payload, and a hash. No row is ever updated. No row is ever deleted. The auditor in 2031 verifies these against the same canonicalizer that signed them in 2026.
+    </p>
+
+    <div class="doc events">
+      <div class="doc-header">
+        <span class="kicker">Events · Apr 2026 sample</span>
+        <span class="id">events table</span>
+      </div>
+      <h3 class="doc-title">Eight signed facts, one event log.</h3>
+      <p class="doc-subtitle">Each card is one row in <code style="font-family:var(--mono);font-size:11.5px;">events</code>. Highlighted: the Q1 management fee event we'll trace through the next two scenes.</p>
+
+      <div class="events-grid">
+        <div class="event-card" style="border-color:var(--events);background:var(--events-soft);">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_a7c3e9f2</div>
+          <div class="evt-name">Management Fee · Q1 2026</div>
+          <dl>
+            <dt>agent</dt><dd>controller_jl</dd>
+            <dt>policy</dt><dd>mgmt_fee_v3</dd>
+            <dt>scope</dt><dd>Fund-VII ↔ MgmtCo</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_4b81d6a0</div>
+          <div class="evt-name">Payroll Run · Apr 2026</div>
+          <dl>
+            <dt>agent</dt><dd>hr_lead_mr</dd>
+            <dt>policy</dt><dd>payroll_v2</dd>
+            <dt>entity</dt><dd>AH-MgmtCo-US</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_f5e7c29b</div>
+          <div class="evt-name">Contractor SOW · K. Liu</div>
+          <dl>
+            <dt>agents</dt><dd>ops_dn, k_liu</dd>
+            <dt>policy</dt><dd>contractor_v4</dd>
+            <dt>type</dt><dd>bilateral · Deel</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_4d18a6f3</div>
+          <div class="evt-name">FX Rate Publication · 30 Apr</div>
+          <dl>
+            <dt>agent</dt><dd>treasury_sk</dd>
+            <dt>policy</dt><dd>fx_source_v1</dd>
+            <dt>pairs</dt><dd>GBP/EUR/SGD</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_e0c7b5d2</div>
+          <div class="evt-name">T&amp;E Reimbursement · #11402</div>
+          <dl>
+            <dt>agent</dt><dd>vp_finance_aw</dd>
+            <dt>policy</dt><dd>te_v5</dd>
+            <dt>entity</dt><dd>AH-MgmtCo-US</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_a4f9e1c8</div>
+          <div class="evt-name">Intercompany Funding · UK→US</div>
+          <dl>
+            <dt>agent</dt><dd>treasury_sk</dd>
+            <dt>policy</dt><dd>intercompany_v2</dd>
+            <dt>flow</dt><dd>GBP 1.2M</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_b6d3a5f7</div>
+          <div class="evt-name">Forecast Publication · FY26 H2</div>
+          <dl>
+            <dt>agent</dt><dd>coo_jb</dd>
+            <dt>policy</dt><dd>planning_v1</dd>
+            <dt>scope</dt><dd>firmwide</dd>
+          </dl>
+        </div>
+        <div class="event-card">
+          <div class="seal">✓</div>
+          <div class="evt-id">evt_e9c1b4d8</div>
+          <div class="evt-name">Period Close · Apr 2026</div>
+          <dl>
+            <dt>agent</dt><dd>controller_jl</dd>
+            <dt>policy</dt><dd>close_v2</dd>
+            <dt>entity</dt><dd>AH-MgmtCo-US</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="scene-flow"><span>generates</span></div>
+
+<!-- ============================================================ -->
+<!-- SCENE 02 — POSTINGS                                            -->
+<!-- ============================================================ -->
+<section class="scene" data-accent="postings">
+  <div class="scene-number">
+    02
+    <span>Layer · Immutable Contributions</span>
+  </div>
+
+  <div>
+    <h2 class="scene-title">Postings <em>— every row FK'd to an event.</em></h2>
+    <p class="scene-sub">
+      A single event writes into multiple books at once. Below: the five postings produced by <code style="font-family:var(--mono);font-size:12px;color:var(--events);">evt_a7c3e9f2</code>. Three books — fund, mgmt_co, tax — one event_id. No row exists without its event. No row can be edited.
+    </p>
+
+    <div class="doc postings">
+      <div class="doc-header">
+        <span class="kicker">Postings · evt_a7c3e9f2</span>
+        <span class="id">postings table</span>
+      </div>
+      <h3 class="doc-title">One event. Five postings. Three books.</h3>
+      <p class="doc-subtitle">Each row carries every dimension it will ever need: entity, book, fund, account, currency, FX reference, period. No back-filling later — old events were signed without these fields are unrecoverable.</p>
+
+      <div class="postings-frame">
+        <table class="postings">
+          <thead>
+            <tr>
+              <th>posting_id</th>
+              <th>event_id</th>
+              <th>entity</th>
+              <th>book</th>
+              <th>fund</th>
+              <th>account</th>
+              <th class="num">amount</th>
+              <th>ccy</th>
+              <th>period</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="dim">pst_001</td>
+              <td class="fk">evt_a7c3e9f2</td>
+              <td>AH-Fund-VII</td>
+              <td><span class="pin fund">fund</span></td>
+              <td>FUND-VII</td>
+              <td>6100 · Mgmt Fee Expense</td>
+              <td class="num">12,500,000.00</td>
+              <td>USD</td>
+              <td>2026-Q1</td>
+            </tr>
+            <tr>
+              <td class="dim">pst_002</td>
+              <td class="fk">evt_a7c3e9f2</td>
+              <td>AH-Fund-VII</td>
+              <td><span class="pin fund">fund</span></td>
+              <td>FUND-VII</td>
+              <td>2200 · Due to GP</td>
+              <td class="num">(12,500,000.00)</td>
+              <td>USD</td>
+              <td>2026-Q1</td>
+            </tr>
+            <tr>
+              <td class="dim">pst_003</td>
+              <td class="fk">evt_a7c3e9f2</td>
+              <td>AH-MgmtCo-US</td>
+              <td><span class="pin mgmt">mgmt_co</span></td>
+              <td class="dim">—</td>
+              <td>1200 · Due from Fund</td>
+              <td class="num">12,500,000.00</td>
+              <td>USD</td>
+              <td>2026-Q1</td>
+            </tr>
+            <tr>
+              <td class="dim">pst_004</td>
+              <td class="fk">evt_a7c3e9f2</td>
+              <td>AH-MgmtCo-US</td>
+              <td><span class="pin mgmt">mgmt_co</span></td>
+              <td class="dim">—</td>
+              <td>4100 · Mgmt Fee Revenue</td>
+              <td class="num">(12,500,000.00)</td>
+              <td>USD</td>
+              <td>2026-Q1</td>
+            </tr>
+            <tr>
+              <td class="dim">pst_005</td>
+              <td class="fk">evt_a7c3e9f2</td>
+              <td>AH-MgmtCo-US</td>
+              <td><span class="pin tax">tax</span></td>
+              <td class="dim">—</td>
+              <td>4100T · Mgmt Fee (tax basis)</td>
+              <td class="num">(12,500,000.00)</td>
+              <td>USD</td>
+              <td>2026-Q1</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="scene-flow"><span>projected as</span></div>
+
+<!-- ============================================================ -->
+<!-- SCENE 03 — TRIAL BALANCE                                       -->
+<!-- ============================================================ -->
+<section class="scene" data-accent="projection">
+  <div class="scene-number">
+    03
+    <span>Layer · Computed View</span>
+  </div>
+
+  <div>
+    <h2 class="scene-title">The Trial Balance <em>— a function of the postings, not a row.</em></h2>
+    <p class="scene-sub">
+      Set the four knobs. The TB returns. Same inputs, same output, every time, forever. No stored balances. No period roll-forward. No reconciliation between the TB and the ledger — they are the same thing, asked differently.
+    </p>
+
+    <div class="doc projection">
+      <div class="doc-header">
+        <span class="kicker">Projection · trial_balance(...)</span>
+        <span class="id">read model · v1</span>
+      </div>
+      <h3 class="doc-title">Trial Balance · AH-MgmtCo-US</h3>
+      <p class="doc-subtitle">Computed 30 April 2026 · Inputs: postings table at <code style="font-family:var(--mono);font-size:11.5px;">posted_at &le; 2026-03-31</code> + FX events for the period.</p>
+
+      <div class="knobs">
+        <div class="knob">
+          <div class="lbl">① Entity scope</div>
+          <div class="val">AH-MgmtCo-US <em>+ subs</em></div>
+        </div>
+        <div class="knob">
+          <div class="lbl">② Book</div>
+          <div class="val">mgmt_co <em>· GAAP</em></div>
+        </div>
+        <div class="knob">
+          <div class="lbl">③ Period</div>
+          <div class="val">FY26 Q1 <em>· closed</em></div>
+        </div>
+        <div class="knob">
+          <div class="lbl">④ Pres. ccy</div>
+          <div class="val">USD <em>· avg/spot</em></div>
+        </div>
+      </div>
+
+      <table class="tb">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>Code</th>
+            <th class="num" style="text-align:right;">Debits</th>
+            <th class="num" style="text-align:right;">Credits</th>
+            <th class="num" style="text-align:right;">Net (USD)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="acct">Cash &amp; equivalents</td><td class="code">1010</td><td class="num">38,420,118</td><td class="num">—</td><td class="num">38,420,118</td></tr>
+          <tr><td class="acct">Due from Fund VII</td><td class="code">1200</td><td class="num">12,500,000</td><td class="num">—</td><td class="num">12,500,000</td></tr>
+          <tr><td class="acct">Due from Fund VIII</td><td class="code">1201</td><td class="num">8,750,000</td><td class="num">—</td><td class="num">8,750,000</td></tr>
+          <tr><td class="acct">Prepaid expenses</td><td class="code">1400</td><td class="num">1,204,800</td><td class="num">—</td><td class="num">1,204,800</td></tr>
+          <tr><td class="acct">Accounts payable</td><td class="code">2010</td><td class="num">—</td><td class="num">3,118,400</td><td class="num">(3,118,400)</td></tr>
+          <tr><td class="acct">Accrued payroll</td><td class="code">2110</td><td class="num">—</td><td class="num">9,840,000</td><td class="num">(9,840,000)</td></tr>
+          <tr><td class="acct">Mgmt fee revenue</td><td class="code">4100</td><td class="num">—</td><td class="num">21,250,000</td><td class="num">(21,250,000)</td></tr>
+          <tr><td class="acct">Salaries &amp; wages</td><td class="code">5100</td><td class="num">14,720,400</td><td class="num">—</td><td class="num">14,720,400</td></tr>
+          <tr><td class="acct">T&amp;E expense</td><td class="code">5400</td><td class="num">820,180</td><td class="num">—</td><td class="num">820,180</td></tr>
+          <tr><td class="acct">Contractor expense</td><td class="code">5410</td><td class="num">2,108,400</td><td class="num">—</td><td class="num">2,108,400</td></tr>
+          <tr><td class="acct">Office &amp; G&amp;A</td><td class="code">5500</td><td class="num">1,440,202</td><td class="num">—</td><td class="num">1,440,202</td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2">Totals · 2026 Q1</td>
+            <td class="num">79,964,100</td>
+            <td class="num">79,964,100</td>
+            <td class="num">0</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="formula">
+        <h4>The projection function · committed code · v1</h4>
+        <span class="ln"><span class="cm">// pure function · same inputs always return the same TB · replayable in 2031</span></span>
+        <span class="ln"><span class="kw">function</span> trial_balance(<span class="pm">entity_scope, book, period, present_ccy</span>) →</span>
+        <span class="ln">&nbsp;&nbsp;<span class="kw">SELECT</span> account, <span class="kw">SUM</span>(translate(amount, currency, present_ccy, fx_event_id))</span>
+        <span class="ln">&nbsp;&nbsp;<span class="kw">FROM</span> postings</span>
+        <span class="ln">&nbsp;&nbsp;<span class="kw">WHERE</span> entity_id <span class="kw">IN</span> entity_scope</span>
+        <span class="ln">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">AND</span> book = book</span>
+        <span class="ln">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">AND</span> period_id <span class="kw">IN</span> periods_in(period)</span>
+        <span class="ln">&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">AND</span> event_id <span class="kw">IN</span> (<span class="kw">SELECT</span> event_id <span class="kw">FROM</span> events <span class="kw">WHERE</span> verified)</span>
+        <span class="ln">&nbsp;&nbsp;<span class="kw">GROUP BY</span> account</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SCENE 04 — FOUR VIEWS                                          -->
+<!-- ============================================================ -->
+<section class="scene" data-accent="projection">
+  <div class="scene-number">
+    04
+    <span>Layer · Same Event, Four Views</span>
+  </div>
+
+  <div>
+    <h2 class="scene-title">One event log <em>— mgmt-co, fund, tax, consol.</em></h2>
+    <p class="scene-sub">
+      The Q1 management fee event produces postings in four books simultaneously. Fund accounting, mgmt-co accounting, tax, and consolidation are not parallel teams reconciling to each other. They are four queries over one substrate.
+    </p>
+
+    <div class="doc projection">
+      <div class="doc-header">
+        <span class="kicker">Multi-book projection · evt_a7c3e9f2</span>
+        <span class="id">books × projections</span>
+      </div>
+      <h3 class="doc-title">The same fact, four ways.</h3>
+      <p class="doc-subtitle">Each card is a different value of the <code style="font-family:var(--mono);font-size:11.5px;">book</code> parameter — same event_id, different recognition policy, different downstream view.</p>
+
+      <div class="views">
+        <div class="view-card mgmt">
+          <div class="vc-tag">BOOK · MGMT_CO · GAAP</div>
+          <div class="vc-title">Management Company</div>
+          <div class="vc-body">Recognizes USD 12.5M as fee revenue when invoiced. Due-from-Fund receivable on the balance sheet. This is what the controller and LP reporting see.</div>
+          <div class="vc-rule">policy: mgmt_co_gaap_v3<br>entity: AH-MgmtCo-US<br>postings: pst_003, pst_004</div>
+        </div>
+        <div class="view-card fund">
+          <div class="vc-tag">BOOK · FUND</div>
+          <div class="vc-title">Fund NAV</div>
+          <div class="vc-body">Same USD 12.5M as fee expense at Fund VII. Due-to-GP payable. Reduces NAV by exactly the symmetric number — by construction, not by reconciliation.</div>
+          <div class="vc-rule">policy: fund_acct_v2<br>fund: FUND-VII<br>postings: pst_001, pst_002</div>
+        </div>
+        <div class="view-card tax">
+          <div class="vc-tag">BOOK · TAX</div>
+          <div class="vc-title">Tax Provision</div>
+          <div class="vc-body">Recognizes the fee under tax-basis timing rules — may differ from GAAP timing. Same underlying event, different recognition policy. Tax book never reconciles to GAAP — it answers a different question.</div>
+          <div class="vc-rule">policy: us_tax_basis_v4<br>jurisdiction: US-DE<br>postings: pst_005</div>
+        </div>
+        <div class="view-card consol">
+          <div class="vc-tag">BOOK · CONSOL</div>
+          <div class="vc-title">Consolidated</div>
+          <div class="vc-body">Eliminates intercompany pairs (mgmt-co revenue ↔ fund expense) when entities consolidate. For a16z funds: typically not consolidated with mgmt-co — the elimination logic respects this by policy.</div>
+          <div class="vc-rule">policy: consol_v1<br>elim_pair: ic_2026_q1_mgmt_fee<br>scope: ownership tree</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SCENE 05 — WHAT THIS REPLACES                                  -->
+<!-- ============================================================ -->
+<section class="scene" data-accent="projection">
+  <div class="scene-number">
+    05
+    <span>What this replaces</span>
+  </div>
+
+  <div>
+    <h2 class="scene-title">Stored balances <em>vs.</em> projected balances.</h2>
+    <p class="scene-sub">
+      The architectural choice is not "better reporting." It is which artifact is the source of truth. Once balances stop being data and become an answer to a question about data, half the operational machinery a traditional ERP requires has nothing to do.
+    </p>
+
+    <div class="compare">
+      <div>
+        <h4>Traditional ERP</h4>
+        <h3>The TB is a stored table.</h3>
+        <ul>
+          <li><code style="font-family:var(--mono);font-size:12px;">gl_balances</code> row updated on every journal post</li>
+          <li>Period-end procedure rolls balances forward</li>
+          <li>Reconciliation reports prove balances tie to journals</li>
+          <li>FX revaluation runs rewrite balance rows in place</li>
+          <li>Restatement = rewriting historical balance rows</li>
+          <li>Parallel ledgers for tax, statutory, fund accounting</li>
+          <li>"TB as of date X" requires a stored snapshot</li>
+          <li>Audit support assembled from multiple extracts</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="right">CaST</h4>
+        <h3>The TB is a query.</h3>
+        <ul>
+          <li>Postings are immutable — no balance table to maintain</li>
+          <li>Period close is a signed event, not a procedure</li>
+          <li>Nothing to reconcile — TB <em>is</em> the postings, projected</li>
+          <li>FX revaluation is a query against signed FX events</li>
+          <li>Restatement = new policy version + replay projection</li>
+          <li>One event log; books are projection parameters</li>
+          <li>"TB as of date X" is the projection at that timestamp</li>
+          <li>Audit support is one join from any TB line</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="colophon">
+  <span>CAST · Layer 0 + Books</span>
+  <span>Trial Balance as Projection</span>
+  <span>v1 · 2026 · a16z Corporate Finance</span>
+</div>
+
+</body>
+</html>

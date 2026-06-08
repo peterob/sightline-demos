@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Semantic Corruption: Actions vs Accounts</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .panel {
+            background: #12121a;
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .panel.wrong {
+            border-color: #5a2a2a;
+        }
+        
+        .panel.right {
+            border-color: #2a5a3a;
+        }
+        
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .panel-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .panel.wrong .panel-badge {
+            background: #3d1f1f;
+            color: #ff6b6b;
+        }
+        
+        .panel.right .panel-badge {
+            background: #1f3d2a;
+            color: #6bff8b;
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .diagram-area {
+            background: #0a0a0f;
+            border-radius: 12px;
+            padding: 30px;
+            min-height: 350px;
+            position: relative;
+        }
+        
+        /* Traditional 3D Diagram */
+        .traditional-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .account-box {
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 140px;
+        }
+        
+        .account-box.balance-sheet {
+            background: #1a2a4a;
+            border: 2px solid #3a5a8a;
+            color: #8ab4f8;
+        }
+        
+        .account-box.income-stmt {
+            background: #2a1a4a;
+            border: 2px solid #5a3a8a;
+            color: #b48af8;
+        }
+        
+        .account-box.corrupted {
+            background: #3d1f2f;
+            border: 2px dashed #ff6b6b;
+            color: #ff8a8a;
+            position: relative;
+        }
+        
+        .account-box.corrupted::after {
+            content: "⚠️";
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 1.2rem;
+        }
+        
+        .flow-arrow {
+            color: #666;
+            font-size: 1.5rem;
+        }
+        
+        .account-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .dimension-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        /* 4D Diagram */
+        .fourd-diagram {
+            position: relative;
+            height: 100%;
+        }
+        
+        .axis-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            height: 100%;
+        }
+        
+        .axis-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .axis-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+        }
+        
+        .axis-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .axis-item {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .axis-item.action {
+            background: linear-gradient(135deg, #2d4a1f 0%, #1f3d2a 100%);
+            border-left: 3px solid #6bff8b;
+            color: #a8ffb8;
+        }
+        
+        .axis-item.account {
+            background: linear-gradient(135deg, #1a2a4a 0%, #1f2a3d 100%);
+            border-left: 3px solid #6b9fff;
+            color: #a8d4ff;
+        }
+        
+        /* Event Card */
+        .event-card {
+            background: #1a1a2a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px solid #3a3a5a;
+        }
+        
+        .event-title {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        
+        .event-tuple {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .tuple-part {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .tuple-part.flow {
+            background: #3d2a1f;
+            color: #ffb86b;
+        }
+        
+        .tuple-part.action {
+            background: #1f3d2a;
+            color: #6bff8b;
+        }
+        
+        .tuple-part.tail {
+            background: #1f2a3d;
+            color: #6b9fff;
+        }
+        
+        .tuple-part.head {
+            background: #2a1f3d;
+            color: #b48af8;
+        }
+        
+        .tuple-separator {
+            color: #555;
+        }
+        
+        /* Problem callout */
+        .problem-callout {
+            background: linear-gradient(135deg, #2d1f1f 0%, #1f1a1a 100%);
+            border: 1px solid #5a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .problem-callout h4 {
+            color: #ff8a8a;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .problem-callout p {
+            color: #cca;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        .solution-callout {
+            background: linear-gradient(135deg, #1f2d1f 0%, #1a1f1a 100%);
+            border: 1px solid #2a5a3a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .solution-callout h4 {
+            color: #8aff8a;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .solution-callout p {
+            color: #acd;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        /* Bottom section */
+        .insight-section {
+            background: #12121a;
+            border-radius: 16px;
+            padding: 40px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .insight-section h2 {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            color: #fff;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .comparison-table th {
+            text-align: left;
+            padding: 14px 20px;
+            background: #1a1a2a;
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .comparison-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2a3a;
+            vertical-align: top;
+        }
+        
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table-label {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        
+        .table-bad {
+            color: #ff8a8a;
+        }
+        
+        .table-good {
+            color: #8aff8a;
+        }
+        
+        .code-example {
+            background: #0a0a0f;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            overflow-x: auto;
+        }
+        
+        .code-comment {
+            color: #666;
+        }
+        
+        .code-key {
+            color: #6b9fff;
+        }
+        
+        .code-value {
+            color: #ffb86b;
+        }
+        
+        .code-action {
+            color: #6bff8b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>The Semantic Corruption in Traditional Accounting</h1>
+        <p class="subtitle">Why treating Actions as Accounts destroys causal information</p>
+        
+        <div class="comparison">
+            <!-- Traditional 3D Panel -->
+            <div class="panel wrong">
+                <div class="panel-header">
+                    <span class="panel-badge">Problem</span>
+                    <span class="panel-title">Traditional 3D Framework</span>
+                </div>
+                
+                <div class="diagram-area">
+                    <div class="traditional-diagram">
+                        <div class="dimension-label">All treated as "Accounts" (same dimension)</div>
+                        
+                        <div class="account-row">
+                            <div class="account-box balance-sheet">Cash</div>
+                            <div class="account-box balance-sheet">Inventory</div>
+                            <div class="account-box balance-sheet">Payables</div>
+                        </div>
+                        
+                        <div class="flow-arrow">↕️ mixed with ↕️</div>
+                        
+                        <div class="account-row">
+                            <div class="account-box corrupted">Expenses</div>
+                            <div class="account-box corrupted">Revenue</div>
+                        </div>
+                        
+                        <p style="color: #888; font-size: 0.8rem; text-align: center; margin-top: 15px;">
+                            "Expenses" and "Revenue" are recorded as accounts,<br>
+                            debited and credited just like Cash or Inventory
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="problem-callout">
+                    <h4>🔴 What's Lost</h4>
+                    <p>
+                        When you record "Debit: Expenses, Credit: Cash" you lose <strong>what action caused this</strong>. 
+                        Was it a Purchase? A Payment? A Fee? The cause is collapsed into a generic "Expense" account, 
+                        making variance analysis and causal attribution impossible to automate.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 4D Panel -->
+            <div class="panel right">
+                <div class="panel-header">
+                    <span class="panel-badge">Solution</span>
+                    <span class="panel-title">4D Frame of Reference</span>
+                </div>
+                
+                <div class="diagram-area">
+                    <div class="fourd-diagram">
+                        <div class="axis-container">
+                            <div class="axis-group">
+                                <div class="axis-title">Dimension: ACTION (Causes)</div>
+                                <div class="axis-items">
+                                    <div class="axis-item action">Expenditure</div>
+                                    <div class="axis-item action">Expense</div>
+                                    <div class="axis-item action">Revenue</div>
+                                    <div class="axis-item action">Payment</div>
+                                    <div class="axis-item action">Receipt</div>
+                                </div>
+                            </div>
+                            
+                            <div class="axis-group">
+                                <div class="axis-title">Dimension: ACCOUNTS (Effects)</div>
+                                <div class="axis-items">
+                                    <div class="axis-item account">Cash</div>
+                                    <div class="axis-item account">Inventory</div>
+                                    <div class="axis-item account">Payables</div>
+                                    <div class="axis-item account">Receivables</div>
+                                    <div class="axis-item account">Earnings</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="solution-callout">
+                    <h4>🟢 What's Preserved</h4>
+                    <p>
+                        Actions and Accounts are <strong>separate dimensions</strong>. An action (like "Purchase") 
+                        <em>causes</em> flows between accounts (Payables → Inventory). The cause-effect relationship 
+                        is explicit, enabling automatic explanation of any balance change.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Event Examples -->
+        <div class="panel" style="margin-bottom: 40px;">
+            <h3 style="margin-bottom: 20px;">The Same Economic Event, Two Representations</h3>
+            <p style="color: #888; margin-bottom: 25px;">Scenario: Company purchases $500 of raw materials on credit</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <div class="dimension-label" style="color: #ff8a8a;">Traditional Double-Entry</div>
+                    <div class="code-example">
+                        <span class="code-comment">// Two entries, no explicit cause</span><br>
+                        Debit:  <span class="table-bad">Inventory</span>     $500<br>
+                        Credit: <span class="table-bad">Payables</span>      $500<br><br>
+                        <span class="code-comment">// ❌ What ACTION caused this?</span><br>
+                        <span class="code-comment">// ❌ Was it a Purchase? Transfer? Adjustment?</span><br>
+                        <span class="code-comment">// ❌ Information destroyed at recording time</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="dimension-label" style="color: #8aff8a;">4D Binary Transaction</div>
+                    <div class="code-example">
+                        <span class="code-comment">// Single 4-tuple, cause preserved</span><br>
+                        {<br>
+                        &nbsp;&nbsp;<span class="code-key">flow</span>:   <span class="code-value">$500</span>,<br>
+                        &nbsp;&nbsp;<span class="code-key">action</span>: <span class="code-action">"Expenditure:Purchase"</span>,<br>
+                        &nbsp;&nbsp;<span class="code-key">tail</span>:   <span class="code-value">"Payables"</span>,<br>
+                        &nbsp;&nbsp;<span class="code-key">head</span>:   <span class="code-value">"Inventory"</span><br>
+                        }<br><br>
+                        <span class="code-comment">// ✓ Cause (Purchase) explicitly recorded</span><br>
+                        <span class="code-comment">// ✓ Enables automatic variance attribution</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Insight Table -->
+        <div class="insight-section">
+            <h2>Why This Matters for Sightline</h2>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Capability</th>
+                        <th style="width: 37%;">Traditional (3D)</th>
+                        <th style="width: 38%;">Sightline (4D)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="table-label">Variance Attribution</td>
+                        <td class="table-bad">Manual analysis required. "Expenses increased" doesn't tell you which actions drove it.</td>
+                        <td class="table-good">Automatic. "Cash down $50K because Purchases +$30K and late Receipts -$20K"</td>
+                    </tr>
+                    <tr>
+                        <td class="table-label">Audit Trail</td>
+                        <td class="table-bad">Journal entries are semantically ambiguous. Same debit/credit pattern can mean different things.</td>
+                        <td class="table-good">Every event has explicit action type. Impossible to record semantically invalid events.</td>
+                    </tr>
+                    <tr>
+                        <td class="table-label">Multi-Party Coordination</td>
+                        <td class="table-bad">Each party maintains separate ledgers. Reconciliation is manual and error-prone.</td>
+                        <td class="table-good">Shared event stream with cryptographic proofs. Same event, multiple views, guaranteed consistency.</td>
+                    </tr>
+                    <tr>
+                        <td class="table-label">Financial Statements</td>
+                        <td class="table-bad">Balance Sheet is an axiom. Income Statement is a "closing trick" at period end.</td>
+                        <td class="table-good">All statements derived from the same event graph. "Statement of Causes and Effects" shows action→account mapping.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

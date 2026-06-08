@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+            --accent-cyan: #22d3ee;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app { display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .logo {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .nav-section { padding: 12px 8px; }
+        .nav-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 8px;
+            margin-bottom: 6px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 13px;
+            transition: all 0.15s;
+        }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--accent-orange);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        /* Main Content */
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header {
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+        }
+        .header-title { font-size: 16px; font-weight: 600; }
+        .header-metrics { display: flex; gap: 24px; }
+        .header-metric { text-align: right; }
+        .header-metric-value { font-size: 16px; font-weight: 600; color: var(--accent-green); }
+        .header-metric-label { font-size: 11px; color: var(--text-muted); }
+        
+        .content { flex: 1; padding: 20px 24px; overflow: auto; }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+        .card-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-body { padding: 16px; }
+        
+        /* Story Banner */
+        .story-banner {
+            background: linear-gradient(135deg, rgba(77, 166, 255, 0.1), rgba(167, 139, 250, 0.1));
+            border: 1px solid rgba(77, 166, 255, 0.3);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .story-banner p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+        .story-banner strong { color: var(--accent-blue); }
+        
+        /* Stats Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .stat-sub { font-size: 10px; color: var(--accent-green); margin-top: 2px; }
+        
+        /* Forecast */
+        .forecast-container { height: 180px; position: relative; margin-bottom: 20px; }
+        .forecast-chart {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        .forecast-line {
+            position: absolute;
+            bottom: 60px;
+            left: 40px;
+            right: 40px;
+            height: 2px;
+            background: var(--accent-blue);
+        }
+        .forecast-area {
+            position: absolute;
+            bottom: 30px;
+            left: 40px;
+            right: 40px;
+            height: 90px;
+            background: linear-gradient(180deg, rgba(77, 166, 255, 0.2) 0%, transparent 100%);
+            clip-path: polygon(0% 60%, 10% 55%, 20% 50%, 30% 45%, 40% 50%, 50% 55%, 60% 40%, 70% 35%, 80% 30%, 90% 35%, 100% 40%, 100% 100%, 0% 100%);
+        }
+        .forecast-reserve {
+            position: absolute;
+            bottom: 50px;
+            left: 40px;
+            right: 40px;
+            height: 1px;
+            background: var(--accent-orange);
+            border-style: dashed;
+        }
+        .forecast-label {
+            position: absolute;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .forecast-label.reserve { right: 45px; bottom: 55px; color: var(--accent-orange); }
+        .forecast-label.low { left: 65%; bottom: 25px; color: var(--accent-yellow); }
+        
+        /* Decisions */
+        .decisions-grid { display: flex; flex-direction: column; gap: 10px; }
+        .decision-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .decision-info { flex: 1; }
+        .decision-title { font-size: 13px; font-weight: 500; }
+        .decision-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .decision-actions { display: flex; gap: 8px; }
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+        }
+        .btn-approve { background: var(--accent-green); color: white; }
+        .btn-approve:hover { background: #00b894; }
+        .btn-deny { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .btn-deny:hover { background: var(--bg-tertiary); }
+        
+        /* Mechanism */
+        .mechanism-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .mechanism-step {
+            text-align: center;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 140px;
+        }
+        .mechanism-step.active { border-color: var(--accent-blue); background: rgba(77, 166, 255, 0.1); }
+        .mechanism-icon { font-size: 24px; margin-bottom: 8px; }
+        .mechanism-label { font-size: 12px; font-weight: 600; }
+        .mechanism-desc { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+        .mechanism-arrow { font-size: 20px; color: var(--text-muted); }
+        
+        /* Footer Status */
+        .footer-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--accent-green);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Page visibility */
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+        
+        /* Integrity Page */
+        .integrity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .integrity-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .integrity-card.success { border-color: rgba(0, 212, 170, 0.5); background: rgba(0, 212, 170, 0.1); }
+        .integrity-card.warning { border-color: rgba(255, 159, 67, 0.5); background: rgba(255, 159, 67, 0.1); }
+        .integrity-value { font-size: 20px; font-weight: 700; }
+        .integrity-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .comparison-table th {
+            text-align: left;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+        .comparison-table td {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .comparison-table tr:nth-child(even) { background: var(--bg-tertiary); }
+        .check { color: var(--accent-green); }
+        .cross { color: var(--accent-red); }
+        
+        /* Agents Page */
+        .agents-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+        .agent-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .agent-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .agent-icon.blue { background: rgba(77, 166, 255, 0.2); }
+        .agent-icon.green { background: rgba(0, 212, 170, 0.2); }
+        .agent-icon.purple { background: rgba(167, 139, 250, 0.2); }
+        .agent-icon.orange { background: rgba(255, 159, 67, 0.2); }
+        .agent-name { font-weight: 600; font-size: 14px; }
+        .agent-status { font-size: 11px; color: var(--accent-green); }
+        .agent-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+        .agent-metrics { display: flex; gap: 16px; }
+        .agent-metric { text-align: center; }
+        .agent-metric-value { font-size: 16px; font-weight: 600; }
+        .agent-metric-label { font-size: 10px; color: var(--text-muted); }
+        
+        .escalation-queue { margin-top: 20px; }
+        .escalation-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-orange);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        /* Policies Page */
+        .policies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .policy-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .policy-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .policy-id { font-size: 10px; color: var(--accent-purple); font-weight: 600; }
+        .policy-name { font-size: 14px; font-weight: 600; }
+        .policy-rules { font-size: 12px; color: var(--text-secondary); }
+        .policy-rule {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+        .rule-keyword {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .rule-if { background: rgba(255, 193, 7, 0.2); color: var(--accent-yellow); }
+        .rule-then { background: rgba(0, 212, 170, 0.2); color: var(--accent-green); }
+        
+        /* Placeholder pages */
+        .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border-color);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">◈</div>
+                Sightline
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+                <div class="nav-item" data-page="cash">💰 Cash Position</div>
+                <div class="nav-item" data-page="forecast">📈 13-Week Forecast</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item" data-page="ar">📥 Collections (AR)</div>
+                <div class="nav-item" data-page="ap">📤 Payables (AP)</div>
+                <div class="nav-item" data-page="po">📋 Purchase Orders</div>
+                <div class="nav-item" data-page="approvals">✅ Approvals <span class="badge">3</span></div>
+                <div class="nav-item" data-page="payments">💸 Payment Runs</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">System</div>
+                <div class="nav-item" data-page="integrity">🔒 Integrity</div>
+                <div class="nav-item" data-page="policies">📜 Policies</div>
+                <div class="nav-item" data-page="agents">🤖 AI Agents</div>
+                <div class="nav-item" data-page="events">📝 Event Log</div>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+            <header class="header">
+                <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                <div class="header-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-value">$2,847,392</div>
+                        <div class="header-metric-label">Cash Position</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-value" style="color: var(--accent-blue);">94%</div>
+                        <div class="header-metric-label">Forecast Confidence</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- Dashboard Page -->
+                <div class="page-content active" id="page-dashboard">
+                    <div class="story-banner">
+                        <p><strong>Today:</strong> 3 payments totaling $127,450 awaiting approval. AP Matching agent processed 52 invoices (98.1% auto-matched). Discount Optimizer captured $3,140 in early-pay discounts. Books current as of 2 minutes ago.</p>
+                    </div>
+
+                    <div class="forecast-container">
+                        <div class="forecast-chart">
+                            <div class="forecast-area"></div>
+                            <div class="forecast-line"></div>
+                            <div class="forecast-reserve"></div>
+                            <div class="forecast-label reserve">$500K Reserve</div>
+                            <div class="forecast-label low">⚠ Low: Week 9</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">⏳ Awaiting Your Decision</div>
+                        <div class="card-body">
+                            <div class="decisions-grid">
+                                <div class="decision-item">
+                                    <div class="decision-info">
+                                        <div class="decision-title">Invoice #4521 — TechSupply Inc</div>
+                                        <div class="decision-meta">$47,250 • 2.6% variance from PO • Agent escalated</div>
+                                    </div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-approve">Approve</button>
+                                        <button class="btn btn-deny">Dispute</button>
+                                    </div>
+                                </div>
+                                <div class="decision-item">
+                                    <div class="decision-info">
+                                        <div class="decision-title">PO #892 — DataCenter Corp</div>
+                                        <div class="decision-meta">$62,000 • Above $50K threshold • Needs CFO approval</div>
+                                    </div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-approve">Approve</button>
+                                        <button class="btn btn-deny">Reject</button>
+                                    </div>
+                                </div>
+                                <div class="decision-item">
+                                    <div class="decision-info">
+                                        <div class="decision-title">Early Pay — Acme Supplies</div>
+                                        <div class="decision-meta">$18,200 • 2% discount • 14.6% APR equivalent</div>
+                                    </div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-approve">Capture</button>
+                                        <button class="btn btn-deny">Skip</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mechanism-flow">
+                        <div class="mechanism-step active">
+                            <div class="mechanism-icon">📝</div>
+                            <div class="mechanism-label">Expectation</div>
+                            <div class="mechanism-desc">PO approved, bill entered</div>
+                        </div>
+                        <div class="mechanism-arrow">→</div>
+                        <div class="mechanism-step">
+                            <div class="mechanism-icon">✅</div>
+                            <div class="mechanism-label">Authorization</div>
+                            <div class="mechanism-desc">Payment scheduled</div>
+                        </div>
+                        <div class="mechanism-arrow">→</div>
+                        <div class="mechanism-step">
+                            <div class="mechanism-icon">🏦</div>
+                            <div class="mechanism-label">Confirmation</div>
+                            <div class="mechanism-desc">Bank confirms expected</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">186</div>
+                            <div class="stat-label">Native Transactions</div>
+                            <div class="stat-sub">→ 0 reconciliation</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">847</div>
+                            <div class="stat-label">Journal Entries</div>
+                            <div class="stat-sub">→ 0 manual</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">$8,420</div>
+                            <div class="stat-label">Discounts Captured</div>
+                            <div class="stat-sub">→ 12 opportunities</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">$2.4M</div>
+                            <div class="stat-label">Value Processed</div>
+                            <div class="stat-sub">→ 4 agents active</div>
+                        </div>
+                    </div>
+
+                    <div class="footer-status">
+                        <span class="status-dot"></span>
+                        <span>GL balanced • Trial balance $0.00 • Books current as of 2 min ago</span>
+                    </div>
+                </div>
+
+                <!-- Integrity Page -->
+                <div class="page-content" id="page-integrity">
+                    <div class="integrity-grid">
+                        <div class="integrity-card success">
+                            <div class="integrity-value" style="color: var(--accent-green);">✓ Balanced</div>
+                            <div class="integrity-label">General Ledger</div>
+                        </div>
+                        <div class="integrity-card success">
+                            <div class="integrity-value" style="color: var(--accent-green);">$0.00</div>
+                            <div class="integrity-label">Trial Balance</div>
+                        </div>
+                        <div class="integrity-card success">
+                            <div class="integrity-value" style="color: var(--accent-green);">0</div>
+                            <div class="integrity-label">Native Unreconciled</div>
+                        </div>
+                        <div class="integrity-card warning">
+                            <div class="integrity-value" style="color: var(--accent-orange);">3</div>
+                            <div class="integrity-label">Ingested Pending</div>
+                        </div>
+                    </div>
+
+                    <div class="mechanism-flow">
+                        <div class="mechanism-step">
+                            <div class="mechanism-icon">📝</div>
+                            <div class="mechanism-label">1. Expectation</div>
+                            <div class="mechanism-desc">Event recorded first</div>
+                        </div>
+                        <div class="mechanism-arrow">→</div>
+                        <div class="mechanism-step">
+                            <div class="mechanism-icon">✅</div>
+                            <div class="mechanism-label">2. Authorization</div>
+                            <div class="mechanism-desc">Pre-approved to execute</div>
+                        </div>
+                        <div class="mechanism-arrow">→</div>
+                        <div class="mechanism-step active">
+                            <div class="mechanism-icon">🏦</div>
+                            <div class="mechanism-label">3. Confirmation</div>
+                            <div class="mechanism-desc">Bank confirms expected</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">⚖️ Confirmation vs Reconciliation</div>
+                        <div class="card-body">
+                            <table class="comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Aspect</th>
+                                        <th>Traditional (Reconciliation)</th>
+                                        <th>Sightline Native (Confirmation)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>When recorded</td>
+                                        <td>After the fact</td>
+                                        <td>Before cash moves</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Source of truth</td>
+                                        <td>Bank statement</td>
+                                        <td>Event ledger</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Matching effort</td>
+                                        <td>Manual / rules-based</td>
+                                        <td>None (already known)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Surprises</td>
+                                        <td>Common</td>
+                                        <td>Impossible for native</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Close process</td>
+                                        <td>Days / weeks</td>
+                                        <td>Continuous</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Audit trail</td>
+                                        <td>Reconstructed</td>
+                                        <td>Built-in</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agents Page -->
+                <div class="page-content" id="page-agents">
+                    <div class="agents-grid">
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon blue">🔍</div>
+                                <div>
+                                    <div class="agent-name">AP Matching Agent</div>
+                                    <div class="agent-status">● Active</div>
+                                </div>
+                            </div>
+                            <div class="agent-desc">Matches invoices to POs and receipts. Auto-approves within tolerance, escalates variances.</div>
+                            <div class="agent-metrics">
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">52</div>
+                                    <div class="agent-metric-label">Today</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">98.1%</div>
+                                    <div class="agent-metric-label">Auto-matched</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">1</div>
+                                    <div class="agent-metric-label">Escalated</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon green">📧</div>
+                                <div>
+                                    <div class="agent-name">Collections Agent</div>
+                                    <div class="agent-status">● Active</div>
+                                </div>
+                            </div>
+                            <div class="agent-desc">Sends payment reminders, tracks responses. Cannot modify terms or write off.</div>
+                            <div class="agent-metrics">
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">18</div>
+                                    <div class="agent-metric-label">Reminders</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">$142K</div>
+                                    <div class="agent-metric-label">Outstanding</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">4</div>
+                                    <div class="agent-metric-label">Responses</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon purple">💰</div>
+                                <div>
+                                    <div class="agent-name">Discount Optimizer</div>
+                                    <div class="agent-status">● Active</div>
+                                </div>
+                            </div>
+                            <div class="agent-desc">Identifies early-pay discounts. Auto-captures above APR threshold if cash permits.</div>
+                            <div class="agent-metrics">
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">$3.1K</div>
+                                    <div class="agent-metric-label">Captured</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">12</div>
+                                    <div class="agent-metric-label">Opportunities</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">18.2%</div>
+                                    <div class="agent-metric-label">Avg APR</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon orange">⚠️</div>
+                                <div>
+                                    <div class="agent-name">Anomaly Detector</div>
+                                    <div class="agent-status">● Active</div>
+                                </div>
+                            </div>
+                            <div class="agent-desc">Monitors for unusual patterns. Can only flag and propose—never block.</div>
+                            <div class="agent-metrics">
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">2</div>
+                                    <div class="agent-metric-label">Flagged</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">99.4%</div>
+                                    <div class="agent-metric-label">Accuracy</div>
+                                </div>
+                                <div class="agent-metric">
+                                    <div class="agent-metric-value">0</div>
+                                    <div class="agent-metric-label">False +</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card escalation-queue">
+                        <div class="card-header">🚨 Escalation Queue — Awaiting Human Decision</div>
+                        <div class="card-body">
+                            <div class="escalation-item">
+                                <div class="decision-info">
+                                    <div class="decision-title">Invoice #4521 — 2.6% variance</div>
+                                    <div class="decision-meta">AP Matching • Threshold: 2% • Vendor claims expedite fee</div>
+                                </div>
+                                <div class="decision-actions">
+                                    <button class="btn btn-approve">Approve</button>
+                                    <button class="btn btn-deny">Dispute</button>
+                                </div>
+                            </div>
+                            <div class="escalation-item">
+                                <div class="decision-info">
+                                    <div class="decision-title">Early Pay — Below reserve threshold</div>
+                                    <div class="decision-meta">Discount Optimizer • Would drop cash below $500K reserve</div>
+                                </div>
+                                <div class="decision-actions">
+                                    <button class="btn btn-approve">Override</button>
+                                    <button class="btn btn-deny">Skip</button>
+                                </div>
+                            </div>
+                            <div class="escalation-item">
+                                <div class="decision-info">
+                                    <div class="decision-title">Unusual vendor — First transaction</div>
+                                    <div class="decision-meta">Anomaly Detector • New vendor, $24K invoice, no PO</div>
+                                </div>
+                                <div class="decision-actions">
+                                    <button class="btn btn-approve">Approve</button>
+                                    <button class="btn btn-deny">Investigate</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Policies Page -->
+                <div class="page-content" id="page-policies">
+                    <div class="policies-grid">
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-001</div>
+                                <div class="policy-name">PO Approval Chain</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>amount ≤ $5,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Department Manager approves</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>amount $5K–$50K</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>VP + Finance approves</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>amount > $50,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>CFO approval required</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-002</div>
+                                <div class="policy-name">Discount Capture</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>APR equivalent > 10%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">AND</span>
+                                    <span>cash after ≥ $500K reserve</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Auto-capture discount</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">ELSE</span>
+                                    <span>Escalate to CFO</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-003</div>
+                                <div class="policy-name">AP Matching Agent</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>3-way match within 2%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Auto-approve for payment</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>variance > 2%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Escalate with evidence</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-004</div>
+                                <div class="policy-name">Collections Agent</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>invoice 7+ days overdue</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Send reminder #1</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">NEVER</span>
+                                    <span>Modify payment terms</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">NEVER</span>
+                                    <span>Write off any amount</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-005</div>
+                                <div class="policy-name">Payment Scheduling</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">DEFAULT</span>
+                                    <span>Pay on due date</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>strategic vendor</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Pay 3 days early</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>would breach reserve</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Delay and alert CFO</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="policy-card">
+                            <div class="policy-header">
+                                <div class="policy-id">POL-006</div>
+                                <div class="policy-name">Anomaly Detection</div>
+                            </div>
+                            <div class="policy-rules">
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>amount > 3σ from vendor avg</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Flag for review</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-if">IF</span>
+                                    <span>new vendor, no PO</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="rule-keyword rule-then">THEN</span>
+                                    <span>Require manual approval</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder Pages -->
+                <div class="page-content" id="page-cash">
+                    <div class="placeholder">Cash Position View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-forecast">
+                    <div class="placeholder">13-Week Forecast View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-ar">
+                    <div class="placeholder">Collections (AR) View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-ap">
+                    <div class="placeholder">Payables (AP) View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-po">
+                    <div class="placeholder">Purchase Orders View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-approvals">
+                    <div class="placeholder">Approvals Queue View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-payments">
+                    <div class="placeholder">Payment Runs View — Coming Soon</div>
+                </div>
+                <div class="page-content" id="page-events">
+                    <div class="placeholder">Event Log View — Coming Soon</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const navItems = document.querySelectorAll('.nav-item[data-page]');
+        const pages = document.querySelectorAll('.page-content');
+        const pageTitle = document.getElementById('pageTitle');
+        
+        const titles = {
+            dashboard: 'Dashboard',
+            cash: 'Cash Position',
+            forecast: '13-Week Forecast',
+            ar: 'Collections (AR)',
+            ap: 'Payables (AP)',
+            po: 'Purchase Orders',
+            approvals: 'Approvals',
+            payments: 'Payment Runs',
+            integrity: 'Financial Integrity',
+            policies: 'Policies',
+            agents: 'AI Agents',
+            events: 'Event Log'
+        };
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                
+                // Update nav
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Update page
+                pages.forEach(p => p.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+                
+                // Update title
+                pageTitle.textContent = titles[page] || page;
+            });
+        });
+    </script>
+</body>
+</html>

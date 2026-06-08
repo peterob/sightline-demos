@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline DVR — Financial Reality Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0c0f;
+            --bg-panel: #12151a;
+            --bg-elevated: #1a1e25;
+            --border: #2a2f38;
+            --border-hover: #3a4048;
+            --text-primary: #e8eaed;
+            --text-secondary: #8b919a;
+            --text-muted: #5c6370;
+            --accent-green: #3dd68c;
+            --accent-green-dim: rgba(61, 214, 140, 0.15);
+            --accent-amber: #f5a623;
+            --accent-amber-dim: rgba(245, 166, 35, 0.15);
+            --accent-red: #e85656;
+            --accent-red-dim: rgba(232, 86, 86, 0.15);
+            --accent-blue: #5b9cf4;
+            --accent-blue-dim: rgba(91, 156, 244, 0.15);
+            --mono: 'JetBrains Mono', monospace;
+            --serif: 'Source Serif 4', Georgia, serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--mono);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Focus states for accessibility */
+        *:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
+        }
+
+        button:focus-visible {
+            outline-offset: 2px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .logo-mark {
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+        }
+
+        .logo-tag {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .header-meta {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-stat {
+            text-align: right;
+        }
+
+        .header-stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-stat-value {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* DVR Controls */
+        .dvr-section {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+
+        .dvr-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .dvr-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .dvr-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: var(--mono);
+            font-size: 11px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .dvr-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .dvr-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-deep);
+        }
+
+        .dvr-btn .icon {
+            font-size: 12px;
+        }
+
+        /* Slider with markers */
+        .dvr-slider-container {
+            position: relative;
+            padding: 16px 0 8px;
+        }
+
+        .slider-track {
+            position: relative;
+            height: 6px;
+            background: var(--bg-elevated);
+            border-radius: 3px;
+        }
+
+        .slider-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .slider-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            border: 2px solid var(--bg-panel);
+            z-index: 1;
+        }
+
+        .slider-marker.red { background: var(--accent-red); }
+        .slider-marker.amber { background: var(--accent-amber); }
+        .slider-marker.green { background: var(--accent-green); }
+
+        .slider-marker-label {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .slider-marker:hover .slider-marker-label {
+            opacity: 1;
+        }
+
+        .dvr-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            outline: none;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        /* Webkit (Chrome, Safari, Edge) */
+        .dvr-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .dvr-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .dvr-slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
+
+        /* Firefox */
+        .dvr-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            border: none;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .dvr-slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .dvr-slider::-moz-range-thumb:active {
+            cursor: grabbing;
+        }
+
+        .dvr-slider::-moz-range-track {
+            background: transparent;
+            height: 6px;
+        }
+
+        /* Tick marks */
+        .slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0 0;
+        }
+
+        .slider-tick {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-align: center;
+            flex: 1;
+        }
+
+        .slider-tick:first-child {
+            text-align: left;
+        }
+
+        .slider-tick:last-child {
+            text-align: right;
+        }
+
+        .dvr-date-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .dvr-current-date {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .dvr-caption {
+            font-family: var(--serif);
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Toggle Section */
+        .toggle-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .toggle-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 3px;
+            transition: all 0.15s ease;
+        }
+
+        .toggle-label.active {
+            background: var(--bg-panel);
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .toggle-label:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .toggle-hint {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+            position: relative;
+            cursor: help;
+        }
+
+        .toggle-hint-expand {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 11px;
+            width: 280px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 100;
+        }
+
+        .toggle-hint:hover .toggle-hint-expand {
+            display: block;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .dvr-section {
+                padding: 16px;
+            }
+
+            .dvr-controls {
+                gap: 6px;
+            }
+
+            .dvr-btn {
+                padding: 6px 10px;
+                font-size: 10px;
+            }
+
+            .dvr-btn .btn-text {
+                display: none;
+            }
+
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .panel-body {
+            padding: 18px;
+        }
+
+        /* Metrics Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .metric-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 16px;
+            position: relative;
+            transition: border-color 0.15s ease;
+        }
+
+        .metric-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .metric-label .tooltip-trigger {
+            cursor: help;
+            color: var(--text-muted);
+            font-size: 11px;
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .metric-card:hover .tooltip-trigger {
+            border-color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .metric-subtext {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        .metric-card.warning {
+            border-left: 3px solid var(--accent-amber);
+        }
+
+        .metric-card.warning .metric-value {
+            color: var(--accent-amber);
+        }
+
+        .metric-card.danger {
+            border-left: 3px solid var(--accent-red);
+        }
+
+        .metric-card.danger .metric-value {
+            color: var(--accent-red);
+        }
+
+        .metric-card.success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .metric-card.success .metric-value {
+            color: var(--accent-green);
+        }
+
+        /* Tooltip - repositioned to avoid clipping */
+        .tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 16px;
+            right: 16px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            padding: 12px 14px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.15s ease;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .metric-card:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .tooltip-joke {
+            font-family: var(--serif);
+            font-style: italic;
+            color: var(--text-muted);
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 10px;
+        }
+
+        /* Tape Moments */
+        .tape-moments {
+            margin-bottom: 24px;
+        }
+
+        .tape-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .tape-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .tape-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tape-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .tape-item:hover {
+            border-color: var(--border-hover);
+            transform: translateX(2px);
+        }
+
+        .tape-item.severity-red {
+            background: linear-gradient(90deg, var(--accent-red-dim) 0%, var(--bg-elevated) 30%);
+        }
+
+        .tape-item.severity-amber {
+            background: linear-gradient(90deg, var(--accent-amber-dim) 0%, var(--bg-elevated) 30%);
+        }
+
+        .tape-item.severity-green {
+            background: linear-gradient(90deg, var(--accent-green-dim) 0%, var(--bg-elevated) 30%);
+        }
+
+        .tape-marker {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .tape-marker.red { background: var(--accent-red); }
+        .tape-marker.amber { background: var(--accent-amber); }
+        .tape-marker.green { background: var(--accent-green); }
+
+        .tape-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tape-type {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tape-desc {
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        .tape-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* Event Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-item.active {
+            opacity: 1;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border);
+            transition: all 0.2s ease;
+        }
+
+        .timeline-item.active .timeline-dot {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--accent-blue-dim);
+        }
+
+        .timeline-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .timeline-event {
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .timeline-amount {
+            font-weight: 500;
+        }
+
+        .timeline-commentary {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Nothing Happened State */
+        .nothing-state {
+            display: none;
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .nothing-state.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nothing-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .nothing-title {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .nothing-subtitle {
+            font-family: var(--serif);
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Explain Panel */
+        .explain-panel {
+            display: none;
+            margin-top: 24px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .explain-panel.visible {
+            display: block;
+            animation: slideIn 0.2s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .explain-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .explain-intro {
+            font-family: var(--serif);
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .explain-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: all 0.15s ease;
+        }
+
+        .explain-close:hover {
+            background: var(--bg-panel);
+            color: var(--text-primary);
+        }
+
+        .explain-body {
+            padding: 18px;
+        }
+
+        .explain-chain {
+            position: relative;
+        }
+
+        .chain-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 12px 0;
+            position: relative;
+        }
+
+        .chain-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 36px;
+            bottom: -12px;
+            width: 1px;
+            background: linear-gradient(to bottom, var(--border) 50%, transparent);
+        }
+
+        .chain-number {
+            font-size: 10px;
+            color: var(--text-muted);
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--bg-panel);
+        }
+
+        .chain-step:last-child .chain-number {
+            background: var(--accent-red-dim);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .chain-content {
+            flex: 1;
+            padding-top: 2px;
+        }
+
+        .chain-event {
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .chain-impact {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Explain Buttons */
+        .explain-trigger {
+            font-size: 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 3px;
+            transition: all 0.15s ease;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            font-family: var(--mono);
+        }
+
+        .explain-trigger:hover {
+            color: var(--text-secondary);
+            border-color: var(--border-hover);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Confidence Card with Gauge */
+        .confidence-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 18px;
+        }
+
+        .confidence-header {
+            margin-bottom: 16px;
+        }
+
+        .confidence-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .confidence-gauge-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .confidence-gauge {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .confidence-gauge svg {
+            transform: rotate(-90deg);
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: var(--bg-elevated);
+            stroke-width: 8;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+        }
+
+        .gauge-fill.high { stroke: var(--accent-green); }
+        .gauge-fill.medium { stroke: var(--accent-amber); }
+        .gauge-fill.low { stroke: var(--accent-red); }
+
+        .confidence-value-container {
+            flex: 1;
+        }
+
+        .confidence-value {
+            font-size: 32px;
+            font-weight: 500;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .confidence-value.high { color: var(--accent-green); }
+        .confidence-value.medium { color: var(--accent-amber); }
+        .confidence-value.low { color: var(--accent-red); }
+
+        .confidence-assessment {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .confidence-bar {
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease, background 0.3s ease;
+        }
+
+        .confidence-bar-fill.high { background: var(--accent-green); }
+        .confidence-bar-fill.medium { background: var(--accent-amber); }
+        .confidence-bar-fill.low { background: var(--accent-red); }
+
+        .confidence-note {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Decision Replay */
+        .decision-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        .decision-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .decision-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .decision-subtitle {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .decision-list {
+            padding: 8px 18px;
+        }
+
+        .decision-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .decision-item:last-child {
+            border-bottom: none;
+        }
+
+        .decision-number {
+            font-size: 10px;
+            color: var(--text-muted);
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .decision-content {
+            flex: 1;
+        }
+
+        .decision-action {
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .decision-rationale {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .decision-footer {
+            padding: 14px 18px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-elevated);
+        }
+
+        .decision-disclaimer {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-text {
+            font-family: var(--serif);
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Variance Display */
+        .variance {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-weight: 500;
+        }
+
+        .variance.negative {
+            color: var(--accent-red);
+            background: var(--accent-red-dim);
+        }
+
+        .variance.positive {
+            color: var(--accent-green);
+            background: var(--accent-green-dim);
+        }
+
+        /* View mode indicator */
+        .view-mode-badge {
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+        }
+
+        .view-mode-badge.known {
+            background: var(--accent-blue-dim);
+            color: var(--accent-blue);
+        }
+
+        .view-mode-badge.actual {
+            background: var(--accent-amber-dim);
+            color: var(--accent-amber);
+        }
+
+        /* Screen reader only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-mark">SIGHTLINE DVR</span>
+                <span class="logo-tag">Financial Reality Viewer</span>
+            </div>
+            <div class="header-meta">
+                <div class="header-stat">
+                    <div class="header-stat-label">Entity</div>
+                    <div class="header-stat-value">Acme Corp — Operating Account</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-label">Last Sync</div>
+                    <div class="header-stat-value">2 min ago</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- DVR Controls -->
+        <section class="dvr-section" aria-label="Reality Playback Controls">
+            <div class="dvr-label">Reality Playback Controls</div>
+            <div class="dvr-controls" role="toolbar" aria-label="Playback buttons">
+                <button class="dvr-btn" id="btn-rewind" aria-label="Rewind to What We Thought">
+                    <span class="icon" aria-hidden="true">⏪</span>
+                    <span class="btn-text">Rewind to What We Thought</span>
+                </button>
+                <button class="dvr-btn" id="btn-pause" aria-label="Pause Belief">
+                    <span class="icon" aria-hidden="true">⏸</span>
+                    <span class="btn-text">Pause Belief</span>
+                </button>
+                <button class="dvr-btn active" id="btn-play" aria-label="Play Reality">
+                    <span class="icon" aria-hidden="true">▶</span>
+                    <span class="btn-text">Play Reality</span>
+                </button>
+                <button class="dvr-btn" id="btn-forward" aria-label="Fast-forward to When Accounting Caught Up">
+                    <span class="icon" aria-hidden="true">⏩</span>
+                    <span class="btn-text">Fast-forward to Catch Up</span>
+                </button>
+            </div>
+
+            <div class="dvr-slider-container">
+                <div class="slider-track">
+                    <div class="slider-markers" aria-hidden="true">
+                        <div class="slider-marker red" style="left: 72%;" title="Red Flag: Dec 16">
+                            <span class="slider-marker-label">Dec 16</span>
+                        </div>
+                        <div class="slider-marker amber" style="left: 58%;" title="Close Call: Dec 14">
+                            <span class="slider-marker-label">Dec 14</span>
+                        </div>
+                        <div class="slider-marker green" style="left: 45%;" title="Reconciled: Dec 12">
+                            <span class="slider-marker-label">Dec 12</span>
+                        </div>
+                    </div>
+                    <input type="range" 
+                           class="dvr-slider" 
+                           id="dvr-slider" 
+                           min="0" 
+                           max="100" 
+                           value="75"
+                           role="slider"
+                           aria-label="Timeline scrubber"
+                           aria-valuemin="0"
+                           aria-valuemax="100"
+                           aria-valuenow="75"
+                           aria-valuetext="December 18, 2024">
+                </div>
+                <div class="slider-ticks" aria-hidden="true">
+                    <span class="slider-tick">Dec 10</span>
+                    <span class="slider-tick">Dec 12</span>
+                    <span class="slider-tick">Dec 14</span>
+                    <span class="slider-tick">Dec 16</span>
+                    <span class="slider-tick">Dec 18</span>
+                </div>
+            </div>
+
+            <div class="dvr-date-display">
+                <div class="dvr-current-date" id="current-date" aria-live="polite">
+                    December 18, 2024 — 3:42 PM EST
+                    <span class="view-mode-badge known" id="view-mode-badge">As Known</span>
+                </div>
+                <div class="dvr-caption">Scrubbing does not change history. It only reveals it.</div>
+            </div>
+
+            <div class="toggle-section">
+                <div class="toggle-container" role="tablist" aria-label="View mode">
+                    <button class="toggle-label active" 
+                            id="toggle-known" 
+                            role="tab" 
+                            aria-selected="true"
+                            aria-controls="timeline">What We Knew</button>
+                    <button class="toggle-label" 
+                            id="toggle-actual" 
+                            role="tab" 
+                            aria-selected="false"
+                            aria-controls="timeline">What Actually Happened</button>
+                </div>
+                <div class="toggle-hint">
+                    These are often different. That's the point.
+                    <div class="toggle-hint-expand">
+                        "What We Knew" shows the state of knowledge at each moment in time — what the system believed based on available evidence. "What Actually Happened" shows events as they truly occurred, regardless of when we learned about them. The gap between these two views is where forecasts break.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Metrics Row -->
+        <div class="metrics-row" role="region" aria-label="Key metrics">
+            <div class="metric-card">
+                <div class="tooltip">
+                    <div class="tooltip-title">Cash Position</div>
+                    <div>Sum of all confirmed bank balances as of the selected timestamp. Does not include pending transactions or unconfirmed receipts.</div>
+                </div>
+                <div class="metric-label">
+                    Cash Position
+                    <span class="tooltip-trigger" aria-label="More information">?</span>
+                </div>
+                <div class="metric-value" id="metric-cash">$2,847,329</div>
+                <div class="metric-subtext">Updated 47 seconds ago</div>
+            </div>
+
+            <div class="metric-card warning">
+                <div class="tooltip">
+                    <div class="tooltip-title">Money in Transit</div>
+                    <div>Funds in transit between accounts, pending settlement, or awaiting confirmation from external parties. Technically exists. Location: unclear.</div>
+                    <div class="tooltip-joke">Previously known as "Money Currently Existing Nowhere"</div>
+                </div>
+                <div class="metric-label">
+                    Money Currently Existing Nowhere
+                    <span class="tooltip-trigger" aria-label="More information">?</span>
+                </div>
+                <div class="metric-value" id="metric-limbo">$423,800</div>
+                <div class="metric-subtext">4 transactions in limbo</div>
+            </div>
+
+            <div class="metric-card danger">
+                <div class="tooltip">
+                    <div class="tooltip-title">Recording Lag</div>
+                    <div>Events that occurred in reality but have not yet been recorded in the system of record. Measured in business days of delay from event occurrence to system entry.</div>
+                    <div class="tooltip-joke">Time spent pretending nothing happened</div>
+                </div>
+                <div class="metric-label">
+                    Accounting Catch-Up Queue
+                    <span class="tooltip-trigger" aria-label="More information">?</span>
+                </div>
+                <div class="metric-value" id="metric-lag">12 days</div>
+                <div class="metric-subtext">Average lag this period</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="tooltip">
+                    <div class="tooltip-title">Evidence Gaps</div>
+                    <div>Number of assertions currently made without supporting documentation. Each gap represents a claim that cannot be independently verified.</div>
+                    <div class="tooltip-joke">Not a vibe—a count of unverified claims</div>
+                </div>
+                <div class="metric-label">
+                    Proof Missing (Not a Vibe)
+                    <span class="tooltip-trigger" aria-label="More information">?</span>
+                </div>
+                <div class="metric-value" id="metric-gaps">7</div>
+                <div class="metric-subtext">Evidence gaps in current view</div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <div class="main-content">
+                <!-- Tape Moments -->
+                <div class="tape-moments" role="region" aria-label="Key events">
+                    <div class="tape-header">
+                        <div class="tape-title">Tape Moments — Highlights Reel</div>
+                    </div>
+                    <div class="tape-list">
+                        <button class="tape-item severity-red" data-timestamp="72" aria-label="Jump to December 16 red flag event">
+                            <div class="tape-marker red" aria-hidden="true"></div>
+                            <div class="tape-content">
+                                <div class="tape-type">🟥 Red Flag Replay</div>
+                                <div class="tape-desc">Wire receipt assumed but not confirmed — forecast inflated by $180K</div>
+                            </div>
+                            <div class="tape-time">Dec 16, 2:14 PM</div>
+                        </button>
+                        <button class="tape-item severity-amber" data-timestamp="58" aria-label="Jump to December 14 close call event">
+                            <div class="tape-marker amber" aria-hidden="true"></div>
+                            <div class="tape-content">
+                                <div class="tape-type">🟡 Close Call</div>
+                                <div class="tape-desc">Inventory receipt delay detected — 12 days without acknowledgment</div>
+                            </div>
+                            <div class="tape-time">Dec 14, 9:47 AM</div>
+                        </button>
+                        <button class="tape-item severity-green" data-timestamp="45" aria-label="Jump to December 12 reconciliation event">
+                            <div class="tape-marker green" aria-hidden="true"></div>
+                            <div class="tape-content">
+                                <div class="tape-type">🟢 Accounting Finally Notices</div>
+                                <div class="tape-desc">November vendor payment reconciled — only 18 days late</div>
+                            </div>
+                            <div class="tape-time">Dec 12, 4:31 PM</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Event Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title" id="timeline-title">Event Timeline — What We Knew</span>
+                        <button class="explain-trigger" id="explain-btn">Show Me the Receipts</button>
+                    </div>
+                    <div class="panel-body">
+                        <div class="timeline" id="timeline" role="list" aria-label="Financial events">
+                            <!-- Timeline items populated by JS -->
+                        </div>
+
+                        <div class="nothing-state" id="nothing-state" role="status">
+                            <div class="nothing-icon" aria-hidden="true">◇</div>
+                            <div class="nothing-title">No financial events occurred on this day.</div>
+                            <div class="nothing-subtitle">We have nothing to report. Suspicious.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Explain Panel -->
+                <div class="explain-panel" id="explain-panel" aria-hidden="true">
+                    <div class="explain-header">
+                        <div class="explain-intro">You asked. Here's what actually happened.</div>
+                        <button class="explain-close" id="explain-close" aria-label="Close explanation">×</button>
+                    </div>
+                    <div class="explain-body">
+                        <div class="explain-chain">
+                            <div class="chain-step">
+                                <div class="chain-number">01</div>
+                                <div class="chain-content">
+                                    <div class="chain-event">Dec 14: Vendor invoice received — $180,000</div>
+                                    <div class="chain-impact">Recorded in AP. Payment scheduled for Dec 18.</div>
+                                </div>
+                            </div>
+                            <div class="chain-step">
+                                <div class="chain-number">02</div>
+                                <div class="chain-content">
+                                    <div class="chain-event">Dec 16: Expected wire from Client Beta — $180,000</div>
+                                    <div class="chain-impact">Forecast assumed receipt. No confirmation received.</div>
+                                </div>
+                            </div>
+                            <div class="chain-step">
+                                <div class="chain-number">03</div>
+                                <div class="chain-content">
+                                    <div class="chain-event">Dec 18: Wire initiated to Vendor Systems Inc</div>
+                                    <div class="chain-impact">Payment sent. Source funds: operating balance (not the expected wire).</div>
+                                </div>
+                            </div>
+                            <div class="chain-step">
+                                <div class="chain-number">→</div>
+                                <div class="chain-content">
+                                    <div class="chain-event">Variance created: <span class="variance negative">−$180,000</span> vs forecast</div>
+                                    <div class="chain-impact">This is where the forecast quietly broke.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Confidence -->
+                <div class="confidence-card" role="region" aria-label="Confidence indicator">
+                    <div class="confidence-header">
+                        <div class="confidence-label">How Much We Trust Ourselves Right Now</div>
+                    </div>
+                    <div class="confidence-gauge-container">
+                        <div class="confidence-gauge" aria-hidden="true">
+                            <svg width="80" height="80" viewBox="0 0 80 80">
+                                <circle class="gauge-bg" cx="40" cy="40" r="32"></circle>
+                                <circle class="gauge-fill medium" 
+                                        id="gauge-fill"
+                                        cx="40" cy="40" r="32"
+                                        stroke-dasharray="201"
+                                        stroke-dashoffset="74"></circle>
+                            </svg>
+                        </div>
+                        <div class="confidence-value-container">
+                            <div class="confidence-value medium" id="confidence-value" aria-live="polite">63%</div>
+                            <div class="confidence-assessment" id="confidence-assessment">We're Mostly Sure</div>
+                        </div>
+                    </div>
+                    <div class="confidence-bar" aria-hidden="true">
+                        <div class="confidence-bar-fill medium" id="confidence-bar" style="width: 63%;"></div>
+                    </div>
+                    <div class="confidence-note">Confidence measures evidence completeness. Not courage.</div>
+                </div>
+
+                <!-- Decision Replay -->
+                <div class="decision-card" role="region" aria-label="Decision suggestions">
+                    <div class="decision-header">
+                        <div class="decision-title">What a Calm System Would Have Done</div>
+                        <div class="decision-subtitle">Hindsight, delivered without judgment</div>
+                    </div>
+                    <div class="decision-list" id="decision-list">
+                        <div class="decision-item">
+                            <div class="decision-number">1</div>
+                            <div class="decision-content">
+                                <div class="decision-action">Waited for wire confirmation before assuming liquidity.</div>
+                                <div class="decision-rationale">Expected funds: $180K. Confirmed: $0.</div>
+                            </div>
+                        </div>
+                        <div class="decision-item">
+                            <div class="decision-number">2</div>
+                            <div class="decision-content">
+                                <div class="decision-action">Escalated inventory receipt delay (12 days).</div>
+                                <div class="decision-rationale">Supplier acknowledgment still pending.</div>
+                            </div>
+                        </div>
+                        <div class="decision-item">
+                            <div class="decision-number">3</div>
+                            <div class="decision-content">
+                                <div class="decision-action">Reduced forecast confidence rather than guessing.</div>
+                                <div class="decision-rationale">3 unconfirmed assumptions in 7-day window.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="decision-footer">
+                        <div class="decision-disclaimer">These are suggestions, not orders. You're still the CFO.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-text">This is a toy. Unfortunately, it's also correct.</div>
+        </footer>
+    </div>
+
+    <script>
+        // Data model
+        const timelineData = {
+            known: [
+                {
+                    events: [
+                        { time: 'Dec 18, 3:42 PM', event: 'Wire transfer initiated: $180,000 to Vendor Systems Inc', commentary: 'This event occurred. Accounting learned about it later.', active: true },
+                        { time: 'Dec 18, 11:23 AM', event: 'AR collection received: $47,250 from Client Alpha', commentary: 'This number changed. The reason was boring.', active: false },
+                        { time: 'Dec 17, 4:15 PM', event: 'Payroll batch processed: $312,400 net disbursement', commentary: 'Confidence is low because reality has not checked in yet.', active: false },
+                        { time: 'Dec 17, 9:00 AM', event: 'Credit facility draw: $500,000', commentary: 'Large movements attract attention. Eventually.', active: false }
+                    ],
+                    dateRange: [75, 100]
+                },
+                {
+                    events: [
+                        { time: 'Dec 16, 2:14 PM', event: 'Expected wire: $180,000 from Client Beta', commentary: 'Forecast assumed receipt. System was optimistic.', active: true },
+                        { time: 'Dec 16, 9:30 AM', event: 'AP batch queued: 12 invoices totaling $287,400', commentary: 'Scheduled. Not yet sent.', active: false }
+                    ],
+                    dateRange: [65, 74]
+                },
+                {
+                    events: [],
+                    dateRange: [55, 64],
+                    empty: true
+                },
+                {
+                    events: [
+                        { time: 'Dec 14, 9:47 AM', event: 'Inventory shipment marked "in transit"', commentary: '12 days without acknowledgment. Normal?', active: true },
+                        { time: 'Dec 14, 8:00 AM', event: 'Weekly forecast generated', commentary: 'Based on assumptions. Several of them wrong.', active: false }
+                    ],
+                    dateRange: [45, 54]
+                },
+                {
+                    events: [
+                        { time: 'Dec 12, 4:31 PM', event: 'November vendor payment reconciled', commentary: 'Only 18 days late. Progress.', active: true },
+                        { time: 'Dec 12, 10:15 AM', event: 'Bank statement imported', commentary: 'The system learned what the bank knew yesterday.', active: false }
+                    ],
+                    dateRange: [35, 44]
+                },
+                {
+                    events: [
+                        { time: 'Dec 11, 2:30 PM', event: 'Customer payment applied: $89,200', commentary: 'Cash increased. Confidence followed.', active: true },
+                        { time: 'Dec 10, 9:00 AM', event: 'Month-end close initiated', commentary: 'The ritual begins.', active: false }
+                    ],
+                    dateRange: [0, 34]
+                }
+            ],
+            actual: [
+                {
+                    events: [
+                        { time: 'Dec 18, 3:42 PM', event: 'Wire transfer sent: $180,000 to Vendor Systems Inc', commentary: 'Actually happened. Bank confirmed.', active: true },
+                        { time: 'Dec 18, 11:23 AM', event: 'AR collection cleared: $47,250 from Client Alpha', commentary: 'Funds hit the account. Reality confirmed.', active: false },
+                        { time: 'Dec 17, 4:15 PM', event: 'Payroll debited: $312,400', commentary: 'Employees paid. Evidence: bank statement.', active: false },
+                        { time: 'Dec 17, 9:00 AM', event: 'Credit facility draw settled: $500,000', commentary: 'Funds available same day.', active: false }
+                    ],
+                    dateRange: [75, 100]
+                },
+                {
+                    events: [
+                        { time: 'Dec 16, 2:14 PM', event: 'Wire from Client Beta: NOT RECEIVED', commentary: 'Expected $180K. Actual: $0. Still waiting.', active: true },
+                        { time: 'Dec 16, 9:30 AM', event: 'AP batch prepared but not executed', commentary: 'Queued ≠ Sent. Important distinction.', active: false }
+                    ],
+                    dateRange: [65, 74]
+                },
+                {
+                    events: [],
+                    dateRange: [55, 64],
+                    empty: true
+                },
+                {
+                    events: [
+                        { time: 'Dec 14, 9:47 AM', event: 'Inventory physically received at warehouse', commentary: 'Arrived. System didn\'t know for 12 more days.', active: true },
+                        { time: 'Dec 14, 8:00 AM', event: 'Forecast generated with 3 false assumptions', commentary: 'Garbage in, garbage out.', active: false }
+                    ],
+                    dateRange: [45, 54]
+                },
+                {
+                    events: [
+                        { time: 'Dec 12, 4:31 PM', event: 'November payment: bank confirmed Nov 24', commentary: 'Actually cleared 18 days ago. System caught up.', active: true },
+                        { time: 'Dec 12, 10:15 AM', event: 'Bank data as of Dec 11 EOD imported', commentary: '24-hour lag is structural.', active: false }
+                    ],
+                    dateRange: [35, 44]
+                },
+                {
+                    events: [
+                        { time: 'Dec 11, 2:30 PM', event: 'Customer ACH settled: $89,200', commentary: 'Two-day float. Now real.', active: true },
+                        { time: 'Dec 10, 9:00 AM', event: 'Month-end close started', commentary: 'Accounting theater begins.', active: false }
+                    ],
+                    dateRange: [0, 34]
+                }
+            ]
+        };
+
+        const dateLabels = [
+            { date: 'December 10, 2024 — 9:00 AM EST', confidence: 89, assessment: "We're Pretty Confident", level: 'high' },
+            { date: 'December 11, 2024 — 2:30 PM EST', confidence: 84, assessment: "We're Pretty Confident", level: 'high' },
+            { date: 'December 12, 2024 — 4:31 PM EST', confidence: 78, assessment: "We're Mostly Sure", level: 'medium' },
+            { date: 'December 13, 2024 — 11:15 AM EST', confidence: 72, assessment: "We're Mostly Sure", level: 'medium' },
+            { date: 'December 14, 2024 — 9:47 AM EST', confidence: 65, assessment: "We're Mostly Sure", level: 'medium' },
+            { date: 'December 15, 2024 — 8:00 AM EST', confidence: null, assessment: null, level: null, empty: true },
+            { date: 'December 16, 2024 — 2:14 PM EST', confidence: 41, assessment: "This Is Aspirational", level: 'low' },
+            { date: 'December 17, 2024 — 4:15 PM EST', confidence: 52, assessment: "We're Mostly Sure", level: 'medium' },
+            { date: 'December 18, 2024 — 3:42 PM EST', confidence: 63, assessment: "We're Mostly Sure", level: 'medium' },
+            { date: 'December 19, 2024 — 10:00 AM EST', confidence: 18, assessment: "Please Do Not Automate This", level: 'low' },
+        ];
+
+        const metricsData = {
+            75: { cash: '$2,847,329', limbo: '$423,800', lag: '12 days', gaps: '7' },
+            65: { cash: '$2,667,329', limbo: '$603,800', lag: '14 days', gaps: '9' },
+            55: { cash: '$2,756,200', limbo: '$312,400', lag: '11 days', gaps: '5' },
+            45: { cash: '$2,845,400', limbo: '$287,500', lag: '8 days', gaps: '4' },
+            35: { cash: '$2,756,200', limbo: '$198,300', lag: '6 days', gaps: '3' },
+            0: { cash: '$2,667,000', limbo: '$156,200', lag: '4 days', gaps: '2' }
+        };
+
+        // State
+        let currentView = 'known';
+        let currentSliderValue = 75;
+
+        // DOM Elements
+        const slider = document.getElementById('dvr-slider');
+        const currentDateEl = document.getElementById('current-date');
+        const confidenceValue = document.getElementById('confidence-value');
+        const confidenceAssessment = document.getElementById('confidence-assessment');
+        const confidenceBar = document.getElementById('confidence-bar');
+        const gaugeFill = document.getElementById('gauge-fill');
+        const timeline = document.getElementById('timeline');
+        const nothingState = document.getElementById('nothing-state');
+        const timelineTitle = document.getElementById('timeline-title');
+        const viewModeBadge = document.getElementById('view-mode-badge');
+
+        // Metric elements
+        const metricCash = document.getElementById('metric-cash');
+        const metricLimbo = document.getElementById('metric-limbo');
+        const metricLag = document.getElementById('metric-lag');
+        const metricGaps = document.getElementById('metric-gaps');
+
+        // Gauge calculation (circumference = 2 * PI * r = 2 * 3.14159 * 32 ≈ 201)
+        const gaugeCircumference = 201;
+
+        function updateConfidence(data) {
+            if (data.empty || data.confidence === null) {
+                confidenceValue.textContent = '—';
+                confidenceAssessment.textContent = 'We have nothing to report. Suspicious.';
+                confidenceValue.className = 'confidence-value';
+                confidenceBar.style.width = '0%';
+                confidenceBar.className = 'confidence-bar-fill';
+                gaugeFill.style.strokeDashoffset = gaugeCircumference;
+                gaugeFill.className = 'gauge-fill';
+            } else {
+                confidenceValue.textContent = data.confidence + '%';
+                confidenceAssessment.textContent = data.assessment;
+                confidenceValue.className = 'confidence-value ' + data.level;
+                confidenceBar.style.width = data.confidence + '%';
+                confidenceBar.className = 'confidence-bar-fill ' + data.level;
+                
+                const offset = gaugeCircumference - (gaugeCircumference * data.confidence / 100);
+                gaugeFill.style.strokeDashoffset = offset;
+                gaugeFill.className = 'gauge-fill ' + data.level;
+            }
+        }
+
+        function updateMetrics(sliderValue) {
+            // Find closest metrics data point
+            const thresholds = [0, 35, 45, 55, 65, 75];
+            let closest = 0;
+            for (const t of thresholds) {
+                if (sliderValue >= t) closest = t;
+            }
+            const metrics = metricsData[closest];
+            
+            metricCash.textContent = metrics.cash;
+            metricLimbo.textContent = metrics.limbo;
+            metricLag.textContent = metrics.lag;
+            metricGaps.textContent = metrics.gaps;
+        }
+
+        function renderTimeline(sliderValue, view) {
+            const data = timelineData[view];
+            let matchedData = null;
+
+            for (const entry of data) {
+                if (sliderValue >= entry.dateRange[0] && sliderValue <= entry.dateRange[1]) {
+                    matchedData = entry;
+                    break;
+                }
+            }
+
+            if (!matchedData || matchedData.empty) {
+                timeline.style.display = 'none';
+                nothingState.classList.add('visible');
+                return;
+            }
+
+            timeline.style.display = 'block';
+            nothingState.classList.remove('visible');
+
+            timeline.innerHTML = matchedData.events.map((event, index) => `
+                <div class="timeline-item ${event.active ? 'active' : ''}" role="listitem">
+                    <div class="timeline-dot" aria-hidden="true"></div>
+                    <div class="timeline-time">${event.time}</div>
+                    <div class="timeline-event">${event.event}</div>
+                    <div class="timeline-commentary">${event.commentary}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateView() {
+            const index = Math.floor(currentSliderValue / 10);
+            const data = dateLabels[Math.min(index, dateLabels.length - 1)];
+            
+            // Update date display
+            const badgeHtml = currentView === 'known' 
+                ? '<span class="view-mode-badge known">As Known</span>'
+                : '<span class="view-mode-badge actual">As Occurred</span>';
+            currentDateEl.innerHTML = data.date + ' ' + badgeHtml;
+            
+            // Update aria
+            slider.setAttribute('aria-valuetext', data.date);
+            slider.setAttribute('aria-valuenow', currentSliderValue);
+
+            // Update confidence
+            updateConfidence(data);
+
+            // Update metrics
+            updateMetrics(currentSliderValue);
+
+            // Update timeline
+            renderTimeline(currentSliderValue, currentView);
+
+            // Update timeline title
+            timelineTitle.textContent = currentView === 'known' 
+                ? 'Event Timeline — What We Knew'
+                : 'Event Timeline — What Actually Happened';
+        }
+
+        // Event listeners
+        slider.addEventListener('input', function() {
+            currentSliderValue = parseInt(this.value);
+            updateView();
+        });
+
+        // DVR buttons
+        const buttons = document.querySelectorAll('.dvr-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                buttons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Animate slider based on button
+                if (this.id === 'btn-rewind') {
+                    animateSlider(0);
+                } else if (this.id === 'btn-forward') {
+                    animateSlider(100);
+                }
+            });
+        });
+
+        function animateSlider(target) {
+            const start = parseInt(slider.value);
+            const diff = target - start;
+            const duration = 500;
+            const startTime = performance.now();
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+                
+                currentSliderValue = Math.round(start + diff * eased);
+                slider.value = currentSliderValue;
+                updateView();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Toggle buttons
+        const toggleKnown = document.getElementById('toggle-known');
+        const toggleActual = document.getElementById('toggle-actual');
+
+        toggleKnown.addEventListener('click', function() {
+            toggleKnown.classList.add('active');
+            toggleKnown.setAttribute('aria-selected', 'true');
+            toggleActual.classList.remove('active');
+            toggleActual.setAttribute('aria-selected', 'false');
+            currentView = 'known';
+            updateView();
+        });
+
+        toggleActual.addEventListener('click', function() {
+            toggleActual.classList.add('active');
+            toggleActual.setAttribute('aria-selected', 'true');
+            toggleKnown.classList.remove('active');
+            toggleKnown.setAttribute('aria-selected', 'false');
+            currentView = 'actual';
+            updateView();
+        });
+
+        // Tape moments - jump to timestamp
+        const tapeItems = document.querySelectorAll('.tape-item');
+        tapeItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const timestamp = parseInt(this.dataset.timestamp);
+                animateSlider(timestamp);
+            });
+        });
+
+        // Explain panel
+        const explainBtn = document.getElementById('explain-btn');
+        const explainPanel = document.getElementById('explain-panel');
+        const explainClose = document.getElementById('explain-close');
+
+        const explainLabels = [
+            'Show Me the Receipts',
+            'Explain This Number',
+            'Why Is This Like This'
+        ];
+        let explainIndex = 0;
+
+        explainBtn.addEventListener('click', function() {
+            const isVisible = explainPanel.classList.toggle('visible');
+            explainPanel.setAttribute('aria-hidden', !isVisible);
+            
+            if (!isVisible) {
+                explainIndex = (explainIndex + 1) % explainLabels.length;
+                explainBtn.textContent = explainLabels[explainIndex];
+            }
+        });
+
+        explainClose.addEventListener('click', function() {
+            explainPanel.classList.remove('visible');
+            explainPanel.setAttribute('aria-hidden', 'true');
+            explainIndex = (explainIndex + 1) % explainLabels.length;
+            explainBtn.textContent = explainLabels[explainIndex];
+        });
+
+        // Initialize
+        updateView();
+    </script>
+</body>
+</html>

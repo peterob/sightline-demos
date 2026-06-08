@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction Envelope Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      min-height: 100vh;
+      background-color: #0a0a0f;
+      color: #e2e2e8;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+    
+    /* Header */
+    .header {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .header-label {
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    
+    .header-title {
+      font-size: 24px;
+      font-weight: 300;
+      color: #f8f8fc;
+      margin-bottom: 4px;
+    }
+    
+    .header-sub {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    /* Main Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 32px;
+    }
+    
+    /* Envelope List */
+    .envelope-list {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .list-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .list-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+    
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .filter-tab {
+      padding: 4px 10px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #6b7280;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+    
+    .filter-tab:hover {
+      color: #e2e2e8;
+      background: rgba(255,255,255,0.03);
+    }
+    
+    .filter-tab.active {
+      color: #3b82f6;
+      background: rgba(59,130,246,0.1);
+      border-color: rgba(59,130,246,0.3);
+    }
+    
+    .envelope-item {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .envelope-item:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    
+    .envelope-item.selected {
+      background: linear-gradient(90deg, rgba(59,130,246,0.1) 0%, transparent 100%);
+      border-left: 2px solid #3b82f6;
+      margin-left: -1px;
+    }
+    
+    .envelope-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .envelope-id {
+      font-weight: 500;
+      color: #e2e2e8;
+    }
+    
+    .envelope-status {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-complete {
+      background: rgba(16,185,129,0.15);
+      color: #10b981;
+    }
+    
+    .status-in-progress {
+      background: rgba(59,130,246,0.15);
+      color: #3b82f6;
+    }
+    
+    .status-approved {
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
+    }
+    
+    .status-initiated {
+      background: rgba(139,92,246,0.15);
+      color: #8b5cf6;
+    }
+    
+    .envelope-desc {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+    
+    .envelope-amounts {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+    }
+    
+    .amount-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .amount-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    
+    .amount-dot.committed { background: #f59e0b; }
+    .amount-dot.disbursed { background: #3b82f6; }
+    
+    .amount-value {
+      color: #6b7280;
+    }
+    
+    /* Detail Panel */
+    .detail-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    
+    /* Envelope Header Card */
+    .envelope-header-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 24px;
+    }
+    
+    .envelope-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    
+    .envelope-header-title {
+      font-size: 18px;
+      font-weight: 400;
+      color: #f8f8fc;
+      margin-bottom: 4px;
+    }
+    
+    .envelope-header-ref {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    .budget-link-card {
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: right;
+    }
+    
+    .budget-link-label {
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    
+    .budget-link-id {
+      font-size: 12px;
+      color: #10b981;
+      margin-bottom: 2px;
+    }
+    
+    .budget-link-amount {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    /* State Cards */
+    .state-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    
+    .state-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 8px;
+      padding: 16px;
+      position: relative;
+    }
+    
+    .state-card-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .state-card-label {
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    
+    .state-card-value {
+      font-size: 18px;
+      font-weight: 500;
+    }
+    
+    .state-card-sub {
+      font-size: 10px;
+      color: #4b5563;
+      margin-top: 4px;
+    }
+    
+    /* Two Column Layout */
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+    
+    /* Event Chain */
+    .event-chain-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .card-title {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    
+    .event-chain {
+      position: relative;
+    }
+    
+    .event-chain-line {
+      position: absolute;
+      left: 11px;
+      top: 24px;
+      bottom: 24px;
+      width: 1px;
+      background: linear-gradient(to bottom, rgba(59,130,246,0.5), rgba(59,130,246,0.1));
+    }
+    
+    .event-item {
+      display: grid;
+      grid-template-columns: 24px 140px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      position: relative;
+    }
+    
+    .event-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .event-icon.complete {
+      background: #10b981;
+      color: #0a0a0f;
+    }
+    
+    .event-icon.current {
+      background: #3b82f6;
+      color: white;
+      box-shadow: 0 0 12px rgba(59,130,246,0.5);
+    }
+    
+    .event-icon.pending {
+      background: transparent;
+      border: 1px dashed #4b5563;
+      color: #4b5563;
+    }
+    
+    .event-timestamp {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    .event-details {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .event-type {
+      font-size: 12px;
+      color: #e2e2e8;
+      margin-bottom: 2px;
+    }
+    
+    .event-actor {
+      font-size: 10px;
+      color: #4b5563;
+    }
+    
+    .event-amount {
+      font-size: 12px;
+      font-weight: 500;
+      text-align: right;
+    }
+    
+    /* Controls Panel */
+    .controls-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .control-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    
+    .control-item:last-child {
+      border-bottom: none;
+    }
+    
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    
+    .control-name {
+      font-size: 12px;
+      color: #e2e2e8;
+    }
+    
+    .control-status {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .control-status.satisfied {
+      background: rgba(16,185,129,0.15);
+      color: #10b981;
+    }
+    
+    .control-status.pending {
+      background: rgba(245,158,11,0.15);
+      color: #f59e0b;
+    }
+    
+    .control-meta {
+      font-size: 10px;
+      color: #4b5563;
+    }
+    
+    .control-proof {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 6px;
+      padding: 8px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    
+    /* Algebraic State */
+    .algebraic-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.005) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    
+    .state-vector {
+      font-size: 16px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    
+    .state-breakdown {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    
+    .state-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    
+    /* Invariant Check */
+    .invariant-card {
+      background: rgba(16,185,129,0.05);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    
+    .invariant-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .invariant-icon {
+      color: #10b981;
+      font-size: 14px;
+    }
+    
+    .invariant-title {
+      font-size: 11px;
+      color: #10b981;
+    }
+    
+    .invariant-checks {
+      font-size: 10px;
+      color: #4b5563;
+    }
+    
+    .invariant-check {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+    }
+    
+    .check-icon {
+      color: #10b981;
+      font-size: 10px;
+    }
+    
+    /* Progress Bar */
+    .progress-bar-container {
+      margin-top: 20px;
+    }
+    
+    .progress-bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+    
+    .progress-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-disbursed {
+      background: #3b82f6;
+    }
+    
+    .progress-committed {
+      background: #f59e0b;
+    }
+    
+    .progress-available {
+      background: #8b5cf6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-label">Transaction Envelope System</div>
+      <div class="header-title">Budget Coordination Dashboard</div>
+      <div class="header-sub">Q1 2025 · All Active Envelopes</div>
+    </div>
+    
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Envelope List -->
+      <div class="envelope-list">
+        <div class="list-header">
+          <div class="list-title">Envelopes</div>
+          <div class="filter-tabs">
+            <div class="filter-tab active">All</div>
+            <div class="filter-tab">Active</div>
+            <div class="filter-tab">Complete</div>
+          </div>
+        </div>
+        
+        <!-- Envelope Items -->
+        <div class="envelope-item selected">
+          <div class="envelope-row">
+            <div class="envelope-id">ENV-4521</div>
+            <div class="envelope-status status-in-progress">In Progress</div>
+          </div>
+          <div class="envelope-desc">Agency Retainer - Q1 Campaign</div>
+          <div class="envelope-amounts">
+            <div class="amount-item">
+              <div class="amount-dot committed"></div>
+              <div class="amount-value">$40,000</div>
+            </div>
+            <div class="amount-item">
+              <div class="amount-dot disbursed"></div>
+              <div class="amount-value">$27,000</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="envelope-item">
+          <div class="envelope-row">
+            <div class="envelope-id">ENV-4522</div>
+            <div class="envelope-status status-in-progress">In Progress</div>
+          </div>
+          <div class="envelope-desc">Media Buy - Q1 Digital</div>
+          <div class="envelope-amounts">
+            <div class="amount-item">
+              <div class="amount-dot committed"></div>
+              <div class="amount-value">$65,000</div>
+            </div>
+            <div class="amount-item">
+              <div class="amount-dot disbursed"></div>
+              <div class="amount-value">$46,500</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="envelope-item">
+          <div class="envelope-row">
+            <div class="envelope-id">ENV-4538</div>
+            <div class="envelope-status status-approved">Approved</div>
+          </div>
+          <div class="envelope-desc">Event Sponsorship - TechConf</div>
+          <div class="envelope-amounts">
+            <div class="amount-item">
+              <div class="amount-dot committed"></div>
+              <div class="amount-value">$28,000</div>
+            </div>
+            <div class="amount-item">
+              <div class="amount-dot disbursed"></div>
+              <div class="amount-value">$0</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="envelope-item">
+          <div class="envelope-row">
+            <div class="envelope-id">ENV-4545</div>
+            <div class="envelope-status status-initiated">Initiated</div>
+          </div>
+          <div class="envelope-desc">Creative Services - Video Production</div>
+          <div class="envelope-amounts">
+            <div class="amount-item">
+              <div class="amount-dot committed"></div>
+              <div class="amount-value">$12,000</div>
+            </div>
+            <div class="amount-item">
+              <div class="amount-dot disbursed"></div>
+              <div class="amount-value">$0</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="envelope-item">
+          <div class="envelope-row">
+            <div class="envelope-id">ENV-4401</div>
+            <div class="envelope-status status-complete">Complete</div>
+          </div>
+          <div class="envelope-desc">Q4 Agency Final Settlement</div>
+          <div class="envelope-amounts">
+            <div class="amount-item">
+              <div class="amount-dot committed"></div>
+              <div class="amount-value">$15,000</div>
+            </div>
+            <div class="amount-item">
+              <div class="amount-dot disbursed"></div>
+              <div class="amount-value">$15,000</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Detail Panel -->
+      <div class="detail-panel">
+        <!-- Envelope Header Card -->
+        <div class="envelope-header-card">
+          <div class="envelope-header-top">
+            <div>
+              <div class="envelope-header-title">Agency Retainer - Q1 Campaign</div>
+              <div class="envelope-header-ref">ENV-4521 · PO #4521 · Vendor: Acme Creative Partners</div>
+            </div>
+            <div class="budget-link-card">
+              <div class="budget-link-label">Budget Authority</div>
+              <div class="budget-link-id">MKT-2025-Q1</div>
+              <div class="budget-link-amount">$40,000 of $150,000</div>
+            </div>
+          </div>
+          
+          <!-- State Cards -->
+          <div class="state-cards">
+            <div class="state-card">
+              <div class="state-card-bar" style="background: #10b981;"></div>
+              <div class="state-card-label">Allocated</div>
+              <div class="state-card-value" style="color: #10b981;">$40,000</div>
+              <div class="state-card-sub">From budget</div>
+            </div>
+            <div class="state-card">
+              <div class="state-card-bar" style="background: #f59e0b;"></div>
+              <div class="state-card-label">Committed</div>
+              <div class="state-card-value" style="color: #f59e0b;">$40,000</div>
+              <div class="state-card-sub">PO issued</div>
+            </div>
+            <div class="state-card">
+              <div class="state-card-bar" style="background: #3b82f6;"></div>
+              <div class="state-card-label">Disbursed</div>
+              <div class="state-card-value" style="color: #3b82f6;">$27,000</div>
+              <div class="state-card-sub">67.5% complete</div>
+            </div>
+            <div class="state-card">
+              <div class="state-card-bar" style="background: #8b5cf6;"></div>
+              <div class="state-card-label">Remaining</div>
+              <div class="state-card-value" style="color: #8b5cf6;">$13,000</div>
+              <div class="state-card-sub">Pending</div>
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+          <div class="progress-bar-container">
+            <div class="progress-bar-label">
+              <span>Envelope Progress</span>
+              <span>67.5% disbursed</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-segment progress-disbursed" style="width: 67.5%;"></div>
+              <div class="progress-segment progress-committed" style="width: 32.5%;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Two Column: Events + Controls -->
+        <div class="two-column">
+          <!-- Event Chain -->
+          <div class="event-chain-card">
+            <div class="card-title">Event Chain</div>
+            <div class="event-chain">
+              <div class="event-chain-line"></div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-01-14 09:32</div>
+                <div class="event-details">
+                  <div class="event-type">INITIATED</div>
+                  <div class="event-actor">by: jsmith@company.com</div>
+                </div>
+                <div class="event-amount" style="color: #6b7280;">—</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-01-14 14:15</div>
+                <div class="event-details">
+                  <div class="event-type">APPROVED</div>
+                  <div class="event-actor">by: mchen@company.com (Budget Holder)</div>
+                </div>
+                <div class="event-amount" style="color: #10b981;">$40,000</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-01-15 10:00</div>
+                <div class="event-details">
+                  <div class="event-type">PO_ISSUED</div>
+                  <div class="event-actor">ref: PO-4521 → Acme Creative</div>
+                </div>
+                <div class="event-amount" style="color: #f59e0b;">⟨$40,000⟩</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-02-01 08:45</div>
+                <div class="event-details">
+                  <div class="event-type">INVOICE_RECEIVED</div>
+                  <div class="event-actor">ref: INV-2201 · Jan services</div>
+                </div>
+                <div class="event-amount" style="color: #6b7280;">$13,500</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-02-01 09:00</div>
+                <div class="event-details">
+                  <div class="event-type">THREE_WAY_MATCH</div>
+                  <div class="event-actor">auto-verified: PO ↔ Receipt ↔ Invoice</div>
+                </div>
+                <div class="event-amount" style="color: #10b981;">✓ match</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-02-03 00:00</div>
+                <div class="event-details">
+                  <div class="event-type">PAYMENT_EXECUTED</div>
+                  <div class="event-actor">ref: ACH-88432</div>
+                </div>
+                <div class="event-amount" style="color: #3b82f6;">$13,500</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon complete">✓</div>
+                <div class="event-timestamp">2025-03-01 08:30</div>
+                <div class="event-details">
+                  <div class="event-type">INVOICE_RECEIVED</div>
+                  <div class="event-actor">ref: INV-2301 · Feb services</div>
+                </div>
+                <div class="event-amount" style="color: #6b7280;">$13,500</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon current">●</div>
+                <div class="event-timestamp">2025-03-03 00:00</div>
+                <div class="event-details">
+                  <div class="event-type">PAYMENT_EXECUTED</div>
+                  <div class="event-actor">ref: ACH-89102</div>
+                </div>
+                <div class="event-amount" style="color: #3b82f6;">$13,500</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon pending">○</div>
+                <div class="event-timestamp">Expected Apr</div>
+                <div class="event-details">
+                  <div class="event-type">INVOICE_RECEIVED</div>
+                  <div class="event-actor">Mar services (projected)</div>
+                </div>
+                <div class="event-amount" style="color: #4b5563;">$13,000</div>
+              </div>
+              
+              <div class="event-item">
+                <div class="event-icon pending">○</div>
+                <div class="event-timestamp">—</div>
+                <div class="event-details">
+                  <div class="event-type">ENVELOPE_CLOSED</div>
+                  <div class="event-actor">Pending final settlement</div>
+                </div>
+                <div class="event-amount" style="color: #4b5563;">—</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Right Column: Controls + Algebraic -->
+          <div>
+            <!-- Controls -->
+            <div class="controls-card" style="margin-bottom: 16px;">
+              <div class="card-title">Control Attestations</div>
+              
+              <div class="control-item">
+                <div class="control-header">
+                  <div class="control-name">Budget Holder Approval</div>
+                  <div class="control-status satisfied">Satisfied</div>
+                </div>
+                <div class="control-meta">mchen@company.com · 2025-01-14 14:15</div>
+                <div class="control-proof">sig:0x7f3a...9c2d</div>
+              </div>
+              
+              <div class="control-item">
+                <div class="control-header">
+                  <div class="control-name">Threshold Check (&lt;$50K)</div>
+                  <div class="control-status satisfied">Auto-pass</div>
+                </div>
+                <div class="control-meta">Rule: PROC-001 · Single approval sufficient</div>
+              </div>
+              
+              <div class="control-item">
+                <div class="control-header">
+                  <div class="control-name">Vendor Verification</div>
+                  <div class="control-status satisfied">Verified</div>
+                </div>
+                <div class="control-meta">Acme Creative · Active vendor since 2023-06</div>
+              </div>
+              
+              <div class="control-item">
+                <div class="control-header">
+                  <div class="control-name">Three-Way Match</div>
+                  <div class="control-status satisfied">2 of 3</div>
+                </div>
+                <div class="control-meta">INV-2201 ✓ · INV-2301 ✓ · INV-2401 pending</div>
+              </div>
+            </div>
+            
+            <!-- Algebraic State -->
+            <div class="algebraic-card">
+              <div class="card-title">Algebraic State</div>
+              <div class="state-vector">
+                <span style="color: #6b7280;">Z</span> = 
+                <span style="color: #3b82f6;">$27,000</span>
+                <span style="color: #6b7280;"> + </span>
+                <span style="color: #10b981;">$13,000</span><span style="color: #10b981; font-style: italic;">i</span>
+              </div>
+              <div class="state-breakdown">
+                <div class="state-breakdown-row">
+                  <span>Real (disbursed)</span>
+                  <span style="color: #3b82f6;">$27,000</span>
+                </div>
+                <div class="state-breakdown-row">
+                  <span>Imaginary (remaining)</span>
+                  <span style="color: #10b981;">$13,000</span>
+                </div>
+                <div class="state-breakdown-row">
+                  <span>|Z| (envelope total)</span>
+                  <span style="color: #e2e2e8;">$40,000</span>
+                </div>
+              </div>
+              
+              <!-- Invariant -->
+              <div class="invariant-card">
+                <div class="invariant-header">
+                  <div class="invariant-icon">✓</div>
+                  <div class="invariant-title">All Invariants Hold</div>
+                </div>
+                <div class="invariant-checks">
+                  <div class="invariant-check">
+                    <span class="check-icon">✓</span>
+                    <span>Allocated ≤ Budget Authority</span>
+                  </div>
+                  <div class="invariant-check">
+                    <span class="check-icon">✓</span>
+                    <span>Disbursed ≤ Committed</span>
+                  </div>
+                  <div class="invariant-check">
+                    <span class="check-icon">✓</span>
+                    <span>All controls satisfied</span>
+                  </div>
+                  <div class="invariant-check">
+                    <span class="check-icon">✓</span>
+                    <span>Event chain unbroken</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

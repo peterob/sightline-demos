@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reality DVR v1.1</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-cyan: #39c5bb;
+            --accent-pink: #ff7b72;
+            --accent-green: #2ea043;
+            --font-mono: 'SF Mono', 'Segoe UI Mono', 'Roboto Mono', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .terminal-container {
+            width: 1000px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: 95vh; /* Prevent it from being too tall */
+            overflow-y: auto; /* Allow scrolling if needed */
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #010409;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background: #1f2428;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* --- MAIN STAGE --- */
+        .stage { padding: 20px; flex-shrink: 0; }
+
+        .chart-container {
+            position: relative;
+            height: 200px; /* Shortened slightly to fit table */
+            width: 100%;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+            background: radial-gradient(circle at center, #13171f 0%, #0d1117 100%);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .cyan { background: var(--accent-cyan); }
+        .pink { background: var(--accent-pink); }
+
+        /* --- CONTROLS --- */
+        .controls-area {
+            background: #1c2128;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .scrubber-wrapper { margin-bottom: 15px; }
+
+        input[type=range] {
+            width: 100%;
+            background: transparent;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            background: var(--border);
+            height: 4px;
+            border-radius: 2px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 10px;
+            background: var(--text-main);
+            margin-top: -8px;
+            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        .scrubber-caption {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        button {
+            background: #21262d;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        button:hover { background: #30363d; }
+        button.primary { background: var(--accent-green); color: white; border: none; }
+        button.primary:hover { background: #2c974b; }
+
+        /* --- METRICS --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 0 20px 20px 20px;
+            flex-shrink: 0;
+        }
+        .metric-card {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .metric-value { font-family: var(--font-mono); font-size: 24px; font-weight: 600; }
+        
+        .confidence-bar { height: 4px; background: #30363d; margin-top: 10px; border-radius: 2px; overflow: hidden; }
+        .confidence-fill { height: 100%; width: 0%; background: var(--accent-cyan); transition: width 0.3s; }
+        .confidence-text { font-size: 11px; margin-top: 5px; color: var(--accent-cyan); }
+
+        /* --- THE LOG TABLE --- */
+        .log-section {
+            padding: 0 20px 20px 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .log-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .table-wrapper {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow-y: auto;
+            background: #0d1117;
+            height: 200px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 15px;
+            background: #161b22;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid var(--border);
+            font-weight: 500;
+        }
+
+        td {
+            padding: 8px 15px;
+            border-bottom: 1px solid #21262d;
+            color: var(--text-main);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #1c2128; }
+
+        /* Log Colors */
+        .log-day { color: var(--text-muted); }
+        .log-source-erp { color: var(--accent-cyan); }
+        .log-source-real { color: var(--accent-pink); }
+        .log-neg { color: var(--accent-pink); }
+        .log-pos { color: var(--accent-green); }
+        .log-snark { font-style: italic; color: #8b949e; }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 10px;
+            font-size: 11px;
+            color: #484f58;
+            border-top: 1px solid var(--border);
+            background: #010409;
+            flex-shrink: 0;
+        }
+        
+        /* Tape Markers */
+        .tape-markers { display: flex; justify-content: space-between; margin-bottom: 10px; padding: 0 10px; }
+        .tape-marker { font-size: 10px; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tape-marker:hover { opacity: 1; }
+        
+        /* Overlay */
+        .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 99; }
+        .hidden-explanation { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #161b22; border: 1px solid var(--accent-pink); padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); z-index: 100; width: 300px; text-align: center; border-radius: 8px; }
+
+    </style>
+</head>
+<body>
+
+<div class="terminal-container">
+    <header>
+        <h1>Financial Reality DVR <span style="font-size:10px; opacity: 0.6;">// v1.1</span></h1>
+        <div class="status-badge">REC: OFF</div>
+    </header>
+
+    <div class="stage">
+        <div class="chart-container">
+            <div class="legend">
+                <div class="legend-item"><div class="dot cyan"></div> What We Knew</div>
+                <div class="legend-item"><div class="dot pink"></div> What Actually Happened</div>
+            </div>
+            <canvas id="financeChart"></canvas>
+        </div>
+
+        <div class="controls-area">
+            <div class="tape-markers">
+                <div class="tape-marker" onclick="jumpTo(5)"><span class="marker-icon">🟢</span><span>Day 5</span></div>
+                <div class="tape-marker" onclick="jumpTo(12)"><span class="marker-icon">🟡</span><span>Day 12</span></div>
+                <div class="tape-marker" onclick="jumpTo(19)"><span class="marker-icon">🟥</span><span>Day 19</span></div>
+                <div class="tape-marker" onclick="jumpTo(26)"><span class="marker-icon">🏁</span><span>Day 26</span></div>
+            </div>
+            <div class="scrubber-wrapper">
+                <input type="range" id="timeSlider" min="0" max="30" value="30" step="1">
+                <div class="scrubber-caption">"Scrubbing does not change history. It only reveals it."</div>
+            </div>
+            <div class="button-row">
+                <button onclick="rewind()">Rewind</button>
+                <button id="playBtn" class="primary" onclick="togglePlay()">▶ Play Reality</button>
+                <button onclick="fastForward()">FF >></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="metric-card">
+            <div class="metric-label">Money In Limbo</div>
+            <div class="metric-value" id="val-limbo">$0.00</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Evidence Confidence</div>
+            <div class="metric-value" id="val-conf">100%</div>
+            <div class="confidence-bar"><div class="confidence-fill" id="bar-conf" style="width: 100%"></div></div>
+            <div class="confidence-text" id="text-conf">Mostly Sure</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Lag</div>
+            <div class="metric-value" id="val-lag">0 Days</div>
+        </div>
+    </div>
+
+    <div class="log-section">
+        <div class="log-header">
+            <span>Audit Trail</span>
+            <span style="font-weight:400; opacity:0.6;">Only showing events visible by Day <span id="log-day-display">30</span></span>
+        </div>
+        <div class="table-wrapper">
+            <table id="eventTable">
+                <thead>
+                    <tr>
+                        <th width="10%">Day</th>
+                        <th width="15%">Source</th>
+                        <th width="35%">Narrative</th>
+                        <th width="15%">Impact</th>
+                        <th width="25%">System Opinion</th>
+                    </tr>
+                </thead>
+                <tbody id="logBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        This is a toy. Unfortunately, it's also correct.
+    </footer>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeExplain()"></div>
+<div class="hidden-explanation" id="explainBox">
+    <h3 style="margin-top:0; color: var(--accent-pink);">You asked.</h3>
+    <p style="font-size: 13px; color: #c9d1d9; line-height: 1.6;">
+        The chart diverged because a vendor invoice was received via snail mail and sat on a desk for 9 days.
+    </p>
+    <button onclick="closeExplain()" style="margin-top:10px; width:100%;">Fine, close.</button>
+</div>
+
+<script>
+    const days = 30;
+    const dataKnown = [];
+    const dataActual = [];
+    
+    // --- Data Gen ---
+    let baseValue = 50000;
+    for(let i=0; i<=days; i++) {
+        let noise = (Math.random() - 0.5) * 500;
+        let actualVal = baseValue + noise + (i * 200);
+        let knownVal = baseValue + noise + (i * 200);
+
+        if (i > 12) actualVal -= 15000; // Hit
+        if (i > 12 && i < 26) knownVal += (i*100); // Drift
+        else if (i >= 26) knownVal = actualVal; // Reconcile
+
+        dataActual.push(actualVal);
+        dataKnown.push(knownVal);
+    }
+
+    // --- Events Database ---
+    const eventsDB = [
+        { day: 2, source: "ERP (Fantasy)", type: "fantasy", desc: "Recurring Subscription Auto-renew", impact: "-$200", comment: "Boring." },
+        { day: 5, source: "Bank (Reality)", type: "real", desc: "Payroll Run (Cleared)", impact: "-$12,000", comment: "Predictable." },
+        { day: 8, source: "ERP (Fantasy)", type: "fantasy", desc: "Sales Forecast Update", impact: "+$0", comment: "Optimism detected." },
+        { day: 12, source: "Bank (Reality)", type: "real", desc: "Unexpected Vendor Charge", impact: "-$15,000", comment: "⚠️ Why is this here?" },
+        { day: 13, source: "ERP (Fantasy)", type: "fantasy", desc: "Daily Cash Position", impact: "+$0", comment: "Delusional." },
+        { day: 15, source: "ERP (Fantasy)", type: "fantasy", desc: "Mid-Month Check-in", impact: "N/A", comment: "Ignoring the fire." },
+        { day: 19, source: "Bank (Reality)", type: "real", desc: "Wire Fee", impact: "-$25", comment: "Insult to injury." },
+        { day: 26, source: "Bank (Reality)", type: "real", desc: "Manual Adjustment Entry", impact: "Sync", comment: "Finally." },
+        { day: 28, source: "Bank (Reality)", type: "real", desc: "EOM Interest", impact: "+$120", comment: "Too little, too late." }
+    ];
+
+    // --- Elements ---
+    const canvas = document.getElementById('financeChart');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('timeSlider');
+    const logBody = document.getElementById('logBody');
+    const logDayDisplay = document.getElementById('log-day-display');
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+        drawChart(slider.value);
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- Draw ---
+    function drawChart(currentDay) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const width = canvas.width, height = canvas.height, padding = 10;
+        
+        const maxVal = Math.max(...dataKnown, ...dataActual) * 1.1;
+        const minVal = Math.min(...dataKnown, ...dataActual) * 0.9;
+        const range = maxVal - minVal;
+        
+        function getX(day) { return padding + (day / days) * (width - 2 * padding); }
+        function getY(val) { return height - padding - ((val - minVal) / range) * (height - 2 * padding); }
+
+        // Actual
+        ctx.beginPath(); ctx.strokeStyle = '#ff7b72'; ctx.lineWidth = 3;
+        ctx.moveTo(getX(0), getY(dataActual[0]));
+        for(let i=1; i<=currentDay; i++) ctx.lineTo(getX(i), getY(dataActual[i]));
+        ctx.stroke();
+
+        // Known
+        ctx.beginPath(); ctx.strokeStyle = '#39c5bb'; ctx.lineWidth = 3;
+        ctx.moveTo(getX(0), getY(dataKnown[0]));
+        for(let i=1; i<=currentDay; i++) ctx.lineTo(getX(i), getY(dataKnown[i]));
+        ctx.stroke();
+
+        // Scrubber
+        const sX = getX(currentDay);
+        ctx.beginPath(); ctx.strokeStyle = '#fff'; ctx.setLineDash([5, 5]); ctx.moveTo(sX, 0); ctx.lineTo(sX, height); ctx.stroke(); ctx.setLineDash([]);
+
+        updateDashboard(currentDay);
+        renderLog(currentDay);
+    }
+
+    function updateDashboard(day) {
+        const diff = Math.abs(dataKnown[day] - dataActual[day]);
+        document.getElementById('val-limbo').innerText = "$" + diff.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+        
+        let conf = 100;
+        if (day > 12 && day < 26) conf = 41;
+        if (day >= 26) conf = 98;
+        
+        document.getElementById('val-conf').innerText = conf + "%";
+        document.getElementById('bar-conf').style.width = conf + "%";
+        
+        // Color logic
+        const bar = document.getElementById('bar-conf');
+        const txt = document.getElementById('text-conf');
+        if(conf < 50) { bar.style.background = '#ff7b72'; txt.innerText = "Please Don't Automate"; txt.style.color = '#ff7b72'; }
+        else { bar.style.background = '#39c5bb'; txt.innerText = "Mostly Sure"; txt.style.color = '#39c5bb'; }
+
+        let lag = (day > 12 && day < 26) ? day - 12 : 0;
+        document.getElementById('val-lag').innerText = lag + " Days";
+    }
+
+    function renderLog(day) {
+        logDayDisplay.innerText = day;
+        logBody.innerHTML = "";
+        
+        // Filter events that happened on or before 'day'
+        const visibleEvents = eventsDB.filter(e => e.day <= day);
+
+        if (visibleEvents.length === 0) {
+            logBody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding:20px; color:#8b949e;'>No events recorded yet.</td></tr>";
+            return;
+        }
+
+        visibleEvents.forEach(e => {
+            const row = document.createElement('tr');
+            
+            // Style source
+            const sourceClass = e.type === 'real' ? 'log-source-real' : 'log-source-erp';
+            const impactClass = e.impact.includes('-') ? 'log-neg' : (e.impact.includes('+') ? 'log-pos' : '');
+
+            row.innerHTML = `
+                <td class="log-day">Day ${e.day}</td>
+                <td class="${sourceClass}">${e.source}</td>
+                <td>${e.desc}</td>
+                <td class="${impactClass}">${e.impact}</td>
+                <td class="log-snark">${e.comment}</td>
+            `;
+            logBody.appendChild(row);
+        });
+        
+        // Auto scroll to bottom of table
+        const wrapper = document.querySelector('.table-wrapper');
+        wrapper.scrollTop = wrapper.scrollHeight;
+    }
+
+    // --- Controls ---
+    let isPlaying = false;
+    let playInterval;
+
+    slider.addEventListener('input', (e) => {
+        drawChart(parseInt(e.target.value));
+        if(isPlaying) togglePlay(); 
+    });
+
+    function togglePlay() {
+        if (isPlaying) {
+            clearInterval(playInterval);
+            document.getElementById('playBtn').innerText = "▶ Play Reality";
+            isPlaying = false;
+        } else {
+            document.getElementById('playBtn').innerText = "⏸ Pause";
+            isPlaying = true;
+            playInterval = setInterval(() => {
+                let val = parseInt(slider.value);
+                if (val < days) {
+                    slider.value = val + 1;
+                    drawChart(val + 1);
+                } else {
+                    togglePlay();
+                }
+            }, 300);
+        }
+    }
+
+    function rewind() { slider.value = 0; drawChart(0); }
+    function fastForward() { slider.value = 30; drawChart(30); }
+    function jumpTo(d) { slider.value = d; drawChart(d); }
+    
+    function closeExplain() { document.getElementById('overlay').style.display='none'; document.getElementById('explainBox').style.display='none'; }
+
+    // Init
+    resizeCanvas();
+    drawChart(30);
+
+</script>
+</body>
+</html>

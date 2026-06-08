@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sightline · PO-to-Cash Control Mirror</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root {
+      --bg: #050516;
+      --bg-alt: #0a0b21;
+      --bg-panel: #111231;
+      --accent: #7b5cff;
+      --accent-soft: rgba(123, 92, 255, 0.14);
+      --accent-strong: #b291ff;
+      --accent-warm: #ffb86c;
+      --text: #f7f7ff;
+      --muted: #a2a4d3;
+      --border-subtle: rgba(255,255,255,0.06);
+      --danger: #ff6b81;
+      --success: #4cd5a1;
+      --warn: #ffd56b;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 16px 40px rgba(0,0,0,0.35);
+      --shadow-subtle: 0 10px 25px rgba(0,0,0,0.25);
+      --transition-fast: 0.18s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1b1037 0, #050516 50%, #02010a 100%);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding: 0 12px 32px;
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin: 18px 0 24px;
+      padding: 18px 18px 16px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: linear-gradient(135deg, rgba(123, 92, 255, 0.24), rgba(0, 0, 0, 0.0));
+      border: 1px solid rgba(123, 92, 255, 0.6);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 25% 15%, #fff 0, #7b5cff 38%, #050516 100%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 0 40px rgba(123,92,255,0.75);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: 28%;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,0.6);
+      transform: rotate(-18deg);
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .brand-text span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .header-cta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tag-chip {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(5,5,22,0.72);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-warm));
+    }
+
+    .btn {
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 13px;
+      font-size: 12px;
+      cursor: pointer;
+      background: rgba(9, 9, 30, 0.9);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background var(--transition-fast), transform var(--transition-fast),
+        box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      box-shadow: 0 10px 30px rgba(123, 92, 255, 0.6);
+      border-color: rgba(255,255,255,0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 40px rgba(123,92,255,0.8);
+    }
+
+    .btn-ghost {
+      background: rgba(5,5,22,0.85);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(12,14,38,0.98);
+      transform: translateY(-1px);
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .hero-panel {
+      border-radius: var(--radius-lg);
+      background: radial-gradient(circle at top left, rgba(123,92,255,0.24), transparent 60%),
+                  linear-gradient(135deg, rgba(10,13,50,0.96), rgba(3,3,18,0.96));
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-soft);
+      padding: 18px 16px 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr);
+      gap: 18px;
+    }
+
+    .hero-copy h2 {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .hero-copy p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .hero-metadata {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: var(--radius-pill);
+      background: rgba(8,9,30,0.92);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill span.key {
+      color: var(--accent-strong);
+      font-weight: 500;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      background: rgba(5,6,24,0.94);
+      border-radius: 14px;
+      padding: 8px 9px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .metric-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      margin-bottom: 2px;
+    }
+
+    .metric-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .metric-trend {
+      font-size: 11px;
+      color: var(--success);
+      margin-top: 1px;
+    }
+
+    .hero-right {
+      border-radius: 14px;
+      background: radial-gradient(circle at top, rgba(123,92,255,0.24), transparent 55%),
+                  linear-gradient(160deg, rgba(11,13,46,0.98), rgba(4,4,20,0.98));
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 12px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-right::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 110% 0, rgba(255,255,255,0.08), transparent 55%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .hero-right-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .hero-right-header h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+    }
+
+    .view-toggle {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 999px;
+      background: rgba(4,5,24,0.9);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .view-toggle button {
+      border: 0;
+      padding: 3px 10px;
+      font-size: 10px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .view-toggle button.active {
+      background: rgba(123,92,255,0.22);
+      color: var(--accent-strong);
+    }
+
+    .risk-map {
+      margin-top: 6px;
+      border-radius: 12px;
+      background: radial-gradient(circle at top left, rgba(123,92,255,0.2), transparent 70%);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+      min-height: 170px;
+    }
+
+    .risk-grid {
+      position: absolute;
+      inset: 10px 10px 26px 32px;
+      border-left: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .risk-grid::before,
+    .risk-grid::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+                        linear-gradient(to top, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 33% 100%, 100% 33%;
+      pointer-events: none;
+    }
+
+    .axis-label {
+      position: absolute;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    .axis-label.y {
+      top: 10px;
+      left: 0;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+    }
+
+    .axis-label.x {
+      bottom: 0;
+      right: 10px;
+    }
+
+    .risk-dot {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #fff 0, var(--accent) 40%, #050516 100%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 12px 22px rgba(0,0,0,0.6);
+      cursor: default;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .risk-dot:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.8);
+    }
+
+    .risk-dot[data-type="inventory"] {
+      background: radial-gradient(circle at 30% 20%, #fff 0, var(--accent-warm) 40%, #050516 100%);
+    }
+
+    .risk-dot[data-type="vendor"] {
+      background: radial-gradient(circle at 30% 20%, #fff 0, #ff6b81 40%, #050516 100%);
+    }
+
+    .risk-dot[data-type="cashlike"] {
+      background: radial-gradient(circle at 30% 20%, #fff 0, var(--success) 40%, #050516 100%);
+    }
+
+    .risk-dot-label {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      white-space: nowrap;
+      color: var(--muted);
+    }
+
+    .risk-legend {
+      position: absolute;
+      right: 8px;
+      bottom: 6px;
+      font-size: 9px;
+      display: flex;
+      gap: 8px;
+      background: rgba(4,4,20,0.9);
+      padding: 4px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .risk-legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+    }
+
+    .risk-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .risk-legend-dot.inv { background: var(--accent-warm); }
+    .risk-legend-dot.vend { background: #ff6b81; }
+    .risk-legend-dot.cash { background: var(--success); }
+
+    .risk-caption {
+      position: absolute;
+      left: 8px;
+      bottom: 4px;
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr);
+      gap: 14px;
+    }
+
+    .panel {
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(8,10,35,0.98), rgba(4,4,18,0.98));
+      border: 1px solid var(--border-subtle);
+      padding: 12px 13px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .panel-tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(7,8,26,0.92);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+    }
+
+    .panel h3 {
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+
+    .panel p {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .phase-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .phase-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .phase-marker {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #fff 0, var(--accent) 45%, #050516 100%);
+      border: 1px solid rgba(255,255,255,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #050516;
+      position: relative;
+    }
+
+    .phase-marker::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 26px;
+      width: 1px;
+      height: 26px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.22), transparent);
+    }
+
+    .phase-item:last-child .phase-marker::after {
+      display: none;
+    }
+
+    .phase-body h4 {
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .phase-body span {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .phase-body ul {
+      margin-top: 4px;
+      padding-left: 16px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .controls-grid {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .control-card {
+      background: radial-gradient(circle at top, rgba(123,92,255,0.18), transparent 75%);
+      border-radius: 12px;
+      padding: 8px 8px 9px;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px;
+    }
+
+    .control-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 1px;
+    }
+
+    .control-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+
+    .control-impact {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .control-chip {
+      margin-top: 4px;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(5,6,24,0.94);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .control-chip span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .event-chain {
+      margin-top: 6px;
+      padding: 7px 9px;
+      border-radius: 10px;
+      background: rgba(5,5,22,0.96);
+      border: 1px dashed rgba(255,255,255,0.14);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .event-chain strong {
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .metric-card {
+      background: rgba(5,6,24,0.96);
+      border-radius: 12px;
+      padding: 8px 9px;
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 11px;
+    }
+
+    .metric-card h4 {
+      font-size: 11px;
+      margin-bottom: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .metric-card p {
+      color: var(--text);
+    }
+
+    .metric-card span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    footer {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      opacity: 0.9;
+    }
+
+    footer span strong {
+      color: var(--accent-strong);
+      font-weight: 500;
+    }
+
+    @media (max-width: 840px) {
+      .hero-panel {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .grid-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .controls-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .metrics-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-right {
+        min-height: 200px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .header-cta {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .hero-panel {
+        padding: 14px 12px 12px;
+      }
+
+      .hero-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metrics-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-text">
+        <h1>Sightline</h1>
+        <span>PO-to-Cash Control Mirror</span>
+      </div>
+    </div>
+    <div class="header-cta">
+      <div class="tag-chip">
+        <div class="tag-dot"></div>
+        Ecommerce · Pilot Ready
+      </div>
+      <button class="btn btn-ghost" onclick="scrollToSection('phases')">
+        ⏱ PoC → Pilot Plan
+      </button>
+      <button class="btn btn-primary" onclick="scrollToSection('risk')">
+        🧭 View Risk Map
+      </button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- HERO: Overview + Risk Map -->
+    <section class="hero-panel" id="top">
+      <div class="hero-copy">
+        <h2>Turn PO-to-Cash Into a Financeable Asset</h2>
+        <p>
+          Sightline sits above your Shopify, ERP, 3PL, AP, and bank feeds to build
+          a single, explainable PO→cash event chain and quantify working capital
+          risk in lender-ready terms.
+        </p>
+
+        <div class="hero-metadata">
+          <div class="pill">
+            <span class="key">Who:</span> Ecommerce CFO / Finance / Ops
+          </div>
+          <div class="pill">
+            <span class="key">Scope:</span> POs · Inventory · AP · Cash
+          </div>
+          <div class="pill">
+            <span class="key">Mode:</span> Uploads → Scheduled Exports
+          </div>
+        </div>
+
+        <div class="hero-metrics">
+          <div class="metric">
+            <div class="metric-label">Coverage</div>
+            <div class="metric-value">90%+</div>
+            <div class="metric-trend">of spend with full PO→cash chains</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Exceptions</div>
+            <div class="metric-value">−40%</div>
+            <div class="metric-trend">early / no-proof payments</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Time to Answer</div>
+            <div class="metric-value">mins → sec</div>
+            <div class="metric-trend">for "show me this vendor's trail"</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-right" id="risk">
+        <div class="hero-right-header">
+          <h3>Risk Map</h3>
+          <div class="view-toggle">
+            <button class="active" id="view-cfo" onclick="setRiskView('cfo')">CFO View</button>
+            <button id="view-lender" onclick="setRiskView('lender')">Lender View</button>
+          </div>
+        </div>
+
+        <div class="risk-map">
+          <div class="axis-label y">Likelihood of realization</div>
+          <div class="axis-label x">Economic decay / obsolescence</div>
+
+          <div class="risk-grid">
+            <!-- Example bubbles: position via top/left as % inside grid area -->
+            <!-- Bottom-right: seasonal inventory, long lead -->
+            <div class="risk-dot" data-type="inventory" style="left: 66%; top: 60%;">
+              <div class="risk-dot-label">Seasonal Inv · CN→US</div>
+            </div>
+
+            <!-- Mid-right: vendor prepayments -->
+            <div class="risk-dot" data-type="vendor" style="left: 74%; top: 42%;">
+              <div class="risk-dot-label">Vendor Prepay · Top 5</div>
+            </div>
+
+            <!-- Mid-left: recent receipts -->
+            <div class="risk-dot" data-type="inventory" style="left: 32%; top: 28%;">
+              <div class="risk-dot-label">Newly Receipted</div>
+            </div>
+
+            <!-- Top-left: cashlike -->
+            <div class="risk-dot" data-type="cashlike" style="left: 18%; top: 10%;">
+              <div class="risk-dot-label">Cash & Cleared AR</div>
+            </div>
+          </div>
+
+          <div class="risk-legend">
+            <div class="risk-legend-item">
+              <span class="risk-legend-dot inv"></span> Inventory
+            </div>
+            <div class="risk-legend-item">
+              <span class="risk-legend-dot vend"></span> Vendor / Prepay
+            </div>
+            <div class="risk-legend-item">
+              <span class="risk-legend-dot cash"></span> Cash-like
+            </div>
+          </div>
+
+          <div class="risk-caption" id="risk-caption">
+            CFO view: identify capital trapped in bottom-right and policy levers to move it up-and-left.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRID: Phases + Control Packs -->
+    <section class="grid-layout" id="phases">
+
+      <!-- Left: PoC → Pilot timeline -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Phase Plan</div>
+            <h3>PoC → Pilot, Without Heavy Integration</h3>
+          </div>
+          <div class="panel-tag">Uploads → Exports</div>
+        </div>
+
+        <p>
+          We sequence Sightline to avoid integration drag. Phase 1 proves value with
+          file uploads and manual mapping. Phase 2 automates the same flows via
+          scheduled exports from your existing tools.
+        </p>
+
+        <div class="phase-timeline">
+          <div class="phase-item">
+            <div class="phase-marker">1</div>
+            <div class="phase-body">
+              <h4>Diagnostic PoC (4–6 weeks)</h4>
+              <span>Uploads + manual mapping</span>
+              <ul>
+                <li>Ingest Shopify, PO/ERP, 3PL, AP, and bank CSVs.</li>
+                <li>Build PO→receipt→invoice→payment chains for a representative slice.</li>
+                <li>Quantify early/no-proof payments, mismatches, and vendor exposure.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="phase-item">
+            <div class="phase-marker">2</div>
+            <div class="phase-body">
+              <h4>Early Product Pilot (8–12 weeks)</h4>
+              <span>Scheduled exports</span>
+              <ul>
+                <li>Set up daily/weekly exports from Shopify, ERP, 3PL, AP, and bank.</li>
+                <li>Run agreed control pack on new flows; surface exceptions daily.</li>
+                <li>Provide dashboards and "power user" investigation views.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="event-chain">
+          <strong>Data in, risk out:</strong> Sightline only needs flat files or exports; it
+          rebuilds your world as PO→shipment→receipt→invoice→payment→order events with
+          controls evaluated on top.
+        </div>
+      </section>
+
+      <!-- Right: Control packs & impact -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Control Packs</div>
+            <h3>Policy Modules That Move the Risk Map</h3>
+          </div>
+          <div class="panel-tag">CFO · Lender-Friendly</div>
+        </div>
+
+        <p>
+          Each control pack is a versioned "contract" over your PO-to-cash events. We
+          start with a small set that directly moves exposures up-and-left on the map.
+        </p>
+
+        <div class="controls-grid">
+          <div class="control-card">
+            <div class="control-label">AP Core</div>
+            <div class="control-title">3/4-Way Match & Pay Window</div>
+            <div class="control-impact">
+              Blocks payments without matching PO + receipt (within tolerance),
+              and aligns pay dates with receipt + terms.
+            </div>
+            <div class="control-chip">
+              <span></span> Impact: ↑ realization, ↓ early cash burn
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-label">Physical Proof</div>
+            <div class="control-title">Possession Before Payment</div>
+            <div class="control-impact">
+              Enforces "no cash out until physical control consistent with Incoterms"
+              using 3PL receipts and logistics milestones.
+            </div>
+            <div class="control-chip">
+              <span></span> Impact: ↑ lender confidence, ↓ bottom-right exposure
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-label">Vendor Risk</div>
+            <div class="control-title">Exposure & KYB Guardrails</div>
+            <div class="control-impact">
+              Caps vendor exposure, requires KYB/terms attestations, and routes
+              exceptions into a structured queue.
+            </div>
+            <div class="control-chip">
+              <span></span> Impact: ↑ diversification, ↓ concentrated risk
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="control-label">Margin Integrity</div>
+            <div class="control-title">Landed Cost vs Sell-Through</div>
+            <div class="control-impact">
+              Links PO cost + freight to realized selling price by SKU/lane, and
+              surfaces top margin leakage patterns.
+            </div>
+            <div class="control-chip">
+              <span></span> Impact: ↑ unit economics, ↓ unobserved erosion
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- Metrics / success -->
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Success Metrics</div>
+          <h3>How We Know the Pilot Is Working</h3>
+        </div>
+        <div class="panel-tag">Risk Map Outcomes</div>
+      </div>
+
+      <p>
+        We treat the risk map as the scoreboard. The goal isn't just a nicer dashboard;
+        it's shifting how much of your working capital lives in lender-grade territory.
+      </p>
+
+      <div class="metrics-row">
+        <div class="metric-card">
+          <h4>Coverage</h4>
+          <p>≥ 80–90% of in-scope spend with full PO→cash chains reconstructed.</p>
+          <span>Reduces "unknowns" for CFO and lenders.</span>
+        </div>
+        <div class="metric-card">
+          <h4>Exception Rate</h4>
+          <p>Material reduction in early/no-proof payments and unmatched flows.</p>
+          <span>Measured vs historical baseline over same vendors / SKUs.</span>
+        </div>
+        <div class="metric-card">
+          <h4>Cost of Capital Signal</h4>
+          <p>
+            Clear, evidence-backed slice of inventory/AP that could be treated as
+            higher-quality exposure by lenders.
+          </p>
+          <span>Basis for better terms, even before formal renegotiation.</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <span>
+      Sightline · <strong>Control mirror</strong> over ecommerce PO-to-cash
+      (uploads → exports, no ERP replacement).
+    </span>
+    <span>
+      Next step: confirm pilot scope (brands, vendors, time window) and align on
+      the initial control pack.
+    </span>
+  </footer>
+
+</div>
+
+<script>
+  function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function setRiskView(view) {
+    const cfoBtn = document.getElementById('view-cfo');
+    const lenderBtn = document.getElementById('view-lender');
+    const caption = document.getElementById('risk-caption');
+
+    if (view === 'cfo') {
+      cfoBtn.classList.add('active');
+      lenderBtn.classList.remove('active');
+      caption.textContent =
+        'CFO view: identify capital trapped in bottom-right and policy levers to move it up-and-left.';
+    } else {
+      lenderBtn.classList.add('active');
+      cfoBtn.classList.remove('active');
+      caption.textContent =
+        'Lender view: see which exposures are evidence-backed, matching, and eligible for better treatment.';
+    }
+  }
+</script>
+
+</body>
+</html>

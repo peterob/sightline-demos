@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST - Financial Coordination Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .state-draft { background: #E5E7EB; color: #374151; }
+        .state-committed { background: #DBEAFE; color: #1E40AF; }
+        .state-funded { background: #D1FAE5; color: #065F46; }
+        .state-delivered { background: #FEF3C7; color: #92400E; }
+        .state-dispute-window { background: #FEF9C3; color: #854D0E; }
+        .state-disputed { background: #FEE2E2; color: #991B1B; }
+        .state-settled { background: #86EFAC; color: #14532D; }
+        .state-refunded { background: #FECACA; color: #7F1D1D; }
+        
+        .hash-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background: #1F2937;
+            color: #10B981;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .event-commitment { border-left: 4px solid #3B82F6; }
+        .event-funding { border-left: 4px solid #10B981; }
+        .event-attestation { border-left: 4px solid #F59E0B; }
+        .event-dispute { border-left: 4px solid #EF4444; }
+        .event-settlement { border-left: 4px solid #22C55E; }
+        .event-refund { border-left: 4px solid #DC2626; }
+        
+        .flow-arrow {
+            width: 40px;
+            height: 2px;
+            background: #9CA3AF;
+            position: relative;
+        }
+        .flow-arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left: 8px solid #9CA3AF;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .countdown {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">C</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900">CAST Protocol</h1>
+                        <p class="text-xs text-gray-500">Coordinated Accounting for Shared Truth</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Chain Integrity</div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-green-500 rounded-full pulse"></span>
+                            <span class="text-green-600 font-semibold text-sm">Verified</span>
+                        </div>
+                    </div>
+                    <button onclick="openCreateModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition">
+                        + New Deal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- State Machine Visualization -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">State Machine</h2>
+            <div class="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
+                <div class="flex items-center gap-2 min-w-max">
+                    <div class="state-committed px-4 py-3 rounded-lg text-center min-w-[120px]">
+                        <div class="font-semibold text-sm">COMMITTED</div>
+                        <div class="text-xs mt-1 opacity-75">Terms locked</div>
+                    </div>
+                    <div class="flow-arrow"></div>
+                    <div class="state-funded px-4 py-3 rounded-lg text-center min-w-[120px]">
+                        <div class="font-semibold text-sm">FUNDED</div>
+                        <div class="text-xs mt-1 opacity-75">In escrow</div>
+                    </div>
+                    <div class="flow-arrow"></div>
+                    <div class="state-dispute-window px-4 py-3 rounded-lg text-center min-w-[120px]">
+                        <div class="font-semibold text-sm">DISPUTE WINDOW</div>
+                        <div class="text-xs mt-1 opacity-75">72h countdown</div>
+                    </div>
+                    <div class="flow-arrow"></div>
+                    <div class="state-settled px-4 py-3 rounded-lg text-center min-w-[120px]">
+                        <div class="font-semibold text-sm">SETTLED</div>
+                        <div class="text-xs mt-1 opacity-75">Released</div>
+                    </div>
+                </div>
+                <div class="flex items-center mt-4 ml-[340px]">
+                    <div class="w-[120px]"></div>
+                    <div class="flex flex-col items-center">
+                        <div class="h-8 w-0.5 bg-gray-300"></div>
+                        <div class="text-xs text-gray-400 my-1">dispute raised</div>
+                        <div class="h-8 w-0.5 bg-gray-300"></div>
+                    </div>
+                    <div class="state-disputed px-4 py-3 rounded-lg text-center min-w-[120px] ml-4">
+                        <div class="font-semibold text-sm">DISPUTED</div>
+                        <div class="text-xs mt-1 opacity-75">Frozen</div>
+                    </div>
+                    <div class="flow-arrow"></div>
+                    <div class="text-xs text-gray-500">SETTLED or REFUNDED</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Metrics Cards -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <div class="text-sm text-gray-500 mb-1">Total in Escrow</div>
+                <div class="text-2xl font-bold text-gray-900">$38,500</div>
+                <div class="text-xs text-green-600 mt-1">3 active deals</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <div class="text-sm text-gray-500 mb-1">Under Dispute</div>
+                <div class="text-2xl font-bold text-red-600">$45,000</div>
+                <div class="text-xs text-gray-500 mt-1">1 deal frozen</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <div class="text-sm text-gray-500 mb-1">Released (Settled)</div>
+                <div class="text-2xl font-bold text-green-600">$12,000</div>
+                <div class="text-xs text-gray-500 mt-1">1 completed</div>
+            </div>
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <div class="text-sm text-gray-500 mb-1">Events Logged</div>
+                <div class="text-2xl font-bold text-gray-900">16</div>
+                <div class="text-xs text-green-600 mt-1">All verified ✓</div>
+            </div>
+        </section>
+
+        <!-- Main Content Grid -->
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Deals List -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-900">Active Deals</h2>
+                        <div class="flex gap-2">
+                            <button class="text-xs px-3 py-1 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200">All</button>
+                            <button class="text-xs px-3 py-1 text-gray-500 hover:bg-gray-100 rounded-full">In Escrow</button>
+                            <button class="text-xs px-3 py-1 text-gray-500 hover:bg-gray-100 rounded-full">Disputed</button>
+                        </div>
+                    </div>
+                    
+                    <div class="divide-y divide-gray-100" id="dealsList">
+                        <!-- Deal 1 -->
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer" onclick="selectDeal('DEAL-001')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="mono text-sm text-gray-500">DEAL-001</span>
+                                        <span class="state-funded px-2 py-0.5 rounded text-xs font-medium">FUNDED</span>
+                                    </div>
+                                    <div class="font-medium text-gray-900 mt-1">GPU Compute - 100 H100 hours</div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <span class="text-gray-400">Seller:</span> Lambda Labs → 
+                                        <span class="text-gray-400">Buyer:</span> AI Startup Inc
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold text-gray-900">$5,000</div>
+                                    <div class="text-xs text-gray-500 mt-1">Awaiting delivery</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal 2 - Dispute Window -->
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer bg-yellow-50" onclick="selectDeal('DEAL-003')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="mono text-sm text-gray-500">DEAL-003</span>
+                                        <span class="state-dispute-window px-2 py-0.5 rounded text-xs font-medium">DISPUTE WINDOW</span>
+                                        <span class="text-xs text-amber-600 font-medium countdown pulse">⏱ 47h 23m left</span>
+                                    </div>
+                                    <div class="font-medium text-gray-900 mt-1">Data Processing Pipeline</div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <span class="text-gray-400">Seller:</span> DataCo Services → 
+                                        <span class="text-gray-400">Buyer:</span> FinTech Corp
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold text-gray-900">$8,500</div>
+                                    <div class="text-xs text-amber-600 mt-1">Buyer can dispute</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal 3 - Disputed -->
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer bg-red-50" onclick="selectDeal('DEAL-005')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="mono text-sm text-gray-500">DEAL-005</span>
+                                        <span class="state-disputed px-2 py-0.5 rounded text-xs font-medium">DISPUTED</span>
+                                    </div>
+                                    <div class="font-medium text-gray-900 mt-1">Cloud Migration Project</div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <span class="text-gray-400">Seller:</span> CloudExperts → 
+                                        <span class="text-gray-400">Buyer:</span> Legacy Systems Inc
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold text-gray-900">$45,000</div>
+                                    <div class="text-xs text-red-600 mt-1">Scope disagreement</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Deal 4 - Settled -->
+                        <div class="p-4 hover:bg-gray-50 cursor-pointer opacity-60" onclick="selectDeal('DEAL-004')">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="mono text-sm text-gray-500">DEAL-004</span>
+                                        <span class="state-settled px-2 py-0.5 rounded text-xs font-medium">SETTLED</span>
+                                    </div>
+                                    <div class="font-medium text-gray-900 mt-1">API Integration Services</div>
+                                    <div class="text-sm text-gray-500 mt-1">
+                                        <span class="text-gray-400">Seller:</span> DevShop LLC → 
+                                        <span class="text-gray-400">Buyer:</span> Enterprise Client
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold text-gray-900">$12,000</div>
+                                    <div class="text-xs text-green-600 mt-1">✓ Completed Jan 17</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-900">Event Log</h2>
+                        <button onclick="verifyChain()" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                            Verify Chain →
+                        </button>
+                    </div>
+                    
+                    <div class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto" id="eventLog">
+                        <!-- Events will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create Deal Modal -->
+    <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-lg w-full mx-4 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="font-semibold text-lg text-gray-900">Create New Deal</h3>
+                <button onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input type="text" id="dealDescription" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GPU Compute - 50 H100 hours">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                    <input type="number" id="dealAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="5000">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Seller</label>
+                        <input type="text" id="dealSeller" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Company name">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Buyer</label>
+                        <input type="text" id="dealBuyer" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Company name">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Dispute Window (hours)</label>
+                    <input type="number" id="dealDisputeWindow" value="72" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3">
+                <button onclick="closeCreateModal()" class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg font-medium text-sm transition">
+                    Cancel
+                </button>
+                <button onclick="createDeal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition">
+                    Create Deal
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deal Detail Modal -->
+    <div id="dealModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+                <div>
+                    <h3 class="font-semibold text-lg text-gray-900" id="modalDealId">DEAL-001</h3>
+                    <p class="text-sm text-gray-500" id="modalDealDesc">GPU Compute - 100 H100 hours</p>
+                </div>
+                <button onclick="closeDealModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6" id="modalContent">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data
+        const deals = [
+            {
+                id: 'DEAL-001',
+                description: 'GPU Compute - 100 H100 hours',
+                amount: 5000,
+                seller: 'Lambda Labs',
+                buyer: 'AI Startup Inc',
+                state: 'FUNDED',
+                createdAt: '2026-01-15T09:00:00Z',
+                fundedAt: '2026-01-15T14:30:00Z',
+                currentHash: 'a3f2b1c9d8e7'
+            },
+            {
+                id: 'DEAL-002',
+                description: 'GPU Compute - 500 H100 hours',
+                amount: 25000,
+                seller: 'CoreWeave',
+                buyer: 'ML Research Co',
+                state: 'DISPUTE_WINDOW',
+                createdAt: '2026-01-10T10:00:00Z',
+                fundedAt: '2026-01-10T11:00:00Z',
+                deliveredAt: '2026-01-17T16:00:00Z',
+                disputeDeadline: '2026-01-20T16:00:00Z',
+                currentHash: 'b4e3c2d1f0a9'
+            },
+            {
+                id: 'DEAL-003',
+                description: 'Data Processing Pipeline',
+                amount: 8500,
+                seller: 'DataCo Services',
+                buyer: 'FinTech Corp',
+                state: 'DISPUTE_WINDOW',
+                createdAt: '2026-01-12T08:00:00Z',
+                fundedAt: '2026-01-12T09:00:00Z',
+                deliveredAt: '2026-01-18T10:00:00Z',
+                disputeDeadline: '2026-01-21T10:00:00Z',
+                currentHash: 'c5f4d3e2a1b0'
+            },
+            {
+                id: 'DEAL-004',
+                description: 'API Integration Services',
+                amount: 12000,
+                seller: 'DevShop LLC',
+                buyer: 'Enterprise Client',
+                state: 'SETTLED',
+                createdAt: '2026-01-05T11:00:00Z',
+                fundedAt: '2026-01-05T12:00:00Z',
+                deliveredAt: '2026-01-14T09:00:00Z',
+                settledAt: '2026-01-17T09:01:00Z',
+                currentHash: 'd6a5e4f3b2c1'
+            },
+            {
+                id: 'DEAL-005',
+                description: 'Cloud Migration Project',
+                amount: 45000,
+                seller: 'CloudExperts',
+                buyer: 'Legacy Systems Inc',
+                state: 'DISPUTED',
+                createdAt: '2026-01-08T14:00:00Z',
+                fundedAt: '2026-01-08T15:00:00Z',
+                deliveredAt: '2026-01-16T11:00:00Z',
+                disputeReason: 'Scope incomplete - missing DR setup',
+                currentHash: 'e7b6f5a4c3d2'
+            }
+        ];
+
+        const events = [
+            { id: 'EVT-016', dealId: 'DEAL-005', type: 'DISPUTE', actor: 'Legacy Systems Inc', timestamp: '2026-01-18T14:30:00Z', data: 'reason:scope incomplete, missing:DR setup', hash: 'f8c7a6b5d4e3', priorHash: 'e7b6f5a4c3d2' },
+            { id: 'EVT-015', dealId: 'DEAL-005', type: 'ATTESTATION', actor: 'CloudExperts', timestamp: '2026-01-16T11:00:00Z', data: 'migration:complete, instances:23', hash: 'e7b6f5a4c3d2', priorHash: 'd6a5e4f3b2c1' },
+            { id: 'EVT-014', dealId: 'DEAL-005', type: 'FUNDING', actor: 'Legacy Systems Inc', timestamp: '2026-01-08T15:00:00Z', data: 'bank_ref:WIRE-99182', hash: 'd6a5e4f3b2c1', priorHash: 'c5f4d3e2a1b0' },
+            { id: 'EVT-013', dealId: 'DEAL-005', type: 'COMMITMENT', actor: 'CloudExperts', timestamp: '2026-01-08T14:00:00Z', data: 'terms:cloud migration, delivery:14 days', hash: 'c5f4d3e2a1b0', priorHash: 'b4e3c2d1f0a9' },
+            { id: 'EVT-012', dealId: 'DEAL-004', type: 'SETTLEMENT', actor: 'SYSTEM', timestamp: '2026-01-17T09:01:00Z', data: 'dispute_window:expired, release:approved', hash: 'b4e3c2d1f0a9', priorHash: 'a3f2b1c9d8e7' },
+            { id: 'EVT-011', dealId: 'DEAL-004', type: 'ATTESTATION', actor: 'DevShop LLC', timestamp: '2026-01-14T09:00:00Z', data: 'api_docs:delivered, endpoints:47', hash: 'a3f2b1c9d8e7', priorHash: '9e8d7c6b5a4f' },
+            { id: 'EVT-010', dealId: 'DEAL-004', type: 'FUNDING', actor: 'Enterprise Client', timestamp: '2026-01-05T12:00:00Z', data: 'bank_ref:WIRE-66271', hash: '9e8d7c6b5a4f', priorHash: '8d7c6b5a4e3f' },
+            { id: 'EVT-009', dealId: 'DEAL-004', type: 'COMMITMENT', actor: 'DevShop LLC', timestamp: '2026-01-05T11:00:00Z', data: 'terms:API integration, delivery:10 days', hash: '8d7c6b5a4e3f', priorHash: '7c6b5a4d3e2f' },
+            { id: 'EVT-008', dealId: 'DEAL-003', type: 'ATTESTATION', actor: 'DataCo Services', timestamp: '2026-01-18T10:00:00Z', data: 'pipeline_id:pipe-872, records:1.2M', hash: '7c6b5a4d3e2f', priorHash: '6b5a4c3d2e1f' },
+            { id: 'EVT-007', dealId: 'DEAL-003', type: 'FUNDING', actor: 'FinTech Corp', timestamp: '2026-01-12T09:00:00Z', data: 'bank_ref:ACH-19283', hash: '6b5a4c3d2e1f', priorHash: '5a4b3c2d1e0f' },
+        ];
+
+        // Render events
+        function renderEvents() {
+            const container = document.getElementById('eventLog');
+            container.innerHTML = events.map(event => `
+                <div class="p-3 event-${event.type.toLowerCase()}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-medium text-gray-900">${event.type}</span>
+                        <span class="mono text-xs text-gray-400">${event.id}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 mb-2">${event.actor} • ${formatTime(event.timestamp)}</div>
+                    <div class="text-xs text-gray-600 mb-2">${event.data}</div>
+                    <div class="flex items-center gap-2">
+                        <span class="hash-display">${event.hash}</span>
+                        <span class="text-gray-400 text-xs">←</span>
+                        <span class="hash-display opacity-50">${event.priorHash}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatTime(timestamp) {
+            return new Date(timestamp).toLocaleString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        }
+
+        // Modal functions
+        function openCreateModal() {
+            document.getElementById('createModal').classList.remove('hidden');
+            document.getElementById('createModal').classList.add('flex');
+        }
+
+        function closeCreateModal() {
+            document.getElementById('createModal').classList.add('hidden');
+            document.getElementById('createModal').classList.remove('flex');
+        }
+
+        function selectDeal(dealId) {
+            const deal = deals.find(d => d.id === dealId);
+            if (!deal) return;
+
+            document.getElementById('modalDealId').textContent = deal.id;
+            document.getElementById('modalDealDesc').textContent = deal.description;
+
+            const stateClass = `state-${deal.state.toLowerCase().replace('_', '-')}`;
+            
+            let actions = '';
+            if (deal.state === 'FUNDED') {
+                actions = `
+                    <button onclick="attestDelivery('${deal.id}')" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm transition">
+                        Attest Delivery
+                    </button>
+                `;
+            } else if (deal.state === 'DISPUTE_WINDOW') {
+                actions = `
+                    <button onclick="raiseDispute('${deal.id}')" class="w-full py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium text-sm transition mb-2">
+                        Raise Dispute
+                    </button>
+                    <p class="text-xs text-gray-500 text-center">Or wait for window to expire for auto-settlement</p>
+                `;
+            } else if (deal.state === 'DISPUTED') {
+                actions = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="settleDeal('${deal.id}')" class="py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition">
+                            Release to Seller
+                        </button>
+                        <button onclick="refundDeal('${deal.id}')" class="py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium text-sm transition">
+                            Refund Buyer
+                        </button>
+                    </div>
+                `;
+            }
+
+            const dealEvents = events.filter(e => e.dealId === dealId);
+
+            document.getElementById('modalContent').innerHTML = `
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <div class="text-sm text-gray-500">Amount</div>
+                        <div class="text-2xl font-bold text-gray-900">${formatCurrency(deal.amount)}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500">State</div>
+                        <div class="${stateClass} inline-block px-3 py-1 rounded-lg font-semibold mt-1">${deal.state}</div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Seller</div>
+                        <div class="font-medium text-gray-900">${deal.seller}</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Buyer</div>
+                        <div class="font-medium text-gray-900">${deal.buyer}</div>
+                    </div>
+                </div>
+
+                ${deal.disputeDeadline ? `
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
+                    <div class="text-xs text-amber-600 uppercase tracking-wide">Dispute Window Expires</div>
+                    <div class="font-medium text-amber-800">${new Date(deal.disputeDeadline).toLocaleString()}</div>
+                </div>
+                ` : ''}
+
+                ${deal.disputeReason ? `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+                    <div class="text-xs text-red-600 uppercase tracking-wide">Dispute Reason</div>
+                    <div class="font-medium text-red-800">${deal.disputeReason}</div>
+                </div>
+                ` : ''}
+
+                ${actions ? `<div class="mb-6">${actions}</div>` : ''}
+
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="font-medium text-gray-900 mb-3">Event History</h4>
+                    <div class="space-y-2">
+                        ${dealEvents.map(e => `
+                            <div class="flex items-center gap-3 text-sm">
+                                <span class="hash-display">${e.hash}</span>
+                                <span class="font-medium">${e.type}</span>
+                                <span class="text-gray-500">${e.actor}</span>
+                                <span class="text-gray-400 ml-auto">${formatTime(e.timestamp)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 pt-4 mt-4">
+                    <div class="text-xs text-gray-500">Current Hash</div>
+                    <div class="hash-display inline-block mt-1">${deal.currentHash}</div>
+                </div>
+            `;
+
+            document.getElementById('dealModal').classList.remove('hidden');
+            document.getElementById('dealModal').classList.add('flex');
+        }
+
+        function closeDealModal() {
+            document.getElementById('dealModal').classList.add('hidden');
+            document.getElementById('dealModal').classList.remove('flex');
+        }
+
+        function createDeal() {
+            const description = document.getElementById('dealDescription').value;
+            const amount = document.getElementById('dealAmount').value;
+            const seller = document.getElementById('dealSeller').value;
+            const buyer = document.getElementById('dealBuyer').value;
+            
+            if (!description || !amount || !seller || !buyer) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const dealId = 'DEAL-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            alert(`Deal Created!\n\nID: ${dealId}\nAmount: $${amount}\nState: COMMITTED\n\nIn a real implementation, this would create an event in the chain.`);
+            closeCreateModal();
+        }
+
+        function attestDelivery(dealId) {
+            const evidence = prompt('Enter delivery evidence (e.g., usage_log_hash:abc123):');
+            if (evidence) {
+                alert(`Delivery Attested for ${dealId}!\n\nEvidence: ${evidence}\nState: DISPUTE_WINDOW\n\n72-hour dispute window has started.`);
+                closeDealModal();
+            }
+        }
+
+        function raiseDispute(dealId) {
+            const reason = prompt('Enter dispute reason:');
+            if (reason) {
+                alert(`Dispute Raised for ${dealId}!\n\nReason: ${reason}\nState: DISPUTED\n\nDeal is now frozen pending resolution.`);
+                closeDealModal();
+            }
+        }
+
+        function settleDeal(dealId) {
+            if (confirm(`Release funds to seller for ${dealId}?`)) {
+                alert(`Deal ${dealId} Settled!\n\nFunds released to seller.\nState: SETTLED`);
+                closeDealModal();
+            }
+        }
+
+        function refundDeal(dealId) {
+            if (confirm(`Refund buyer for ${dealId}?`)) {
+                alert(`Deal ${dealId} Refunded!\n\nFunds returned to buyer.\nState: REFUNDED`);
+                closeDealModal();
+            }
+        }
+
+        function verifyChain() {
+            // Simulate chain verification
+            setTimeout(() => {
+                alert('✓ Chain Verified!\n\nAll 16 events have valid hashes.\nNo tampering detected.\nChain integrity: 100%');
+            }, 500);
+        }
+
+        // Initialize
+        renderEvents();
+
+        // Update countdown timers
+        setInterval(() => {
+            // In a real app, this would update the countdown displays
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporal Proof | Sightline</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --border: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-dim: #606070;
+            --accent: #00ff88;
+            --accent-dim: rgba(0,255,136,0.1);
+            --accent-border: rgba(0,255,136,0.3);
+            --red: #ff4d4d;
+            --red-dim: rgba(255,77,77,0.1);
+            --red-border: rgba(255,77,77,0.3);
+            --blue: #4d9fff;
+            --amber: #ffb84d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 60px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-mark {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .nav-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .eyebrow {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #a0a0b0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* Main comparison */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+
+        .panel:hover {
+            border-color: var(--border-hover);
+        }
+
+        .panel.legacy {
+            opacity: 0.85;
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-indicator.red { 
+            background: var(--red);
+            box-shadow: 0 0 12px var(--red);
+        }
+        
+        .status-indicator.green { 
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+        }
+
+        .panel-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+        }
+
+        .panel-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .panel-badge.fail {
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid var(--red-border);
+        }
+
+        .panel-badge.pass {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent-border);
+        }
+
+        .panel-body {
+            padding: 24px;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 12px;
+            bottom: 12px;
+            width: 1px;
+            background: linear-gradient(180deg, var(--border) 0%, transparent 100%);
+        }
+
+        .event {
+            position: relative;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: slideIn 0.4s ease forwards;
+        }
+
+        .event:nth-child(1) { animation-delay: 0.05s; }
+        .event:nth-child(2) { animation-delay: 0.1s; }
+        .event:nth-child(3) { animation-delay: 0.15s; }
+        .event:nth-child(4) { animation-delay: 0.2s; }
+        .event:nth-child(5) { animation-delay: 0.25s; }
+        .event:nth-child(6) { animation-delay: 0.3s; }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 6px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 2px solid var(--text-dim);
+        }
+
+        .event.recorded::before {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .event.missing::before {
+            border-color: var(--text-dim);
+            border-style: dashed;
+        }
+
+        .event.warning::before {
+            border-color: var(--amber);
+            background: var(--amber);
+        }
+
+        .event.audit::before {
+            border-color: var(--blue);
+            background: var(--blue);
+        }
+
+        .event-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .event-content {
+            flex: 1;
+        }
+
+        .event-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .event-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .event-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .event-detail.danger {
+            color: var(--red);
+        }
+
+        /* Timestamps block */
+        .timestamps {
+            display: flex;
+            gap: 16px;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .ts-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ts-label {
+            color: var(--text-dim);
+        }
+
+        .ts-value {
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .ts-value.valid { color: var(--accent); }
+        .ts-value.tx { color: var(--blue); }
+
+        /* Verdict */
+        .verdict {
+            margin-top: 24px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid;
+        }
+
+        .verdict.fail {
+            background: var(--red-dim);
+            border-color: var(--red-border);
+        }
+
+        .verdict.pass {
+            background: var(--accent-dim);
+            border-color: var(--accent-border);
+        }
+
+        .verdict-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .verdict.fail .verdict-label { color: var(--red); }
+        .verdict.pass .verdict-label { color: var(--accent); }
+
+        .verdict-text {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Proof block */
+        .proof {
+            margin-top: 16px;
+            padding: 14px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .proof-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .proof-row:last-child {
+            border-bottom: none;
+        }
+
+        .proof-key {
+            color: var(--text-dim);
+        }
+
+        .proof-value {
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .proof-result {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: var(--accent);
+            font-weight: 500;
+            line-height: 1.7;
+        }
+
+        /* Bottom statement */
+        .statement {
+            text-align: center;
+            padding: 50px 40px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 40px;
+        }
+
+        .statement-text {
+            font-size: 1.5rem;
+            font-weight: 500;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            color: var(--text-secondary);
+        }
+
+        .statement-text strong {
+            color: var(--text-primary);
+        }
+
+        .statement-text .highlight {
+            color: var(--accent);
+        }
+
+        /* CTA */
+        .cta {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #00e67a;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .footer-mark {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 1px;
+        }
+
+        .footer-right {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        @media (max-width: 900px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+
+            .statement-text {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <div class="logo-mark"></div>
+                sightline
+            </div>
+            <div class="nav-tag">Temporal Proof Architecture</div>
+        </nav>
+
+        <header>
+            <div class="eyebrow">Bitemporal Audit Infrastructure</div>
+            <h1>Prove what you knew,<br>when you paid.</h1>
+            <p class="subtitle">
+                Traditional systems document that a payment was made. Sightline proves 
+                what evidence existed at decision time—and that it wasn't assembled for the auditor.
+            </p>
+        </header>
+
+        <div class="comparison">
+            <!-- Legacy Panel -->
+            <div class="panel legacy">
+                <div class="panel-header">
+                    <div class="panel-header-left">
+                        <div class="status-indicator red"></div>
+                        <div class="panel-title">Legacy System</div>
+                    </div>
+                    <div class="panel-badge fail">Unverifiable</div>
+                </div>
+                <div class="panel-body">
+                    <div class="timeline">
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Application Filed</div>
+                                    <div class="event-detail">Applicant claims eligibility</div>
+                                </div>
+                                <div class="event-time">Mar 15</div>
+                            </div>
+                        </div>
+                        <div class="event missing">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Identity Verification</div>
+                                    <div class="event-detail">No timestamp recorded</div>
+                                </div>
+                                <div class="event-time">???</div>
+                            </div>
+                        </div>
+                        <div class="event missing">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Eligibility Check</div>
+                                    <div class="event-detail">Record exists, timing unknown</div>
+                                </div>
+                                <div class="event-time">???</div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Payment Authorized</div>
+                                    <div class="event-detail">$4,200 disbursed</div>
+                                </div>
+                                <div class="event-time">Mar 18</div>
+                            </div>
+                        </div>
+                        <div class="event audit">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Audit Request</div>
+                                    <div class="event-detail">Documentation requested</div>
+                                </div>
+                                <div class="event-time">Nov 5</div>
+                            </div>
+                        </div>
+                        <div class="event warning">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Documentation Assembled</div>
+                                    <div class="event-detail danger">Evidence gathered for auditor</div>
+                                </div>
+                                <div class="event-time">Nov 8</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verdict fail">
+                        <div class="verdict-label">Audit Finding</div>
+                        <div class="verdict-text">
+                            Cannot determine whether verification occurred before payment. 
+                            Documentation exists but temporal sequence is unverifiable.
+                            <br><br>
+                            <strong>Classified: Insufficient Documentation</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sightline Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-header-left">
+                        <div class="status-indicator green"></div>
+                        <div class="panel-title">Sightline</div>
+                    </div>
+                    <div class="panel-badge pass">Verified</div>
+                </div>
+                <div class="panel-body">
+                    <div class="timeline">
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Application Filed</div>
+                                    <div class="event-detail">Applicant claims eligibility</div>
+                                </div>
+                                <div class="event-time">Mar 15</div>
+                            </div>
+                            <div class="timestamps">
+                                <div class="ts-item">
+                                    <span class="ts-label">valid:</span>
+                                    <span class="ts-value valid">09:14:22</span>
+                                </div>
+                                <div class="ts-item">
+                                    <span class="ts-label">recorded:</span>
+                                    <span class="ts-value tx">09:14:23</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Identity Verification</div>
+                                    <div class="event-detail">SSA cross-match confirmed</div>
+                                </div>
+                                <div class="event-time">Mar 15</div>
+                            </div>
+                            <div class="timestamps">
+                                <div class="ts-item">
+                                    <span class="ts-label">valid:</span>
+                                    <span class="ts-value valid">09:14:22</span>
+                                </div>
+                                <div class="ts-item">
+                                    <span class="ts-label">recorded:</span>
+                                    <span class="ts-value tx">09:15:47</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Eligibility Check</div>
+                                    <div class="event-detail">Policy v3.2 evaluated</div>
+                                </div>
+                                <div class="event-time">Mar 16</div>
+                            </div>
+                            <div class="timestamps">
+                                <div class="ts-item">
+                                    <span class="ts-label">valid:</span>
+                                    <span class="ts-value valid">09:14:22</span>
+                                </div>
+                                <div class="ts-item">
+                                    <span class="ts-label">recorded:</span>
+                                    <span class="ts-value tx">14:22:08</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Payment Authorized</div>
+                                    <div class="event-detail">$4,200 disbursed</div>
+                                </div>
+                                <div class="event-time">Mar 18</div>
+                            </div>
+                            <div class="timestamps">
+                                <div class="ts-item">
+                                    <span class="ts-label">valid:</span>
+                                    <span class="ts-value valid">10:00:00</span>
+                                </div>
+                                <div class="ts-item">
+                                    <span class="ts-label">recorded:</span>
+                                    <span class="ts-value tx">10:00:01</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event audit">
+                            <div class="event-row">
+                                <div class="event-content">
+                                    <div class="event-label">Audit Request</div>
+                                    <div class="event-detail">Documentation requested</div>
+                                </div>
+                                <div class="event-time">Nov 5</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="verdict pass">
+                        <div class="verdict-label">Temporal Proof Generated</div>
+                        <div class="verdict-text">
+                            Sequence cryptographically verified. All verification 
+                            events recorded before payment authorization.
+                        </div>
+                        <div class="proof">
+                            <div class="proof-row">
+                                <span class="proof-key">identity_verified</span>
+                                <span class="proof-value">2024-03-15 09:15:47</span>
+                            </div>
+                            <div class="proof-row">
+                                <span class="proof-key">eligibility_checked</span>
+                                <span class="proof-value">2024-03-16 14:22:08</span>
+                            </div>
+                            <div class="proof-row">
+                                <span class="proof-key">payment_authorized</span>
+                                <span class="proof-value">2024-03-18 10:00:01</span>
+                            </div>
+                            <div class="proof-row">
+                                <span class="proof-key">audit_requested</span>
+                                <span class="proof-value">2024-11-05 11:30:00</span>
+                            </div>
+                            <div class="proof-result">
+                                ✓ All evidence precedes payment<br>
+                                ✓ No records added post-request<br>
+                                ✓ Immutable by architecture
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="statement">
+            <p class="statement-text">
+                <strong>Legacy systems</strong> document <em>that</em> a payment was made.<br>
+                <strong>Sightline</strong> proves <span class="highlight">what was known when it was made</span>—<br>
+                and that the proof wasn't assembled for the auditor.
+            </p>
+            <div class="cta">
+                <a href="#" class="btn btn-primary">Request Demo</a>
+                <a href="#" class="btn btn-secondary">Read Architecture Docs</a>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-left">
+                <div class="footer-mark"></div>
+                sightline
+            </div>
+            <div class="footer-right">Coordination Infrastructure</div>
+        </footer>
+    </div>
+</body>
+</html>

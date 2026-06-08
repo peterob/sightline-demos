@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Replay + Limbo Console (Single-File Demo)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1730;
+      --text:#e9ecf6;
+      --muted:#a9b2d6;
+      --line:rgba(255,255,255,0.10);
+      --accent:#8b5cf6;
+      --accent2:#6d28d9;
+
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(139,92,246,0.25), transparent 60%),
+                  radial-gradient(1000px 500px at 90% 10%, rgba(109,40,217,0.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{ max-width:1100px; margin:0 auto; padding:18px 14px 36px; }
+    header{
+      padding:16px 16px 12px;
+      border:1px solid var(--line);
+      background: linear-gradient(135deg, rgba(139,92,246,0.16), rgba(18,26,51,0.9));
+      border-radius:14px;
+    }
+    h1{ margin:0; font-size:20px; letter-spacing:0.2px; line-height:1.2; }
+    .sub{ margin-top:8px; color:var(--muted); font-size:13px; line-height:1.4; }
+
+    .controls{
+      margin-top:14px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(18,26,51,0.65);
+    }
+    .row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 10px; border:1px solid var(--line);
+      border-radius:999px; background: rgba(15,23,48,0.75);
+      font-size:12px; color:var(--muted); white-space:nowrap;
+    }
+    .pill b{ color:var(--text); font-weight:650; }
+
+    input[type="range"]{ width: min(680px, 100%); accent-color: var(--accent); }
+    .rangeMeta{
+      width:100%; display:flex; justify-content:space-between;
+      margin-top:6px; color:var(--muted); font-size:12px;
+    }
+
+    .grid{ margin-top:14px; display:grid; grid-template-columns: 1.05fr 0.95fr; gap:14px; }
+    @media (max-width: 920px){ .grid{ grid-template-columns:1fr; } }
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(18,26,51,0.65);
+      overflow:hidden;
+    }
+    .panelHeader{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(15,23,48,0.65);
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    }
+    .panelHeader .title{ font-size:13px; letter-spacing:0.2px; color:var(--text); font-weight:700; }
+    .panelHeader .hint{ font-size:12px; color:var(--muted); }
+
+    .panelBody{ padding:14px; }
+
+    .big{ font-size:32px; font-weight:800; letter-spacing:0.2px; margin:0; line-height:1.05; }
+    .big small{ font-size:12px; color:var(--muted); font-weight:600; margin-left:8px; }
+
+    .kpiSub{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.4; }
+
+    .deltaRow{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+    .badge{
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      background: rgba(15,23,48,0.75);
+      color:var(--muted);
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
+      display:inline-block;
+    }
+
+    /* Confidence UI */
+    .confWrap{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+      padding:10px 12px;
+    }
+    .confTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .confTop .label{ font-size:12px; color:var(--muted); }
+    .confTop .value{ font-size:12px; color:var(--text); font-weight:800; }
+    .meter{
+      margin-top:8px;
+      height:10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(18,26,51,0.45);
+      overflow:hidden;
+    }
+    .meterFill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--bad), var(--warn), var(--good));
+      border-radius:999px;
+    }
+    .confNote{ margin-top:8px; font-size:12px; color:var(--muted); line-height:1.35; }
+
+    details{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+      overflow:hidden;
+    }
+    summary{
+      cursor:pointer;
+      padding:10px 12px;
+      list-style:none;
+      user-select:none;
+      font-size:12px;
+      color:var(--text);
+      font-weight:700;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .detailBody{
+      padding:10px 12px 12px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .list{
+      margin:0; padding:0;
+      list-style:none;
+      display:grid;
+      gap:8px;
+    }
+    .list li{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background: rgba(18,26,51,0.45);
+    }
+    .list li b{ color:var(--text); font-weight:700; }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+    }
+    th, td{
+      padding:10px 10px;
+      font-size:12px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      vertical-align:top;
+    }
+    th{
+      text-align:left;
+      color:var(--muted);
+      font-weight:700;
+      background: rgba(18,26,51,0.35);
+    }
+    tr:last-child td{ border-bottom:none; }
+    .lagPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(18,26,51,0.45);
+      white-space:nowrap;
+      font-weight:700;
+      color:var(--text);
+    }
+    .lagDot{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+
+    .foot{ margin-top:14px; color:var(--muted); font-size:12px; line-height:1.5; opacity:0.95; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Financial Replay + Limbo Console <span class="mono" style="opacity:.85;">(single-file demo)</span></h1>
+      <div class="sub">
+        Drag the date slider. The dashboard recomputes what the books <em>would have shown</em> <b>as known on that day</b> (posting time),
+        plus a "money in limbo" view for transfers/process states that started but weren't complete yet.
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="row">
+        <div class="pill"><span class="dot"></span> <span>As Known On:</span> <b id="asOfLabel">—</b></div>
+        <div class="pill">Range: <b id="rangeLabel">—</b></div>
+        <div class="pill">Starting Cash: <b id="startCashLabel">—</b></div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <input id="asOfRange" type="range" min="0" max="1" value="0" step="1" />
+        <div class="rangeMeta">
+          <span id="minDate">—</span>
+          <span id="maxDate">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <!-- Panel A -->
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="title">A) As-Of-Then Cash (Replay View)</div>
+          <div class="hint">computed from postings ≤ as-of</div>
+        </div>
+        <div class="panelBody">
+          <p class="big" id="cashAsKnown">$— <small id="cashBand">± $—</small></p>
+          <div class="kpiSub">
+            "Cash available" based on what the ledger actually <b>knew</b> by the selected date (posting time), not what had occurred in reality.
+          </div>
+
+          <!-- Confidence feature (1) -->
+          <div class="confWrap">
+            <div class="confTop">
+              <div class="label">Confidence (evidence-weighted)</div>
+              <div class="value" id="confPct">—%</div>
+            </div>
+            <div class="meter" aria-label="Confidence meter"><div class="meterFill" id="confFill"></div></div>
+            <div class="confNote" id="confExplain">—</div>
+          </div>
+
+          <div class="deltaRow">
+            <div class="badge"><span style="width:8px;height:8px;border-radius:99px;background:var(--good);display:inline-block;"></span> Final Reported Cash: <b id="cashFinal">$—</b></div>
+            <div class="badge"><span style="width:8px;height:8px;border-radius:99px;background:var(--warn);display:inline-block;"></span> Delta from Late Postings: <b id="cashDelta">$—</b></div>
+          </div>
+
+          <details>
+            <summary>
+              <span>What's included in "as-known-then" cash?</span>
+              <span style="color:var(--muted);font-weight:600;">(tap)</span>
+            </summary>
+            <div class="detailBody">
+              <ul class="list" id="cashExplainer"></ul>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Panel B -->
+      <div class="panel">
+        <div class="panelHeader">
+          <div class="title">B) Money in Limbo Counter</div>
+          <div class="hint">initiated ≤ as-of; completed > as-of</div>
+        </div>
+        <div class="panelBody">
+          <p class="big" id="limboTotal">$— <small>exists nowhere</small></p>
+          <div class="kpiSub">
+            Cash that has started moving, but is not yet confirmed as received/settled/received-into-inventory/paid.
+          </div>
+
+          <details open>
+            <summary>
+              <span>Breakdown</span>
+              <span style="color:var(--muted);font-weight:600;">(tap)</span>
+            </summary>
+            <div class="detailBody">
+              <ul class="list" id="limboBreakdown"></ul>
+              <div class="foot">Deadpan translation: this is the "quantum state" zone between systems.</div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Panel C (full width) -->
+      <div class="panel" style="grid-column:1 / -1;">
+        <div class="panelHeader">
+          <div class="title">C) GL Lag Hall of Fame</div>
+          <div class="hint">events occurred ≤ as-of</div>
+        </div>
+        <div class="panelBody">
+          <div class="kpiSub" style="margin-top:0;">
+            These events already happened by the selected date. The "lag" is how long it took to show up in the GL (posting date minus event date).
+          </div>
+          <div style="margin-top:10px; overflow:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:160px;">Event</th>
+                  <th style="min-width:110px;">Event Date</th>
+                  <th style="min-width:110px;">GL Date</th>
+                  <th style="min-width:110px;">Lag</th>
+                  <th style="min-width:220px;">Impact</th>
+                  <th style="min-width:120px; text-align:right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="lagRows"></tbody>
+            </table>
+          </div>
+
+          <div class="foot">
+            Tip: Sort order is "worst lag first." This is intentionally petty: it turns "close speed" into a measurable failure mode.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <b>How to use:</b> save this as <span class="mono">replay-limbo-console.html</span> and open it (desktop or iPhone Files → tap).
+      No backend. All sample data is embedded.
+    </div>
+  </div>
+
+<script>
+/**
+ * Adds Feature (1): Confidence-weighted cash.
+ *
+ * Interpretation (demo-grade, adjustable):
+ * - Cash As-Known is the GL-posted view (postings <= asOf).
+ * - Uncertainty band (±) is driven primarily by "Money in Limbo" and partially by "Late Postings Delta".
+ * - Confidence % is penalized by:
+ *   (a) share of value sitting in limbo
+ *   (b) count of occurred-but-unposted events
+ *   (c) average "so-far" lag for those unposted events
+ */
+
+// ---------- Utilities ----------
+const fmtUSD = (n) => {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  return sign + abs.toLocaleString(undefined, { style:"currency", currency:"USD", maximumFractionDigits:0 });
+};
+const parseDate = (s) => new Date(s + "T00:00:00");
+const daysBetween = (a, b) => Math.round((b - a) / (1000*60*60*24));
+const pretty = (d) => d.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const pct = (x) => `${Math.round(x)}%`;
+
+// ---------- Sample data ----------
+const startingCash = 7200000;
+
+const cashPostings = [
+  { id:"p1", label:"Shopify deposits (batch)", amount:+620000, glDate:"2025-09-05", note:"Deposits posted from Shopify payout file" },
+  { id:"p2", label:"Shopify deposits (batch)", amount:+540000, glDate:"2025-09-12", note:"Deposits posted (later than settlement)" },
+  { id:"p3", label:"Refund reserve release",  amount:+150000, glDate:"2025-09-27", note:"Reserve released after reconciliation" },
+  { id:"p4", label:"Vendor wire - Aster Lighting", amount:-500000, glDate:"2025-09-19", note:"Wire sent earlier; posted once bank confirmation matched" },
+  { id:"p5", label:"Inventory prepay - Shenzhen Works", amount:-650000, glDate:"2025-09-22", note:"Prepay posted late due to documentation chase" },
+  { id:"p6", label:"3PL invoice - Radial", amount:-310000, glDate:"2025-09-28", note:"Invoice lagged actual fulfillment activity" },
+  { id:"p7", label:"Payroll", amount:-410000, glDate:"2025-10-01", note:"Payroll posted on regular cadence" },
+  { id:"p8", label:"Freight invoice - Ocean", amount:-180000, glDate:"2025-10-07", note:"Freight billed after sailing date" }
+];
+
+const limboItems = [
+  { type:"Wire sent, not confirmed received", amount:900000, initiated:"2025-09-03", completed:"2025-09-07", detail:"Two vendor wires awaiting beneficiary confirmation" },
+  { type:"Wire sent, not confirmed received", amount:450000, initiated:"2025-09-10", completed:"2025-09-16", detail:"Settlement + vendor confirmation lag" },
+  { type:"Inventory paid, not received", amount:650000, initiated:"2025-09-04", completed:"2025-10-03", detail:"Prepay made; goods on the water" },
+  { type:"Inventory paid, not received", amount:380000, initiated:"2025-09-18", completed:"2025-10-20", detail:"Second PO prepay; delayed sailing" },
+  { type:"Checks mailed, not cashed", amount:120000, initiated:"2025-09-08", completed:"2025-09-30", detail:"Several small vendors" },
+  { type:"AP approved, not paid", amount:200000, initiated:"2025-09-12", completed:"2025-10-04", detail:"Approved batch pending payment run" }
+];
+
+const lagEvents = [
+  { name:"Vendor wire - Aster Lighting", eventDate:"2025-09-03", glDate:"2025-09-19", impact:"Liquidity overstated while confirmation chased", amount:-500000 },
+  { name:"Inventory prepay - Shenzhen Works", eventDate:"2025-09-04", glDate:"2025-09-22", impact:"Commitment real; books late; forecast drifted", amount:-650000 },
+  { name:"3PL fulfillment invoice (week 36)", eventDate:"2025-09-10", glDate:"2025-09-28", impact:"Margin & cash timing misstated", amount:-310000 },
+  { name:"Shopify deposits (payout)", eventDate:"2025-09-10", glDate:"2025-09-12", impact:"Receipts known late; cash undercalled", amount:+540000 },
+  { name:"Freight invoice - Ocean leg", eventDate:"2025-09-19", glDate:"2025-10-07", impact:"COGS timing, inbound cost visibility delayed", amount:-180000 },
+  { name:"Refund reserve release", eventDate:"2025-09-21", glDate:"2025-09-27", impact:"Cash unlocked; previously conservatism looked like loss", amount:+150000 },
+  { name:"Payroll", eventDate:"2025-09-30", glDate:"2025-10-01", impact:"Minimal lag; predictable cadence", amount:-410000 }
+];
+
+// ---------- Build date range for slider ----------
+const allDates = []
+  .concat(cashPostings.map(p => p.glDate))
+  .concat(limboItems.map(x => x.initiated))
+  .concat(limboItems.map(x => x.completed))
+  .concat(lagEvents.map(e => e.eventDate))
+  .concat(lagEvents.map(e => e.glDate))
+  .filter(Boolean)
+  .map(parseDate);
+
+const minD = new Date(Math.min(...allDates));
+const maxD = new Date(Math.max(...allDates));
+
+// create a daily date list for the slider
+const dateList = [];
+for(let d = new Date(minD); d <= maxD; d.setDate(d.getDate()+1)){
+  dateList.push(new Date(d));
+}
+
+// ---------- DOM ----------
+const asOfRange = document.getElementById("asOfRange");
+const asOfLabel = document.getElementById("asOfLabel");
+const rangeLabel = document.getElementById("rangeLabel");
+const startCashLabel = document.getElementById("startCashLabel");
+const minDate = document.getElementById("minDate");
+const maxDate = document.getElementById("maxDate");
+
+const cashAsKnown = document.getElementById("cashAsKnown");
+const cashBand = document.getElementById("cashBand");
+const cashFinal = document.getElementById("cashFinal");
+const cashDelta = document.getElementById("cashDelta");
+const cashExplainer = document.getElementById("cashExplainer");
+
+const limboTotal = document.getElementById("limboTotal");
+const limboBreakdown = document.getElementById("limboBreakdown");
+
+const lagRows = document.getElementById("lagRows");
+
+// Confidence DOM
+const confPct = document.getElementById("confPct");
+const confFill = document.getElementById("confFill");
+const confExplain = document.getElementById("confExplain");
+
+// ---------- Initialize ----------
+asOfRange.min = 0;
+asOfRange.max = dateList.length - 1;
+asOfRange.value = Math.floor(dateList.length * 0.38);
+
+minDate.textContent = pretty(dateList[0]);
+maxDate.textContent = pretty(dateList[dateList.length - 1]);
+rangeLabel.textContent = `${pretty(dateList[0])} → ${pretty(dateList[dateList.length - 1])}`;
+startCashLabel.textContent = fmtUSD(startingCash);
+
+// Final reported cash at max date (all postings included)
+const finalCash = startingCash + cashPostings.reduce((s, p) => s + p.amount, 0);
+cashFinal.textContent = fmtUSD(finalCash);
+
+function lagColor(days){
+  if(days >= 10) return { dot:"var(--bad)" };
+  if(days >= 5)  return { dot:"var(--warn)" };
+  return { dot:"var(--good)" };
+}
+
+// Confidence computation (demo-grade heuristic)
+function computeConfidence({ cashKnown, limboSum, unpostedCount, avgUnpostedSoFarLagDays, latePostingDelta }) {
+  // scale factors (tune as you like)
+  const limboShare = limboSum / Math.max(1, Math.abs(cashKnown) + limboSum); // 0..1-ish
+  const penaltyLimbo = limboShare * 60;                 // up to 60 pts
+  const penaltyCount = unpostedCount * 4;               // 4 pts per occurred-but-unposted event
+  const penaltyLag = avgUnpostedSoFarLagDays * 1.5;     // 1.5 pts per day of "so-far" lag
+  const penaltyDelta = (Math.min(1, latePostingDelta / Math.max(1, Math.abs(cashKnown))) * 15); // up to 15
+
+  const raw = 100 - penaltyLimbo - penaltyCount - penaltyLag - penaltyDelta;
+  return Math.round(clamp(raw, 0, 100));
+}
+
+// Uncertainty band: mostly limbo, partially late-posting delta
+function computeBand({ limboSum, latePostingDelta }) {
+  // Use 100% of limbo + 50% of remaining late-posting delta beyond limbo
+  const residual = Math.max(0, latePostingDelta - limboSum);
+  return Math.round(limboSum + 0.5 * residual);
+}
+
+function render(){
+  const idx = Number(asOfRange.value);
+  const asOf = dateList[idx];
+  asOfLabel.textContent = pretty(asOf);
+
+  // ----- Panel A: As-known-then cash -----
+  const postingsKnown = cashPostings
+    .filter(p => parseDate(p.glDate) <= asOf)
+    .sort((a,b) => parseDate(a.glDate) - parseDate(b.glDate));
+
+  const cashKnown = startingCash + postingsKnown.reduce((s,p) => s + p.amount, 0);
+  cashAsKnown.childNodes[0].nodeValue = fmtUSD(cashKnown) + " "; // keep the <small> band
+
+  const latePostingDelta = Math.abs(finalCash - cashKnown);
+  cashDelta.textContent = fmtUSD(finalCash - cashKnown);
+  cashDelta.style.color = (Math.abs(finalCash - cashKnown) < 1) ? "var(--muted)" : "var(--warn)";
+
+  // ----- Panel B: Money in limbo -----
+  const limboOpen = limboItems.filter(x=>{
+    const start = parseDate(x.initiated);
+    const end = x.completed ? parseDate(x.completed) : null;
+    return start <= asOf && (!end || end > asOf);
+  });
+  const limboSum = limboOpen.reduce((s,x)=>s+x.amount,0);
+  limboTotal.textContent = `${fmtUSD(limboSum)} `;
+
+  const byType = {};
+  limboOpen.forEach(x => { byType[x.type] = (byType[x.type]||0) + x.amount; });
+
+  limboBreakdown.innerHTML = "";
+  const types = Object.keys(byType).sort((a,b)=>byType[b]-byType[a]);
+  if(types.length === 0){
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>No limbo items</b><div style="margin-top:3px;opacity:.95">Everything initiated by this date is complete.</div></span><span><b>${fmtUSD(0)}</b></span>`;
+    limboBreakdown.appendChild(li);
+  } else {
+    types.forEach(t=>{
+      const li = document.createElement("li");
+      li.innerHTML = `<span><b>${t}</b><div style="margin-top:3px;opacity:.95">${limboOpen.find(x=>x.type===t)?.detail ?? ""}</div></span><span style="text-align:right;"><b>${fmtUSD(byType[t])}</b></span>`;
+      limboBreakdown.appendChild(li);
+    });
+  }
+
+  // ----- Panel C: GL Lag -----
+  const occurred = lagEvents
+    .filter(e => parseDate(e.eventDate) <= asOf)
+    .map(e=>{
+      const d1 = parseDate(e.eventDate);
+      const d2 = parseDate(e.glDate);
+      const lag = daysBetween(d1, d2);
+      return { ...e, lag };
+    })
+    .sort((a,b)=> b.lag - a.lag);
+
+  lagRows.innerHTML = "";
+  if(occurred.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" style="color:var(--muted);">No events occurred yet by this date.</td>`;
+    lagRows.appendChild(tr);
+  } else {
+    occurred.forEach(e=>{
+      const c = lagColor(e.lag);
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${e.name}</b></td>
+        <td>${pretty(parseDate(e.eventDate))}</td>
+        <td>${pretty(parseDate(e.glDate))}</td>
+        <td>
+          <span class="lagPill">
+            <span class="lagDot" style="background:${c.dot}; box-shadow: 0 0 0 3px rgba(255,255,255,0.06);"></span>
+            ${e.lag}d
+          </span>
+        </td>
+        <td style="color:var(--muted);">${e.impact}</td>
+        <td style="text-align:right; font-weight:800;">${fmtUSD(e.amount)}</td>
+      `;
+      lagRows.appendChild(tr);
+    });
+  }
+
+  // ----- Confidence feature (1) -----
+  // occurred-but-unposted events by as-of
+  const backlog = lagEvents.filter(e => parseDate(e.eventDate) <= asOf && parseDate(e.glDate) > asOf);
+  const unpostedCount = backlog.length;
+  const avgUnpostedSoFarLagDays = unpostedCount === 0
+    ? 0
+    : backlog.reduce((s,e)=> s + daysBetween(parseDate(e.eventDate), asOf), 0) / unpostedCount;
+
+  const conf = computeConfidence({
+    cashKnown,
+    limboSum,
+    unpostedCount,
+    avgUnpostedSoFarLagDays,
+    latePostingDelta
+  });
+
+  confPct.textContent = pct(conf);
+  confFill.style.width = `${conf}%`;
+
+  const band = computeBand({ limboSum, latePostingDelta });
+  cashBand.textContent = `± ${fmtUSD(band)}`;
+
+  const limboShare = (limboSum / Math.max(1, Math.abs(cashKnown) + limboSum)) * 100;
+  confExplain.textContent =
+    `Penalties: limbo share ${Math.round(limboShare)}%, ` +
+    `unposted events ${unpostedCount}, ` +
+    `avg "so-far" lag ${Math.round(avgUnpostedSoFarLagDays)}d. ` +
+    `Band driven mainly by limbo (${fmtUSD(limboSum)}) + part of late-posting delta.`;
+
+  // ----- Cash explainer -----
+  cashExplainer.innerHTML = "";
+  const explainItems = [
+    { k:"Starting cash", v: fmtUSD(startingCash), note:"Assumed opening balance" },
+    { k:"Posted entries included", v: `${postingsKnown.length} / ${cashPostings.length}`, note:"Only GL-posted ≤ as-of" },
+    { k:"Sum of included postings", v: fmtUSD(postingsKnown.reduce((s,p)=>s+p.amount,0)), note:"Net effect on cash known that day" },
+    { k:"Occurred but not posted", v: `${unpostedCount}`, note:"Events happened but were not yet reflected in GL" }
+  ];
+  explainItems.forEach(x=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>${x.k}</b><div style="margin-top:3px;opacity:.95">${x.note}</div></span><span style="text-align:right;"><b>${x.v}</b></span>`;
+    cashExplainer.appendChild(li);
+  });
+}
+
+asOfRange.addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

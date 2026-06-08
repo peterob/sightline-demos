@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Event Detail & Lineage</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-elevated: #22262f;
+            --border: #2a2f3a;
+            --border-subtle: #1e222a;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0ab;
+            --text-muted: #5a6270;
+            --accent-green: #00d4aa;
+            --accent-green-dim: rgba(0, 212, 170, 0.15);
+            --accent-red: #ff6b6b;
+            --accent-red-dim: rgba(255, 107, 107, 0.15);
+            --accent-blue: #4da6ff;
+            --accent-blue-dim: rgba(77, 166, 255, 0.15);
+            --accent-yellow: #ffd93d;
+            --accent-yellow-dim: rgba(255, 217, 61, 0.15);
+            --accent-purple: #a78bfa;
+            --accent-purple-dim: rgba(167, 139, 250, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-blue) 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-mark svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .logo-text {
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: -0.3px;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .breadcrumb a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--text-primary);
+        }
+
+        .breadcrumb-sep {
+            color: var(--text-muted);
+        }
+
+        .breadcrumb-current {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .close-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr 300px;
+            height: calc(100vh - 53px);
+        }
+
+        /* Left Panel - Filters */
+        .filter-panel {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .filter-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .filter-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .filter-clear {
+            font-size: 11px;
+            color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .filter-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+
+        .filter-section {
+            margin-bottom: 24px;
+        }
+
+        .filter-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .filter-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        /* Event Type Filters */
+        .event-type-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .event-type-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .event-type-filter:hover {
+            background: var(--bg-elevated);
+        }
+
+        .event-type-filter.active {
+            border-color: var(--accent-blue);
+            background: var(--accent-blue-dim);
+        }
+
+        .event-type-filter.active .filter-checkbox {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .event-type-filter.active .filter-checkbox svg {
+            opacity: 1;
+        }
+
+        .filter-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .filter-checkbox svg {
+            width: 10px;
+            height: 10px;
+            stroke: white;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .filter-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .filter-dot.collection { background: var(--accent-green); }
+        .filter-dot.disbursement { background: var(--accent-red); }
+        .filter-dot.commitment { background: var(--accent-yellow); }
+        .filter-dot.journal { background: var(--accent-blue); }
+        .filter-dot.forecast { background: var(--accent-purple); }
+
+        .filter-label {
+            flex: 1;
+            font-size: 12px;
+        }
+
+        .filter-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 2px 6px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        /* Magnitude Filter */
+        .magnitude-filter {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .magnitude-presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .magnitude-preset {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .magnitude-preset:hover {
+            border-color: var(--text-secondary);
+            color: var(--text-secondary);
+        }
+
+        .magnitude-preset.active {
+            background: var(--accent-green-dim);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .magnitude-custom {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .magnitude-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .magnitude-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Time Behavior Filter */
+        .time-behavior-filters {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .time-filter {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .time-filter:hover {
+            background: var(--bg-elevated);
+        }
+
+        .time-filter.active {
+            border-color: var(--accent-purple);
+            background: var(--accent-purple-dim);
+        }
+
+        .time-filter-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .time-filter-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+        }
+
+        .time-filter-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .time-filter-badge.early {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .time-filter-badge.late {
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+        }
+
+        .time-filter-badge.anomaly {
+            background: var(--accent-yellow-dim);
+            color: var(--accent-yellow);
+        }
+
+        /* Entity Search */
+        .entity-search {
+            position: relative;
+        }
+
+        .entity-search-input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .entity-search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .entity-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: var(--text-muted);
+        }
+
+        .entity-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .entity-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px 4px 10px;
+            background: var(--accent-blue-dim);
+            border: 1px solid var(--accent-blue);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--accent-blue);
+        }
+
+        .entity-tag-remove {
+            width: 12px;
+            height: 12px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+
+        .entity-tag-remove:hover {
+            opacity: 1;
+        }
+
+        /* Variance Filter */
+        .variance-filter {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .variance-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .variance-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .toggle-switch {
+            width: 36px;
+            height: 20px;
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-green);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(16px);
+        }
+
+        .variance-threshold {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .variance-threshold-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .variance-slider {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .variance-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .variance-values {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        /* Active Filters Summary */
+        .active-filters {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-subtle);
+            background: var(--bg-tertiary);
+        }
+
+        .active-filters-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .active-filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .active-chip {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .active-chip-remove {
+            width: 10px;
+            height: 10px;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .active-chip-remove:hover {
+            opacity: 1;
+        }
+
+        .filter-result-count {
+            margin-top: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .filter-result-count strong {
+            color: var(--accent-green);
+        }
+
+        /* Center - Event Detail */
+        .event-detail {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .event-detail-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+
+        .event-detail-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent-green);
+            margin-bottom: 8px;
+        }
+
+        .event-detail-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .event-detail-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .event-detail-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--accent-green);
+            margin-top: 16px;
+        }
+
+        /* Lineage Section */
+        .lineage-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .lineage-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        /* Lineage Timeline */
+        .lineage-timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .lineage-timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent-blue), var(--accent-green));
+        }
+
+        .lineage-item {
+            position: relative;
+            padding-bottom: 24px;
+        }
+
+        .lineage-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .lineage-dot {
+            position: absolute;
+            left: -24px;
+            top: 4px;
+            width: 16px;
+            height: 16px;
+            background: var(--bg-primary);
+            border: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .lineage-item.current .lineage-dot {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 4px var(--accent-green-dim);
+        }
+
+        .lineage-item.future .lineage-dot {
+            border-style: dashed;
+            border-color: var(--text-muted);
+        }
+
+        .lineage-item.future .lineage-content {
+            opacity: 0.6;
+        }
+
+        .lineage-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .lineage-item.current .lineage-content {
+            border-color: var(--accent-green);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--accent-green-dim) 100%);
+        }
+
+        .lineage-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .lineage-event {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .lineage-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .lineage-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .lineage-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .lineage-detail-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .lineage-detail-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .lineage-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .lineage-badge.early {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .lineage-badge.impact {
+            background: var(--accent-blue-dim);
+            color: var(--accent-blue);
+        }
+
+        /* Right Panel - Entity & Pattern Context */
+        .context-panel {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .context-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .context-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Entity Card */
+        .entity-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .entity-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .entity-type {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .entity-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .entity-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .entity-stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .entity-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .entity-stat-value.positive {
+            color: var(--accent-green);
+        }
+
+        /* Journal Impact */
+        .journal-entries {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .journal-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .journal-account {
+            font-size: 12px;
+        }
+
+        .journal-account-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .journal-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .journal-amount.debit {
+            color: var(--accent-green);
+        }
+
+        .journal-amount.credit {
+            color: var(--accent-red);
+        }
+
+        /* Pattern Analysis */
+        .pattern-chart {
+            height: 80px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+
+        .pattern-bar {
+            flex: 1;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            opacity: 0.4;
+            transition: opacity 0.15s;
+        }
+
+        .pattern-bar.current {
+            background: var(--accent-green);
+            opacity: 1;
+        }
+
+        .pattern-bar:hover {
+            opacity: 0.8;
+        }
+
+        .pattern-insight {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .pattern-insight-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .pattern-insight-highlight {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        /* Related Events */
+        .related-events {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .related-event {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .related-event:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .related-event-date {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .related-event-title {
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .related-event-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        .related-event-amount.positive {
+            color: var(--accent-green);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="logo-text">Sightline</span>
+        </div>
+        
+        <div class="breadcrumb">
+            <a href="#">Event Stream</a>
+            <span class="breadcrumb-sep">→</span>
+            <span class="breadcrumb-current">Collection • Meridian Corp</span>
+        </div>
+
+        <button class="close-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+            Close
+        </button>
+    </header>
+
+    <main class="main-layout">
+        <!-- Left Panel - Filters -->
+        <aside class="filter-panel">
+            <div class="filter-header">
+                <span class="filter-title">Filters</span>
+                <span class="filter-clear">Clear All</span>
+            </div>
+
+            <div class="filter-content">
+                <!-- Event Type -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Event Type</div>
+                    <div class="event-type-filters">
+                        <div class="event-type-filter active">
+                            <div class="filter-checkbox">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="filter-dot collection"></span>
+                            <span class="filter-label">Collections</span>
+                            <span class="filter-count">24</span>
+                        </div>
+                        <div class="event-type-filter active">
+                            <div class="filter-checkbox">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="filter-dot disbursement"></span>
+                            <span class="filter-label">Disbursements</span>
+                            <span class="filter-count">31</span>
+                        </div>
+                        <div class="event-type-filter">
+                            <div class="filter-checkbox">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="filter-dot commitment"></span>
+                            <span class="filter-label">Commitments</span>
+                            <span class="filter-count">8</span>
+                        </div>
+                        <div class="event-type-filter">
+                            <div class="filter-checkbox">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="filter-dot journal"></span>
+                            <span class="filter-label">Journal Entries</span>
+                            <span class="filter-count">156</span>
+                        </div>
+                        <div class="event-type-filter">
+                            <div class="filter-checkbox">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <span class="filter-dot forecast"></span>
+                            <span class="filter-label">Forecast Updates</span>
+                            <span class="filter-count">12</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Magnitude -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Magnitude</div>
+                    <div class="magnitude-filter">
+                        <div class="magnitude-presets">
+                            <span class="magnitude-preset">&gt;$1K</span>
+                            <span class="magnitude-preset active">&gt;$10K</span>
+                            <span class="magnitude-preset">&gt;$50K</span>
+                            <span class="magnitude-preset">&gt;$100K</span>
+                        </div>
+                        <div class="magnitude-custom">
+                            <input type="text" class="magnitude-input" placeholder="Custom threshold...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Behavior -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Time Behavior</div>
+                    <div class="time-behavior-filters">
+                        <div class="time-filter">
+                            <div class="time-filter-label">
+                                <svg class="time-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                                Early (vs. terms)
+                            </div>
+                            <span class="time-filter-badge early">7</span>
+                        </div>
+                        <div class="time-filter active">
+                            <div class="time-filter-label">
+                                <svg class="time-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                </svg>
+                                Late (vs. terms)
+                            </div>
+                            <span class="time-filter-badge late">3</span>
+                        </div>
+                        <div class="time-filter">
+                            <div class="time-filter-label">
+                                <svg class="time-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                    <path d="M12 9v4M12 17h.01"/>
+                                </svg>
+                                Anomalies
+                            </div>
+                            <span class="time-filter-badge anomaly">2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Entity Search -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Entity</div>
+                    <div class="entity-search">
+                        <svg class="entity-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        <input type="text" class="entity-search-input" placeholder="Search customer, vendor, account...">
+                    </div>
+                    <div class="entity-tags">
+                        <div class="entity-tag">
+                            Meridian Corp
+                            <svg class="entity-tag-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Variance Filter -->
+                <div class="filter-section">
+                    <div class="filter-section-title">Variance from Forecast</div>
+                    <div class="variance-filter">
+                        <div class="variance-toggle">
+                            <div class="variance-label">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                                Show only variances
+                            </div>
+                            <div class="toggle-switch"></div>
+                        </div>
+                        <div class="variance-threshold">
+                            <div class="variance-threshold-label">Minimum variance threshold</div>
+                            <input type="range" class="variance-slider" min="0" max="100" value="10">
+                            <div class="variance-values">
+                                <span>0%</span>
+                                <span>10%</span>
+                                <span>50%+</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Filters Summary -->
+            <div class="active-filters">
+                <div class="active-filters-title">Active Filters</div>
+                <div class="active-filter-chips">
+                    <div class="active-chip">
+                        Collections
+                        <svg class="active-chip-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <div class="active-chip">
+                        Disbursements
+                        <svg class="active-chip-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <div class="active-chip">
+                        &gt;$10K
+                        <svg class="active-chip-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <div class="active-chip">
+                        Late payments
+                        <svg class="active-chip-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </div>
+                    <div class="active-chip">
+                        Meridian Corp
+                        <svg class="active-chip-remove" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="filter-result-count">
+                    Showing <strong>47</strong> of 231 events
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center - Event Detail & Lineage -->
+        <div class="event-detail">
+            <div class="event-detail-header">
+                <div class="event-detail-type">
+                    <span class="filter-dot collection"></span>
+                    Collection
+                </div>
+                <h1 class="event-detail-title">ACH deposit from Meridian Corp</h1>
+                <div class="event-detail-meta">
+                    Invoice #4521 • December 16, 2024 at 2:34 PM EST
+                </div>
+                <div class="event-detail-amount">+$47,250.00</div>
+            </div>
+
+            <div class="lineage-section">
+                <div class="lineage-title">Event Lineage</div>
+                
+                <div class="lineage-timeline">
+                    <!-- Origin -->
+                    <div class="lineage-item">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">August 15, 2024</div>
+                            <div class="lineage-event">Quote Sent</div>
+                            <div class="lineage-description">
+                                Initial quote #Q-2024-0892 sent to Meridian Corp for Q4 consulting engagement. Proposal included three phases with milestone-based billing.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Quote Amount</span>
+                                    <span class="lineage-detail-value">$142,500.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Sent By</span>
+                                    <span class="lineage-detail-value">J. Martinez</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contract -->
+                    <div class="lineage-item">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">August 28, 2024</div>
+                            <div class="lineage-event">Contract Signed</div>
+                            <div class="lineage-description">
+                                Master Services Agreement executed. Payment terms established as Net 30 from invoice date. Three milestone invoices scheduled.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Contract Value</span>
+                                    <span class="lineage-detail-value">$142,500.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Terms</span>
+                                    <span class="lineage-detail-value">Net 30</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Signatory</span>
+                                    <span class="lineage-detail-value">CFO - M. Chen</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Commitment Created -->
+                    <div class="lineage-item">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">August 28, 2024</div>
+                            <div class="lineage-event">Revenue Commitment Created</div>
+                            <div class="lineage-description">
+                                System automatically created receivable commitment based on signed contract. Milestone 1 scheduled for November invoice.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Milestone 1</span>
+                                    <span class="lineage-detail-value">$47,250.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Expected</span>
+                                    <span class="lineage-detail-value">Dec 15, 2024</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Issued -->
+                    <div class="lineage-item">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">November 15, 2024</div>
+                            <div class="lineage-event">Invoice Issued</div>
+                            <div class="lineage-description">
+                                Invoice #4521 generated and sent to Meridian Corp for Phase 1 completion. Due date calculated as December 15, 2024.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Invoice</span>
+                                    <span class="lineage-detail-value">#4521</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Amount</span>
+                                    <span class="lineage-detail-value">$47,250.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Due Date</span>
+                                    <span class="lineage-detail-value">Dec 15, 2024</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AR Aging -->
+                    <div class="lineage-item">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">December 1, 2024</div>
+                            <div class="lineage-event">Forecast Updated</div>
+                            <div class="lineage-description">
+                                Based on Meridian's historical payment pattern (avg 28 days), system projected collection between Dec 13-17. Confidence interval: 89%.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Days Outstanding</span>
+                                    <span class="lineage-detail-value">16 days</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Probability</span>
+                                    <span class="lineage-detail-value">89%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Event -->
+                    <div class="lineage-item current">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">December 16, 2024 • 2:34 PM</div>
+                            <div class="lineage-event">Collection Received</div>
+                            <div class="lineage-description">
+                                ACH deposit received from Meridian Corp. Payment matched to Invoice #4521. Collected on day 31 — 1 day past terms but within forecast window.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Amount</span>
+                                    <span class="lineage-detail-value" style="color: var(--accent-green);">$47,250.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Days to Collect</span>
+                                    <span class="lineage-detail-value">31 days</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">vs. Terms</span>
+                                    <span class="lineage-badge early">+1 day</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Impact</span>
+                                    <span class="lineage-badge impact">Cash +$47.2K</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Downstream Effects -->
+                    <div class="lineage-item future">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">December 16, 2024 • 2:34 PM</div>
+                            <div class="lineage-event">State Updates (Automatic)</div>
+                            <div class="lineage-description">
+                                Collection triggered cascading state updates across the system.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Cash Position</span>
+                                    <span class="lineage-detail-value">$2.80M → $2.85M</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">AR Balance</span>
+                                    <span class="lineage-detail-value">$1.28M → $1.23M</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">30-Day Forecast</span>
+                                    <span class="lineage-detail-value">87% → 89%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Future Milestones -->
+                    <div class="lineage-item future">
+                        <div class="lineage-dot"></div>
+                        <div class="lineage-content">
+                            <div class="lineage-date">Expected: January 15, 2025</div>
+                            <div class="lineage-event">Milestone 2 Invoice (Pending)</div>
+                            <div class="lineage-description">
+                                Next invoice scheduled for Phase 2 completion. Based on current project timeline, expected to invoice mid-January.
+                            </div>
+                            <div class="lineage-details">
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Scheduled</span>
+                                    <span class="lineage-detail-value">$47,250.00</span>
+                                </div>
+                                <div class="lineage-detail">
+                                    <span class="lineage-detail-label">Expected Collection</span>
+                                    <span class="lineage-detail-value">Feb 14, 2025</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Context -->
+        <aside class="context-panel">
+            <!-- Entity Context -->
+            <div class="context-section">
+                <div class="context-section-title">Customer Profile</div>
+                <div class="entity-card">
+                    <div class="entity-name">Meridian Corp</div>
+                    <div class="entity-type">Enterprise Customer • Since 2021</div>
+                    <div class="entity-stats">
+                        <div class="entity-stat">
+                            <span class="entity-stat-label">Lifetime Value</span>
+                            <span class="entity-stat-value">$847,200</span>
+                        </div>
+                        <div class="entity-stat">
+                            <span class="entity-stat-label">Avg Days to Pay</span>
+                            <span class="entity-stat-value">28 days</span>
+                        </div>
+                        <div class="entity-stat">
+                            <span class="entity-stat-label">Outstanding</span>
+                            <span class="entity-stat-value">$0.00</span>
+                        </div>
+                        <div class="entity-stat">
+                            <span class="entity-stat-label">Payment Score</span>
+                            <span class="entity-stat-value positive">A+</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Impact -->
+            <div class="context-section">
+                <div class="context-section-title">Journal Entry</div>
+                <div class="journal-entries">
+                    <div class="journal-entry">
+                        <div class="journal-account">
+                            <div>Cash - Operating</div>
+                            <div class="journal-account-code">1000</div>
+                        </div>
+                        <div class="journal-amount debit">DR $47,250.00</div>
+                    </div>
+                    <div class="journal-entry">
+                        <div class="journal-account">
+                            <div>Accounts Receivable</div>
+                            <div class="journal-account-code">1200</div>
+                        </div>
+                        <div class="journal-amount credit">CR $47,250.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern Context -->
+            <div class="context-section">
+                <div class="context-section-title">Payment Pattern (Last 12 Mo)</div>
+                <div class="pattern-chart">
+                    <div class="pattern-bar" style="height: 65%"></div>
+                    <div class="pattern-bar" style="height: 70%"></div>
+                    <div class="pattern-bar" style="height: 60%"></div>
+                    <div class="pattern-bar" style="height: 75%"></div>
+                    <div class="pattern-bar" style="height: 68%"></div>
+                    <div class="pattern-bar" style="height: 72%"></div>
+                    <div class="pattern-bar" style="height: 65%"></div>
+                    <div class="pattern-bar" style="height: 80%"></div>
+                    <div class="pattern-bar" style="height: 70%"></div>
+                    <div class="pattern-bar" style="height: 75%"></div>
+                    <div class="pattern-bar" style="height: 68%"></div>
+                    <div class="pattern-bar current" style="height: 73%"></div>
+                </div>
+                <div class="pattern-insight">
+                    <div class="pattern-insight-text">
+                        This payment is <span class="pattern-insight-highlight">consistent with pattern</span>. Meridian typically pays 1-3 days past terms at month-end, likely tied to their internal AP cycle. No action needed.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related Events -->
+            <div class="context-section" style="border-bottom: none; padding-bottom: 8px;">
+                <div class="context-section-title">Related Events</div>
+            </div>
+            <div class="related-events">
+                <div class="related-event">
+                    <div class="related-event-date mono">Sep 18, 2024</div>
+                    <div class="related-event-title">Collection — Invoice #4312</div>
+                    <div class="related-event-amount positive">+$38,400.00</div>
+                </div>
+                <div class="related-event">
+                    <div class="related-event-date mono">Jun 22, 2024</div>
+                    <div class="related-event-title">Collection — Invoice #4156</div>
+                    <div class="related-event-amount positive">+$52,800.00</div>
+                </div>
+                <div class="related-event">
+                    <div class="related-event-date mono">Mar 15, 2024</div>
+                    <div class="related-event-title">Collection — Invoice #3998</div>
+                    <div class="related-event-amount positive">+$41,250.00</div>
+                </div>
+                <div class="related-event">
+                    <div class="related-event-date mono">Dec 20, 2023</div>
+                    <div class="related-event-title">Collection — Invoice #3845</div>
+                    <div class="related-event-amount positive">+$67,500.00</div>
+                </div>
+            </div>
+        </aside>
+    </main>
+</body>
+</html>

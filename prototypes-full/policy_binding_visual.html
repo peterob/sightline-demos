@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binding Policy to the Binary Transaction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+        }
+        
+        /* Main diagram */
+        .main-diagram {
+            background: #12121a;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .diagram-title {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        /* The extended tuple visualization */
+        .tuple-structure {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .tuple-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .tuple-bracket {
+            font-size: 4rem;
+            color: #444;
+            font-weight: 200;
+            line-height: 1;
+        }
+        
+        .tuple-elements {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .tuple-element {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            min-width: 400px;
+        }
+        
+        .element-dim {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 80px;
+            flex-shrink: 0;
+        }
+        
+        .element-value {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.95rem;
+            flex-grow: 1;
+        }
+        
+        .element-desc {
+            font-size: 0.75rem;
+            color: #666;
+            width: 150px;
+            text-align: right;
+        }
+        
+        /* Color coding for different dimensions */
+        .dim-flow {
+            background: linear-gradient(135deg, #3d2a1f 0%, #2d1f15 100%);
+            border-left: 4px solid #ffb86b;
+        }
+        .dim-flow .element-dim { color: #ffb86b; }
+        .dim-flow .element-value { color: #ffd4a8; }
+        
+        .dim-action {
+            background: linear-gradient(135deg, #1f3d2a 0%, #152d1f 100%);
+            border-left: 4px solid #6bff8b;
+        }
+        .dim-action .element-dim { color: #6bff8b; }
+        .dim-action .element-value { color: #a8ffc4; }
+        
+        .dim-tail {
+            background: linear-gradient(135deg, #1f2a3d 0%, #151f2d 100%);
+            border-left: 4px solid #6b9fff;
+        }
+        .dim-tail .element-dim { color: #6b9fff; }
+        .dim-tail .element-value { color: #a8d4ff; }
+        
+        .dim-head {
+            background: linear-gradient(135deg, #2a1f3d 0%, #1f152d 100%);
+            border-left: 4px solid #b48aff;
+        }
+        .dim-head .element-dim { color: #b48aff; }
+        .dim-head .element-value { color: #d4b8ff; }
+        
+        /* NEW: Policy dimension */
+        .dim-policy {
+            background: linear-gradient(135deg, #3d1f3d 0%, #2d152d 100%);
+            border-left: 4px solid #ff6bdb;
+            border: 2px solid #ff6bdb;
+            position: relative;
+        }
+        .dim-policy .element-dim { color: #ff6bdb; }
+        .dim-policy .element-value { color: #ffb8f0; }
+        
+        .new-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff6bdb;
+            color: #000;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+        }
+        
+        /* Binding visualization */
+        .binding-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #2a2a3a;
+        }
+        
+        .binding-title {
+            font-size: 1rem;
+            color: #ff6bdb;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .binding-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .binding-box {
+            background: #1a1a2a;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 280px;
+            border: 1px solid #3a3a4a;
+        }
+        
+        .binding-box h4 {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2a2a3a;
+        }
+        
+        .binding-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+        }
+        
+        .binding-icon {
+            font-size: 1rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .binding-text {
+            color: #bbb;
+            line-height: 1.4;
+        }
+        
+        .binding-text strong {
+            color: #fff;
+        }
+        
+        /* Arrow connector */
+        .connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+        }
+        
+        .connector-arrow {
+            font-size: 2rem;
+        }
+        
+        .connector-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+        }
+        
+        /* Policy structure detail */
+        .policy-detail {
+            background: #12121a;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid #3d1f3d;
+        }
+        
+        .policy-structure {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .policy-component {
+            background: #1a1a2a;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .policy-component h4 {
+            color: #ff6bdb;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .policy-component ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .policy-component li {
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a3a;
+            font-size: 0.85rem;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .policy-component li:last-child {
+            border-bottom: none;
+        }
+        
+        .policy-component code {
+            background: #0a0a0f;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            color: #ffb8f0;
+        }
+        
+        /* The 5-tuple code example */
+        .code-section {
+            background: #12121a;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .code-section h3 {
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        
+        .code-block {
+            background: #0a0a0f;
+            border-radius: 12px;
+            padding: 25px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        
+        .code-comment { color: #666; }
+        .code-key { color: #6b9fff; }
+        .code-string { color: #98c379; }
+        .code-number { color: #ffb86b; }
+        .code-policy { color: #ff6bdb; }
+        .code-bracket { color: #888; }
+        
+        /* Why section */
+        .why-section {
+            background: linear-gradient(135deg, #1a1a2a 0%, #12121a 100%);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .why-section h3 {
+            color: #fff;
+            margin-bottom: 25px;
+        }
+        
+        .why-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+        
+        .why-card {
+            background: #0a0a0f;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .why-card h4 {
+            color: #ff6bdb;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .why-card p {
+            color: #999;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        /* Semantic hierarchy */
+        .hierarchy-section {
+            margin-top: 40px;
+            padding: 40px;
+            background: #12121a;
+            border-radius: 20px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .hierarchy-section h3 {
+            color: #fff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .hierarchy-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .hierarchy-level {
+            text-align: center;
+        }
+        
+        .hierarchy-box {
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .hierarchy-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .h-policy {
+            background: linear-gradient(135deg, #3d1f3d 0%, #2d152d 100%);
+            border: 2px solid #ff6bdb;
+            color: #ffb8f0;
+        }
+        
+        .h-connection {
+            background: linear-gradient(135deg, #1f3d2a 0%, #152d1f 100%);
+            border: 2px solid #6bff8b;
+            color: #a8ffc4;
+        }
+        
+        .h-direction {
+            background: linear-gradient(135deg, #1f2a3d 0%, #151f2d 100%);
+            border: 2px solid #6b9fff;
+            color: #a8d4ff;
+        }
+        
+        .h-transaction {
+            background: linear-gradient(135deg, #3d2a1f 0%, #2d1f15 100%);
+            border: 2px solid #ffb86b;
+            color: #ffd4a8;
+        }
+        
+        .hierarchy-arrow {
+            color: #444;
+            font-size: 1.5rem;
+        }
+        
+        .hierarchy-desc {
+            font-size: 0.75rem;
+            color: #666;
+            max-width: 120px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Binding Policy to the Binary Transaction</h1>
+        <p class="subtitle">Extending the 4-tuple to include authorization, intent, and governance</p>
+        
+        <!-- Main tuple diagram -->
+        <div class="main-diagram">
+            <div class="diagram-title">The Extended 5-Tuple: Policy-Bound Transaction</div>
+            
+            <div class="tuple-structure">
+                <div class="tuple-row">
+                    <span class="tuple-bracket">{</span>
+                    <div class="tuple-elements">
+                        <div class="tuple-element dim-policy">
+                            <span class="new-badge">New</span>
+                            <span class="element-dim">Policy</span>
+                            <span class="element-value">"PO-2024-0847:GPU-Procurement"</span>
+                            <span class="element-desc">Why + Who authorized</span>
+                        </div>
+                        <div class="tuple-element dim-flow">
+                            <span class="element-dim">Flow</span>
+                            <span class="element-value">$847,000</span>
+                            <span class="element-desc">How much</span>
+                        </div>
+                        <div class="tuple-element dim-action">
+                            <span class="element-dim">Action</span>
+                            <span class="element-value">"Expenditure:Purchase:Hardware"</span>
+                            <span class="element-desc">What happened</span>
+                        </div>
+                        <div class="tuple-element dim-tail">
+                            <span class="element-dim">Tail</span>
+                            <span class="element-value">"Payables:Vendor:NVIDIA"</span>
+                            <span class="element-desc">From where</span>
+                        </div>
+                        <div class="tuple-element dim-head">
+                            <span class="element-dim">Head</span>
+                            <span class="element-value">"Assets:Equipment:GPU-Cluster"</span>
+                            <span class="element-desc">To where</span>
+                        </div>
+                    </div>
+                    <span class="tuple-bracket">}</span>
+                </div>
+            </div>
+            
+            <!-- Binding explanation -->
+            <div class="binding-section">
+                <div class="binding-title">How Policy Binds to the Transaction</div>
+                
+                <div class="binding-diagram">
+                    <div class="binding-box">
+                        <h4>📜 Policy Document</h4>
+                        <div class="binding-item">
+                            <span class="binding-icon">📋</span>
+                            <span class="binding-text"><strong>Contract/PO:</strong> The legal agreement authorizing this class of transaction</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">👤</span>
+                            <span class="binding-text"><strong>Signatories:</strong> Who has authority to execute</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">📊</span>
+                            <span class="binding-text"><strong>Limits:</strong> Amount caps, frequency rules, conditions</span>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">
+                        <span class="connector-label">validates</span>
+                        <span class="connector-arrow">→</span>
+                    </div>
+                    
+                    <div class="binding-box">
+                        <h4>✓ Well-Formed Connection</h4>
+                        <div class="binding-item">
+                            <span class="binding-icon">⚡</span>
+                            <span class="binding-text"><strong>Action type</strong> must be in policy's allowed actions</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">🔄</span>
+                            <span class="binding-text"><strong>Direction</strong> (tail→head) must match policy's account constraints</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">💰</span>
+                            <span class="binding-text"><strong>Flow</strong> must be within policy's limits</span>
+                        </div>
+                    </div>
+                    
+                    <div class="connector">
+                        <span class="connector-label">produces</span>
+                        <span class="connector-arrow">→</span>
+                    </div>
+                    
+                    <div class="binding-box">
+                        <h4>🔐 Bound Transaction</h4>
+                        <div class="binding-item">
+                            <span class="binding-icon">✅</span>
+                            <span class="binding-text"><strong>Self-validating:</strong> Contains its own proof of authorization</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">🔗</span>
+                            <span class="binding-text"><strong>Traceable:</strong> Links back to originating policy</span>
+                        </div>
+                        <div class="binding-item">
+                            <span class="binding-icon">🛡️</span>
+                            <span class="binding-text"><strong>Auditable:</strong> Variance = policy vs actual</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Policy structure detail -->
+        <div class="policy-detail">
+            <div class="diagram-title" style="color: #ff6bdb;">What Lives Inside the Policy Reference</div>
+            
+            <div class="policy-structure">
+                <div class="policy-component">
+                    <h4>📜 Policy Identity</h4>
+                    <ul>
+                        <li><code>policy_id</code> Unique identifier</li>
+                        <li><code>policy_type</code> Contract, Budget, Standing Order, etc.</li>
+                        <li><code>policy_hash</code> Cryptographic proof of terms</li>
+                        <li><code>effective_period</code> Valid from/to dates</li>
+                    </ul>
+                </div>
+                
+                <div class="policy-component">
+                    <h4>👥 Authorization Chain</h4>
+                    <ul>
+                        <li><code>counterparties[]</code> All parties to the agreement</li>
+                        <li><code>signatories[]</code> Who signed / approved</li>
+                        <li><code>delegations[]</code> Authority passed to whom</li>
+                        <li><code>execution_role</code> Who is executing this tx</li>
+                    </ul>
+                </div>
+                
+                <div class="policy-component">
+                    <h4>📏 Constraints (WF Rules)</h4>
+                    <ul>
+                        <li><code>allowed_actions[]</code> What action types permitted</li>
+                        <li><code>allowed_directions[]</code> What account flows permitted</li>
+                        <li><code>amount_limits{}</code> Min/max per tx, per period</li>
+                        <li><code>conditions[]</code> Prerequisites that must be true</li>
+                    </ul>
+                </div>
+                
+                <div class="policy-component">
+                    <h4>📎 Linkages</h4>
+                    <ul>
+                        <li><code>parent_policy</code> What this derives from</li>
+                        <li><code>related_events[]</code> Prior events under this policy</li>
+                        <li><code>remaining_capacity</code> Budget/quantity remaining</li>
+                        <li><code>attestations[]</code> Third-party confirmations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Code example -->
+        <div class="code-section">
+            <h3>Sightline Event Schema with Policy Binding</h3>
+            
+            <div class="code-block">
+<span class="code-comment">// A policy-bound transaction in Sightline</span>
+<span class="code-bracket">{</span>
+  <span class="code-comment">// Identity</span>
+  <span class="code-key">"event_id"</span>: <span class="code-string">"evt_8a7f3b2c1d4e5f6g"</span>,
+  <span class="code-key">"timestamp"</span>: <span class="code-string">"2024-12-10T14:32:18Z"</span>,
+  
+  <span class="code-comment">// THE POLICY BINDING (new 5th dimension)</span>
+  <span class="code-policy">"policy"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"policy_id"</span>: <span class="code-string">"PO-2024-0847"</span>,
+    <span class="code-key">"policy_type"</span>: <span class="code-string">"purchase_order"</span>,
+    <span class="code-key">"policy_hash"</span>: <span class="code-string">"sha256:9f86d08..."</span>,
+    <span class="code-key">"counterparties"</span>: [<span class="code-string">"acme_corp"</span>, <span class="code-string">"nvidia"</span>],
+    <span class="code-key">"authorized_by"</span>: <span class="code-string">"budget_2024_capex"</span>,
+    <span class="code-key">"executed_by"</span>: <span class="code-string">"jane.doe@acme.com"</span>,
+    <span class="code-key">"remaining_capacity"</span>: <span class="code-number">2153000</span>
+  <span class="code-bracket">}</span>,
+  
+  <span class="code-comment">// The 4D binary transaction</span>
+  <span class="code-key">"flow"</span>: <span class="code-number">847000</span>,
+  <span class="code-key">"action"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"type"</span>: <span class="code-string">"expenditure"</span>,
+    <span class="code-key">"subtype"</span>: <span class="code-string">"purchase"</span>,
+    <span class="code-key">"category"</span>: <span class="code-string">"hardware"</span>
+  <span class="code-bracket">}</span>,
+  <span class="code-key">"tail"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"account"</span>: <span class="code-string">"payables"</span>,
+    <span class="code-key">"counterparty"</span>: <span class="code-string">"nvidia"</span>
+  <span class="code-bracket">}</span>,
+  <span class="code-key">"head"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"account"</span>: <span class="code-string">"assets.equipment"</span>,
+    <span class="code-key">"asset_id"</span>: <span class="code-string">"gpu-cluster-west-01"</span>
+  <span class="code-bracket">}</span>,
+  
+  <span class="code-comment">// Proof that policy authorized this specific transaction</span>
+  <span class="code-key">"policy_validation"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"action_permitted"</span>: <span class="code-number">true</span>,
+    <span class="code-key">"direction_permitted"</span>: <span class="code-number">true</span>,
+    <span class="code-key">"within_limits"</span>: <span class="code-number">true</span>,
+    <span class="code-key">"conditions_met"</span>: [<span class="code-string">"vendor_approved"</span>, <span class="code-string">"budget_available"</span>]
+  <span class="code-bracket">}</span>
+<span class="code-bracket">}</span>
+            </div>
+        </div>
+        
+        <!-- Semantic hierarchy -->
+        <div class="hierarchy-section">
+            <h3>The Compositional Hierarchy with Policy</h3>
+            
+            <div class="hierarchy-flow">
+                <div class="hierarchy-level">
+                    <div class="hierarchy-box h-policy">Policy</div>
+                    <div class="hierarchy-label">Governs</div>
+                    <div class="hierarchy-desc">The agreement that authorizes a class of transactions</div>
+                </div>
+                
+                <span class="hierarchy-arrow">→</span>
+                
+                <div class="hierarchy-level">
+                    <div class="hierarchy-box h-connection">Connection</div>
+                    <div class="hierarchy-label">Constrains</div>
+                    <div class="hierarchy-desc">Action + Direction pairs allowed by policy</div>
+                </div>
+                
+                <span class="hierarchy-arrow">→</span>
+                
+                <div class="hierarchy-level">
+                    <div class="hierarchy-box h-direction">Direction</div>
+                    <div class="hierarchy-label">Defines</div>
+                    <div class="hierarchy-desc">Valid (tail, head) account pairs</div>
+                </div>
+                
+                <span class="hierarchy-arrow">→</span>
+                
+                <div class="hierarchy-level">
+                    <div class="hierarchy-box h-transaction">Transaction</div>
+                    <div class="hierarchy-label">Records</div>
+                    <div class="hierarchy-desc">The quantified, policy-bound event</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Why this matters -->
+        <div class="why-section">
+            <h3>Why Policy Binding Changes Everything</h3>
+            
+            <div class="why-grid">
+                <div class="why-card">
+                    <h4>🔍 Self-Explaining Variances</h4>
+                    <p>When cash is off-forecast, you don't just see "Purchases exceeded budget." You see "PO-2024-0847 authorized $3M for GPU procurement; $847K executed against remaining capacity of $2.15M."</p>
+                </div>
+                
+                <div class="why-card">
+                    <h4>🤝 Multi-Party Proof</h4>
+                    <p>In GPU procurement across buyer, seller, and financing partner—each party sees the same event, bound to the same policy they all signed. No reconciliation needed; the proof is in the structure.</p>
+                </div>
+                
+                <div class="why-card">
+                    <h4>🚫 Invalid Events Impossible</h4>
+                    <p>A transaction without a valid policy reference is structurally malformed. You can't record "Debit: Expenses, Credit: Cash" without answering "under what authority?" first.</p>
+                </div>
+                
+                <div class="why-card">
+                    <h4>📊 Budget = Policy Consumption</h4>
+                    <p>Budget variance isn't calculated—it's observed. Each transaction decrements its policy's remaining capacity. Real-time burn rate with full causal chain.</p>
+                </div>
+                
+                <div class="why-card">
+                    <h4>🔗 Audit Trail by Design</h4>
+                    <p>Every transaction links to its authorizing policy, which links to its parent budget, which links to board approval. The trail isn't reconstructed; it's intrinsic.</p>
+                </div>
+                
+                <div class="why-card">
+                    <h4>🤖 AI-Ready Governance</h4>
+                    <p>An AI agent can execute transactions if given policy delegation. The policy constrains what actions it can take. Autonomous operations with human-defined guardrails.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

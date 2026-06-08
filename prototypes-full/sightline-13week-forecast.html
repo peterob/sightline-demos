@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | 13-Week Cash Forecast</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-elevated: #22262f;
+            --border: #2a2f3a;
+            --border-subtle: #1e222a;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0ab;
+            --text-muted: #5a6270;
+            --accent-green: #00d4aa;
+            --accent-green-dim: rgba(0, 212, 170, 0.15);
+            --accent-red: #ff6b6b;
+            --accent-red-dim: rgba(255, 107, 107, 0.15);
+            --accent-blue: #4da6ff;
+            --accent-blue-dim: rgba(77, 166, 255, 0.15);
+            --accent-yellow: #ffd93d;
+            --accent-yellow-dim: rgba(255, 217, 61, 0.15);
+            --accent-purple: #a78bfa;
+            --accent-purple-dim: rgba(167, 139, 250, 0.15);
+            --accent-orange: #ff9f43;
+            --accent-orange-dim: rgba(255, 159, 67, 0.15);
+            --accent-cyan: #22d3ee;
+            --accent-cyan-dim: rgba(34, 211, 238, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-mark {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-blue) 100%);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-mark svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .logo-text {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .forecast-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: var(--accent-cyan-dim);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--accent-cyan);
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .last-updated strong {
+            color: var(--accent-green);
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 53px);
+        }
+
+        /* Summary Strip */
+        .summary-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            background: var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            padding: 20px 24px;
+        }
+
+        .summary-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .summary-value.positive {
+            color: var(--accent-green);
+        }
+
+        .summary-value.negative {
+            color: var(--accent-red);
+        }
+
+        .summary-subtext {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .confidence-bar {
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+        }
+
+        /* Forecast Content */
+        .forecast-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Chart Area */
+        .chart-area {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chart-control {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .chart-control:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .chart-control.active {
+            background: var(--accent-green-dim);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* The 13-Week Chart */
+        .forecast-chart {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 280px;
+        }
+
+        /* Y-axis labels */
+        .y-axis {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 30px;
+            width: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .y-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: right;
+            padding-right: 12px;
+        }
+
+        /* Chart grid */
+        .chart-grid {
+            position: absolute;
+            left: 70px;
+            right: 0;
+            top: 0;
+            bottom: 30px;
+        }
+
+        .grid-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border-subtle);
+        }
+
+        /* Confidence bands */
+        .confidence-band {
+            position: absolute;
+            left: 0;
+            right: 0;
+            background: var(--accent-green-dim);
+            opacity: 0.3;
+        }
+
+        .confidence-band.outer {
+            opacity: 0.15;
+        }
+
+        /* The actual line/bars */
+        .week-bars {
+            position: absolute;
+            left: 70px;
+            right: 0;
+            top: 0;
+            bottom: 30px;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .week-bar-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .week-bar-container:hover .week-bar {
+            opacity: 1;
+        }
+
+        .week-bar-container:hover .week-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .week-bar-wrapper {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            position: relative;
+        }
+
+        .week-range {
+            position: absolute;
+            width: 60%;
+            background: var(--accent-green);
+            opacity: 0.2;
+            border-radius: 4px;
+        }
+
+        .week-bar {
+            width: 60%;
+            border-radius: 4px 4px 0 0;
+            transition: opacity 0.15s;
+            position: relative;
+        }
+
+        .week-bar.positive {
+            background: linear-gradient(180deg, var(--accent-green) 0%, rgba(0, 212, 170, 0.7) 100%);
+        }
+
+        .week-bar.negative {
+            background: linear-gradient(180deg, var(--accent-red) 0%, rgba(255, 107, 107, 0.7) 100%);
+        }
+
+        .week-bar.current {
+            box-shadow: 0 0 20px var(--accent-green-dim);
+        }
+
+        .week-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .week-label.current {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Tooltip */
+        .week-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.15s;
+            z-index: 100;
+            margin-bottom: 8px;
+        }
+
+        .week-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--border);
+        }
+
+        .tooltip-header {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .tooltip-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-value.positive {
+            color: var(--accent-green);
+        }
+
+        .tooltip-range {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .tooltip-confidence {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* Week Detail Panel */
+        .detail-panel {
+            width: 380px;
+            border-left: 1px solid var(--border-subtle);
+            background: var(--bg-secondary);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-tertiary);
+        }
+
+        .detail-week-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--accent-cyan);
+            margin-bottom: 4px;
+        }
+
+        .detail-week-dates {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .detail-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .detail-metric {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .detail-metric-label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .detail-metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .detail-metric-value.positive {
+            color: var(--accent-green);
+        }
+
+        .detail-metric-value.negative {
+            color: var(--accent-red);
+        }
+
+        /* Event Lists */
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .event-section {
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .event-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: var(--bg-tertiary);
+            cursor: pointer;
+        }
+
+        .event-section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .event-section-title.inflows {
+            color: var(--accent-green);
+        }
+
+        .event-section-title.outflows {
+            color: var(--accent-red);
+        }
+
+        .event-section-total {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .event-section-total.positive {
+            color: var(--accent-green);
+        }
+
+        .event-section-total.negative {
+            color: var(--accent-red);
+        }
+
+        .event-list {
+            padding: 8px 0;
+        }
+
+        .forecast-event {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .forecast-event:last-child {
+            border-bottom: none;
+        }
+
+        .forecast-event:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .event-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .event-entity {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .event-basis {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .basis-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .basis-badge.committed {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .basis-badge.pattern {
+            background: var(--accent-blue-dim);
+            color: var(--accent-blue);
+        }
+
+        .basis-badge.pipeline {
+            background: var(--accent-yellow-dim);
+            color: var(--accent-yellow);
+        }
+
+        .event-confidence {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .confidence-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .confidence-indicator {
+            width: 32px;
+            height: 4px;
+            background: var(--bg-elevated);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-indicator-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--accent-green);
+        }
+
+        .event-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: right;
+        }
+
+        .event-amount.positive {
+            color: var(--accent-green);
+        }
+
+        .event-amount.negative {
+            color: var(--accent-red);
+        }
+
+        .event-range {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* Assumptions Section */
+        .assumptions-section {
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .assumptions-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .assumption-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .assumption-item:last-child {
+            border-bottom: none;
+        }
+
+        .assumption-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .assumption-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .assumption-editable {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .assumption-editable input {
+            width: 60px;
+            padding: 4px 8px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-primary);
+            text-align: right;
+        }
+
+        /* Source Indicators */
+        .source-legend {
+            display: flex;
+            gap: 16px;
+            padding: 16px 24px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .source-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .source-dot.committed {
+            background: var(--accent-green);
+        }
+
+        .source-dot.pattern {
+            background: var(--accent-blue);
+        }
+
+        .source-dot.pipeline {
+            background: var(--accent-yellow);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-elevated);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="logo-text">Sightline</span>
+        </div>
+
+        <div class="forecast-badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+            </svg>
+            13-Week Cash Forecast
+        </div>
+
+        <div class="last-updated">
+            Updated <strong>2 minutes ago</strong> • Auto-refreshes with new events
+        </div>
+    </header>
+
+    <main class="main-layout">
+        <!-- Summary Strip -->
+        <div class="summary-strip">
+            <div class="summary-card">
+                <div class="summary-label">Current Cash</div>
+                <div class="summary-value">$2,847,392</div>
+                <div class="summary-subtext">As of Dec 16, 2024</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Week 13 Projected</div>
+                <div class="summary-value positive">$3,412,000</div>
+                <div class="summary-subtext">Range: $3.1M - $3.8M</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 78%"></div>
+                </div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Net Change (13 Wk)</div>
+                <div class="summary-value positive">+$564,608</div>
+                <div class="summary-subtext">+19.8% from current</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Lowest Point</div>
+                <div class="summary-value">$2,534,000</div>
+                <div class="summary-subtext">Week 3 (Jan 6-12)</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Forecast Confidence</div>
+                <div class="summary-value">87%</div>
+                <div class="summary-subtext">Based on 142 projected events</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: 87%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Content -->
+        <div class="forecast-content">
+            <!-- Chart Area -->
+            <div class="chart-area">
+                <div class="chart-header">
+                    <div class="chart-title">Cash Position by Week</div>
+                    <div class="chart-controls">
+                        <button class="chart-control active">Ending Balance</button>
+                        <button class="chart-control">Net Change</button>
+                        <button class="chart-control">Cumulative Flow</button>
+                    </div>
+                </div>
+
+                <div class="forecast-chart">
+                    <div class="chart-container">
+                        <!-- Y-Axis -->
+                        <div class="y-axis">
+                            <span class="y-label">$4.0M</span>
+                            <span class="y-label">$3.5M</span>
+                            <span class="y-label">$3.0M</span>
+                            <span class="y-label">$2.5M</span>
+                            <span class="y-label">$2.0M</span>
+                        </div>
+
+                        <!-- Grid Lines -->
+                        <div class="chart-grid">
+                            <div class="grid-line" style="top: 0%"></div>
+                            <div class="grid-line" style="top: 25%"></div>
+                            <div class="grid-line" style="top: 50%"></div>
+                            <div class="grid-line" style="top: 75%"></div>
+                            <div class="grid-line" style="top: 100%"></div>
+                        </div>
+
+                        <!-- Week Bars -->
+                        <div class="week-bars">
+                            <!-- Week 1 (Current) -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 48%; bottom: 36%;"></div>
+                                    <div class="week-bar positive current" style="height: 42%"></div>
+                                </div>
+                                <div class="week-label current">W1<br>Dec 16</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 1 • Dec 16-22</div>
+                                    <div class="tooltip-value positive">$2,847,392</div>
+                                    <div class="tooltip-range">Range: $2.78M - $2.92M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>96%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 2 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 52%; bottom: 32%;"></div>
+                                    <div class="week-bar positive" style="height: 38%"></div>
+                                </div>
+                                <div class="week-label">W2<br>Dec 23</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 2 • Dec 23-29</div>
+                                    <div class="tooltip-value positive">$2,692,000</div>
+                                    <div class="tooltip-range">Range: $2.54M - $2.85M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>92%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 3 (Low Point) -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 55%; bottom: 24%;"></div>
+                                    <div class="week-bar positive" style="height: 27%"></div>
+                                </div>
+                                <div class="week-label">W3<br>Dec 30</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 3 • Dec 30 - Jan 5</div>
+                                    <div class="tooltip-value positive">$2,534,000</div>
+                                    <div class="tooltip-range">Range: $2.32M - $2.78M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>89%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 4 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 58%; bottom: 28%;"></div>
+                                    <div class="week-bar positive" style="height: 35%"></div>
+                                </div>
+                                <div class="week-label">W4<br>Jan 6</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 4 • Jan 6-12</div>
+                                    <div class="tooltip-value positive">$2,678,000</div>
+                                    <div class="tooltip-range">Range: $2.41M - $2.95M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>87%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 5 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 60%; bottom: 32%;"></div>
+                                    <div class="week-bar positive" style="height: 42%"></div>
+                                </div>
+                                <div class="week-label">W5<br>Jan 13</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 5 • Jan 13-19</div>
+                                    <div class="tooltip-value positive">$2,845,000</div>
+                                    <div class="tooltip-range">Range: $2.52M - $3.18M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>85%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 6 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 62%; bottom: 38%;"></div>
+                                    <div class="week-bar positive" style="height: 50%"></div>
+                                </div>
+                                <div class="week-label">W6<br>Jan 20</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 6 • Jan 20-26</div>
+                                    <div class="tooltip-value positive">$3,012,000</div>
+                                    <div class="tooltip-range">Range: $2.65M - $3.38M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>83%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 7 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 64%; bottom: 36%;"></div>
+                                    <div class="week-bar positive" style="height: 48%"></div>
+                                </div>
+                                <div class="week-label">W7<br>Jan 27</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 7 • Jan 27 - Feb 2</div>
+                                    <div class="tooltip-value positive">$2,978,000</div>
+                                    <div class="tooltip-range">Range: $2.58M - $3.42M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>81%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 8 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 66%; bottom: 40%;"></div>
+                                    <div class="week-bar positive" style="height: 54%"></div>
+                                </div>
+                                <div class="week-label">W8<br>Feb 3</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 8 • Feb 3-9</div>
+                                    <div class="tooltip-value positive">$3,156,000</div>
+                                    <div class="tooltip-range">Range: $2.71M - $3.62M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>79%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 9 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 68%; bottom: 42%;"></div>
+                                    <div class="week-bar positive" style="height: 56%"></div>
+                                </div>
+                                <div class="week-label">W9<br>Feb 10</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 9 • Feb 10-16</div>
+                                    <div class="tooltip-value positive">$3,198,000</div>
+                                    <div class="tooltip-range">Range: $2.72M - $3.71M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>77%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 10 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 70%; bottom: 44%;"></div>
+                                    <div class="week-bar positive" style="height: 58%"></div>
+                                </div>
+                                <div class="week-label">W10<br>Feb 17</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 10 • Feb 17-23</div>
+                                    <div class="tooltip-value positive">$3,245,000</div>
+                                    <div class="tooltip-range">Range: $2.73M - $3.82M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>75%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 11 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 72%; bottom: 46%;"></div>
+                                    <div class="week-bar positive" style="height: 60%"></div>
+                                </div>
+                                <div class="week-label">W11<br>Feb 24</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 11 • Feb 24 - Mar 2</div>
+                                    <div class="tooltip-value positive">$3,289,000</div>
+                                    <div class="tooltip-range">Range: $2.74M - $3.92M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>73%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 12 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 74%; bottom: 48%;"></div>
+                                    <div class="week-bar positive" style="height: 64%"></div>
+                                </div>
+                                <div class="week-label">W12<br>Mar 3</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 12 • Mar 3-9</div>
+                                    <div class="tooltip-value positive">$3,356,000</div>
+                                    <div class="tooltip-range">Range: $2.76M - $4.02M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>71%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Week 13 -->
+                            <div class="week-bar-container">
+                                <div class="week-bar-wrapper">
+                                    <div class="week-range" style="height: 76%; bottom: 50%;"></div>
+                                    <div class="week-bar positive" style="height: 68%"></div>
+                                </div>
+                                <div class="week-label">W13<br>Mar 10</div>
+                                <div class="week-tooltip">
+                                    <div class="tooltip-header">Week 13 • Mar 10-16</div>
+                                    <div class="tooltip-value positive">$3,412,000</div>
+                                    <div class="tooltip-range">Range: $2.78M - $4.12M</div>
+                                    <div class="tooltip-confidence">
+                                        <span>Confidence:</span>
+                                        <strong>69%</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Source Legend -->
+                <div class="source-legend">
+                    <div class="source-item">
+                        <span class="source-dot committed"></span>
+                        <span>Committed (invoiced, approved POs)</span>
+                    </div>
+                    <div class="source-item">
+                        <span class="source-dot pattern"></span>
+                        <span>Patterned (payroll, rent, recurring)</span>
+                    </div>
+                    <div class="source-item">
+                        <span class="source-dot pipeline"></span>
+                        <span>Pipeline (quotes, expected renewals)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Week Detail Panel -->
+            <div class="detail-panel">
+                <div class="detail-header">
+                    <div class="detail-week-label">Week 5 Selected</div>
+                    <div class="detail-week-dates">January 13 - 19, 2025</div>
+                    <div class="detail-summary">
+                        <div class="detail-metric">
+                            <span class="detail-metric-label">Starting Cash</span>
+                            <span class="detail-metric-value mono">$2,678,000</span>
+                        </div>
+                        <div class="detail-metric">
+                            <span class="detail-metric-label">Ending Cash</span>
+                            <span class="detail-metric-value mono positive">$2,845,000</span>
+                        </div>
+                        <div class="detail-metric">
+                            <span class="detail-metric-label">Net Change</span>
+                            <span class="detail-metric-value mono positive">+$167,000</span>
+                        </div>
+                        <div class="detail-metric">
+                            <span class="detail-metric-label">Confidence</span>
+                            <span class="detail-metric-value mono">85%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-content">
+                    <!-- Inflows -->
+                    <div class="event-section">
+                        <div class="event-section-header">
+                            <div class="event-section-title inflows">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                                </svg>
+                                Expected Inflows
+                            </div>
+                            <span class="event-section-total positive">+$478,500</span>
+                        </div>
+                        <div class="event-list">
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Meridian Corp</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge committed">Committed</span>
+                                        Invoice #4567 • Net 45
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">94%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 94%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount positive">+$156,000</div>
+                                    <div class="event-range">$148K - $156K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">TechFlow Industries</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge committed">Committed</span>
+                                        Invoice #4589 • Net 30
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">91%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 91%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount positive">+$89,000</div>
+                                    <div class="event-range">$82K - $89K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Apex Partners</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge committed">Committed</span>
+                                        Invoice #4601 • Net 30
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">88%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 88%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount positive">+$178,500</div>
+                                    <div class="event-range">$165K - $179K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Summit Manufacturing</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge pattern">Pattern</span>
+                                        Monthly order • Avg 28 days
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">72%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 72%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount positive">+$55,000</div>
+                                    <div class="event-range">$45K - $62K</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outflows -->
+                    <div class="event-section">
+                        <div class="event-section-header">
+                            <div class="event-section-title outflows">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M5 12l7 7 7-7"/>
+                                </svg>
+                                Expected Outflows
+                            </div>
+                            <span class="event-section-total negative">-$311,500</span>
+                        </div>
+                        <div class="event-list">
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Payroll - Period 1</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge pattern">Pattern</span>
+                                        Bi-weekly • ADP
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">98%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 98%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount negative">-$156,250</div>
+                                    <div class="event-range">$153K - $162K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Pacific Steel</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge committed">Committed</span>
+                                        PO #8856 • Net 30
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">95%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 95%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount negative">-$89,000</div>
+                                    <div class="event-range">$89K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Charleston Properties</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge pattern">Pattern</span>
+                                        Monthly rent • Auto-pay
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">99%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 99%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount negative">-$28,500</div>
+                                    <div class="event-range">$28.5K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">AWS</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge pattern">Pattern</span>
+                                        Monthly • Usage-based
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">85%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount negative">-$13,750</div>
+                                    <div class="event-range">$12K - $16K</div>
+                                </div>
+                            </div>
+
+                            <div class="forecast-event">
+                                <div class="event-info">
+                                    <span class="event-entity">Blue Cross</span>
+                                    <div class="event-basis">
+                                        <span class="basis-badge pattern">Pattern</span>
+                                        Monthly premiums
+                                    </div>
+                                </div>
+                                <div class="event-confidence">
+                                    <span class="confidence-value">99%</span>
+                                    <div class="confidence-indicator">
+                                        <div class="confidence-indicator-fill" style="width: 99%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="event-amount negative">-$24,000</div>
+                                    <div class="event-range">$24K</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Assumptions -->
+                <div class="assumptions-section">
+                    <div class="assumptions-title">Key Assumptions (Editable)</div>
+                    <div class="assumption-item">
+                        <span class="assumption-label">Collection timing buffer</span>
+                        <div class="assumption-editable">
+                            <input type="text" value="+3">
+                            <span class="assumption-value">days</span>
+                        </div>
+                    </div>
+                    <div class="assumption-item">
+                        <span class="assumption-label">Pipeline conversion rate</span>
+                        <div class="assumption-editable">
+                            <input type="text" value="65">
+                            <span class="assumption-value">%</span>
+                        </div>
+                    </div>
+                    <div class="assumption-item">
+                        <span class="assumption-label">Payroll variance</span>
+                        <div class="assumption-editable">
+                            <input type="text" value="±2">
+                            <span class="assumption-value">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

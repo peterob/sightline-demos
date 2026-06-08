@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network 5-Tuple → Financial 5-Tuple: Architectural Borrowing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+        }
+        
+        /* Thesis box */
+        .thesis-box {
+            background: linear-gradient(135deg, #1a2a3a 0%, #0f1a2a 100%);
+            border: 2px solid #3a6a9a;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .thesis-box h2 {
+            color: #8ac4ff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .thesis-box p {
+            color: #aaddff;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Section styling */
+        .section {
+            background: #12121a;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            color: #fff;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .section-title .icon {
+            font-size: 1.5rem;
+        }
+        
+        /* Mapping table */
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            gap: 15px;
+            align-items: stretch;
+        }
+        
+        .mapping-header {
+            padding: 15px 20px;
+            background: #1a1a2a;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .mapping-header.network {
+            background: linear-gradient(135deg, #2a1a3a 0%, #1a0f2a 100%);
+            color: #d4a8ff;
+            border: 1px solid #4a3a5a;
+        }
+        
+        .mapping-header.arrow {
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #555;
+        }
+        
+        .mapping-header.financial {
+            background: linear-gradient(135deg, #1a3a2a 0%, #0f2a1a 100%);
+            color: #a8ffc4;
+            border: 1px solid #3a5a4a;
+        }
+        
+        .mapping-row {
+            display: contents;
+        }
+        
+        .mapping-cell {
+            padding: 20px;
+            border-radius: 10px;
+            background: #1a1a2a;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .mapping-cell.network {
+            border-left: 4px solid #b48aff;
+        }
+        
+        .mapping-cell.financial {
+            border-left: 4px solid #6bff8b;
+        }
+        
+        .mapping-cell h4 {
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+        
+        .mapping-cell.network h4 { color: #d4a8ff; }
+        .mapping-cell.financial h4 { color: #a8ffc4; }
+        
+        .mapping-cell p {
+            font-size: 0.8rem;
+            color: #888;
+            line-height: 1.4;
+        }
+        
+        .mapping-cell code {
+            background: #0a0a0f;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+        }
+        
+        .mapping-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 1.5rem;
+        }
+        
+        /* Borrowed concepts */
+        .concepts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+        }
+        
+        .concept-card {
+            background: #1a1a2a;
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid #2a2a3a;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .concept-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #b48aff 0%, #6bff8b 100%);
+        }
+        
+        .concept-card h4 {
+            color: #fff;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .concept-card h4 .badge {
+            font-size: 0.65rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            background: #2a3a4a;
+            color: #8ab4f8;
+            font-weight: 500;
+        }
+        
+        .concept-origin {
+            font-size: 0.75rem;
+            color: #b48aff;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #1a1a2a;
+            border-radius: 6px;
+            border: 1px solid #3a2a4a;
+        }
+        
+        .concept-application {
+            font-size: 0.85rem;
+            color: #aaa;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .concept-example {
+            background: #0a0a0f;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+            color: #8ab4f8;
+            border: 1px solid #2a2a3a;
+        }
+        
+        /* The parallel visualization */
+        .parallel-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .parallel-panel {
+            background: #1a1a2a;
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .parallel-panel h4 {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #2a2a3a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .parallel-panel.network h4 { color: #d4a8ff; }
+        .parallel-panel.financial h4 { color: #a8ffc4; }
+        
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .flow-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .network .flow-number { background: #2a1a3a; color: #d4a8ff; }
+        .financial .flow-number { background: #1a3a2a; color: #a8ffc4; }
+        
+        .flow-content {
+            flex-grow: 1;
+        }
+        
+        .flow-content h5 {
+            font-size: 0.85rem;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        
+        .flow-content p {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        /* Architecture diagram */
+        .arch-diagram {
+            background: #0a0a0f;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .arch-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .arch-layer {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .arch-label {
+            width: 120px;
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: right;
+        }
+        
+        .arch-boxes {
+            display: flex;
+            gap: 15px;
+            flex-grow: 1;
+        }
+        
+        .arch-box {
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .arch-box.network {
+            background: linear-gradient(135deg, #2a1a3a 0%, #1a0f2a 100%);
+            border: 1px solid #4a3a5a;
+            color: #d4a8ff;
+        }
+        
+        .arch-box.financial {
+            background: linear-gradient(135deg, #1a3a2a 0%, #0f2a1a 100%);
+            border: 1px solid #3a5a4a;
+            color: #a8ffc4;
+        }
+        
+        .arch-box.shared {
+            background: linear-gradient(135deg, #2a2a1a 0%, #1a1a0f 100%);
+            border: 1px solid #5a5a3a;
+            color: #ffd700;
+        }
+        
+        /* Key insight */
+        .key-insight {
+            background: linear-gradient(135deg, #2a2a1a 0%, #1a1a0f 100%);
+            border: 2px solid #5a5a3a;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .key-insight h4 {
+            color: #ffd700;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .key-insight p {
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        /* Implementation table */
+        .impl-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .impl-table th {
+            text-align: left;
+            padding: 15px;
+            background: #1a1a2a;
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #2a2a3a;
+        }
+        
+        .impl-table td {
+            padding: 15px;
+            border-bottom: 1px solid #1a1a2a;
+            font-size: 0.85rem;
+            vertical-align: top;
+        }
+        
+        .impl-table td:first-child {
+            color: #b48aff;
+            font-weight: 500;
+            width: 180px;
+        }
+        
+        .impl-table td:nth-child(2) {
+            color: #888;
+        }
+        
+        .impl-table td:nth-child(3) {
+            color: #6bff8b;
+        }
+        
+        /* Tuple comparison */
+        .tuple-compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .tuple-box {
+            background: #0a0a0f;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #2a2a3a;
+        }
+        
+        .tuple-box h5 {
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a3a;
+        }
+        
+        .tuple-box.network h5 { color: #d4a8ff; }
+        .tuple-box.financial h5 { color: #a8ffc4; }
+        
+        .tuple-element {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #1a1a2a;
+        }
+        
+        .tuple-element:last-child {
+            border-bottom: none;
+        }
+        
+        .tuple-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .network .tuple-num { background: #2a1a3a; color: #d4a8ff; }
+        .financial .tuple-num { background: #1a3a2a; color: #a8ffc4; }
+        
+        .tuple-name {
+            font-size: 0.85rem;
+            color: #fff;
+            flex-grow: 1;
+        }
+        
+        .tuple-purpose {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: right;
+            max-width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Network 5-Tuple → Financial 5-Tuple</h1>
+        <p class="subtitle">Borrowing battle-tested architecture from 40 years of network engineering</p>
+        
+        <!-- Core thesis -->
+        <div class="thesis-box">
+            <h2>The Deep Structural Parallel</h2>
+            <p>
+                Network engineers solved the problem of <strong>uniquely identifying flows, tracking state, and enforcing policy</strong> across distributed systems decades ago. The 5-tuple is the foundation of firewalls, NAT, load balancers, and flow analytics. Sightline's financial 5-tuple can inherit this entire architectural playbook.
+            </p>
+        </div>
+        
+        <!-- Element mapping -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">🔄</span>
+                Element-by-Element Mapping
+            </div>
+            
+            <div class="tuple-compare">
+                <div class="tuple-box network">
+                    <h5>🌐 Network 5-Tuple</h5>
+                    <div class="tuple-element">
+                        <span class="tuple-num">1</span>
+                        <span class="tuple-name">Source IP Address</span>
+                        <span class="tuple-purpose">Origin endpoint</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">2</span>
+                        <span class="tuple-name">Destination IP Address</span>
+                        <span class="tuple-purpose">Target endpoint</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">3</span>
+                        <span class="tuple-name">Source Port</span>
+                        <span class="tuple-purpose">Origin process</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">4</span>
+                        <span class="tuple-name">Destination Port</span>
+                        <span class="tuple-purpose">Target service</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">5</span>
+                        <span class="tuple-name">Protocol</span>
+                        <span class="tuple-purpose">Transport method</span>
+                    </div>
+                </div>
+                
+                <div class="tuple-box financial">
+                    <h5>💰 Financial 5-Tuple</h5>
+                    <div class="tuple-element">
+                        <span class="tuple-num">1</span>
+                        <span class="tuple-name">Tail (Source Account)</span>
+                        <span class="tuple-purpose">Origin of value</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">2</span>
+                        <span class="tuple-name">Head (Destination Account)</span>
+                        <span class="tuple-purpose">Target of value</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">3</span>
+                        <span class="tuple-name">Policy</span>
+                        <span class="tuple-purpose">Authorization context</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">4</span>
+                        <span class="tuple-name">Action</span>
+                        <span class="tuple-purpose">Transaction type</span>
+                    </div>
+                    <div class="tuple-element">
+                        <span class="tuple-num">5</span>
+                        <span class="tuple-name">Flow</span>
+                        <span class="tuple-purpose">Value amount</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="key-insight">
+                <h4>💡 The Mapping Insight</h4>
+                <p>
+                    <strong>Source/Destination IP → Tail/Head Accounts:</strong> Both identify endpoints of a flow.<br><br>
+                    <strong>Port Numbers → Policy + Action:</strong> Ports identify the service/process context. Policy + Action identify the business context (what authorization, what type of transaction).<br><br>
+                    <strong>Protocol → (Implicit in Action hierarchy):</strong> TCP/UDP/ICMP define transport semantics. Physical/Financial action types define transaction semantics.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Borrowed concepts -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">📦</span>
+                Architectural Patterns to Borrow
+            </div>
+            
+            <div class="concepts-grid">
+                <div class="concept-card">
+                    <h4>
+                        Stateful Flow Tables
+                        <span class="badge">High Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Firewalls maintain connection state tables indexed by 5-tuple. Return traffic auto-permitted for established sessions.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Maintain "transaction state tables" indexed by (Policy, Action, Direction). When a PO is created, pre-authorize the matching invoice and payment flows. The policy establishes the session; subsequent events are validated against session state.
+                    </div>
+                    <div class="concept-example">
+                        // Policy PO-2024-0847 creates "session"<br>
+                        // Auto-permits: Invoice matching this PO<br>
+                        // Auto-permits: Payment matching this invoice<br>
+                        // Rejects: Payment without prior invoice
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        Flow Export (NetFlow/IPFIX)
+                        <span class="badge">High Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Export summarized flow records instead of raw packets. Enables analytics at scale without storing every packet.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Export summarized "financial flow records" for analytics. Don't query raw events for dashboards—export aggregated flows by (Policy, Action, Direction) with counters and timestamps.
+                    </div>
+                    <div class="concept-example">
+                        FlowRecord {<br>
+                        &nbsp;&nbsp;policy: "budget-2024-capex",<br>
+                        &nbsp;&nbsp;action: "expenditure",<br>
+                        &nbsp;&nbsp;direction: (payables, assets),<br>
+                        &nbsp;&nbsp;total_flow: $2.4M,<br>
+                        &nbsp;&nbsp;event_count: 847,<br>
+                        &nbsp;&nbsp;first_seen: "2024-01-15",<br>
+                        &nbsp;&nbsp;last_seen: "2024-12-10"<br>
+                        }
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        NAT / Address Translation
+                        <span class="badge">High Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: NAT translates between internal and external addresses while maintaining session continuity via 5-tuple mapping.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> "Policy Translation" for multi-party coordination. Each party has internal policies; a translation layer maps to shared external representation. Internal: "Dept-Budget-Q4" → External: "PO-2024-0847".
+                    </div>
+                    <div class="concept-example">
+                        // Buyer's internal view<br>
+                        policy: "capex-gpu-cluster"<br><br>
+                        // Shared/external view (translation)<br>
+                        policy: "PO-2024-0847"<br><br>
+                        // Seller's internal view<br>
+                        policy: "customer-acme-order-4521"
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        Connection Timeout / Aging
+                        <span class="badge">Medium Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Flow table entries expire after inactivity. Prevents stale state accumulation. Different timeouts for TCP vs UDP.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Policies have validity periods and inactivity timeouts. A PO unused for 90 days triggers review. Different "protocols" (expenditure vs payment) have different timeout semantics.
+                    </div>
+                    <div class="concept-example">
+                        Policy {<br>
+                        &nbsp;&nbsp;valid_until: "2024-12-31",<br>
+                        &nbsp;&nbsp;inactivity_timeout: "90d",<br>
+                        &nbsp;&nbsp;on_timeout: "flag_for_review"<br>
+                        }
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        Load Balancing / Hash Distribution
+                        <span class="badge">Medium Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Hash 5-tuple to distribute traffic across servers while maintaining session affinity.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Hash (Policy, Action, Direction) to distribute event processing across workers while ensuring all events for a policy are processed by the same node (for state consistency).
+                    </div>
+                    <div class="concept-example">
+                        worker_id = hash(policy_id) % num_workers<br>
+                        // All events for PO-2024-0847 go to worker 3<br>
+                        // Ensures policy state is consistent
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        Deep Packet Inspection → Deep Event Inspection
+                        <span class="badge">Medium Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Look beyond headers into payload for application identification and threat detection.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Look beyond the 5-tuple into event payload (line items, attachments, metadata) for anomaly detection, compliance checks, and fraud analysis.
+                    </div>
+                    <div class="concept-example">
+                        // 5-tuple says: valid expenditure<br>
+                        // Deep inspection finds:<br>
+                        // - Line item "consulting" on hardware PO<br>
+                        // - Vendor address changed recently<br>
+                        // → Flag for review
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        SIEM / Flow Correlation
+                        <span class="badge">High Value</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Correlate flows across devices and time to detect attack patterns and track threat actors.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Correlate events across policies and time to detect anomalies. "This vendor received payments from 3 different budgets in 30 days" or "This expense pattern matches known procurement fraud."
+                    </div>
+                    <div class="concept-example">
+                        Alert: Vendor ACME-CORP<br>
+                        - Payment from budget-sales: $50K<br>
+                        - Payment from budget-eng: $47K<br>
+                        - Payment from budget-ops: $52K<br>
+                        Pattern: Split to avoid $50K approval threshold?
+                    </div>
+                </div>
+                
+                <div class="concept-card">
+                    <h4>
+                        QoS / Priority Queuing
+                        <span class="badge">Low Value Now</span>
+                    </h4>
+                    <div class="concept-origin">
+                        Network: Classify traffic by 5-tuple for priority treatment and bandwidth allocation.
+                    </div>
+                    <div class="concept-application">
+                        <strong>Financial application:</strong> Priority processing for certain policy types. Board-approved CapEx processes before routine OpEx. Compliance-critical events process before analytics queries.
+                    </div>
+                    <div class="concept-example">
+                        queue_priority = {<br>
+                        &nbsp;&nbsp;"board_approved": 1,<br>
+                        &nbsp;&nbsp;"compliance_required": 2,<br>
+                        &nbsp;&nbsp;"standard": 3,<br>
+                        &nbsp;&nbsp;"analytics": 4<br>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- The stateful firewall parallel -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">🔥</span>
+                The Stateful Firewall Parallel
+            </div>
+            
+            <div class="parallel-section">
+                <div class="parallel-panel network">
+                    <h4>🌐 Network Stateful Firewall</h4>
+                    <div class="flow-diagram">
+                        <div class="flow-step">
+                            <div class="flow-number">1</div>
+                            <div class="flow-content">
+                                <h5>Outbound SYN packet arrives</h5>
+                                <p>5-tuple extracted, policy checked against rules</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">2</div>
+                            <div class="flow-content">
+                                <h5>State table entry created</h5>
+                                <p>5-tuple → {state: SYN_SENT, timeout: 30s}</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">3</div>
+                            <div class="flow-content">
+                                <h5>Return SYN-ACK arrives</h5>
+                                <p>Reverse 5-tuple matches state entry → permitted</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">4</div>
+                            <div class="flow-content">
+                                <h5>Connection established</h5>
+                                <p>State updated, subsequent packets auto-permitted</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">5</div>
+                            <div class="flow-content">
+                                <h5>FIN or timeout</h5>
+                                <p>State entry removed, flow complete</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="parallel-panel financial">
+                    <h4>💰 Financial Stateful Policy Engine</h4>
+                    <div class="flow-diagram">
+                        <div class="flow-step">
+                            <div class="flow-number">1</div>
+                            <div class="flow-content">
+                                <h5>Purchase Order created</h5>
+                                <p>5-tuple extracted, validated against budget policy</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">2</div>
+                            <div class="flow-content">
+                                <h5>Policy session created</h5>
+                                <p>5-tuple → {state: PO_ISSUED, capacity: $100K}</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">3</div>
+                            <div class="flow-content">
+                                <h5>Invoice arrives</h5>
+                                <p>Matches PO policy session → auto-validated</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">4</div>
+                            <div class="flow-content">
+                                <h5>Payment authorized</h5>
+                                <p>State updated, capacity decremented</p>
+                            </div>
+                        </div>
+                        <div class="flow-step">
+                            <div class="flow-number">5</div>
+                            <div class="flow-content">
+                                <h5>PO fulfilled or expired</h5>
+                                <p>Policy session closed, audit trail complete</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Implementation mapping -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">🛠️</span>
+                Implementation Borrowing
+            </div>
+            
+            <table class="impl-table">
+                <thead>
+                    <tr>
+                        <th>Network Concept</th>
+                        <th>Network Implementation</th>
+                        <th>Sightline Implementation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Flow Table</td>
+                        <td>In-memory hash table keyed by 5-tuple, stores connection state, counters, timestamps</td>
+                        <td>In-memory hash table keyed by (policy_id, action, direction), stores policy state, remaining capacity, event count</td>
+                    </tr>
+                    <tr>
+                        <td>Flow Export</td>
+                        <td>NetFlow v9/IPFIX templates define which fields to export; collectors aggregate</td>
+                        <td>Event export templates define which dimensions to aggregate; analytics collectors build dashboards</td>
+                    </tr>
+                    <tr>
+                        <td>Policy Rules</td>
+                        <td>ACLs: permit/deny based on 5-tuple match with wildcards</td>
+                        <td>WF Rules: permit/deny based on (policy, action, direction) match with hierarchical wildcards</td>
+                    </tr>
+                    <tr>
+                        <td>NAT Table</td>
+                        <td>Maps internal 5-tuple ↔ external 5-tuple, bidirectional translation</td>
+                        <td>Maps internal policy ↔ external policy, multi-party view translation</td>
+                    </tr>
+                    <tr>
+                        <td>Session Timeout</td>
+                        <td>TCP: 1 hour, UDP: 30s, configurable per protocol</td>
+                        <td>PO: 90 days, Invoice: 30 days, configurable per action type</td>
+                    </tr>
+                    <tr>
+                        <td>Logging/Audit</td>
+                        <td>Syslog, SNMP traps for flow events (create, deny, expire)</td>
+                        <td>Event log for policy events (authorize, execute, deny, expire)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Key insight -->
+        <div class="key-insight">
+            <h4>🎯 The Strategic Insight</h4>
+            <p>
+                Network 5-tuple infrastructure has been battle-tested for 40 years. Every router, firewall, and load balancer implements these patterns. By mapping Sightline's financial 5-tuple to the same architectural primitives, you inherit:
+            </p>
+            <br>
+            <p>
+                <strong>1. Proven scalability patterns</strong> — Flow tables handle millions of concurrent sessions<br>
+                <strong>2. Established mental models</strong> — Network engineers already understand stateful flow tracking<br>
+                <strong>3. Mature tooling patterns</strong> — NetFlow collectors, SIEM integration, flow analytics<br>
+                <strong>4. Clear operational semantics</strong> — Timeouts, state machines, policy enforcement<br>
+                <strong>5. Interoperability patterns</strong> — Standard export formats, collector architectures
+            </p>
+            <br>
+            <p>
+                <strong>This is not metaphor—it's architecture.</strong> The same data structures, the same state machines, the same export protocols. Financial events flow through Sightline like packets flow through a network.
+            </p>
+        </div>
+        
+        <!-- Vocabulary mapping -->
+        <div class="section">
+            <div class="section-title">
+                <span class="icon">📖</span>
+                Vocabulary Mapping for Documentation/Marketing
+            </div>
+            
+            <table class="impl-table">
+                <thead>
+                    <tr>
+                        <th>Network Term</th>
+                        <th>Definition</th>
+                        <th>Sightline Term</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Flow</td>
+                        <td>A sequence of packets sharing a 5-tuple</td>
+                        <td>Policy Session — A sequence of events sharing a policy binding</td>
+                    </tr>
+                    <tr>
+                        <td>Session</td>
+                        <td>A bidirectional communication between endpoints</td>
+                        <td>Transaction Lifecycle — The full cycle from authorization to settlement</td>
+                    </tr>
+                    <tr>
+                        <td>Stateful Inspection</td>
+                        <td>Tracking connection state to make dynamic decisions</td>
+                        <td>Policy-Aware Validation — Tracking policy state to validate events</td>
+                    </tr>
+                    <tr>
+                        <td>Flow Export</td>
+                        <td>Summarized flow records for analytics</td>
+                        <td>Event Aggregation — Summarized event records for dashboards</td>
+                    </tr>
+                    <tr>
+                        <td>ACL (Access Control List)</td>
+                        <td>Rules defining permitted/denied flows</td>
+                        <td>WF Rules — Rules defining well-formed connections</td>
+                    </tr>
+                    <tr>
+                        <td>NAT</td>
+                        <td>Address translation between network boundaries</td>
+                        <td>Policy Translation — Context translation between organizational boundaries</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

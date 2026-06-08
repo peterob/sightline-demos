@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Profit Engine — Four Layers</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0C0E14;
+    --surface: #13161F;
+    --layer1: #E8C872;
+    --layer1-bg: rgba(232, 200, 114, 0.06);
+    --layer2: #6BA3BE;
+    --layer2-bg: rgba(107, 163, 190, 0.06);
+    --layer3: #C47B5A;
+    --layer3-bg: rgba(196, 123, 90, 0.06);
+    --layer4: #B35B5B;
+    --layer4-bg: rgba(179, 91, 91, 0.06);
+    --text: #E8E4DD;
+    --text-dim: #8A8680;
+    --text-subtle: #5A5752;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .canvas {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px 80px;
+    position: relative;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 64px;
+    animation: fadeUp 0.8s ease-out both;
+  }
+
+  .header .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 48px;
+    font-weight: 400;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .header .subtitle {
+    font-size: 16px;
+    color: var(--text-dim);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Spine line */
+  .layers-container {
+    position: relative;
+  }
+
+  .layers-container::before {
+    content: '';
+    position: absolute;
+    left: 36px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--text-subtle) 5%,
+      var(--text-subtle) 95%,
+      transparent
+    );
+  }
+
+  /* Layer block */
+  .layer {
+    position: relative;
+    padding-left: 88px;
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+
+  .layer:nth-child(1) { animation-delay: 0.2s; }
+  .layer:nth-child(2) { animation-delay: 0.4s; }
+  .layer:nth-child(3) { animation-delay: 0.6s; }
+  .layer:nth-child(4) { animation-delay: 0.8s; }
+
+  /* Circle node on spine */
+  .layer-node {
+    position: absolute;
+    left: 24px;
+    top: 6px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    z-index: 2;
+    background: var(--bg);
+  }
+
+  .layer[data-layer="1"] .layer-node { border-color: var(--layer1); color: var(--layer1); }
+  .layer[data-layer="2"] .layer-node { border-color: var(--layer2); color: var(--layer2); }
+  .layer[data-layer="3"] .layer-node { border-color: var(--layer3); color: var(--layer3); }
+  .layer[data-layer="4"] .layer-node { border-color: var(--layer4); color: var(--layer4); }
+
+  /* Card */
+  .layer-card {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 32px 36px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+  }
+
+  .layer[data-layer="1"] .layer-card { background: var(--layer1-bg); }
+  .layer[data-layer="2"] .layer-card { background: var(--layer2-bg); }
+  .layer[data-layer="3"] .layer-card { background: var(--layer3-bg); }
+  .layer[data-layer="4"] .layer-card { background: var(--layer4-bg); }
+
+  .layer[data-layer="1"] .layer-card:hover { border-color: rgba(232,200,114,0.2); }
+  .layer[data-layer="2"] .layer-card:hover { border-color: rgba(107,163,190,0.2); }
+  .layer[data-layer="3"] .layer-card:hover { border-color: rgba(196,123,90,0.2); }
+  .layer[data-layer="4"] .layer-card:hover { border-color: rgba(179,91,91,0.2); }
+
+  /* Accent bar */
+  .layer-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    border-radius: 3px 0 0 3px;
+  }
+
+  .layer[data-layer="1"] .layer-card::before { background: var(--layer1); }
+  .layer[data-layer="2"] .layer-card::before { background: var(--layer2); }
+  .layer[data-layer="3"] .layer-card::before { background: var(--layer3); }
+  .layer[data-layer="4"] .layer-card::before { background: var(--layer4); }
+
+  /* Card header row */
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+
+  .layer-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .layer[data-layer="1"] .layer-type { color: var(--layer1); background: rgba(232,200,114,0.1); }
+  .layer[data-layer="2"] .layer-type { color: var(--layer2); background: rgba(107,163,190,0.1); }
+  .layer[data-layer="3"] .layer-type { color: var(--layer3); background: rgba(196,123,90,0.1); }
+  .layer[data-layer="4"] .layer-type { color: var(--layer4); background: rgba(179,91,91,0.1); }
+
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .card-metric {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    margin-top: 4px;
+  }
+
+  /* Insight callout */
+  .card-insight {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    border-left: 2px solid rgba(255,255,255,0.08);
+    padding-left: 16px;
+    font-style: italic;
+  }
+
+  .card-body {
+    font-size: 14px;
+    line-height: 1.75;
+    color: rgba(232,228,221,0.72);
+  }
+
+  .card-body strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* Signal pills */
+  .signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .signal {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text-dim);
+  }
+
+  /* Directional arrows between layers */
+  .direction-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 88px;
+    margin: -16px 0 32px;
+    opacity: 0;
+    animation: fadeUp 0.6s ease-out forwards;
+  }
+
+  .direction-hint:nth-of-type(2) { animation-delay: 0.3s; }
+  .direction-hint:nth-of-type(4) { animation-delay: 0.5s; }
+  .direction-hint:nth-of-type(6) { animation-delay: 0.7s; }
+
+  .direction-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(255,255,255,0.08), transparent);
+  }
+
+  .direction-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-subtle);
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    padding-top: 40px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    opacity: 0;
+    animation: fadeUp 0.6s ease-out 1s forwards;
+  }
+
+  .footer p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text-subtle);
+    line-height: 1.8;
+  }
+
+  .footer .emphasis {
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .canvas { padding: 40px 20px 60px; }
+    .header h1 { font-size: 32px; }
+    .layers-container::before { left: 20px; }
+    .layer { padding-left: 56px; }
+    .layer-node { left: 8px; }
+    .layer-card { padding: 24px 20px; }
+    .card-title { font-size: 18px; }
+    .direction-hint { padding-left: 56px; }
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+
+    <div class="header">
+      <div class="tag">Digital Finance HQ</div>
+      <h1>The Profit Engine</h1>
+      <p class="subtitle">Four layers of margin intelligence — from scoreboard to source. Diagnose downward, fix at the root.</p>
+    </div>
+
+    <div class="layers-container">
+
+      <!-- Layer 1 -->
+      <div class="layer" data-layer="1">
+        <div class="layer-node">1</div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="layer-type">Financial Outcome</span>
+          </div>
+          <div class="card-title">Gross Profit Margin</div>
+          <div class="card-metric">The scoreboard</div>
+          <div class="card-insight">"It tells you the engine changed. It does not tell you where or why."</div>
+          <div class="card-body">
+            This is a lagging indicator — the final output of dozens of upstream decisions. Optimizing here without understanding the source risks <strong>fixing the number while leaving the actual problem untouched</strong>. Margin moved. That's the only fact Layer 1 gives you.
+          </div>
+        </div>
+      </div>
+
+      <div class="direction-hint">
+        <span class="direction-label">↓ Localize the drift</span>
+        <div class="direction-line"></div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="layer" data-layer="2">
+        <div class="layer-node">2</div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="layer-type">Operational Outcome</span>
+          </div>
+          <div class="card-title">Contribution Profit by Segment, Product &amp; Channel</div>
+          <div class="card-metric">Where did the margin actually change?</div>
+          <div class="card-insight">"A blended 200bp decline might reflect a 600bp collapse in one segment offset by improvement elsewhere."</div>
+          <div class="card-body">
+            You cannot see this from Layer 1 alone. The <strong>mix effect</strong> compounds: segment composition can shift in ways that destroy blended margin even when no individual segment has worsened. This layer decomposes the signal into addressable geography.
+          </div>
+          <div class="signals">
+            <span class="signal">Segment margin</span>
+            <span class="signal">Product mix</span>
+            <span class="signal">Channel economics</span>
+            <span class="signal">Mix-shift effect</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="direction-hint">
+        <span class="direction-label">↓ Detect early signals</span>
+        <div class="direction-line"></div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div class="layer" data-layer="3">
+        <div class="layer-node">3</div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="layer-type">Operational Signals</span>
+          </div>
+          <div class="card-title">Unit-Rate Signals by Function</div>
+          <div class="card-metric">Leading indicators — visible weeks before the P&L</div>
+          <div class="card-insight">"A pipeline weighted toward lower-margin segments today predicts a mix variance problem 6–8 weeks from now."</div>
+          <div class="card-body">
+            Cost-side signals — delivery cost per customer, infrastructure cost per unit, onboarding cost per new customer, support cost per customer — move first. Pair with <strong>sales engine signals</strong>: pipeline coverage ratio, stage conversion rate by segment, and revenue per rep. Together, they forecast both rate and mix drift before it reaches the scoreboard.
+          </div>
+          <div class="signals">
+            <span class="signal">Delivery cost / customer</span>
+            <span class="signal">Infra cost / unit</span>
+            <span class="signal">Onboarding cost / customer</span>
+            <span class="signal">Pipeline coverage ratio</span>
+            <span class="signal">Conversion by segment</span>
+            <span class="signal">Revenue / rep</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="direction-hint">
+        <span class="direction-label">↓ Name the root cause</span>
+        <div class="direction-line"></div>
+      </div>
+
+      <!-- Layer 4 -->
+      <div class="layer" data-layer="4">
+        <div class="layer-node">4</div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="layer-type">Root Cause</span>
+          </div>
+          <div class="card-title">The Decision, Policy, or Contract Term</div>
+          <div class="card-metric">Not a category — a decision that can be named, owned, and changed</div>
+          <div class="card-insight">"Each has a date, an owner, and a downstream cost consequence that was either not calculated or accepted without visibility into its compounding effect."</div>
+          <div class="card-body">
+            The three most common sources: <strong>deal structure drift</strong> (pricing concessions that compound), <strong>segment composition creep</strong> (gradual shift toward lower-margin customers), and <strong>process policy changes</strong> (operational decisions with untracked cost consequences). Every margin problem traces back to a specific decision someone made on a specific date.
+          </div>
+          <div class="signals">
+            <span class="signal">Deal structure drift</span>
+            <span class="signal">Segment composition creep</span>
+            <span class="signal">Process policy changes</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <p><span class="emphasis">Read upward to diagnose.</span> Read downward to fix.<br>The P&L tells you something changed. Only Layer 4 tells you what to do about it.</p>
+    </div>
+
+  </div>
+</body>
+</html>

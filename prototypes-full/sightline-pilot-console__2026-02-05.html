@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Event-Sourced Pilot Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; color: #1E293B; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .timeline-line { position: absolute; left: 28px; top: 48px; bottom: -32px; width: 2px; background: #E2E8F0; z-index: 0; }
+        .timeline-item:last-child .timeline-line { display: none; }
+        
+        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
+        
+        .json-key { color: #7C3AED; }
+        .json-string { color: #059669; }
+        .json-number { color: #D97706; }
+        .json-boolean { color: #DC2626; }
+        .json-null { color: #64748B; }
+        .json-comment { color: #64748B; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+        @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 500px; } }
+        .animate-slide-down { animation: slideDown 0.4s ease-out forwards; }
+
+        /* Policy node connector */
+        .policy-connector { 
+            position: absolute; 
+            left: -20px; top: 50%; 
+            width: 20px; height: 2px; 
+            background: repeating-linear-gradient(90deg, #7C3AED 0, #7C3AED 3px, transparent 3px, transparent 6px);
+        }
+
+        /* Scrollbar styling */
+        #timeline-container::-webkit-scrollbar { width: 4px; }
+        #timeline-container::-webkit-scrollbar-track { background: transparent; }
+        #timeline-container::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- TOP NAVIGATION -->
+    <nav class="bg-slate-900 text-white h-18 flex items-center justify-between px-6 py-4 shadow-xl sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center font-bold text-slate-900 text-xl shadow-lg shadow-teal-500/20">S</div>
+            <div>
+                <div class="font-bold tracking-wide text-lg">SIGHTLINE <span class="text-teal-400 text-xs align-top">PILOT</span></div>
+                <div class="text-[10px] text-slate-400 font-mono tracking-wider">EVENT-SOURCED ARCHITECTURE v1.1</div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-8">
+            <div class="hidden md:flex flex-col items-end border-r border-slate-700 pr-8">
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Latest Merkle Root (Base L2)</span>
+                <div class="font-mono text-xs text-teal-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                    0x7f...9a21
+                </div>
+            </div>
+
+            <!-- Policy Registry Indicator -->
+            <div class="hidden lg:flex flex-col items-end border-r border-slate-700 pr-8">
+                <span class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Active Policies</span>
+                <div class="font-mono text-xs text-purple-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                    2 bound · 0 pending
+                </div>
+            </div>
+
+            <!-- MODE TOGGLE -->
+            <div class="flex items-center gap-3 bg-slate-800 p-1.5 rounded-lg border border-slate-700 shadow-inner">
+                <div class="relative inline-block w-32 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" name="toggle" id="audit-toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-md bg-white border-4 border-transparent appearance-none cursor-pointer transition-all duration-300 left-1 top-1 z-10 shadow-sm"/>
+                    <label for="audit-toggle" class="toggle-label block overflow-hidden h-8 rounded-md bg-slate-700 cursor-pointer text-center text-[10px] font-bold leading-8 text-slate-300 transition-colors duration-300 shadow-inner">
+                        <span class="absolute left-3 tracking-widest" id="toggle-text-ops">OPS</span>
+                        <span class="absolute right-3 text-white tracking-widest" id="toggle-text-audit">AUDIT</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN DASHBOARD -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto p-6 grid grid-cols-12 gap-8">
+        
+        <!-- HEADER -->
+        <div class="col-span-12 bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex justify-between items-center">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h1 class="text-2xl font-bold text-slate-900">PO-10045</h1>
+                    <span id="status-badge" class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200 flex items-center gap-1">
+                        <i class="ph ph-lock-key"></i> PAYMENT BLOCKED
+                    </span>
+                </div>
+                <div class="text-sm text-slate-500 mt-1 flex gap-4">
+                    <span>Vendor: <strong class="text-slate-700">Shenzhen Quality Mfg.</strong></span>
+                    <span class="text-slate-300">|</span>
+                    <span>SKU: <strong class="text-slate-700">LAMP-A1</strong></span>
+                    <span class="text-slate-300">|</span>
+                    <span>Policy: <strong class="text-purple-700">POL_MATCH_V2</strong> <span class="text-[10px] text-purple-500 bg-purple-50 px-1 rounded border border-purple-100">bound</span></span>
+                </div>
+            </div>
+            
+            <div class="text-right hidden md:block">
+                <div class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Current State Projection</div>
+                <div class="flex gap-6 text-sm">
+                    <div>
+                        <span class="block text-slate-500 text-xs">Ordered</span>
+                        <span class="font-mono font-bold">100</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-500 text-xs">Received</span>
+                        <span class="font-mono font-bold text-green-600">100</span>
+                    </div>
+                    <div>
+                        <span class="block text-slate-500 text-xs">Invoiced</span>
+                        <span class="font-mono font-bold text-red-600">120</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEFT COLUMN: Canonical Event Log -->
+        <div class="col-span-12 lg:col-span-5 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl flex justify-between items-center">
+                <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                    <i class="ph ph-list-dashes text-lg text-teal-600"></i> Canonical Event Log
+                </h2>
+                <span class="text-[10px] font-mono text-slate-400 bg-slate-200 px-2 py-1 rounded">APPEND-ONLY</span>
+            </div>
+
+            <div class="p-6 relative flex-1 overflow-y-auto" id="timeline-container">
+                
+                <!-- EVENT 1: POLICY REGISTERED -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-1">
+                    <div class="timeline-line"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-purple-50 border border-purple-200 shadow-sm flex items-center justify-center text-purple-500 shrink-0 group-hover:border-purple-400 group-hover:text-purple-600 transition-colors">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">001</span>
+                        <i class="ph ph-shield-check text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-slate-800">Policy Registered</h3>
+                                <span class="text-xs text-slate-400 font-mono">Dec 15 09:00 UTC</span>
+                            </div>
+                            <p class="text-sm text-slate-600">3-way match policy created: invoice qty ≤ receipt qty ≤ PO qty.</p>
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="text-[10px] bg-purple-50 text-purple-600 px-2 py-0.5 rounded border border-purple-100 font-mono font-bold">POL_MATCH_V2</span>
+                                <span class="text-[10px] text-slate-400">Version 2.0</span>
+                            </div>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-purple-100 text-purple-700 px-1 rounded">policy.registered</span>
+                                <span>Hash: 0x3e...a7f0</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner">
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_001"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"policy.registered"</span>,
+  <span class="json-key">"payload"</span>: {
+    <span class="json-key">"policy_id"</span>: <span class="json-string">"POL_MATCH_V2"</span>,
+    <span class="json-key">"version"</span>: <span class="json-string">"2.0"</span>,
+    <span class="json-key">"invariant_hash"</span>: <span class="json-string">"sha256:9f1c...e4d2"</span>,
+    <span class="json-key">"rules"</span>: [
+      <span class="json-string">"invoice.qty &lt;= receipt.qty"</span>,
+      <span class="json-string">"invoice.po_id == receipt.po_id"</span>
+    ],
+    <span class="json-key">"outcome_on_fail"</span>: <span class="json-string">"BLOCK_PAYMENT"</span>
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 2: PO ISSUED -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-2">
+                    <div class="timeline-line"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-slate-50 border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 shrink-0 group-hover:border-teal-400 group-hover:text-teal-600 transition-colors">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">002</span>
+                        <i class="ph ph-file-text text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-slate-800">Purchase Order Issued</h3>
+                                <span class="text-xs text-slate-400 font-mono">Jan 03 14:22 UTC</span>
+                            </div>
+                            <p class="text-sm text-slate-600">Authorized $467k for Q1 Retrofit.</p>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-slate-100 text-slate-600 px-1 rounded">po.issued</span>
+                                <span>Hash: 0x8a...11b2</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner">
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_002"</span>,
+  <span class="json-key">"prev_hash"</span>: <span class="json-string">"0x3e...a7f0"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"po.issued"</span>,
+  <span class="json-key">"payload"</span>: { 
+    <span class="json-key">"po_id"</span>: <span class="json-string">"PO-10045"</span>, 
+    <span class="json-key">"amount"</span>: <span class="json-number">467880</span>,
+    <span class="json-key">"qty"</span>: <span class="json-number">100</span>
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 3: POLICY ACTIVATED (bound to PO) -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-3">
+                    <div class="timeline-line"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-purple-50 border border-purple-200 shadow-sm flex items-center justify-center text-purple-500 shrink-0 group-hover:border-purple-400 group-hover:text-purple-600 transition-colors">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">003</span>
+                        <i class="ph ph-link text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-slate-800">Policy Bound to PO</h3>
+                                <span class="text-xs text-slate-400 font-mono">Jan 03 14:22:01 UTC</span>
+                            </div>
+                            <p class="text-sm text-slate-600">
+                                <span class="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 font-mono font-bold">POL_MATCH_V2</span>
+                                activated for PO-10045. All future invoices will be evaluated.
+                            </p>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-purple-100 text-purple-700 px-1 rounded">policy.activated</span>
+                                <span>Hash: 0x5d...c8e3</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner">
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_003"</span>,
+  <span class="json-key">"prev_hash"</span>: <span class="json-string">"0x8a...11b2"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"policy.activated"</span>,
+  <span class="json-key">"payload"</span>: {
+    <span class="json-key">"policy_id"</span>: <span class="json-string">"POL_MATCH_V2"</span>,
+    <span class="json-key">"bound_to"</span>: <span class="json-string">"PO-10045"</span>,
+    <span class="json-key">"policy_hash"</span>: <span class="json-string">"0x3e...a7f0"</span> <span class="json-comment">// points back to registration</span>
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 4: GOODS RECEIVED -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-4">
+                    <div class="timeline-line"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-slate-50 border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 shrink-0 group-hover:border-teal-400 group-hover:text-teal-600 transition-colors">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">004</span>
+                        <i class="ph ph-package text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-slate-800">Goods Received</h3>
+                                <span class="text-xs text-slate-400 font-mono">Jan 18 10:04 UTC</span>
+                            </div>
+                            <p class="text-sm text-slate-600">Received 100 units at WH-01. <span class="text-teal-600 text-xs bg-teal-50 px-1 rounded border border-teal-100">Verified</span></p>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-blue-100 text-blue-700 px-1 rounded">goods.received</span>
+                                <span>Hash: 0x9c...33f1</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner">
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_004"</span>,
+  <span class="json-key">"prev_hash"</span>: <span class="json-string">"0x5d...c8e3"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"goods.received"</span>,
+  <span class="json-key">"payload"</span>: { 
+    <span class="json-key">"sku"</span>: <span class="json-string">"LAMP-A1"</span>, 
+    <span class="json-key">"qty"</span>: <span class="json-number">100</span>, 
+    <span class="json-key">"proof"</span>: <span class="json-string">"img_hash_221"</span> 
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 5: INVOICE SUBMITTED -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-5">
+                    <div class="timeline-line bg-red-200/50"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-amber-50 border border-amber-200 shadow-sm flex items-center justify-center text-amber-600 shrink-0 ring-4 ring-amber-50 group-hover:scale-105 transition-all">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">005</span>
+                        <i class="ph ph-receipt text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-slate-800">Invoice Submitted</h3>
+                                <span class="text-xs text-slate-400 font-mono">Jan 20 07:33 UTC</span>
+                            </div>
+                            <p class="text-sm text-slate-600">Vendor submitted INV-77811 for <span class="font-bold text-red-600">120 units</span>.</p>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-amber-100 text-amber-700 px-1 rounded">invoice.submitted</span>
+                                <span>Hash: 0xb2...99a0</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner">
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_005"</span>,
+  <span class="json-key">"prev_hash"</span>: <span class="json-string">"0x9c...33f1"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"invoice.submitted"</span>,
+  <span class="json-key">"payload"</span>: { 
+    <span class="json-key">"id"</span>: <span class="json-string">"INV-77811"</span>, 
+    <span class="json-key">"qty_billed"</span>: <span class="json-number">120</span> <span class="json-comment">// Trigger</span>
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 6: POLICY EVALUATED -->
+                <div class="timeline-item relative flex gap-4 pb-10 group" id="evt-6">
+                    <div class="timeline-line bg-red-200/50"></div>
+                    <div class="z-10 w-14 h-14 rounded-xl bg-red-50 border border-red-200 shadow-lg shadow-red-100 flex items-center justify-center text-red-600 shrink-0 animate-pulse">
+                        <span class="font-mono text-xs font-bold absolute -top-2 -left-2 bg-slate-800 text-white px-1.5 rounded hidden audit-only">006</span>
+                        <i class="ph ph-siren text-2xl"></i>
+                    </div>
+                    <div class="w-full">
+                        <div class="ops-view animate-fade-in">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-bold text-red-700">Policy Violation Detected</h3>
+                                <span class="text-xs text-red-400 font-mono">Jan 20 07:33:01 UTC</span>
+                            </div>
+                            <p class="text-sm text-red-600"><strong>Invariant Failed:</strong> Invoice Qty (120) > Receipt Qty (100).</p>
+                            <div class="mt-2 flex items-center gap-2 text-[10px]">
+                                <span class="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded border border-purple-100 font-mono font-bold">POL_MATCH_V2</span>
+                                <span class="text-slate-400">→</span>
+                                <span class="bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100 font-mono font-bold">BLOCK_PAYMENT</span>
+                            </div>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in space-y-2">
+                            <div class="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                <span class="bg-red-100 text-red-700 px-1 rounded">policy.evaluated</span>
+                                <span>Hash: 0xf1...00c2</span>
+                            </div>
+                            <div class="bg-slate-900 rounded p-3 text-[10px] font-mono overflow-x-auto text-slate-300 border border-slate-700 shadow-inner relative overflow-hidden">
+                                <div class="absolute right-0 top-0 p-2 text-[40px] text-red-500/10 font-black pointer-events-none select-none">BLOCK</div>
+{
+  <span class="json-key">"id"</span>: <span class="json-string">"evt_006"</span>,
+  <span class="json-key">"prev_hash"</span>: <span class="json-string">"0xb2...99a0"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"policy.evaluated"</span>,
+  <span class="json-key">"payload"</span>: {
+    <span class="json-key">"policy_id"</span>: <span class="json-string">"POL_MATCH_V2"</span>,
+    <span class="json-key">"policy_hash"</span>: <span class="json-string">"0x3e...a7f0"</span>,
+    <span class="json-key">"triggered_by"</span>: <span class="json-string">"evt_005"</span>,
+    <span class="json-key">"inputs"</span>: {
+      <span class="json-key">"invoice_qty"</span>: <span class="json-number">120</span>,
+      <span class="json-key">"receipt_qty"</span>: <span class="json-number">100</span>,
+      <span class="json-key">"po_qty"</span>: <span class="json-number">100</span>
+    },
+    <span class="json-key">"result"</span>: <span class="json-string">"INVARIANT_FAILURE"</span>,
+    <span class="json-key">"outcome"</span>: <span class="json-string">"BLOCK_PAYMENT"</span>
+  }
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EVENT 7: PAYMENT (Blocked) -->
+                <div class="timeline-item relative flex gap-4 group opacity-50" id="evt-7">
+                    <div class="z-10 w-14 h-14 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-400 shrink-0">
+                        <i class="ph ph-bank text-2xl"></i>
+                    </div>
+                    <div class="w-full pt-3">
+                        <div class="ops-view animate-fade-in">
+                            <h3 class="font-bold text-slate-400">Payment Release</h3>
+                            <p class="text-sm text-slate-400 italic">Pending policy resolution...</p>
+                        </div>
+                        <div class="audit-view hidden animate-fade-in">
+                            <h3 class="font-bold text-slate-400 font-mono text-sm">State: UNREPRESENTABLE</h3>
+                            <p class="text-[10px] text-slate-500 font-mono">Cannot append event. Pre-condition `no_active_violations` failed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-span-12 lg:col-span-7 space-y-6">
+            
+            <!-- OPS MODE: Business Impact Card -->
+            <div id="ops-panel" class="animate-fade-in space-y-6">
+                
+                <!-- Policy Summary Card (NEW) -->
+                <div class="bg-gradient-to-br from-purple-50 to-white rounded-xl border border-purple-200 p-6 relative overflow-hidden shadow-sm">
+                    <div class="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                        <i class="ph ph-shield-check text-9xl text-purple-900"></i>
+                    </div>
+                    <div class="flex items-start justify-between mb-4">
+                        <h2 class="text-lg font-bold text-purple-900 flex items-center gap-2">
+                            <i class="ph ph-shield-check text-purple-600"></i>
+                            Active Policy: 3-Way Match
+                        </h2>
+                        <span class="text-[10px] font-mono text-purple-500 bg-purple-100 px-2 py-1 rounded border border-purple-200">POL_MATCH_V2</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="bg-white/80 p-3 rounded-lg border border-purple-100">
+                            <div class="text-[10px] uppercase text-purple-400 font-bold mb-1">Registered</div>
+                            <div class="text-sm font-mono text-slate-700">Dec 15, 2024</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">On-chain · v2.0</div>
+                        </div>
+                        <div class="bg-white/80 p-3 rounded-lg border border-purple-100">
+                            <div class="text-[10px] uppercase text-purple-400 font-bold mb-1">Bound To</div>
+                            <div class="text-sm font-mono text-slate-700">PO-10045</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">Jan 03, 2025</div>
+                        </div>
+                        <div class="bg-white/80 p-3 rounded-lg border border-red-200 ring-1 ring-red-100">
+                            <div class="text-[10px] uppercase text-purple-400 font-bold mb-1">Last Evaluated</div>
+                            <div class="text-sm font-mono text-red-600 font-bold">FAILED</div>
+                            <div class="text-[10px] text-red-400 mt-0.5">Jan 20 07:33 UTC</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-4 leading-relaxed">
+                        This policy is <strong>verifiable by all parties</strong> — the invariant definition, its binding to PO-10045, and the evaluation trace are all on the canonical log.
+                    </p>
+                </div>
+
+                <!-- Violation Card -->
+                <div class="bg-gradient-to-br from-red-50 to-white rounded-xl border border-red-200 p-8 relative overflow-hidden shadow-sm">
+                    <div class="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                        <i class="ph ph-shield-warning text-9xl text-red-900"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold text-red-900 mb-4 flex items-center gap-2">
+                        <i class="ph ph-warning-circle text-red-600"></i>
+                        Action Required: Policy Violation
+                    </h2>
+                    
+                    <p class="text-slate-600 mb-8 max-w-lg leading-relaxed">
+                        The Deterministic Policy Engine has halted payment for <strong>INV-77811</strong>. 
+                        The invoice quantity exceeds the verified goods received on the blockchain ledger.
+                    </p>
+
+                    <div class="grid grid-cols-3 gap-4 mb-8">
+                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm text-center">
+                            <div class="text-xs uppercase text-slate-400 font-bold mb-1">Blockchain Proof</div>
+                            <div class="text-2xl font-bold text-slate-700 font-mono">100</div>
+                            <div class="text-xs text-green-600">Verified Receipt</div>
+                        </div>
+                        <div class="flex items-center justify-center">
+                            <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-lg">
+                                <i class="ph ph-x"></i>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-red-200 shadow-sm text-center ring-2 ring-red-50">
+                            <div class="text-xs uppercase text-slate-400 font-bold mb-1">Invoice Claim</div>
+                            <div class="text-2xl font-bold text-red-600 font-mono">120</div>
+                            <div class="text-xs text-red-500">Mismatch (+20)</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg font-medium transition shadow-lg shadow-red-200 flex items-center gap-2">
+                            <i class="ph ph-paper-plane-right"></i> Request Credit Memo
+                        </button>
+                        <button class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-5 py-2.5 rounded-lg font-medium transition">
+                            View Evidence
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUDIT MODE: Technical Proof Console -->
+            <div id="audit-panel" class="hidden animate-fade-in space-y-6">
+                
+                <!-- Policy Lineage (NEW) -->
+                <div class="bg-white rounded-xl border border-purple-200 overflow-hidden shadow-sm">
+                    <div class="bg-purple-50 px-6 py-3 border-b border-purple-200 flex justify-between items-center">
+                        <div class="flex items-center gap-2 text-purple-700">
+                            <i class="ph ph-git-branch"></i>
+                            <h3 class="font-mono text-sm font-bold">POLICY LINEAGE</h3>
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] text-purple-600 bg-purple-100 px-2 py-0.5 rounded border border-purple-200">
+                            <i class="ph ph-link"></i> FULLY TRACEABLE
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-stretch gap-3 text-xs font-mono">
+                            <!-- Registered -->
+                            <div class="flex-1 bg-purple-50 p-3 rounded border border-purple-200 text-center">
+                                <div class="text-[10px] text-purple-500 mb-1 font-bold">① Registered</div>
+                                <div class="text-purple-700 font-bold truncate">POL_MATCH_V2</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Evt 001</div>
+                                <div class="text-slate-500 truncate text-[10px]">0x3e...a7f0</div>
+                            </div>
+                            <div class="flex items-center"><i class="ph ph-arrow-right text-purple-300"></i></div>
+                            <!-- Activated -->
+                            <div class="flex-1 bg-purple-50 p-3 rounded border border-purple-200 text-center">
+                                <div class="text-[10px] text-purple-500 mb-1 font-bold">② Activated</div>
+                                <div class="text-purple-700 font-bold truncate">→ PO-10045</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Evt 003</div>
+                                <div class="text-slate-500 truncate text-[10px]">0x5d...c8e3</div>
+                            </div>
+                            <div class="flex items-center"><i class="ph ph-arrow-right text-purple-300"></i></div>
+                            <!-- Evaluated -->
+                            <div class="flex-1 bg-red-50 p-3 rounded border border-red-200 text-center ring-2 ring-red-100">
+                                <div class="text-[10px] text-red-500 mb-1 font-bold">③ Evaluated</div>
+                                <div class="text-red-700 font-bold">FAILED</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Evt 006</div>
+                                <div class="text-slate-500 truncate text-[10px]">0xf1...00c2</div>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-slate-500 leading-relaxed">
+                            Any party replaying this log can verify: <strong class="text-slate-700">which policy</strong> (by hash), <strong class="text-slate-700">when it was bound</strong>, and <strong class="text-slate-700">what inputs produced the failure</strong>. No trust in the platform operator required.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Policy Engine -->
+                <div class="bg-slate-900 rounded-xl border border-slate-700 overflow-hidden shadow-2xl">
+                    <div class="bg-slate-800 px-6 py-3 border-b border-slate-700 flex justify-between items-center">
+                        <div class="flex items-center gap-2 text-teal-400">
+                            <i class="ph ph-cpu"></i>
+                            <h3 class="font-mono text-sm font-bold">DETERMINISTIC POLICY ENGINE</h3>
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-mono">Ref: POL_MATCH_V2 · Invariant: sha256:9f1c...e4d2</div>
+                    </div>
+                    <div class="p-6 font-mono text-xs text-slate-300">
+                        <div class="mb-2 text-slate-500">// Invariant Definition (from Evt 001 · policy.registered)</div>
+                        <pre class="text-blue-300 mb-4">
+def validate_payment(invoice, receipt, po):
+    assert invoice.po_id == receipt.po_id
+    assert invoice.qty &lt;= receipt.qty, <span class="text-red-400">"Qty Mismatch Violation"</span>
+    assert invoice.qty &lt;= po.qty, <span class="text-red-400">"Exceeds PO Authorization"</span>
+    return True</pre>
+                        
+                        <div class="mb-2 text-slate-500">// Execution Trace (Evt 006 · policy.evaluated)</div>
+                        <div class="pl-4 border-l-2 border-red-500/50">
+                            <div class="flex justify-between">
+                                <span>Input: Invoice Qty <span class="text-slate-600">(from evt_005)</span></span>
+                                <span class="text-red-400">120</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>State: Receipt Qty <span class="text-slate-600">(from evt_004)</span></span>
+                                <span class="text-green-400">100</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>State: PO Qty <span class="text-slate-600">(from evt_002)</span></span>
+                                <span class="text-green-400">100</span>
+                            </div>
+                            <div class="mt-2 text-red-500 font-bold">>> RESULT: INVARIANT_FAILURE (BLOCK_PAYMENT)</div>
+                            <div class="mt-1 text-slate-500">Policy hash verified: 0x3e...a7f0 ✓</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Merkle Integrity -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center">
+                        <div class="flex items-center gap-2 text-slate-700">
+                            <i class="ph ph-tree-structure"></i>
+                            <h3 class="font-mono text-sm font-bold">CRYPTOGRAPHIC CHAIN INTEGRITY</h3>
+                        </div>
+                        <div class="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                            <i class="ph ph-check-circle-fill"></i> UNBROKEN
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center gap-2 text-xs font-mono overflow-x-auto pb-2">
+                            <div class="shrink-0 bg-purple-50 p-2 rounded border border-purple-200 text-center min-w-[80px]">
+                                <div class="text-[9px] text-purple-500 mb-0.5">001 <span class="text-purple-400">POL</span></div>
+                                <div class="text-slate-600 truncate text-[10px]">0x3e..a7f0</div>
+                            </div>
+                            <i class="ph ph-arrow-right text-slate-300 shrink-0"></i>
+                            <div class="shrink-0 bg-slate-50 p-2 rounded border border-slate-200 text-center min-w-[80px]">
+                                <div class="text-[9px] text-slate-400 mb-0.5">002 PO</div>
+                                <div class="text-slate-600 truncate text-[10px]">0x8a..11b2</div>
+                            </div>
+                            <i class="ph ph-arrow-right text-slate-300 shrink-0"></i>
+                            <div class="shrink-0 bg-purple-50 p-2 rounded border border-purple-200 text-center min-w-[80px]">
+                                <div class="text-[9px] text-purple-500 mb-0.5">003 <span class="text-purple-400">BIND</span></div>
+                                <div class="text-slate-600 truncate text-[10px]">0x5d..c8e3</div>
+                            </div>
+                            <i class="ph ph-arrow-right text-slate-300 shrink-0"></i>
+                            <div class="shrink-0 bg-slate-50 p-2 rounded border border-slate-200 text-center min-w-[80px]">
+                                <div class="text-[9px] text-slate-400 mb-0.5">004 GR</div>
+                                <div class="text-slate-600 truncate text-[10px]">0x9c..33f1</div>
+                            </div>
+                            <i class="ph ph-arrow-right text-slate-300 shrink-0"></i>
+                            <div class="shrink-0 bg-amber-50 p-2 rounded border border-amber-200 text-center min-w-[80px]">
+                                <div class="text-[9px] text-amber-500 mb-0.5">005 INV</div>
+                                <div class="text-slate-600 truncate text-[10px]">0xb2..99a0</div>
+                            </div>
+                            <i class="ph ph-arrow-right text-slate-300 shrink-0"></i>
+                            <div class="shrink-0 bg-red-50 p-2 rounded border border-red-200 text-center min-w-[80px] ring-2 ring-red-100">
+                                <div class="text-[9px] text-red-500 mb-0.5 font-bold">006 <span class="text-red-400">EVAL</span></div>
+                                <div class="text-slate-800 truncate text-[10px] font-bold">0xf1..00c2</div>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-slate-500 leading-relaxed">
+                            Policy events (<span class="text-purple-600 font-semibold">purple</span>) are first-class members of the hash chain. 
+                            <span class="text-slate-800 font-semibold">Changing the policy definition in Evt 001 would invalidate every subsequent hash, including the binding and evaluation events.</span>
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        const toggle = document.getElementById('audit-toggle');
+        const opsPanel = document.getElementById('ops-panel');
+        const auditPanel = document.getElementById('audit-panel');
+        const opsText = document.getElementById('toggle-text-ops');
+        const auditText = document.getElementById('toggle-text-audit');
+        const badge = document.getElementById('status-badge');
+
+        toggle.addEventListener('change', (e) => {
+            const isAudit = e.target.checked;
+            
+            if (isAudit) {
+                opsPanel.classList.add('hidden');
+                auditPanel.classList.remove('hidden');
+                
+                badge.className = "bg-slate-800 text-teal-400 px-3 py-1 rounded text-xs font-mono border border-slate-600 flex items-center gap-2";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> INVARIANT_FAILURE`;
+
+                document.querySelectorAll('.ops-view').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.audit-view').forEach(el => el.classList.remove('hidden'));
+                document.querySelectorAll('.audit-only').forEach(el => el.classList.remove('hidden'));
+                
+                opsText.classList.remove('text-slate-900');
+                opsText.classList.add('text-slate-400');
+
+            } else {
+                opsPanel.classList.remove('hidden');
+                auditPanel.classList.add('hidden');
+
+                badge.className = "bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200 flex items-center gap-1";
+                badge.innerHTML = `<i class="ph ph-lock-key"></i> PAYMENT BLOCKED`;
+
+                document.querySelectorAll('.ops-view').forEach(el => el.classList.remove('hidden'));
+                document.querySelectorAll('.audit-view').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.audit-only').forEach(el => el.classList.add('hidden'));
+
+                opsText.classList.add('text-slate-900');
+                opsText.classList.remove('text-slate-400');
+            }
+        });
+    </script>
+</body>
+</html>

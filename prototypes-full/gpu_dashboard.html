@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline: GPU Procurement Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #161b22;
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+            --accent-green: #2ea043;
+            --accent-blue: #58a6ff;
+            --accent-red: #da3633;
+            --accent-orange: #d29922;
+            --border: #30363d;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-dim); font-size: 0.9rem; }
+        
+        .controls button {
+            background: var(--accent-blue);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .controls button:hover { opacity: 0.9; }
+        .controls button.secondary { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-main); margin-right: 10px;}
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .kpi-label { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .kpi-value { font-size: 1.8rem; font-weight: 700; font-family: var(--font-mono); }
+        .kpi-unit { font-size: 1rem; color: var(--text-dim); font-weight: normal; }
+        
+        .val-green { color: var(--accent-green); }
+        .val-blue { color: var(--accent-blue); }
+        .val-orange { color: var(--accent-orange); }
+
+        /* Main Content Split */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 50/50 split */
+            gap: 20px;
+            flex-grow: 1;
+            min-height: 0; /* For scrolling */
+        }
+
+        /* Left: Pipeline Visualization */
+        .pipeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stage-row {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 10px 15px;
+            border-radius: 4px;
+            justify-content: space-between;
+        }
+
+        .stage-name { font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .stage-indicator { width: 10px; height: 10px; border-radius: 50%; background: #333; }
+        .stage-active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        
+        .stage-bar-container { flex-grow: 1; margin: 0 20px; background: #222; height: 8px; border-radius: 4px; overflow: hidden; }
+        .stage-bar-fill { height: 100%; background: var(--accent-blue); width: 0%; transition: width 0.5s ease; }
+        .stage-count { font-family: var(--font-mono); font-size: 1.2rem; }
+
+        /* Right: Event Ledger */
+        .ledger-container {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            overflow: hidden;
+        }
+        
+        .ledger-header {
+            padding: 10px;
+            background: #111;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dim);
+            font-weight: 600;
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px;
+        }
+
+        .ledger-scroll {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 5px 0;
+        }
+
+        .event-row {
+            padding: 8px 10px;
+            border-bottom: 1px solid #222;
+            display: grid;
+            grid-template-columns: 80px 1fr 100px 100px;
+            animation: flash 0.5s ease;
+        }
+        
+        @keyframes flash {
+            0% { background-color: rgba(46, 160, 67, 0.3); }
+            100% { background-color: transparent; }
+        }
+
+        .evt-po { color: var(--accent-blue); }
+        .evt-ship { color: var(--accent-orange); }
+        .evt-power { color: var(--accent-green); }
+        .evt-alert { color: var(--accent-red); font-weight: bold; }
+
+        /* Alerts Section */
+        .alert-section {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(218, 54, 51, 0.1);
+            border: 1px solid var(--accent-red);
+            border-radius: 4px;
+            display: none; /* Hidden by default */
+            align-items: center;
+            gap: 15px;
+        }
+        .alert-icon { font-size: 1.5rem; }
+        .alert-text strong { display: block; color: var(--accent-red); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>SIGHTLINE <span style="color:var(--accent-green)">//</span> HYPERSCALE</h1>
+            <div class="subtitle">Event-Driven Financial Architecture v1.0</div>
+        </div>
+        <div class="controls">
+            <button class="secondary" onclick="resetSim()">Reset</button>
+            <button onclick="nextStep()">Trigger Next Event ></button>
+        </div>
+    </header>
+
+    <div class="kpi-grid">
+        <div class="card">
+            <div class="kpi-label">Capital Committed</div>
+            <div class="kpi-value val-blue">$<span id="kpi-committed">0.0</span>M</div>
+            <div class="kpi-unit">Total PO Value</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Asset Liquidity (Float)</div>
+            <div class="kpi-value val-orange">$<span id="kpi-float">0.0</span>M</div>
+            <div class="kpi-unit">Paid but not Live</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Active Power Load</div>
+            <div class="kpi-value val-green"><span id="kpi-power">0</span></div>
+            <div class="kpi-unit">MegaWatts (MW)</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Compute Capacity</div>
+            <div class="kpi-value"><span id="kpi-gpus">0</span></div>
+            <div class="kpi-unit">H100 Units Live</div>
+        </div>
+    </div>
+
+    <div id="alert-box" class="alert-section">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text">
+            <strong>ZERO-TRUST POLICY TRIGGERED</strong>
+            Vendor Invoice #INV-9902 blocked. Asset batch B-002 is not yet consuming power.
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="pipeline-container">
+            <div class="kpi-label" style="margin-bottom:10px;">PHYSICAL ASSET STATE</div>
+            
+            <div class="stage-row">
+                <div class="stage-name"><div class="stage-indicator stage-active"></div> PO Issued</div>
+                <div class="stage-bar-container"><div class="stage-bar-fill" id="bar-po"></div></div>
+                <div class="stage-count" id="count-po">0</div>
+            </div>
+
+            <div class="stage-row">
+                <div class="stage-name"><div class="stage-indicator"></div> Manufacturing</div>
+                <div class="stage-bar-container"><div class="stage-bar-fill" id="bar-manuf"></div></div>
+                <div class="stage-count" id="count-manuf">0</div>
+            </div>
+
+            <div class="stage-row">
+                <div class="stage-name"><div class="stage-indicator"></div> In Transit</div>
+                <div class="stage-bar-container"><div class="stage-bar-fill" id="bar-transit"></div></div>
+                <div class="stage-count" id="count-transit">0</div>
+            </div>
+
+            <div class="stage-row">
+                <div class="stage-name"><div class="stage-indicator"></div> Racked</div>
+                <div class="stage-bar-container"><div class="stage-bar-fill" id="bar-racked"></div></div>
+                <div class="stage-count" id="count-racked">0</div>
+            </div>
+
+            <div class="stage-row" style="border-color: var(--accent-green);">
+                <div class="stage-name" style="color:var(--accent-green)"><div class="stage-indicator stage-active" style="background:var(--accent-green)"></div> POWERED ON</div>
+                <div class="stage-bar-container"><div class="stage-bar-fill" id="bar-live" style="background:var(--accent-green)"></div></div>
+                <div class="stage-count" style="color:var(--accent-green)" id="count-live">0</div>
+            </div>
+        </div>
+
+        <div class="ledger-container">
+            <div class="ledger-header">
+                <div>TIME</div>
+                <div>EVENT TYPE</div>
+                <div>BATCH</div>
+                <div>VALUE</div>
+            </div>
+            <div class="ledger-scroll" id="ledger-list">
+                <div class="event-row" style="color:#555; font-style:italic;">Waiting for stream...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        const UNIT_COST = 0.025; // $25k per GPU (represented in Millions)
+        const KW_PER_UNIT = 0.7; // 700 Watts per H100
+
+        let state = {
+            committed: 0,
+            float: 0,
+            power: 0,
+            liveGpus: 0,
+            counts: { po: 0, manuf: 0, transit: 0, racked: 0, live: 0 }
+        };
+
+        // Simulated Scenario Sequence
+        const scenario = [
+            { type: 'PO_ISSUED', batch: 'B-001', qty: 1024, desc: 'Nvidia H100 Order Placed' },
+            { type: 'MANUF_START', batch: 'B-001', qty: 1024, desc: 'TSMC Fabrication Started' },
+            { type: 'PO_ISSUED', batch: 'B-002', qty: 2048, desc: 'Nvidia H100 Order Placed' },
+            { type: 'SHIPPED', batch: 'B-001', qty: 1024, desc: 'Batch B-001 In Transit (Air)' },
+            { type: 'MANUF_START', batch: 'B-002', qty: 2048, desc: 'TSMC Fabrication Started' },
+            { type: 'RACKED', batch: 'B-001', qty: 1024, desc: 'Batch B-001 Delivered to ASH-1' },
+            { type: 'POWER_ON', batch: 'B-001', qty: 1024, desc: 'Cluster Online (Revenue Live)' },
+            { type: 'INVOICE_RX', batch: 'B-002', qty: 2048, desc: 'Vendor Invoice Received' } // This will trigger alert
+        ];
+
+        let stepIndex = 0;
+
+        // --- FUNCTIONS ---
+
+        function formatCurrency(val) { return val.toFixed(1); }
+        function formatNumber(val) { return new Intl.NumberFormat().format(val); }
+
+        function render() {
+            // Update KPIs
+            document.getElementById('kpi-committed').innerText = formatCurrency(state.committed);
+            document.getElementById('kpi-float').innerText = formatCurrency(state.float);
+            document.getElementById('kpi-power').innerText = state.power.toFixed(2);
+            document.getElementById('kpi-gpus').innerText = formatNumber(state.liveGpus);
+
+            // Update Pipeline Visuals
+            const max = 3500; // Scale factor
+            updateStage('po', state.counts.po, max);
+            updateStage('manuf', state.counts.manuf, max);
+            updateStage('transit', state.counts.transit, max);
+            updateStage('racked', state.counts.racked, max);
+            updateStage('live', state.counts.live, max);
+        }
+
+        function updateStage(id, val, max) {
+            document.getElementById(`count-${id}`).innerText = formatNumber(val);
+            document.getElementById(`bar-${id}`).style.width = `${(val/max)*100}%`;
+        }
+
+        function logEvent(evt, valueTxt, colorClass) {
+            const list = document.getElementById('ledger-list');
+            const row = document.createElement('div');
+            row.className = `event-row ${colorClass || ''}`;
+            
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: "numeric", minute: "numeric", second: "numeric"});
+            
+            row.innerHTML = `
+                <div>${time}</div>
+                <div>${evt.type}</div>
+                <div>${evt.batch}</div>
+                <div>${valueTxt}</div>
+            `;
+            
+            list.insertBefore(row, list.firstChild);
+        }
+
+        function nextStep() {
+            if (stepIndex >= scenario.length) {
+                alert("Scenario Complete");
+                return;
+            }
+
+            const evt = scenario[stepIndex];
+            const cost = evt.qty * UNIT_COST;
+
+            // Logic Engine
+            switch(evt.type) {
+                case 'PO_ISSUED':
+                    state.committed += cost;
+                    state.float += cost; // Money committed but not productive
+                    state.counts.po += evt.qty;
+                    logEvent(evt, `$${cost.toFixed(1)}M`, 'evt-po');
+                    break;
+                case 'MANUF_START':
+                    state.counts.manuf += evt.qty;
+                    logEvent(evt, '-', '');
+                    break;
+                case 'SHIPPED':
+                    state.counts.manuf -= evt.qty;
+                    state.counts.transit += evt.qty;
+                    logEvent(evt, '-', 'evt-ship');
+                    break;
+                case 'RACKED':
+                    state.counts.transit -= evt.qty;
+                    state.counts.racked += evt.qty;
+                    logEvent(evt, '-', '');
+                    break;
+                case 'POWER_ON':
+                    state.counts.racked -= evt.qty;
+                    state.counts.live += evt.qty;
+                    state.liveGpus += evt.qty;
+                    state.power += (evt.qty * KW_PER_UNIT) / 1000; // KW to MW
+                    state.float -= cost; // Asset is now productive, remove from float
+                    logEvent(evt, 'ACTIVE', 'evt-power');
+                    break;
+                case 'INVOICE_RX':
+                    // Check if Batch is live. In this scenario, B-002 is still in MANUF.
+                    // This triggers the Zero Trust Alert.
+                    document.getElementById('alert-box').style.display = 'flex';
+                    logEvent(evt, 'BLOCKED', 'evt-alert');
+                    break;
+            }
+
+            render();
+            stepIndex++;
+        }
+
+        function resetSim() {
+            state = { committed: 0, float: 0, power: 0, liveGpus: 0, counts: { po: 0, manuf: 0, transit: 0, racked: 0, live: 0 } };
+            stepIndex = 0;
+            document.getElementById('ledger-list').innerHTML = '';
+            document.getElementById('alert-box').style.display = 'none';
+            render();
+        }
+
+        // Init
+        render();
+
+    </script>
+</body>
+</html>
