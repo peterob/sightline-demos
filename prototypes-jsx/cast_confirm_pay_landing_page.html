@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CastConfirmPayLanding</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.js"></script>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+const Lucide = window.lucide || {};
+function makeLucideComponent(iconName) {
+  return function LucideIcon(props = {}) {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+      if (!ref.current) return;
+      const icon = Lucide.icons[iconName] || Lucide.icons.HelpCircle;
+      const node = Lucide.createElement(icon);
+      ref.current.innerHTML = '';
+      ref.current.appendChild(node);
+    }, []);
+    return React.createElement('span', { ref, className: props.className, style: { display:'inline-flex', ...(props.style||{}) } });
+  };
+}
+
+const ArrowRight = makeLucideComponent('arrow-right');
+const CheckCircle2 = makeLucideComponent('check-circle2');
+const Clock = makeLucideComponent('clock');
+const ShieldCheck = makeLucideComponent('shield-check');
+const AlertTriangle = makeLucideComponent('alert-triangle');
+const LockKeyhole = makeLucideComponent('lock-keyhole');
+const Send = makeLucideComponent('send');
+const FileCheck2 = makeLucideComponent('file-check2');
+const Activity = makeLucideComponent('activity');
+const XCircle = makeLucideComponent('x-circle');
+const Phone = makeLucideComponent('phone');
+const Mail = makeLucideComponent('mail');
+const Database = makeLucideComponent('database');
+const BarChart3 = makeLucideComponent('bar-chart3');
+
+
+
+
+
+
+const SectionLabel = ({ children }) => (
+  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.28em] text-amber-200/80">
+    <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+    {children}
+  </div>
+);
+
+const Card = ({ children, className = "" }) => (
+  <div className={`rounded-3xl border border-white/10 bg-white/[0.035] shadow-2xl shadow-black/20 backdrop-blur ${className}`}>
+    {children}
+  </div>
+);
+
+const Pill = ({ children, tone = "default" }) => {
+  const tones = {
+    default: "border-white/10 bg-white/5 text-slate-300",
+    amber: "border-amber-300/20 bg-amber-300/10 text-amber-100",
+    green: "border-emerald-300/20 bg-emerald-300/10 text-emerald-100",
+    red: "border-rose-300/20 bg-rose-300/10 text-rose-100",
+  };
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs ${tones[tone]}`}>{children}</span>;
+};
+
+const CodeBlock = () => (
+  <Card className="overflow-hidden">
+    <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
+        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+      </div>
+      <span className="font-mono text-xs text-slate-500">POST /v1/trade-messages/confirm</span>
+    </div>
+    <pre className="overflow-x-auto p-5 text-left font-mono text-[12px] leading-6 text-slate-300 md:text-sm">
+{`# Vendor confirms before payment release
+{
+  "event": "vendor_payment.confirmed",
+  "work_order_id": "wo_8fa2c1",
+  "payment_intent": {
+    "invoice": "INV-1048",
+    "amount": "47,000.00",
+    "currency": "USD",
+    "payment_date": "2026-05-22",
+    "bank_last4": "4821"
+  },
+  "counterparty_action": "confirm",
+  "confirmation_bound_to": "work_order_hash",
+  "policy_version": "POL-v1",
+  "lineage_hash": "7c0d...b48a"
+}
+
+→ Payment release blocked until vendor confirms.
+→ Proof record retained for audit, lender review, and dispute resolution.`}
+    </pre>
+  </Card>
+);
+
+const TriggerCard = ({ icon: Icon, title, body }) => (
+  <Card className="p-5">
+    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl border border-amber-300/15 bg-amber-300/10 text-amber-200">
+      <Icon size={18} />
+    </div>
+    <h3 className="mb-2 text-base font-semibold text-white">{title}</h3>
+    <p className="text-sm leading-6 text-slate-400">{body}</p>
+  </Card>
+);
+
+const Step = ({ number, title, body, meta, icon: Icon, active }) => (
+  <div className={`relative rounded-3xl border p-5 ${active ? "border-amber-300/35 bg-amber-300/10" : "border-white/10 bg-white/[0.03]"}`}>
+    <div className="mb-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-2xl border font-mono text-sm ${active ? "border-amber-300/40 bg-amber-300/15 text-amber-100" : "border-white/10 bg-white/5 text-slate-300"}`}>{number}</div>
+        <Icon className={active ? "text-amber-200" : "text-slate-500"} size={18} />
+      </div>
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-slate-500">{meta}</span>
+    </div>
+    <h3 className="mb-2 text-lg font-semibold text-white">{title}</h3>
+    <p className="text-sm leading-6 text-slate-400">{body}</p>
+  </div>
+);
+
+const TradeMessageMock = () => (
+  <div className="mx-auto max-w-sm rounded-[2.4rem] border border-white/10 bg-slate-950 p-3 shadow-2xl shadow-black/40">
+    <div className="rounded-[1.9rem] border border-white/10 bg-[#0b1220] p-5">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-amber-200/70">CAST Trade Message</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Confirm payment</h3>
+        </div>
+        <ShieldCheck className="text-amber-200" size={24} />
+      </div>
+
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm">
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Payer</span><span className="text-right text-white">Acme Apparel Co.</span></div>
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Vendor</span><span className="text-right text-white">Riverdale Textiles</span></div>
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Invoice</span><span className="font-mono text-white">INV-1048</span></div>
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Amount</span><span className="font-semibold text-white">$47,000.00</span></div>
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Pay date</span><span className="text-white">May 22, 2026</span></div>
+        <div className="flex justify-between gap-6"><span className="text-slate-500">Destination</span><span className="font-mono text-white">•••• 4821</span></div>
+      </div>
+
+      <p className="mt-4 text-xs leading-5 text-slate-500">Confirm only if these details match the payment you expect. Any change creates a new request.</p>
+
+      <div className="mt-5 space-y-2">
+        <button className="w-full rounded-2xl bg-amber-200 px-4 py-3 text-sm font-semibold text-slate-950">Confirm payment details</button>
+        <button className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200">Request change</button>
+        <button className="w-full rounded-2xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm font-medium text-rose-100">Dispute</button>
+      </div>
+    </div>
+  </div>
+);
+
+const DashboardMock = () => {
+  const metrics = [
+    ["Trade Messages sent", "128", "+34 this week"],
+    ["Confirmation rate", "74%", "target > 70%"],
+    ["Median confirmation", "3m 42s", "target < 5m"],
+    ["Changes requested", "9", "caught before release"],
+  ];
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Pilot evidence</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Live confirmation metrics</h3>
+        </div>
+        <Pill tone="green">read-only</Pill>
+      </div>
+      <div className="grid gap-px bg-white/10 md:grid-cols-4">
+        {metrics.map(([label, value, note]) => (
+          <div key={label} className="bg-[#0b1220] p-5">
+            <div className="text-2xl font-semibold text-white">{value}</div>
+            <div className="mt-2 text-sm text-slate-300">{label}</div>
+            <div className="mt-1 text-xs text-slate-500">{note}</div>
+          </div>
+        ))}
+      </div>
+      <div className="p-5">
+        <div className="mb-3 flex items-center justify-between text-xs text-slate-500">
+          <span>Channel performance</span><span>last 30 days</span>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <div className="mb-1 flex justify-between text-sm"><span className="flex items-center gap-2 text-slate-300"><Phone size={14} /> SMS</span><span className="text-white">82%</span></div>
+            <div className="h-2 rounded-full bg-white/10"><div className="h-2 w-[82%] rounded-full bg-amber-200" /></div>
+          </div>
+          <div>
+            <div className="mb-1 flex justify-between text-sm"><span className="flex items-center gap-2 text-slate-300"><Mail size={14} /> Email</span><span className="text-white">61%</span></div>
+            <div className="h-2 rounded-full bg-white/10"><div className="h-2 w-[61%] rounded-full bg-slate-300" /></div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const Walkthrough = () => {
+  const [tab, setTab] = useState("buyer");
+  const tabs = useMemo(() => [
+    { id: "buyer", label: "Buyer" },
+    { id: "vendor", label: "Vendor" },
+    { id: "proof", label: "Proof" },
+  ], []);
+
+  const content = {
+    buyer: {
+      eyebrow: "Buyer view · AP control queue",
+      title: "Your team sends high-risk payments for confirmation before release.",
+      body: "First payment, bank change, rush payment, duplicate-risk invoice, or threshold breach. The payment is held until the vendor confirms the details.",
+      tableTitle: "High-risk AP payments",
+      rows: [
+        ["INV-1048", "Riverdale Textiles", "$47,000.00", "Awaiting vendor"],
+        ["INV-1049", "Pacific Packaging", "$8,250.00", "Confirmed"],
+        ["INV-1050", "Kestrel Hardware", "$14,800.00", "Change requested"],
+      ],
+      footer: "No ERP integration required for the pilot. Start with a manual payment-intent queue and evidence dashboard.",
+    },
+    vendor: {
+      eyebrow: "Vendor view · one secure link",
+      title: "The vendor confirms only the payment details they can verify.",
+      body: "They see payer, invoice, amount, payment date, and destination last four. They can confirm, request a change, or dispute. No app. No tenant. No GL integration.",
+      tableTitle: "Vendor action record",
+      rows: [
+        ["Viewed", "J. Okafor", "14:04 UTC", "mobile"],
+        ["Confirmed", "J. Okafor", "14:07 UTC", "bound to hash"],
+        ["Policy evaluated", "system", "14:07 UTC", "approved"],
+      ],
+      footer: "The vendor is a counterparty signer in v1, not a full CAST customer tenant.",
+    },
+    proof: {
+      eyebrow: "Proof view · retained evidence",
+      title: "The output is a bilateral payment-confirmation record.",
+      body: "CAST proves the vendor confirmed these payment terms for this specific payment record at this timestamp. It does not claim the invoice is inherently real or eliminate collusion.",
+      tableTitle: "Proof package",
+      rows: [
+        ["Payment intent", "INV-1048", "$47,000.00", "snapshot"],
+        ["Vendor action", "confirmed", "14:07 UTC", "immutable event"],
+        ["Lineage", "7c0d...b48a", "POL-v1", "audit-ready"],
+      ],
+      footer: "Precise claim: payment release cannot proceed for covered flows without counterparty confirmation.",
+    },
+  };
+
+  const selected = content[tab];
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-4 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-amber-200/70">Interactive walk-through</p>
+          <h3 className="mt-2 text-2xl font-semibold text-white">One AP payment, three views.</h3>
+        </div>
+        <div className="flex rounded-2xl border border-white/10 bg-white/5 p-1">
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)} className={`rounded-xl px-4 py-2 text-sm transition ${tab === t.id ? "bg-amber-200 text-slate-950" : "text-slate-400 hover:text-white"}`}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-0 md:grid-cols-[0.9fr_1.1fr]">
+        <div className="border-b border-white/10 p-6 md:border-b-0 md:border-r">
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{selected.eyebrow}</p>
+          <h4 className="mt-3 text-2xl font-semibold leading-tight text-white">{selected.title}</h4>
+          <p className="mt-4 text-sm leading-6 text-slate-400">{selected.body}</p>
+          <p className="mt-6 rounded-2xl border border-amber-300/15 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50/90">{selected.footer}</p>
+        </div>
+        <div className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h5 className="font-semibold text-white">{selected.tableTitle}</h5>
+            <Pill tone={tab === "proof" ? "green" : "amber"}>{tab === "buyer" ? "held" : tab === "vendor" ? "confirmed" : "retained"}</Pill>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-white/10">
+            {selected.rows.map((row, i) => (
+              <div key={i} className="grid grid-cols-4 gap-3 border-b border-white/10 bg-white/[0.025] p-4 text-sm last:border-b-0">
+                {row.map((cell, j) => <div key={j} className={j === 0 ? "font-medium text-white" : "text-slate-400"}>{cell}</div>)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+function CastConfirmPayLanding() {
+  return (
+    <div className="min-h-screen bg-[#070b12] text-slate-200 selection:bg-amber-200 selection:text-slate-950">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[-10rem] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-amber-300/10 blur-3xl" />
+        <div className="absolute right-[-10rem] top-[30rem] h-[26rem] w-[26rem] rounded-full bg-sky-300/5 blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] [mask-image:linear-gradient(to_bottom,black,transparent_90%)]" />
+      </div>
+
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#070b12]/75 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+          <a href="#top" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-300/10 font-semibold text-amber-100">C</div>
+            <div>
+              <div className="font-semibold tracking-wide text-white">CAST</div>
+              <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Confirm & Pay</div>
+            </div>
+          </a>
+          <nav className="hidden items-center gap-6 text-sm text-slate-400 md:flex">
+            <a href="#how" className="hover:text-white">How it works</a>
+            <a href="#trade-message" className="hover:text-white">Trade Message</a>
+            <a href="#pilot" className="hover:text-white">Pilot</a>
+            <a href="#build" className="hover:text-white">Build</a>
+          </nav>
+          <a href="mailto:peter@digitalfinancehq.com?subject=CAST%20Confirm%20%26%20Pay%20pilot" className="inline-flex items-center gap-2 rounded-full bg-amber-200 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-100">Run a pilot <ArrowRight size={16} /></a>
+        </div>
+      </header>
+
+      <main id="top" className="relative z-10">
+        <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-20 pt-20 md:grid-cols-[1.05fr_0.95fr] md:pb-28 md:pt-28">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <SectionLabel>AP Confirm & Pay</SectionLabel>
+            <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.04em] text-white md:text-7xl">Confirm vendor payments before they leave your account.</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-400">CAST sends high-risk AP payments to the vendor for confirmation. The vendor verifies the amount, invoice, payment date, and destination-account last four. You get a bilateral proof record before release.</p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#pilot" className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-200 px-6 py-3 font-semibold text-slate-950 hover:bg-amber-100">Run a 30-day AP confirmation pilot <ArrowRight size={18} /></a>
+              <a href="#how" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white hover:bg-white/10">See the loop</a>
+            </div>
+            <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-2xl font-semibold text-white">0</div><div className="mt-1 text-xs text-slate-500">payments released before confirmation</div></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-2xl font-semibold text-white">5m</div><div className="mt-1 text-xs text-slate-500">target median confirmation time</div></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="text-2xl font-semibold text-white">1k</div><div className="mt-1 text-xs text-slate-500">bilateral events to prove the wedge</div></div>
+            </div>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="self-center">
+            <CodeBlock />
+          </motion.div>
+        </section>
+
+        <section className="border-y border-white/10 bg-white/[0.025]">
+          <div className="mx-auto grid max-w-7xl gap-8 px-5 py-16 md:grid-cols-[0.75fr_1.25fr]">
+            <div>
+              <SectionLabel>The root cause</SectionLabel>
+              <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-4xl">AP today is unilateral.</h2>
+            </div>
+            <div className="text-lg leading-8 text-slate-400">
+              <p>The payer approves an invoice internally. The vendor learns of the transaction when money arrives, when it does not arrive, or when something is already wrong.</p>
+              <p className="mt-4">CAST adds one narrow control: before a covered payment is released, the counterparty confirms the payment details through a secure Trade Message.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="how" className="mx-auto max-w-7xl px-5 py-24">
+          <SectionLabel>The bilateral payment loop</SectionLabel>
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-white md:text-5xl">One party proposes. The vendor confirms. Payment can proceed.</h2>
+            <p className="max-w-md text-sm leading-6 text-slate-400">This is the entire prototype. No mirrored ledgers. No seller-side ERP. No PO-confirmation vertical. Just the AP confirmation loop.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            <Step number="01" icon={FileCheck2} title="Payment intent created" body="A high-risk invoice or payment request enters the queue. The policy version and payment details are snapshotted." meta="proposed" />
+            <Step number="02" icon={Send} title="Trade Message sent" body="Vendor receives SMS or email with one browser link: amount, invoice, payment date, bank last four, and deadline." meta="sent" />
+            <Step number="03" icon={LockKeyhole} title="Vendor confirms" body="The vendor confirms, requests a change, or disputes. Confirmation is bound to the specific Work Order hash." meta="the pivot" active />
+            <Step number="04" icon={ShieldCheck} title="Payment released" body="Covered payments remain blocked until the bilateral event exists. The proof record is retained for audit and review." meta="approved" />
+          </div>
+        </section>
+
+        <section id="trade-message" className="mx-auto grid max-w-7xl gap-10 px-5 py-24 md:grid-cols-[0.95fr_1.05fr]">
+          <div className="self-center">
+            <SectionLabel>What the vendor sees</SectionLabel>
+            <h2 className="text-4xl font-semibold tracking-[-0.03em] text-white md:text-5xl">A secure payment card. Three actions. No integration.</h2>
+            <p className="mt-5 text-lg leading-8 text-slate-400">The vendor is a counterparty signer, not a full CAST tenant. They do not need an app, ERP connection, or account setup to confirm a payment.</p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <Pill tone="green">Confirm</Pill>
+              <Pill tone="amber">Request change</Pill>
+              <Pill tone="red">Dispute</Pill>
+            </div>
+            <p className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-5 text-sm leading-6 text-slate-400">Precise claim: CAST proves the vendor confirmed these payment terms for this specific payment record at this timestamp. It does not claim the invoice is inherently real, and it does not eliminate collusion.</p>
+          </div>
+          <TradeMessageMock />
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 py-24">
+          <SectionLabel>Covered AP triggers</SectionLabel>
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-white md:text-5xl">Start where payment risk is concentrated.</h2>
+            <p className="max-w-md text-sm leading-6 text-slate-400">The first pilot does not need to cover every invoice. It covers the flows where unilateral instructions create the most damage.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <TriggerCard icon={AlertTriangle} title="First payment to a vendor" body="A new vendor relationship should not receive funds without counterparty confirmation of the destination details." />
+            <TriggerCard icon={ShieldCheck} title="Bank-account change" body="Any destination-account change triggers confirmation. The vendor sees the bank last four before release." />
+            <TriggerCard icon={Clock} title="Rush payment" body="Urgency increases scrutiny instead of bypassing controls. A rush payment still waits for confirmation." />
+            <TriggerCard icon={Activity} title="High-value threshold" body="Payments above your configured threshold require a bilateral event before proceeding." />
+            <TriggerCard icon={FileCheck2} title="Duplicate-risk invoice" body="Potential duplicate invoices are sent for confirmation or held for review before money moves." />
+            <TriggerCard icon={XCircle} title="Dispute or non-response" body="If the vendor disputes or misses the deadline, the payment remains held and the exception is recorded." />
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 py-24">
+          <Walkthrough />
+        </section>
+
+        <section id="pilot" className="border-y border-white/10 bg-white/[0.025]">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 py-24 md:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <SectionLabel>30-day pilot</SectionLabel>
+              <h2 className="text-4xl font-semibold tracking-[-0.03em] text-white md:text-5xl">Prove the wedge with real payment confirmations.</h2>
+              <p className="mt-5 text-lg leading-8 text-slate-400">Start with 25–100 high-risk AP payments. Measure whether vendors confirm quickly enough for the control to become operationally real.</p>
+              <div className="mt-8 space-y-3 text-sm text-slate-300">
+                {["No ERP integration required", "SMS primary when phone is verified", "Email fallback when SMS fails", "Public read-only evidence dashboard for investor and customer demos"].map((item) => (
+                  <div key={item} className="flex items-center gap-3"><CheckCircle2 className="text-emerald-300" size={18} /> {item}</div>
+                ))}
+              </div>
+            </div>
+            <DashboardMock />
+          </div>
+        </section>
+
+        <section id="build" className="mx-auto max-w-7xl px-5 py-24">
+          <SectionLabel>Build tomorrow</SectionLabel>
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <h2 className="max-w-3xl text-4xl font-semibold tracking-[-0.03em] text-white md:text-5xl">The first product is the bilateral event loop.</h2>
+            <p className="max-w-md text-sm leading-6 text-slate-400">Everything below is intentionally narrower than the full CAST architecture.</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="p-6">
+              <Database className="mb-5 text-amber-200" />
+              <h3 className="mb-3 text-xl font-semibold text-white">Data spine</h3>
+              <p className="mb-5 text-sm leading-6 text-slate-400">Implement events, vendors, work_orders, and policy_versions. Defer postings and cases.</p>
+              <div className="space-y-2 font-mono text-xs text-slate-500"><div>events.append_only</div><div>work_orders.bilateral_state</div><div>vendors.confirmation_channel</div><div>policy_versions.active</div></div>
+            </Card>
+            <Card className="p-6">
+              <Send className="mb-5 text-amber-200" />
+              <h3 className="mb-3 text-xl font-semibold text-white">Confirmation flow</h3>
+              <p className="mb-5 text-sm leading-6 text-slate-400">Buyer creates payment intent. CAST sends Trade Message. Vendor confirms, requests change, or disputes.</p>
+              <div className="space-y-2 font-mono text-xs text-slate-500"><div>trade_message.sent</div><div>trade_message.viewed</div><div>vendor.confirmed</div><div>vendor.disputed</div></div>
+            </Card>
+            <Card className="p-6">
+              <BarChart3 className="mb-5 text-amber-200" />
+              <h3 className="mb-3 text-xl font-semibold text-white">Evidence dashboard</h3>
+              <p className="mb-5 text-sm leading-6 text-slate-400">Track the metrics that decide whether this deserves the next build phase.</p>
+              <div className="space-y-2 font-mono text-xs text-slate-500"><div>confirmation_rate</div><div>median_confirmation_time</div><div>request_change_rate</div><div>non_response_rate</div></div>
+            </Card>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 pb-28">
+          <Card className="overflow-hidden p-8 md:p-10">
+            <div className="grid gap-8 md:grid-cols-[1fr_0.8fr] md:items-center">
+              <div>
+                <SectionLabel>Scope boundary</SectionLabel>
+                <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white md:text-5xl">What this version does not claim.</h2>
+                <p className="mt-5 text-lg leading-8 text-slate-400">Confirm & Pay is not an ERP replacement, not seller-side AR automation, not a PO-confirmation network, and not a guarantee against collusion. It is a narrow pre-payment control for covered AP flows.</p>
+              </div>
+              <div className="space-y-3">
+                {["No mirrored seller ledger in v1", "No payment released before vendor confirmation", "No broad fraud-guarantee language", "No vertical expansion until 1,000 bilateral AP events"].map((item) => (
+                  <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-300">{item}</div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </section>
+      </main>
+
+      <footer className="relative z-10 border-t border-white/10 px-5 py-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
+          <div>CAST · Confirm & Pay · Vendor-confirmed payments before release.</div>
+          <div className="flex gap-5">
+            <a href="#how" className="hover:text-white">How it works</a>
+            <a href="#pilot" className="hover:text-white">Pilot</a>
+            <a href="mailto:peter@digitalfinancehq.com" className="hover:text-white">Contact</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(CastConfirmPayLanding));
+</script>
+</body>
+</html>

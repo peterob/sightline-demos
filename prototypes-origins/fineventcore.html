@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinEventCore™ - Event-Based Financial System Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #2c7da0 0%, #014f86 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        header h1 { font-size: 32px; margin-bottom: 10px; }
+        header p { font-size: 16px; opacity: 0.9; }
+        .toggle-view { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .toggle-view h3 { margin-bottom: 15px; color: #2c7da0; }
+        .toggle-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+        .toggle-btn { padding: 12px 24px; border: 2px solid #2c7da0; background: white; color: #2c7da0; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; font-size: 14px; }
+        .toggle-btn.active { background: #2c7da0; color: white; }
+        .toggle-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(44,125,160,0.2); }
+        .view-container { display: none; }
+        .view-container.active { display: block; }
+        .event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .event-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #2c7da0; }
+        .event-card.expense { border-left-color: #2a9d8f; }
+        .event-card.revenue { border-left-color: #2c7da0; }
+        .event-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+        .event-type { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        .event-type.expense { background: #e4f1e6; color: #2a9d8f; }
+        .event-type.revenue { background: #d0e8f2; color: #2c7da0; }
+        .event-amount { font-size: 24px; font-weight: 700; color: #014f86; }
+        .event-description { font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #333; }
+        .event-meta { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .event-status { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; background: #d4edda; color: #155724; margin-top: 10px; }
+        .report-section { background: white; padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .report-section h3 { color: #2c7da0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+        .report-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .report-table th { background: #e9ecef; padding: 12px; text-align: left; font-weight: 600; font-size: 14px; border-bottom: 2px solid #dee2e6; }
+        .report-table td { padding: 12px; border-bottom: 1px solid #e9ecef; font-size: 14px; }
+        .report-table tr:hover { background: #f8f9fa; }
+        .report-table .total-row { font-weight: 700; background: #f8f9fa; border-top: 2px solid #2c7da0; }
+        .report-table .positive { color: #28a745; }
+        .report-table .negative { color: #dc3545; }
+        .report-callout { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        .report-callout h4 { color: #856404; margin-bottom: 10px; }
+        .report-callout ul { margin-left: 20px; color: #856404; }
+        .report-callout ul li { margin-bottom: 5px; }
+        .report-enhancement { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        .report-enhancement h4 { color: #155724; margin-bottom: 10px; }
+        .report-enhancement ul { margin-left: 20px; color: #155724; }
+        .report-enhancement ul li { margin-bottom: 5px; }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 768px) {
+            .comparison-grid { grid-template-columns: 1fr; }
+            .report-table { font-size: 12px; }
+            .report-table th, .report-table td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FinEventCore™</h1>
+            <p>Event-Based Financial System - Interactive Demo</p>
+        </header>
+
+        <div class="toggle-view">
+            <h3>Select View Mode</h3>
+            <div class="toggle-buttons">
+                <button class="toggle-btn active" onclick="switchView('event')">Event-Based Transactions</button>
+                <button class="toggle-btn" onclick="switchView('reports')">📊 Reporting Comparison</button>
+            </div>
+        </div>
+
+        <div id="event-view" class="view-container active">
+            <div class="event-grid">
+                <div class="event-card expense">
+                    <div class="event-header">
+                        <span class="event-type expense">Expense</span>
+                        <span class="event-amount">$50,000</span>
+                    </div>
+                    <div class="event-description">Digital Campaign Agency Payment</div>
+                    <div class="event-meta"><strong>Vendor:</strong> Creative Partners LLC</div>
+                    <div class="event-meta"><strong>Department:</strong> Marketing</div>
+                    <div class="event-meta"><strong>Initiative:</strong> Enterprise Growth</div>
+                    <div class="event-meta"><strong>Performance:</strong> 150 leads @ $333/lead</div>
+                    <div class="event-meta"><strong>Date:</strong> March 18, 2025</div>
+                    <span class="event-status">✓ Completed</span>
+                </div>
+
+                <div class="event-card revenue">
+                    <div class="event-header">
+                        <span class="event-type revenue">Revenue</span>
+                        <span class="event-amount">$120,000</span>
+                    </div>
+                    <div class="event-description">Annual Software License Renewal</div>
+                    <div class="event-meta"><strong>Customer:</strong> Acme Corporation</div>
+                    <div class="event-meta"><strong>Department:</strong> Enterprise Sales</div>
+                    <div class="event-meta"><strong>Project:</strong> Customer Expansion Q1</div>
+                    <div class="event-meta"><strong>Growth:</strong> 15% increase ($15,652 additional ARR)</div>
+                    <div class="event-meta"><strong>Date:</strong> March 18, 2025</div>
+                    <span class="event-status">✓ Completed</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="reports-view" class="view-container">
+            <div class="report-section">
+                <h3>📊 Traditional Transaction-Based Report</h3>
+                <p style="margin-bottom: 15px; color: #666;"><strong>Marketing Department Expenses - March 2025</strong></p>
+                <p style="margin-bottom: 15px; color: #999; font-size: 14px;">Standard general ledger report organized by account code</p>
+
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th style="text-align: right;">Amount</th>
+                            <th style="text-align: right;">Variance to Budget</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Advertising</td>
+                            <td style="text-align: right;">$78,500</td>
+                            <td style="text-align: right;" class="positive">+$3,500</td>
+                        </tr>
+                        <tr>
+                            <td>Agency Fees</td>
+                            <td style="text-align: right;">$50,000</td>
+                            <td style="text-align: right;" class="negative">-$2,000</td>
+                        </tr>
+                        <tr>
+                            <td>Marketing Materials</td>
+                            <td style="text-align: right;">$12,300</td>
+                            <td style="text-align: right;" class="negative">-$700</td>
+                        </tr>
+                        <tr>
+                            <td>Events</td>
+                            <td style="text-align: right;">$25,450</td>
+                            <td style="text-align: right;" class="positive">+$5,450</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td>TOTAL</td>
+                            <td style="text-align: right;">$166,250</td>
+                            <td style="text-align: right;" class="positive">+$6,250</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="report-callout">
+                    <h4>⚠️ What This Report CANNOT Tell You:</h4>
+                    <ul>
+                        <li>Which strategic initiatives are driving spend?</li>
+                        <li>What business results are we getting for this investment?</li>
+                        <li>Which campaigns are most/least cost-effective?</li>
+                        <li>How do results compare to targets?</li>
+                        <li>What's the return on marketing investment?</li>
+                        <li>Which initiatives should we scale or cut?</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="report-section">
+                <h3>🎯 Event-Based Strategic Performance Report</h3>
+                <p style="margin-bottom: 15px; color: #666;"><strong>Marketing Investments by Strategic Initiative - March 2025</strong></p>
+                <p style="margin-bottom: 15px; color: #999; font-size: 14px;">Performance-oriented report organized by business initiative with outcome metrics</p>
+
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Initiative</th>
+                            <th style="text-align: right;">Investment</th>
+                            <th style="text-align: right;">Leads</th>
+                            <th style="text-align: right;">Cost/Lead</th>
+                            <th style="text-align: right;">Conversions</th>
+                            <th style="text-align: right;">CAC</th>
+                            <th style="text-align: right;">Budget Var</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Enterprise Growth</td>
+                            <td style="text-align: right;">$105,750</td>
+                            <td style="text-align: right;">310</td>
+                            <td style="text-align: right;">$341.13</td>
+                            <td style="text-align: right;">17</td>
+                            <td style="text-align: right;">$6,220.59</td>
+                            <td style="text-align: right;" class="positive">+$5,750</td>
+                        </tr>
+                        <tr>
+                            <td>SMB Expansion</td>
+                            <td style="text-align: right;">$35,500</td>
+                            <td style="text-align: right;">124</td>
+                            <td style="text-align: right;">$286.29</td>
+                            <td style="text-align: right;">8</td>
+                            <td style="text-align: right;">$4,437.50</td>
+                            <td style="text-align: right;" class="negative">-$1,500</td>
+                        </tr>
+                        <tr>
+                            <td>Product Launch</td>
+                            <td style="text-align: right;">$25,000</td>
+                            <td style="text-align: right;">67</td>
+                            <td style="text-align: right;">$373.13</td>
+                            <td style="text-align: right;">4</td>
+                            <td style="text-align: right;">$6,250.00</td>
+                            <td style="text-align: right;" class="positive">+$2,000</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td>TOTAL</td>
+                            <td style="text-align: right;">$166,250</td>
+                            <td style="text-align: right;">501</td>
+                            <td style="text-align: right;">$331.84</td>
+                            <td style="text-align: right;">29</td>
+                            <td style="text-align: right;">$5,732.76</td>
+                            <td style="text-align: right;" class="positive">+$6,250</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="report-enhancement">
+                    <h4>✅ Strategic Insights This Report Provides:</h4>
+                    <ul>
+                        <li><strong>SMB Expansion is most efficient:</strong> Lowest cost per lead ($286) and CAC ($4,438)</li>
+                        <li><strong>Enterprise Growth drives volume:</strong> 62% of all leads despite higher cost per acquisition</li>
+                        <li><strong>Product Launch needs optimization:</strong> Highest CAC at $6,250 suggests messaging refinement needed</li>
+                        <li><strong>Overall performance strong:</strong> 501 total leads with average CAC of $5,733 within targets</li>
+                        <li><strong>Resource allocation data:</strong> Can confidently shift budget based on initiative performance</li>
+                        <li><strong>ROI tracking enabled:</strong> Connect marketing spend directly to revenue outcomes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="report-section" style="background: #f8f9fa; border: 2px solid #2c7da0;">
+                <h3 style="color: #014f86;">💡 Key Difference: From "What We Spent" to "What We Achieved"</h3>
+                <div class="comparison-grid">
+                    <div>
+                        <h4 style="color: #ae2012; margin-bottom: 15px;">❌ Traditional Limitations</h4>
+                        <ul style="margin-left: 20px; color: #666;">
+                            <li>Reports accounting activity</li>
+                            <li>Organized by GL accounts</li>
+                            <li>Shows compliance with budget</li>
+                            <li>Backwards-looking only</li>
+                            <li>Requires manual analysis for insights</li>
+                            <li>Cannot answer "why" questions</li>
+                            <li>No connection to business outcomes</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="color: #2a9d8f; margin-bottom: 15px;">✅ Event-Based Advantages</h4>
+                        <ul style="margin-left: 20px; color: #666;">
+                            <li>Reports business performance</li>
+                            <li>Organized by strategic initiatives</li>
+                            <li>Shows return on investment</li>
+                            <li>Enables forward planning</li>
+                            <li>Built-in performance insights</li>
+                            <li>Answers strategic questions directly</li>
+                            <li>Direct link to business results</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+                    <h4 style="color: #2c7da0; margin-bottom: 15px;">🔍 Notice: Same Dollar Amount, Completely Different Insight</h4>
+                    <p style="color: #666; line-height: 1.6;">
+                        Both reports show the exact same <strong>$166,250</strong> in marketing expenses with a <strong>+$6,250</strong> variance to budget. 
+                        However, the traditional report only tells you that you're over budget on some accounts. 
+                        The event-based report tells you <em>why</em> you're over budget (Enterprise Growth initiative), 
+                        <em>what</em> you got for that investment (310 leads, 17 conversions), and <em>whether</em> it was worth it 
+                        (CAC of $6,221 may be acceptable for enterprise deals worth $120K+ annually).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchView(view) {
+            // Remove active class from all buttons
+            document.querySelectorAll('.toggle-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Hide all view containers
+            document.querySelectorAll('.view-container').forEach(function(container) {
+                container.classList.remove('active');
+            });
+
+            // Show selected view
+            var selectedView = document.getElementById(view + '-view');
+            if (selectedView) {
+                selectedView.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>

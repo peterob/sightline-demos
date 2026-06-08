@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — Bilateral Gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=DM+Serif+Display:ital@0;1&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #08090a;
+  --bg2:       #0e1012;
+  --bg3:       #131618;
+  --bg4:       #191d21;
+  --bg5:       #20252a;
+  --border:    #222830;
+  --border2:   #2c333c;
+  --text:      #c2bdb6;
+  --dim:       #5e666e;
+  --faint:     #333a42;
+  --gold:      #c89848;
+  --gold2:     #e8c068;
+  --gold-bg:   #1c1508;
+  --green:     #38966a;
+  --green2:    #50c886;
+  --green-bg:  #081810;
+  --yellow:    #c09830;
+  --yellow-bg: #181200;
+  --red:       #b83838;
+  --red2:      #e05050;
+  --red-bg:    #180808;
+  --blue:      #4070b0;
+  --blue2:     #60a0e0;
+  --blue-bg:   #080c18;
+  --purple:    #7050b8;
+  --mono:      'IBM Plex Mono', monospace;
+  --serif:     'DM Serif Display', serif;
+  --cond:      'Barlow Condensed', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 12px; }
+
+/* ── HEADER ── */
+header {
+  height: 42px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.h-brand { font-family: var(--cond); font-size: 17px; font-weight: 700; letter-spacing: 0.14em; color: var(--gold); text-transform: uppercase; }
+.h-sep   { color: var(--faint); }
+.h-sub   { font-family: var(--cond); font-size: 11px; letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+.h-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pulse   { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: p 2s ease-in-out infinite; }
+@keyframes p { 0%,100%{opacity:1} 50%{opacity:.3} }
+.h-live  { font-family: var(--cond); font-size: 10px; letter-spacing: 0.1em; color: var(--green); text-transform: uppercase; }
+
+/* ── LAYOUT ── */
+#shell { display: flex; height: calc(100vh - 42px); }
+
+/* LEFT: form */
+#left {
+  width: 260px;
+  min-width: 260px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-hdr {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+.form-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+.form-body::-webkit-scrollbar { width: 3px; }
+.form-body::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.fl { margin-bottom: 12px; }
+.fl label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.fi, .fs {
+  width: 100%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 9px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color .12s;
+}
+.fi:focus, .fs:focus { border-color: var(--gold); }
+.fs option { background: var(--bg4); }
+
+.row2 { display: flex; gap: 8px; }
+.row2 .fl { flex: 1; }
+
+.div { height: 1px; background: var(--border); margin: 12px 0; }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 9px;
+  font-family: var(--cond); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  border: none; border-radius: 3px; cursor: pointer; transition: all .13s;
+}
+.btn-primary { background: var(--gold); color: var(--bg); }
+.btn-primary:hover { background: var(--gold2); }
+.btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+
+.scenarios-label {
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 6px;
+}
+
+.sc-btn {
+  display: block; width: 100%;
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--dim); font-family: var(--cond); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.06em;
+  padding: 6px 10px; border-radius: 3px; cursor: pointer;
+  text-align: left; transition: all .12s; margin-bottom: 5px;
+}
+.sc-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* CENTRE: gate visualizer */
+#centre {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* three tracks */
+#tracks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.track {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+}
+
+.track-hdr {
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.track-zone {
+  font-family: var(--cond); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.zone-proposed { color: var(--yellow); }
+.zone-bilateral { color: var(--blue2); }
+.zone-posted    { color: var(--green2); }
+
+.track-desc {
+  font-size: 10px; color: var(--dim);
+}
+
+.track-count {
+  margin-left: auto;
+  font-size: 10px; color: var(--faint);
+  font-family: var(--cond); letter-spacing: 0.08em;
+}
+
+.track-lane {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.track-lane::-webkit-scrollbar { height: 3px; }
+.track-lane::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* event cards */
+.ecard {
+  flex-shrink: 0;
+  width: 210px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 10px 11px;
+  cursor: pointer;
+  transition: border-color .13s, background .13s;
+  animation: cardIn .2s ease-out;
+}
+@keyframes cardIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:none} }
+
+.ecard:hover { border-color: var(--border2); background: var(--bg4); }
+.ecard.sel   { border-color: var(--gold); background: var(--gold-bg); }
+
+.ecard.proposed  { border-left: 3px solid var(--yellow); }
+.ecard.bilateral { border-left: 3px solid var(--blue2); }
+.ecard.posted    { border-left: 3px solid var(--green2); }
+.ecard.held      { border-left: 3px solid var(--red2); }
+.ecard.case      { border-left: 3px solid var(--purple); }
+
+.ec-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.ec-id  { font-size: 10px; color: var(--gold); letter-spacing: .04em; }
+.ec-amt { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1; }
+.ec-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-top: 3px; }
+.ec-hash { font-size: 9px; color: var(--faint); margin-top: 4px; font-style: italic; letter-spacing: .02em; }
+
+.badge {
+  display: inline-block; padding: 1px 5px;
+  font-family: var(--cond); font-size: 9px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; border-radius: 2px;
+}
+.badge.proposed  { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #302000; }
+.badge.bilateral { background: var(--blue-bg);   color: var(--blue2);  border: 1px solid #101830; }
+.badge.posted    { background: var(--green-bg);  color: var(--green2); border: 1px solid #082010; }
+.badge.held      { background: var(--red-bg);    color: var(--red2);   border: 1px solid #300808; }
+.badge.case      { background: #0e0818;           color: #a880e8;       border: 1px solid #281448; }
+
+.empty-lane {
+  font-size: 11px; color: var(--faint); font-style: italic;
+  align-self: center; padding: 6px 0;
+}
+
+/* detail drawer */
+#drawer {
+  height: 0; overflow: hidden;
+  background: var(--bg2); border-top: 1px solid var(--border);
+  transition: height .2s ease-out;
+  flex-shrink: 0;
+}
+#drawer.open { height: 220px; }
+
+.drawer-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr 220px;
+  height: 100%;
+  gap: 0;
+}
+
+.d-section {
+  padding: 12px 16px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.d-section:last-child { border-right: none; }
+.d-section::-webkit-scrollbar { width: 3px; }
+.d-section::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.d-hdr {
+  font-family: var(--cond); font-size: 10px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  margin-bottom: 8px;
+}
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; }
+.kk { font-size: 10px; color: var(--dim); padding-top: 1px; white-space: nowrap; }
+.kv_ { font-size: 11px; color: var(--text); word-break: break-all; }
+.kv_.gold   { color: var(--gold); }
+.kv_.green  { color: var(--green2); }
+.kv_.blue   { color: var(--blue2); }
+.kv_.red    { color: var(--red2); }
+.kv_.yellow { color: var(--yellow); }
+.kv_.mono   { font-size: 9px; color: var(--dim); }
+
+/* policy result */
+.policy-result {
+  margin-top: 8px; padding: 6px 8px;
+  border-radius: 3px; font-size: 11px;
+}
+.policy-result.pass { background: var(--green-bg); border: 1px solid #102818; color: var(--green2); }
+.policy-result.fail { background: var(--red-bg);   border: 1px solid #301010; color: var(--red2); }
+.policy-result.pending { background: var(--bg4); border: 1px solid var(--border2); color: var(--dim); }
+
+.check-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 3px 0; border-bottom: 1px solid var(--border); font-size: 10px;
+}
+.check-row:last-child { border-bottom: none; }
+.check-icon { flex-shrink: 0; width: 12px; text-align: center; }
+.check-label { flex: 1; color: var(--text); }
+.check-result { color: var(--dim); font-size: 9px; }
+
+/* action buttons */
+.action-col {
+  display: flex; flex-direction: column; gap: 8px; justify-content: center;
+  padding: 12px 14px;
+}
+
+.act-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 12px;
+  font-family: var(--cond); font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  border-radius: 3px; cursor: pointer; transition: all .13s; border: none;
+  width: 100%;
+}
+.act-btn:disabled { opacity: .35; cursor: not-allowed; }
+.act-confirm { background: var(--green-bg); border: 1px solid var(--green); color: var(--green2); }
+.act-confirm:hover:not(:disabled) { background: var(--green); color: var(--bg); }
+.act-reject  { background: var(--red-bg);   border: 1px solid var(--red);   color: var(--red2);   }
+.act-reject:hover:not(:disabled)  { background: var(--red);   color: white; }
+.act-post    { background: var(--blue-bg);  border: 1px solid var(--blue);  color: var(--blue2);  }
+.act-post:hover:not(:disabled)    { background: var(--blue);  color: white; }
+
+.act-note { font-size: 10px; color: var(--dim); text-align: center; line-height: 1.4; }
+
+/* RIGHT: log */
+#right {
+  width: 280px;
+  min-width: 280px;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.log-body {
+  flex: 1; overflow-y: auto; padding: 10px 12px;
+}
+.log-body::-webkit-scrollbar { width: 3px; }
+.log-body::-webkit-scrollbar-thumb { background: var(--border2); }
+
+.log-entry {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn .15s ease-out;
+}
+.log-entry:last-child { border-bottom: none; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.log-ts  { font-size: 9px; color: var(--faint); margin-bottom: 1px; }
+.log-msg { font-size: 11px; line-height: 1.4; }
+.log-msg.info    { color: var(--blue2); }
+.log-msg.success { color: var(--green2); }
+.log-msg.warn    { color: var(--yellow); }
+.log-msg.error   { color: var(--red2); }
+.log-msg.gold    { color: var(--gold); }
+.log-msg.dim     { color: var(--dim); }
+
+/* log clear */
+.log-ctrl {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.log-title { font-family: var(--cond); font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+.clr-btn { font-family: var(--cond); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); background: none; border: none; cursor: pointer; }
+.clr-btn:hover { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="h-brand">CAST</span>
+  <span class="h-sep">·</span>
+  <span class="h-sub">Bilateral Gate — Transaction Flow</span>
+  <div class="h-right">
+    <div class="pulse"></div>
+    <span class="h-live">Synthetic</span>
+  </div>
+</header>
+
+<div id="shell">
+
+  <!-- LEFT: FORM -->
+  <div id="left">
+    <div class="panel-hdr">New Transaction</div>
+    <div class="form-body">
+
+      <div class="fl">
+        <label>Buyer</label>
+        <select class="fs" id="f-buyer">
+          <option>Meridian Supply Group</option>
+          <option>Atlas Distribution LLC</option>
+          <option>Keystone Fabricators</option>
+          <option>Summit Logistics Partners</option>
+        </select>
+      </div>
+
+      <div class="fl">
+        <label>Vendor</label>
+        <select class="fs" id="f-vendor">
+          <option>Pinnacle Industrial Supply</option>
+          <option>CoreTech Components</option>
+          <option>Delta Freight Systems</option>
+          <option>Apex Materials Inc</option>
+        </select>
+      </div>
+
+      <div class="fl">
+        <label>Transaction Type</label>
+        <select class="fs" id="f-type">
+          <option value="AP_INVOICE">AP Invoice</option>
+          <option value="PO_CONFIRM">Purchase Order Confirm</option>
+          <option value="MILESTONE">Milestone Payment</option>
+          <option value="SETTLEMENT">Settlement Event</option>
+        </select>
+      </div>
+
+      <div class="row2">
+        <div class="fl">
+          <label>Amount ($)</label>
+          <input class="fi" id="f-amount" type="number" value="48500" min="500" step="500">
+        </div>
+        <div class="fl">
+          <label>Policy</label>
+          <select class="fs" id="f-policy">
+            <option>POL-v4.2</option>
+            <option>POL-v4.1</option>
+            <option>POL-v3.8</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fl">
+        <label>Scenario</label>
+        <select class="fs" id="f-scenario">
+          <option value="clean">Clean — all conditions pass</option>
+          <option value="threshold">Amount over policy threshold</option>
+          <option value="missing_doc">Missing PO documentation</option>
+          <option value="duplicate">Potential duplicate</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" onclick="submit()">▶ Submit to Staging Zone</button>
+
+      <div class="div"></div>
+
+      <div class="scenarios-label">Preloaded Scenarios</div>
+      <button class="sc-btn" onclick="loadSc('construction')">Construction Draw — $340K milestone</button>
+      <button class="sc-btn" onclick="loadSc('gpu')">GPU Procurement — $1.2M threshold</button>
+      <button class="sc-btn" onclick="loadSc('bec')">BEC Attack — missing bank confirmation</button>
+      <button class="sc-btn" onclick="loadSc('ap')">AP Invoice — clean three-way match</button>
+
+    </div>
+  </div>
+
+  <!-- CENTRE: TRACKS + DRAWER -->
+  <div id="centre">
+    <div id="tracks">
+
+      <!-- STAGING -->
+      <div class="track">
+        <div class="track-hdr">
+          <span class="track-zone zone-proposed">◆ Staging Zone</span>
+          <span class="track-desc">Proposed events — quarantined · no Posting possible</span>
+          <span class="track-count" id="cnt-p">0 events</span>
+        </div>
+        <div class="track-lane" id="lane-proposed">
+          <span class="empty-lane">No events in staging</span>
+        </div>
+      </div>
+
+      <!-- BILATERAL -->
+      <div class="track">
+        <div class="track-hdr">
+          <span class="track-zone zone-bilateral">◆ Bilateral Zone</span>
+          <span class="track-desc">Co-signed · hash sealed · passkey confirmed · Work Order pending</span>
+          <span class="track-count" id="cnt-b">0 events</span>
+        </div>
+        <div class="track-lane" id="lane-bilateral">
+          <span class="empty-lane">No bilateral events</span>
+        </div>
+      </div>
+
+      <!-- POSTED -->
+      <div class="track">
+        <div class="track-hdr">
+          <span class="track-zone zone-posted">◆ Posted Zone</span>
+          <span class="track-desc">Work Orders approved · Postings written · proof sealed</span>
+          <span class="track-count" id="cnt-po">0 events</span>
+        </div>
+        <div class="track-lane" id="lane-posted">
+          <span class="empty-lane">No postings</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DETAIL DRAWER -->
+    <div id="drawer">
+      <div class="drawer-inner" id="drawer-inner"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: LOG -->
+  <div id="right">
+    <div class="log-ctrl">
+      <span class="log-title">Event Log</span>
+      <button class="clr-btn" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-body" id="log"></div>
+  </div>
+
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const S = { events: [], sel: null, logEntries: [] };
+let ctr = 1000;
+
+const genId   = () => 'EVT-' + (++ctr);
+const genHash = (n=16) => Array.from({length:n}, () => '0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+const genWO   = () => 'WO-' + (Math.floor(Math.random()*9000)+1000);
+const genPost = () => 'POST-' + (Math.floor(Math.random()*90000)+10000);
+const ts      = () => { const d=new Date(); return [d.getHours(),d.getMinutes(),d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':'); };
+const fmt     = n => Number(n).toLocaleString();
+
+// ── LOG ────────────────────────────────────────────────
+function log(msg, type='dim') {
+  S.logEntries.unshift({ msg, type, time: ts() });
+  renderLog();
+}
+function renderLog() {
+  const el = document.getElementById('log');
+  if (!S.logEntries.length) { el.innerHTML = '<div style="color:var(--faint);font-style:italic;font-size:11px;padding:8px 0">Awaiting first transaction…</div>'; return; }
+  el.innerHTML = S.logEntries.map(e =>
+    `<div class="log-entry"><div class="log-ts">${e.time}</div><div class="log-msg ${e.type}">${e.msg}</div></div>`
+  ).join('');
+}
+function clearLog() { S.logEntries = []; renderLog(); }
+renderLog();
+
+// ── SUBMIT ─────────────────────────────────────────────
+function submit() {
+  const buyer    = document.getElementById('f-buyer').value;
+  const vendor   = document.getElementById('f-vendor').value;
+  const type     = document.getElementById('f-type').value;
+  const amount   = parseFloat(document.getElementById('f-amount').value);
+  const policy   = document.getElementById('f-policy').value;
+  const scenario = document.getElementById('f-scenario').value;
+
+  const ev = {
+    id: genId(), buyer, vendor, type, amount, currency:'USD', policy, scenario,
+    state: 'proposed', hash: genHash(), wo: null, posting: null,
+    passkey: null, policyChecks: null, policyResult: null,
+    t_submit: ts(), t_confirm: null, t_post: null
+  };
+
+  S.events.push(ev);
+  log(`${ev.id} → staging zone`, 'info');
+  log(`${vendor} · ${type} · $${fmt(amount)}`, 'dim');
+  log(`Policy: ${policy} · evaluating…`, 'dim');
+
+  render();
+
+  // auto policy check
+  setTimeout(() => policyCheck(ev.id), 700);
+}
+
+// ── POLICY CHECK ───────────────────────────────────────
+function policyCheck(id) {
+  const ev = find(id); if (!ev) return;
+
+  const thresholds = { clean: true, ap: true, threshold: false, missing_doc: false, duplicate: false };
+  const pass = thresholds[ev.scenario] !== false;
+
+  // build check rows
+  const checks = {
+    clean: [
+      { label:'PO reference found in system',    r:'PASS', ok:true  },
+      { label:'Amount within POL threshold',      r:'$'+fmt(ev.amount)+' ≤ limit', ok:true  },
+      { label:'Bank destination on file',         r:'CONFIRMED', ok:true  },
+      { label:'Vendor passkey enrolled',          r:'ENROLLED', ok:true  },
+      { label:'No duplicate within 72hr window',  r:'CLEAR', ok:true  },
+    ],
+    ap: [
+      { label:'Three-way match: PO / receipt / invoice', r:'MATCHED', ok:true },
+      { label:'Amount within POL threshold',      r:'$'+fmt(ev.amount)+' ≤ limit', ok:true },
+      { label:'Bank destination on file',         r:'CONFIRMED', ok:true },
+      { label:'Vendor passkey enrolled',          r:'ENROLLED', ok:true },
+    ],
+    threshold: [
+      { label:'PO reference found in system',    r:'PASS', ok:true  },
+      { label:'Amount within POL threshold',      r:'$'+fmt(ev.amount)+' > $500K', ok:false },
+      { label:'Bank destination on file',         r:'CONFIRMED', ok:true  },
+      { label:'Elevated approval required',       r:'MISSING', ok:false },
+    ],
+    missing_doc: [
+      { label:'PO reference found in system',    r:'NOT FOUND', ok:false },
+      { label:'Amount within POL threshold',      r:'$'+fmt(ev.amount)+' ≤ limit', ok:true  },
+      { label:'Bank destination on file',         r:'UNCONFIRMED', ok:false },
+      { label:'BEC — bank change in last 30 days',r:'FLAGGED', ok:false },
+    ],
+    duplicate: [
+      { label:'PO reference found',              r:'FOUND', ok:true  },
+      { label:'Amount within threshold',          r:'$'+fmt(ev.amount)+' ≤ limit', ok:true  },
+      { label:'Duplicate check — 72hr window',    r:'MATCH: '+genId(), ok:false },
+      { label:'Hold pending review',              r:'REQUIRED', ok:false },
+    ],
+  };
+
+  ev.policyChecks = checks[ev.scenario] || checks.clean;
+  ev.policyResult = pass ? 'PASS' : 'HOLD';
+
+  if (pass) {
+    log(`✓ ${ev.id} — all policy conditions satisfied`, 'success');
+    log(`Awaiting vendor passkey confirmation (${ev.vendor})`, 'gold');
+  } else {
+    ev.state = 'held';
+    const reasons = { threshold:'Amount exceeds threshold', missing_doc:'BEC risk — bank destination unconfirmed', duplicate:'Duplicate detected' };
+    log(`⚠ ${ev.id} → HELD — ${reasons[ev.scenario] || 'Policy failure'}`, 'warn');
+    log(`Case opened — controller review required`, 'error');
+  }
+
+  render();
+  if (S.sel === id) renderDrawer(id);
+}
+
+// ── VENDOR CONFIRM ─────────────────────────────────────
+function vendorConfirm(id) {
+  const ev = find(id); if (!ev) return;
+  log(`Passkey challenge issued → ${ev.vendor}`, 'info');
+
+  setTimeout(() => {
+    ev.passkey    = 'FIDO2-' + genHash(8).toUpperCase();
+    ev.state      = 'bilateral';
+    ev.hash       = genHash();
+    ev.wo         = genWO();
+    ev.t_confirm  = ts();
+
+    log(`✓ ${ev.vendor} — passkey confirmed`, 'success');
+    log(`  ${ev.passkey}`, 'dim');
+    log(`✓ Lineage hash sealed: ${ev.hash}`, 'success');
+    log(`Work Order generated: ${ev.wo}`, 'gold');
+
+    render();
+    if (S.sel === id) renderDrawer(id);
+  }, 600);
+}
+
+// ── APPROVE WORK ORDER ─────────────────────────────────
+function approveWO(id) {
+  const ev = find(id); if (!ev) return;
+  log(`${ev.wo} — controller approved`, 'info');
+
+  setTimeout(() => {
+    ev.state   = 'posted';
+    ev.posting = genPost();
+    ev.t_post  = ts();
+
+    log(`✓ ${ev.id} → POSTED`, 'success');
+    log(`Posting ${ev.posting} written to ledger`, 'success');
+    log(`Lineage: ${ev.posting} ← ${ev.wo} ← ${ev.id} [${ev.hash.slice(0,8)}…]`, 'dim');
+
+    render();
+    if (S.sel === id) renderDrawer(id);
+  }, 400);
+}
+
+// ── REJECT ─────────────────────────────────────────────
+function rejectEv(id) {
+  const ev = find(id); if (!ev) return;
+  ev.state = 'case';
+  log(`${ev.id} → CASE — escalated for resolution`, 'error');
+  render();
+  if (S.sel === id) renderDrawer(id);
+}
+
+// ── SELECT ─────────────────────────────────────────────
+function selectEv(id) {
+  S.sel = (S.sel === id) ? null : id;
+  render();
+  if (S.sel) renderDrawer(S.sel);
+  else closeDrawer();
+}
+
+// ── RENDER TRACKS ──────────────────────────────────────
+function render() {
+  const zones = { proposed:[], bilateral:[], posted:[] };
+  S.events.forEach(ev => {
+    if (ev.state === 'proposed' || ev.state === 'held' || ev.state === 'case') zones.proposed.push(ev);
+    else if (ev.state === 'bilateral') zones.bilateral.push(ev);
+    else if (ev.state === 'posted')    zones.posted.push(ev);
+  });
+
+  renderLane('proposed',  zones.proposed,  'cnt-p');
+  renderLane('bilateral', zones.bilateral, 'cnt-b');
+  renderLane('posted',    zones.posted,    'cnt-po');
+}
+
+function renderLane(zone, events, cntId) {
+  document.getElementById(cntId).textContent = events.length + (events.length === 1 ? ' event' : ' events');
+  const lane = document.getElementById('lane-' + zone);
+
+  if (!events.length) {
+    const labels = { proposed:'No events in staging', bilateral:'No bilateral events', posted:'No postings' };
+    lane.innerHTML = `<span class="empty-lane">${labels[zone]}</span>`;
+    return;
+  }
+
+  lane.innerHTML = events.map(ev => `
+    <div class="ecard ${ev.state} ${S.sel === ev.id ? 'sel' : ''}" onclick="selectEv('${ev.id}')">
+      <div class="ec-top">
+        <span class="ec-id">${ev.id}</span>
+        <span class="badge ${ev.state}">${ev.state.toUpperCase()}</span>
+      </div>
+      <div class="ec-amt">$${fmt(ev.amount)}</div>
+      <div class="ec-row">
+        <span>${ev.vendor.split(' ')[0]}</span>
+        <span>${ev.type}</span>
+      </div>
+      <div class="ec-hash">${ev.hash}</div>
+    </div>`
+  ).join('');
+}
+
+// ── DRAWER ─────────────────────────────────────────────
+function renderDrawer(id) {
+  const ev = find(id); if (!ev) return;
+  const d = document.getElementById('drawer');
+  d.classList.add('open');
+
+  // column 1: event detail
+  const policyBadge = ev.policyResult
+    ? (ev.policyResult === 'PASS'
+        ? `<span class="badge posted">PASS</span>`
+        : `<span class="badge held">${ev.policyResult}</span>`)
+    : `<span style="font-size:10px;color:var(--dim)">Evaluating…</span>`;
+
+  const kvs = [
+    ['Event ID',    ev.id,           'gold'],
+    ['State',       ev.state.toUpperCase(), ev.state === 'posted' ? 'green' : ev.state === 'bilateral' ? 'blue' : ev.state === 'held' || ev.state === 'case' ? 'red' : 'yellow'],
+    ['Buyer',       ev.buyer,        ''],
+    ['Vendor',      ev.vendor,       ''],
+    ['Type',        ev.type,         ''],
+    ['Amount',      'USD ' + fmt(ev.amount), 'gold'],
+    ['Policy',      ev.policy,       'blue'],
+    ['Hash',        ev.hash,         'mono'],
+    ...(ev.passkey  ? [['Passkey', ev.passkey, 'green']] : []),
+    ...(ev.wo       ? [['Work Order', ev.wo, 'blue']] : []),
+    ...(ev.posting  ? [['Posting', ev.posting, 'green']] : []),
+    ['Submitted',   ev.t_submit,     'mono'],
+    ...(ev.t_confirm ? [['Confirmed', ev.t_confirm, 'mono']] : []),
+    ...(ev.t_post    ? [['Posted',    ev.t_post,    'mono']] : []),
+  ];
+
+  const kvHtml = kvs.map(([k,v,cls]) =>
+    `<span class="kk">${k}</span><span class="kv_ ${cls}">${v}</span>`
+  ).join('');
+
+  // column 2: policy checks
+  let checksHtml = '';
+  if (ev.policyChecks) {
+    checksHtml = ev.policyChecks.map(c =>
+      `<div class="check-row">
+        <span class="check-icon" style="color:${c.ok ? 'var(--green2)' : 'var(--red2)'}">${c.ok ? '✓' : '✕'}</span>
+        <span class="check-label">${c.label}</span>
+        <span class="check-result">${c.r}</span>
+      </div>`
+    ).join('');
+  } else {
+    checksHtml = `<div style="font-size:11px;color:var(--faint);font-style:italic">Policy engine evaluating…</div>`;
+  }
+
+  // column 3: actions
+  let actHtml = '';
+  if (ev.state === 'proposed' && ev.policyResult === 'PASS') {
+    actHtml = `
+      <button class="act-btn act-confirm" onclick="vendorConfirm('${id}')">▶ Vendor Confirm</button>
+      <div class="act-note">Issues FIDO2 passkey challenge to ${ev.vendor.split(' ')[0]}</div>
+      <button class="act-btn act-reject" onclick="rejectEv('${id}')">✕ Reject</button>`;
+  } else if (ev.state === 'proposed' && !ev.policyResult) {
+    actHtml = `<div class="act-note">Policy engine running…</div>`;
+  } else if (ev.state === 'held') {
+    actHtml = `
+      <div class="act-note" style="color:var(--yellow)">⚠ Held — controller must review</div>
+      <button class="act-btn act-reject" onclick="rejectEv('${id}')">Open Case</button>`;
+  } else if (ev.state === 'bilateral') {
+    actHtml = `
+      <button class="act-btn act-post" onclick="approveWO('${id}')">▶ Approve → Post</button>
+      <div class="act-note">Executes ${ev.wo}<br>Writes Posting to ledger</div>
+      <button class="act-btn act-reject" onclick="rejectEv('${id}')">✕ Reject WO</button>`;
+  } else if (ev.state === 'posted') {
+    actHtml = `
+      <div class="act-note" style="color:var(--green2)">✓ Proof record sealed</div>
+      <div class="act-note" style="margin-top:6px">Lineage chain:<br>${ev.posting}<br>← ${ev.wo}<br>← ${ev.id}</div>`;
+  } else if (ev.state === 'case') {
+    actHtml = `<div class="act-note" style="color:var(--red2)">Case open — escalated for controller resolution</div>`;
+  }
+
+  document.getElementById('drawer-inner').innerHTML = `
+    <div class="d-section">
+      <div class="d-hdr">${ev.id} — Event Detail</div>
+      <div class="kv">${kvHtml}</div>
+    </div>
+    <div class="d-section">
+      <div class="d-hdr">Policy Evaluation — ${ev.policy}</div>
+      ${checksHtml}
+    </div>
+    <div class="action-col">${actHtml}</div>`;
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+}
+
+// ── SCENARIOS ──────────────────────────────────────────
+function loadSc(s) {
+  const sc = {
+    construction: { buyer:'Keystone Fabricators', vendor:'Apex Materials Inc',    type:'MILESTONE', amount:340000, policy:'POL-v4.2', scenario:'clean' },
+    gpu:          { buyer:'Atlas Distribution LLC', vendor:'CoreTech Components',  type:'PO_CONFIRM', amount:1200000, policy:'POL-v4.2', scenario:'threshold' },
+    bec:          { buyer:'Meridian Supply Group', vendor:'Delta Freight Systems', type:'AP_INVOICE', amount:87500,   policy:'POL-v4.2', scenario:'missing_doc' },
+    ap:           { buyer:'Summit Logistics Partners', vendor:'Pinnacle Industrial Supply', type:'AP_INVOICE', amount:48500, policy:'POL-v4.2', scenario:'ap' },
+  }[s];
+  if (!sc) return;
+  document.getElementById('f-buyer').value  = sc.buyer;
+  document.getElementById('f-vendor').value = sc.vendor;
+  document.getElementById('f-type').value   = sc.type;
+  document.getElementById('f-amount').value = sc.amount;
+  document.getElementById('f-policy').value = sc.policy;
+  document.getElementById('f-scenario').value = sc.scenario;
+  const notes = { construction:'Construction draw — $340K milestone payment', gpu:'GPU procurement — $1.2M will trigger threshold hold', bec:'BEC scenario — bank destination unconfirmed, will be held', ap:'AP invoice — clean three-way match' };
+  log(notes[s], 'gold');
+}
+
+// ── UTIL ───────────────────────────────────────────────
+function find(id) { return S.events.find(e => e.id === id); }
+</script>
+</body>
+</html>

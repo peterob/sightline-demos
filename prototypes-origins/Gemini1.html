@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline DVR - Prototype</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --border: #30363d;
+            --accent-green: #2ea043;
+            --accent-red: #da3633;
+            --accent-yellow: #d29922;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            display: grid;
+            gap: 20px;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .meta-joke {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* METRICS GRID */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .card-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            border-bottom: 1px dotted var(--text-muted);
+            display: inline-block;
+            cursor: help;
+        }
+
+        /* Tooltip logic */
+        .card-label:hover::after {
+            content: attr(data-real-name);
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: var(--accent-yellow);
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .card-value {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .confidence-bar {
+            height: 4px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: var(--accent-green);
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .confidence-text {
+            font-size: 0.7rem;
+            margin-top: 5px;
+            color: var(--text-muted);
+        }
+
+        /* DVR SCREEN */
+        .dvr-screen {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            position: relative;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .chart-area {
+            flex-grow: 1;
+            position: relative;
+            border-left: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        /* Fake Chart Lines */
+        .line-reality {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            border-top: 2px solid var(--accent-green);
+            opacity: 0.8;
+        }
+        .line-accounting {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            border-top: 2px dashed var(--text-muted);
+            opacity: 0.5;
+            transform: translateY(10px); /* Lag visual */
+        }
+        
+        .chart-legend {
+            position: absolute;
+            top: 0;
+            right: 0;
+            font-size: 0.75rem;
+            text-align: right;
+        }
+        .legend-item { margin-bottom: 5px; }
+        .dot { height: 8px; width: 8px; display: inline-block; border-radius: 50%; margin-right: 5px; }
+
+        /* TAPE MOMENTS */
+        .tape-track {
+            height: 20px;
+            background: #111;
+            position: relative;
+            margin-bottom: 10px;
+            border-radius: 3px;
+        }
+        .marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            cursor: pointer;
+        }
+        .marker:hover { transform: scaleY(1.5); }
+
+        /* CONTROLS */
+        .controls-area {
+            background: var(--panel-bg);
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--border);
+            color: var(--text-main);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #444c56; }
+        button:active { transform: translateY(1px); }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .slider-caption {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* SYSTEM COMMENTARY */
+        .system-log {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 10px;
+            border-left: 3px solid var(--accent-yellow);
+            background: rgba(210, 153, 34, 0.1);
+            color: var(--text-main);
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* PASSIVE AGGRESSIVE BUTTON */
+        .action-area {
+            text-align: right;
+        }
+        .btn-explain {
+            background: transparent;
+            border: 1px solid var(--text-muted);
+            color: var(--text-muted);
+        }
+        .btn-explain:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        /* EASTER EGG OVERLAY */
+        #easter-egg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border: 1px solid var(--border);
+            display: none;
+            z-index: 100;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>SIGHTLINE <span style="font-weight:400; color: var(--text-muted);">// DVR</span></h1>
+            </div>
+            <div class="meta-joke">This is a toy. Unfortunately, it’s also correct.</div>
+        </header>
+
+        <div class="dvr-screen">
+            <div class="chart-legend">
+                <div class="legend-item"><span class="dot" style="background:var(--accent-green)"></span>What Actually Happened</div>
+                <div class="legend-item"><span class="dot" style="background:var(--text-muted)"></span>What We Knew</div>
+                <div style="margin-top:5px; font-size:0.65rem; color:var(--text-muted)">No spreadsheets were harmed in this comparison.</div>
+            </div>
+
+            <div class="chart-area" id="chart">
+                <div id="easter-egg">
+                    <h3 style="margin:0; color:var(--accent-green)">No financial events occurred on this day.</h3>
+                    <p style="margin:5px 0 0 0; color:var(--text-muted)">This is rare. Enjoy it.</p>
+                </div>
+            </div>
+
+            <div class="tape-track">
+                <div class="marker" style="left: 20%; background: var(--accent-red);" title="Red Flag Replay" onclick="jumpTo(20)"></div>
+                <div class="marker" style="left: 45%; background: var(--accent-yellow);" title="Close Call" onclick="jumpTo(45)"></div>
+                <div class="marker" style="left: 80%; background: var(--accent-green);" title="Accounting Finally Notices" onclick="jumpTo(80)"></div>
+            </div>
+        </div>
+
+        <div class="controls-area">
+            <div class="buttons">
+                <button onclick="rewind()">⏪ Rewind to What We Thought</button>
+                <button onclick="playPause()" id="playBtn">▶ Play Reality</button>
+                <button onclick="ffwd()">⏩ Fast-forward to When Accounting Caught Up</button>
+            </div>
+            <div class="slider-container">
+                <input type="range" min="0" max="100" value="0" id="scrubber" oninput="updateDVR()">
+                <div class="slider-caption">“Scrubbing does not change history. It only reveals it.”</div>
+            </div>
+        </div>
+
+        <div class="system-log" id="log">
+            SYSTEM: Confidence is low because reality has not checked in yet.
+        </div>
+
+        <div class="metrics">
+            <div class="card">
+                <div class="card-label" data-real-name="Unreconciled Cash / Float">Money Currently Existing Nowhere</div>
+                <div class="card-value" id="val-limbo">$0.00</div>
+                <div class="confidence-text" style="margin-top:5px; color: var(--accent-red);">System is bored.</div>
+            </div>
+
+            <div class="card">
+                <div class="card-label" data-real-name="Entry Latency / Lag">Time Spent Pretending Nothing Happened</div>
+                <div class="card-value" id="val-lag">0 Days</div>
+                <div class="confidence-text">Accounting Catch-Up Queue: Empty</div>
+            </div>
+
+            <div class="card">
+                <div class="card-label" data-real-name="Forecast Confidence Score">How Much We Trust Ourselves</div>
+                <div class="card-value" id="val-conf">100%</div>
+                <div class="confidence-bar"><div class="confidence-fill" id="bar-conf" style="width:100%"></div></div>
+                <div class="confidence-text" id="text-conf">We’re Mostly Sure</div>
+            </div>
+        </div>
+
+        <div class="action-area">
+            <button class="btn-explain" onclick="explain()">Why Is This Like This?</button>
+        </div>
+
+    </div>
+
+    <script>
+        const scrubber = document.getElementById('scrubber');
+        const log = document.getElementById('log');
+        const valLimbo = document.getElementById('val-limbo');
+        const valLag = document.getElementById('val-lag');
+        const valConf = document.getElementById('val-conf');
+        const barConf = document.getElementById('bar-conf');
+        const textConf = document.getElementById('text-conf');
+        const easterEgg = document.getElementById('easter-egg');
+        const playBtn = document.getElementById('playBtn');
+
+        let isPlaying = false;
+        let playInterval;
+
+        function updateDVR() {
+            const val = parseInt(scrubber.value);
+            
+            // 1. Math Updates (The "Serious" part)
+            // Simulating divergence as time goes on
+            let limboAmount = Math.floor(val * 242.50);
+            let lagDays = Math.floor(val / 12);
+            let confidence = Math.max(18, 100 - (val * 0.8));
+
+            // 2. UI Updates
+            valLimbo.innerText = "$" + limboAmount.toLocaleString();
+            valLag.innerText = lagDays + " Days";
+            valConf.innerText = Math.floor(confidence) + "%";
+            barConf.style.width = confidence + "%";
+
+            // 3. Color logic for confidence
+            if(confidence < 40) {
+                barConf.style.background = "var(--accent-red)";
+                textConf.innerText = "Please Do Not Automate This";
+            } else if (confidence < 70) {
+                barConf.style.background = "var(--accent-yellow)";
+                textConf.innerText = "This Is Aspirational";
+            } else {
+                barConf.style.background = "var(--accent-green)";
+                textConf.innerText = "We’re Mostly Sure";
+            }
+
+            // 4. System Personality & Easter Egg
+            easterEgg.style.display = 'none'; // reset
+
+            if (val === 0) {
+                log.innerText = "SYSTEM: Ready. Reality is currently paused.";
+            } else if (val > 18 && val < 22) {
+                log.innerText = "SYSTEM: 🟥 Red Flag Replay. This is where the forecast quietly broke.";
+            } else if (val === 50) {
+                // The Easter Egg
+                easterEgg.style.display = 'block';
+                log.innerText = "SYSTEM: Nothing happened on this day.";
+            } else if (val > 78 && val < 82) {
+                log.innerText = "SYSTEM: 🟢 Accounting Finally Notices. The numbers changed. The reason was boring.";
+            } else {
+                // Random boring comments
+                const comments = [
+                    "SYSTEM: This event occurred. Accounting learned about it later.",
+                    "SYSTEM: Confidence is dropping. Evidence is missing.",
+                    "SYSTEM: Calculated divergence. No one panic.",
+                    "SYSTEM: Processing... Still pretending nothing happened."
+                ];
+                // Only change comment occasionally to avoid flickering
+                if(val % 10 === 0) {
+                    log.innerText = comments[Math.floor(Math.random() * comments.length)];
+                }
+            }
+        }
+
+        function playPause() {
+            if(isPlaying) {
+                clearInterval(playInterval);
+                playBtn.innerText = "▶ Play Reality";
+                isPlaying = false;
+            } else {
+                playBtn.innerText = "⏸ Pause Belief";
+                isPlaying = true;
+                playInterval = setInterval(() => {
+                    if(scrubber.value < 100) {
+                        scrubber.value++;
+                        updateDVR();
+                    } else {
+                        playPause(); // stop at end
+                    }
+                }, 100);
+            }
+        }
+
+        function rewind() {
+            scrubber.value = 0;
+            updateDVR();
+        }
+
+        function ffwd() {
+            scrubber.value = 100;
+            updateDVR();
+        }
+
+        function jumpTo(val) {
+            scrubber.value = val;
+            updateDVR();
+        }
+
+        function explain() {
+            alert("You asked. Here’s what actually happened:\n\nThe system waited for wire confirmation before assuming liquidity. The spreadsheet you were using assumed liquidity because it felt optimistic. \n\nWe trust the wire.");
+        }
+
+        // Initialize
+        updateDVR();
+
+    </script>
+</body>
+</html>

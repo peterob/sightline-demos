@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Data Trust Architecture</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-tertiary: #1a1a1d;
+            --bg-card: #141416;
+            --border: #2a2a2e;
+            --border-active: #3a3a3e;
+            --text-primary: #f0f0f2;
+            --text-secondary: #8a8a8e;
+            --text-muted: #5a5a5e;
+            --trust-high: #22c55e;
+            --trust-high-dim: rgba(34, 197, 94, 0.15);
+            --trust-medium: #f59e0b;
+            --trust-medium-dim: rgba(245, 158, 11, 0.15);
+            --trust-low: #ef4444;
+            --trust-low-dim: rgba(239, 68, 68, 0.15);
+            --accent-blue: #3b82f6;
+            --accent-blue-dim: rgba(59, 130, 246, 0.15);
+            --accent-cyan: #06b6d4;
+            --accent-purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--accent-cyan);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Trust Matrix */
+        .trust-matrix {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .trust-column {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .trust-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .trust-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .trust-dot.high { background: var(--trust-high); }
+        .trust-dot.medium { background: var(--trust-medium); }
+        .trust-dot.low { background: var(--trust-low); }
+
+        .trust-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .trust-body {
+            padding: 20px;
+        }
+
+        .trust-item {
+            padding: 12px 0;
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .trust-item:last-child {
+            border-bottom: none;
+        }
+
+        .trust-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .trust-item-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .trust-item-source {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .trust-item-why {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 40px;
+        }
+
+        .arch-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .arch-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .arch-layer {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .arch-box {
+            flex: 1;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .arch-box.shopify {
+            background: var(--trust-high-dim);
+            border: 1px solid var(--trust-high);
+        }
+
+        .arch-box.bank {
+            background: var(--trust-high-dim);
+            border: 1px solid var(--trust-high);
+        }
+
+        .arch-box.sightline {
+            background: var(--accent-blue-dim);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .arch-box.borrower {
+            background: var(--trust-medium-dim);
+            border: 1px solid var(--trust-medium);
+        }
+
+        .arch-box.lender {
+            background: var(--accent-blue-dim);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .arch-box-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .arch-box.shopify .arch-box-title { color: var(--trust-high); }
+        .arch-box.bank .arch-box-title { color: var(--trust-high); }
+        .arch-box.sightline .arch-box-title { color: var(--accent-blue); }
+        .arch-box.borrower .arch-box-title { color: var(--trust-medium); }
+        .arch-box.lender .arch-box-title { color: var(--accent-blue); }
+
+        .arch-box-content {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .arch-arrow {
+            display: flex;
+            justify-content: center;
+            padding: 8px 0;
+            color: var(--text-muted);
+        }
+
+        .arch-arrow svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .arch-arrow-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        /* Event Table */
+        .event-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .event-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .event-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .event-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .event-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .trust-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .trust-badge.high {
+            background: var(--trust-high-dim);
+            color: var(--trust-high);
+        }
+
+        .trust-badge.medium {
+            background: var(--trust-medium-dim);
+            color: var(--trust-medium);
+        }
+
+        .trust-badge.low {
+            background: var(--trust-low-dim);
+            color: var(--trust-low);
+        }
+
+        .trust-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .code-header {
+            padding: 10px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .code-body {
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .code-body .comment { color: var(--text-muted); }
+        .code-body .key { color: var(--accent-cyan); }
+        .code-body .string { color: var(--trust-high); }
+        .code-body .number { color: var(--trust-medium); }
+        .code-body .bool { color: var(--accent-purple); }
+
+        /* Insight Box */
+        .insight-box {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-cyan);
+            padding: 20px 24px;
+            margin: 24px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .insight-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+        }
+
+        .insight-body {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Webhook List */
+        .webhook-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .webhook-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .webhook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .webhook-topic {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-cyan);
+        }
+
+        .webhook-use {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .webhook-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .webhook-field {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            padding: 3px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            color: var(--text-muted);
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .summary-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-card-title svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--accent-cyan);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .summary-list {
+            list-style: none;
+        }
+
+        .summary-list li {
+            padding: 8px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .summary-list li::before {
+            content: '→';
+            color: var(--trust-high);
+            font-weight: 600;
+        }
+
+        .summary-list li.warning::before {
+            content: '!';
+            color: var(--trust-medium);
+            background: var(--trust-medium-dim);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Data Trust Architecture</h1>
+        <p class="subtitle">Where does Sightline sit? What data can we trust? What's garbage-in/garbage-out?</p>
+
+        <!-- Core Insight -->
+        <div class="insight-box">
+            <div class="insight-title">The Fundamental Insight</div>
+            <div class="insight-body">
+                <strong>The sell-side is trustworthy. The buy-side is not.</strong><br><br>
+                Shopify, Stripe, and banks have skin in the game—their business depends on accurate data. 
+                The borrower's assertions about POs, receipts, and inventory? They have incentive to lie.
+                <br><br>
+                <strong>Implication:</strong> We can build a high-trust repayment engine on Shopify data. 
+                The advance decision requires different verification—or different risk pricing.
+            </div>
+        </div>
+
+        <!-- Trust Matrix -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Trust Matrix: Event Sources
+            </div>
+            
+            <div class="trust-matrix">
+                <!-- High Trust -->
+                <div class="trust-column">
+                    <div class="trust-header">
+                        <div class="trust-dot high"></div>
+                        <span class="trust-label">High Trust</span>
+                    </div>
+                    <div class="trust-body">
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">orders/paid</span>
+                                <span class="trust-item-source">Shopify</span>
+                            </div>
+                            <div class="trust-item-why">Payment processor confirmed funds. Shopify's business depends on this being accurate.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">orders/fulfilled</span>
+                                <span class="trust-item-source">Shopify + Carrier</span>
+                            </div>
+                            <div class="trust-item-why">Tracking number from carrier. Verifiable against carrier API.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">payout_status: paid</span>
+                                <span class="trust-item-source">Shopify Payments</span>
+                            </div>
+                            <div class="trust-item-why">Bank confirmed deposit. Auditable, regulated.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">balance_transaction</span>
+                                <span class="trust-item-source">Shopify Payments</span>
+                            </div>
+                            <div class="trust-item-why">Canonical ledger of money movement. Ties to order_id.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">refunds/create</span>
+                                <span class="trust-item-source">Shopify</span>
+                            </div>
+                            <div class="trust-item-why">Money moved back to customer. Verifiable.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medium Trust -->
+                <div class="trust-column">
+                    <div class="trust-header">
+                        <div class="trust-dot medium"></div>
+                        <span class="trust-label">Medium Trust</span>
+                    </div>
+                    <div class="trust-body">
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">shipment_departed</span>
+                                <span class="trust-item-source">Supplier</span>
+                            </div>
+                            <div class="trust-item-why">Supplier has incentive to claim shipment. But B/L is verifiable.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">po_issued</span>
+                                <span class="trust-item-source">Borrower ERP</span>
+                            </div>
+                            <div class="trust-item-why">Could fabricate POs. But can cross-reference with supplier confirmation.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">invoice_received</span>
+                                <span class="trust-item-source">Supplier</span>
+                            </div>
+                            <div class="trust-item-why">Supplier-originated. Aligns with their incentive to get paid.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">products/create</span>
+                                <span class="trust-item-source">Shopify</span>
+                            </div>
+                            <div class="trust-item-why">Borrower controls product catalog. But verifiable it exists in store.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Low Trust -->
+                <div class="trust-column">
+                    <div class="trust-header">
+                        <div class="trust-dot low"></div>
+                        <span class="trust-label">Low Trust (Verify)</span>
+                    </div>
+                    <div class="trust-body">
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">goods_received</span>
+                                <span class="trust-item-source">Borrower</span>
+                            </div>
+                            <div class="trust-item-why">Borrower has incentive to delay acknowledging receipt (extends terms).</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">inventory_count</span>
+                                <span class="trust-item-source">Borrower WMS</span>
+                            </div>
+                            <div class="trust-item-why">Borrower could overstate inventory to inflate borrowing base.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">inventory_location</span>
+                                <span class="trust-item-source">Borrower</span>
+                            </div>
+                            <div class="trust-item-why">No independent verification of where goods actually are.</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-item-header">
+                                <span class="trust-item-name">cost_basis</span>
+                                <span class="trust-item-source">Borrower</span>
+                            </div>
+                            <div class="trust-item-why">Could inflate COGS to claim larger advance. Need supplier invoice.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Key Insight -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                The Architectural Implication
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-card-title">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        What We CAN Build with High Trust
+                    </div>
+                    <ul class="summary-list">
+                        <li>Auto-repayment from Shopify sales (orders/paid → sweep)</li>
+                        <li>Real-time revenue tracking per PO (SKU → PO mapping)</li>
+                        <li>Sell-through velocity calculation (fulfillment events)</li>
+                        <li>Refund/chargeback monitoring (disputes, refunds)</li>
+                        <li>Cash position tracking (balance_transactions, payouts)</li>
+                        <li>Projected payoff based on actual sales velocity</li>
+                    </ul>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        What Requires Additional Verification
+                    </div>
+                    <ul class="summary-list">
+                        <li class="warning">Advance amount (depends on PO legitimacy, supplier confirmation)</li>
+                        <li class="warning">Collateral value (depends on inventory actually existing)</li>
+                        <li class="warning">Receipt confirmation (borrower-asserted, verify with carrier)</li>
+                        <li class="warning">Inventory location (consider 3PL integration as trust anchor)</li>
+                        <li class="warning">Cost basis (cross-reference with supplier invoice)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shopify Webhooks We Need -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Shopify Events for Auto-Repayment
+            </div>
+
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                These webhooks from Shopify provide the high-trust event stream that powers automatic loan repayment.
+                No borrower input required—the data flows directly from Shopify's systems.
+            </p>
+
+            <div class="webhook-grid">
+                <div class="webhook-card">
+                    <div class="webhook-header">
+                        <span class="webhook-topic">orders/create</span>
+                        <span class="trust-badge high">High Trust</span>
+                    </div>
+                    <div class="webhook-use">Captures new order. Maps to PO via SKU lookup.</div>
+                    <div class="webhook-fields">
+                        <span class="webhook-field">order_id</span>
+                        <span class="webhook-field">line_items[]</span>
+                        <span class="webhook-field">sku</span>
+                        <span class="webhook-field">quantity</span>
+                        <span class="webhook-field">price</span>
+                        <span class="webhook-field">created_at</span>
+                    </div>
+                </div>
+
+                <div class="webhook-card">
+                    <div class="webhook-header">
+                        <span class="webhook-topic">orders/paid</span>
+                        <span class="trust-badge high">High Trust</span>
+                    </div>
+                    <div class="webhook-use">Payment confirmed. Triggers revenue recognition.</div>
+                    <div class="webhook-fields">
+                        <span class="webhook-field">order_id</span>
+                        <span class="webhook-field">financial_status</span>
+                        <span class="webhook-field">total_price</span>
+                        <span class="webhook-field">subtotal_price</span>
+                        <span class="webhook-field">payment_gateway_names</span>
+                    </div>
+                </div>
+
+                <div class="webhook-card">
+                    <div class="webhook-header">
+                        <span class="webhook-topic">orders/fulfilled</span>
+                        <span class="trust-badge high">High Trust</span>
+                    </div>
+                    <div class="webhook-use">Goods shipped to customer. Reduces inventory, triggers waterfall.</div>
+                    <div class="webhook-fields">
+                        <span class="webhook-field">order_id</span>
+                        <span class="webhook-field">fulfillment_status</span>
+                        <span class="webhook-field">tracking_number</span>
+                        <span class="webhook-field">tracking_company</span>
+                        <span class="webhook-field">line_items[]</span>
+                    </div>
+                </div>
+
+                <div class="webhook-card">
+                    <div class="webhook-header">
+                        <span class="webhook-topic">refunds/create</span>
+                        <span class="trust-badge high">High Trust</span>
+                    </div>
+                    <div class="webhook-use">Refund issued. Reverses waterfall allocation.</div>
+                    <div class="webhook-fields">
+                        <span class="webhook-field">refund_id</span>
+                        <span class="webhook-field">order_id</span>
+                        <span class="webhook-field">refund_line_items[]</span>
+                        <span class="webhook-field">amount</span>
+                        <span class="webhook-field">restock</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="code-block" style="margin-top: 24px;">
+                <div class="code-header">Shopify Payments API — Balance Transactions (GraphQL)</div>
+                <div class="code-body">
+<span class="comment"># This is the canonical ledger for money movement</span>
+<span class="comment"># Each transaction ties back to an order_id</span>
+<span class="comment"># We use this to verify actual cash received</span>
+
+query {
+  shopifyPaymentsAccount {
+    balanceTransactions(first: 50) {
+      edges {
+        node {
+          <span class="key">id</span>
+          <span class="key">type</span>          <span class="comment"># charge, refund, dispute, payout</span>
+          <span class="key">amount</span> { amount currencyCode }
+          <span class="key">fee</span> { amount currencyCode }
+          <span class="key">net</span> { amount currencyCode }
+          <span class="key">sourceOrderTransaction</span> {
+            id
+            order { id name }  <span class="comment"># Links back to the order</span>
+          }
+          <span class="key">processedAt</span>
+          <span class="key">payout</span> {
+            id
+            status           <span class="comment"># scheduled, in_transit, paid</span>
+            issuedAt
+          }
+        }
+      }
+    }
+  }
+}
+                </div>
+            </div>
+        </section>
+
+        <!-- The Auto-Repayment Flow -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                The High-Trust Repayment Loop
+            </div>
+
+            <div class="architecture">
+                <div class="arch-title">Event Flow: Shopify Sale → Lender Repayment</div>
+                
+                <div class="arch-flow">
+                    <!-- Layer 1: Customer -->
+                    <div class="arch-layer">
+                        <div class="arch-box" style="background: var(--bg-tertiary); border: 1px dashed var(--border);">
+                            <div class="arch-box-title" style="color: var(--text-secondary);">Customer</div>
+                            <div class="arch-box-content">Places order, pays with credit card</div>
+                        </div>
+                    </div>
+
+                    <div class="arch-arrow">
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                    </div>
+
+                    <!-- Layer 2: Shopify -->
+                    <div class="arch-layer">
+                        <div class="arch-box shopify">
+                            <div class="arch-box-title">Shopify</div>
+                            <div class="arch-box-content">
+                                <strong>orders/create</strong> → <strong>orders/paid</strong> → <strong>orders/fulfilled</strong>
+                                <br>Webhooks fire in real-time with order details
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="arch-arrow">
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                        <div class="arch-arrow-label">HMAC-signed webhooks (verified)</div>
+                    </div>
+
+                    <!-- Layer 3: Sightline -->
+                    <div class="arch-layer">
+                        <div class="arch-box sightline" style="flex: 2;">
+                            <div class="arch-box-title">Sightline Event Ledger</div>
+                            <div class="arch-box-content">
+                                1. Receive webhook, verify HMAC signature<br>
+                                2. Map SKU → PO (which financing silo?)<br>
+                                3. Run <code>sales_waterfall</code> function<br>
+                                4. Compute: Revenue → COGS → Lender → Margin<br>
+                                5. Emit: <code>repayment_due</code> event
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="arch-arrow">
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                        <div class="arch-arrow-label">Computed allocation per Standard Function</div>
+                    </div>
+
+                    <!-- Layer 4: Money Movement -->
+                    <div class="arch-layer">
+                        <div class="arch-box bank">
+                            <div class="arch-box-title">Shopify Payments → Bank</div>
+                            <div class="arch-box-content">
+                                Payout deposited to merchant account<br>
+                                <code>balance_transaction</code> confirms
+                            </div>
+                        </div>
+                        <div class="arch-box lender">
+                            <div class="arch-box-title">Sweep to Lender</div>
+                            <div class="arch-box-content">
+                                Automated ACH/wire of lender's portion<br>
+                                Triggered by <code>payout_status: paid</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <div class="insight-title">Why This Loop is High-Trust</div>
+                <div class="insight-body">
+                    Every step in this flow originates from a system with independent accountability:
+                    <ul style="margin-top: 12px; margin-left: 20px; color: var(--text-secondary);">
+                        <li><strong>Shopify</strong> — Their business depends on accurate order/payment data</li>
+                        <li><strong>Payment Processor</strong> — Regulated, audited, legally liable</li>
+                        <li><strong>Bank</strong> — Regulated, confirmed deposits are verifiable</li>
+                        <li><strong>Sightline</strong> — Deterministic computation on verified inputs</li>
+                    </ul>
+                    <br>
+                    The borrower never touches this data. They can't fabricate sales, inflate revenue, or misreport payments.
+                    The repayment loop is <strong>self-enforcing</strong>.
+                </div>
+            </div>
+        </section>
+
+        <!-- The Advance Problem -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                The Advance Problem: Where Trust Breaks Down
+            </div>
+
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                The repayment loop is high-trust. But the <strong>advance decision</strong> depends on buy-side data 
+                that the borrower controls. This is where garbage-in/garbage-out risk lives.
+            </p>
+
+            <div class="code-block">
+                <div class="code-header">The Advance Decision: What We Need to Verify</div>
+                <div class="code-body">
+<span class="comment"># To advance $40,000 against a PO, we need to trust:</span>
+
+<span class="key">1. PO is real</span>
+   └─ Borrower says they issued PO for $50K
+   └─ <span class="string">Verify: Supplier confirmation? Payment to supplier?</span>
+
+<span class="key">2. Goods will ship</span>
+   └─ Supplier says they'll deliver 1,000 units
+   └─ <span class="string">Verify: Deposit paid? Supplier track record?</span>
+
+<span class="key">3. Goods are received</span>
+   └─ Borrower says goods arrived at warehouse
+   └─ <span class="string">Verify: Carrier delivery confirmation? 3PL receipt?</span>
+
+<span class="key">4. Goods will sell</span>
+   └─ Borrower believes product will sell at $99/unit
+   └─ <span class="string">Verify: Historical velocity for similar SKUs? Market data?</span>
+
+<span class="key">5. Inventory exists</span>
+   └─ Borrower's WMS says 1,000 units on hand
+   └─ <span class="string">Verify: 3PL confirmation? Periodic audit?</span>
+                </div>
+            </div>
+
+            <div class="summary-grid" style="margin-top: 24px;">
+                <div class="summary-card">
+                    <div class="summary-card-title">
+                        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Option A: Trust Anchors
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Add trusted third parties to verify buy-side events:
+                    </p>
+                    <ul class="summary-list">
+                        <li><strong>3PL Integration</strong> — ShipBob, Deliverr confirm receipt/inventory</li>
+                        <li><strong>Supplier Confirmation</strong> — Supplier signs PO on Sightline</li>
+                        <li><strong>Payment Verification</strong> — Bank confirms wire to supplier</li>
+                        <li><strong>Carrier Tracking</strong> — Delivery confirmation from Maersk, FedEx</li>
+                    </ul>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Option B: Risk Pricing
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Accept lower trust, price it into the advance:
+                    </p>
+                    <ul class="summary-list">
+                        <li><strong>Lower Advance Rate</strong> — 60% instead of 80% until verified</li>
+                        <li><strong>Higher Fee</strong> — Charge for unverified risk</li>
+                        <li><strong>Escrow Structure</strong> — Hold advance until receipt confirmed</li>
+                        <li><strong>Track Record</strong> — Better terms as trust builds</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Bottom Line -->
+        <section class="section">
+            <div class="section-title">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                The Bottom Line: Where Sightline Sits
+            </div>
+
+            <div class="architecture" style="background: var(--bg-secondary);">
+                <table class="event-table">
+                    <thead>
+                        <tr>
+                            <th>Function</th>
+                            <th>Data Source</th>
+                            <th>Trust Level</th>
+                            <th>Implication</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="event-name">sales_waterfall</td>
+                            <td>Shopify webhooks</td>
+                            <td><span class="trust-badge high">High</span></td>
+                            <td>Can auto-execute repayment with confidence</td>
+                        </tr>
+                        <tr>
+                            <td class="event-name">repayment_tracking</td>
+                            <td>Shopify Payments API</td>
+                            <td><span class="trust-badge high">High</span></td>
+                            <td>Know exactly what's been repaid, verified by bank</td>
+                        </tr>
+                        <tr>
+                            <td class="event-name">velocity_calculation</td>
+                            <td>Shopify order history</td>
+                            <td><span class="trust-badge high">High</span></td>
+                            <td>Accurate sell-through rates for projections</td>
+                        </tr>
+                        <tr>
+                            <td class="event-name">aging_assessment</td>
+                            <td>Sightline (derived)</td>
+                            <td><span class="trust-badge high">High</span></td>
+                            <td>Computed from trusted events, no borrower input</td>
+                        </tr>
+                        <tr>
+                            <td class="event-name">advance_decision</td>
+                            <td>Borrower + Supplier</td>
+                            <td><span class="trust-badge medium">Medium</span></td>
+                            <td>Requires verification or risk pricing</td>
+                        </tr>
+                        <tr>
+                            <td class="event-name">collateral_valuation</td>
+                            <td>Borrower WMS</td>
+                            <td><span class="trust-badge low">Verify</span></td>
+                            <td>Need 3PL or audit for high confidence</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="insight-box" style="border-left-color: var(--trust-high);">
+                <div class="insight-title" style="color: var(--trust-high);">The MVP Scope</div>
+                <div class="insight-body">
+                    <strong>Build the high-trust repayment engine first.</strong><br><br>
+                    The Shopify integration gives us everything we need to:
+                    <ul style="margin-top: 12px; margin-left: 20px;">
+                        <li>Track sales per SKU in real-time</li>
+                        <li>Map sales to POs (via SKU → PO mapping)</li>
+                        <li>Compute waterfall allocation automatically</li>
+                        <li>Verify cash received via balance_transactions</li>
+                        <li>Execute sweep to lender on payout confirmation</li>
+                    </ul>
+                    <br>
+                    The advance decision can start simple (manual underwriting, lower advance rates) 
+                    and add trust anchors over time (3PL integration, supplier onboarding).
+                    <br><br>
+                    <strong>The repayment engine is the product. The advance process is risk management.</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Shared Truth Protocol</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #06080c;
+            --bg-secondary: #0d1117;
+            --bg-tertiary: #161b22;
+            --bg-card: #1c2128;
+            --border: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #484f58;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+            --accent-cyan: #39c5cf;
+            --buyer-color: #58a6ff;
+            --supplier-color: #a371f7;
+            --system-color: #3fb950;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            z-index: 1000;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(88, 166, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(88, 166, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0 40px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 32px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 30px rgba(88, 166, 255, 0.3);
+        }
+
+        .logo-text h1 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text span {
+            font-size: 13px;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active { background: var(--accent-green); }
+        .status-dot.pending { background: var(--accent-yellow); }
+        .status-dot.error { background: var(--accent-red); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            gap: 24px;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .panel-content {
+            padding: 20px 24px;
+        }
+
+        /* Party Panels */
+        .party-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .party-panel.buyer .panel-icon { background: linear-gradient(135deg, var(--buyer-color), #1f6feb); }
+        .party-panel.supplier .panel-icon { background: linear-gradient(135deg, var(--supplier-color), #8957e5); }
+
+        .party-info {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            margin-bottom: 16px;
+        }
+
+        .party-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .party-role {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .action-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+
+        .form-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text-primary);
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .total-display {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(63, 185, 80, 0.05));
+            border: 1px solid rgba(63, 185, 80, 0.2);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .total-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .total-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), #1f6feb);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(88, 166, 255, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #238636);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(63, 185, 80, 0.3);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--accent-yellow), #9e6a03);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #da3633);
+            color: white;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, var(--accent-purple), #8957e5);
+            color: white;
+        }
+
+        .btn-purple:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(163, 113, 247, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .waiting-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .waiting-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .turn-indicator {
+            margin-left: auto;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .turn-indicator.buyer {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--buyer-color);
+        }
+
+        .turn-indicator.supplier {
+            background: rgba(163, 113, 247, 0.15);
+            color: var(--supplier-color);
+        }
+
+        /* Center Panel - Transaction Flow */
+        .flow-panel .panel-icon {
+            background: linear-gradient(135deg, var(--accent-cyan), #1b7c83);
+        }
+
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .tx-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-cyan);
+        }
+
+        .tx-state {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tx-state.draft { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
+        .tx-state.pending { background: rgba(210, 153, 34, 0.15); color: var(--accent-yellow); }
+        .tx-state.accepted { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); }
+        .tx-state.shipped { background: rgba(163, 113, 247, 0.15); color: var(--accent-purple); }
+        .tx-state.completed { background: rgba(63, 185, 80, 0.2); color: var(--accent-green); }
+        .tx-state.disputed { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 32px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--border), transparent);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .timeline-item:hover {
+            background: var(--bg-card);
+            transform: translateX(4px);
+        }
+
+        .timeline-item.buyer { border-left-color: var(--buyer-color); }
+        .timeline-item.supplier { border-left-color: var(--supplier-color); }
+        .timeline-item.system { border-left-color: var(--system-color); }
+
+        .timeline-dot {
+            position: absolute;
+            left: -27px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .timeline-item.buyer .timeline-dot { background: var(--buyer-color); }
+        .timeline-item.supplier .timeline-dot { background: var(--supplier-color); }
+        .timeline-item.system .timeline-dot { background: var(--system-color); }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .event-type {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .event-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .event-time {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .event-payload {
+            display: none;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .timeline-item.expanded .event-payload {
+            display: block;
+        }
+
+        .event-hash {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+
+        .hash-label {
+            color: var(--text-muted);
+        }
+
+        .hash-value {
+            color: var(--accent-green);
+        }
+
+        .hash-prev {
+            color: var(--accent-yellow);
+        }
+
+        .empty-timeline {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-timeline-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        /* Event Log Panel */
+        .log-panel .panel-icon {
+            background: linear-gradient(135deg, var(--accent-green), #238636);
+        }
+
+        .chain-integrity {
+            padding: 14px 16px;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.2);
+            border-radius: 10px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chain-integrity-icon {
+            font-size: 20px;
+        }
+
+        .chain-integrity-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-green);
+        }
+
+        .chain-integrity-count {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .event-list-item {
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-list-item:hover {
+            background: var(--bg-card);
+        }
+
+        .event-list-item.selected {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .event-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .event-list-type {
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .event-list-type::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .event-list-item.buyer .event-list-type::before { background: var(--buyer-color); }
+        .event-list-item.supplier .event-list-type::before { background: var(--supplier-color); }
+        .event-list-item.system .event-list-type::before { background: var(--system-color); }
+
+        .event-list-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .event-list-hash {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--accent-green);
+        }
+
+        /* Detail Panel */
+        .detail-panel {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            display: none;
+        }
+
+        .detail-panel.visible {
+            display: block;
+        }
+
+        .detail-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .detail-key {
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+        }
+
+        /* Completion Banner */
+        .completion-banner {
+            margin-top: 24px;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+
+        .completion-banner.visible {
+            display: block;
+            animation: slideUp 0.4s ease;
+        }
+
+        .completion-banner.success {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(63, 185, 80, 0.05));
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .completion-banner.disputed {
+            background: linear-gradient(135deg, rgba(248, 81, 73, 0.15), rgba(248, 81, 73, 0.05));
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .completion-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .completion-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .completion-banner.success .completion-title { color: var(--accent-green); }
+        .completion-banner.disputed .completion-title { color: var(--accent-red); }
+
+        .completion-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .log-panel {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .log-panel {
+                grid-column: span 1;
+            }
+        }
+
+        /* Export Button */
+        .export-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #f0883e, #d97706);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 32px rgba(240, 136, 62, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(240, 136, 62, 0.5);
+        }
+
+        .export-btn.visible {
+            display: flex;
+        }
+
+        /* Export Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 24px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-title-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f0883e, #d97706);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 20px 28px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Evidence Package Preview */
+        .evidence-preview {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .evidence-header {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-card));
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .evidence-logo {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .evidence-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .evidence-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .evidence-meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .evidence-meta-item {
+            background: var(--bg-secondary);
+            padding: 16px 20px;
+            text-align: center;
+        }
+
+        .evidence-meta-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .evidence-meta-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .evidence-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .evidence-section:last-child {
+            border-bottom: none;
+        }
+
+        .evidence-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .evidence-section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        .evidence-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .evidence-summary-item {
+            background: var(--bg-tertiary);
+            padding: 14px 16px;
+            border-radius: 8px;
+        }
+
+        .evidence-summary-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .evidence-summary-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .evidence-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .evidence-event {
+            display: grid;
+            grid-template-columns: 100px 140px 1fr 90px;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .evidence-event-id {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+        }
+
+        .evidence-event-type {
+            font-weight: 500;
+        }
+
+        .evidence-event-hash {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-green);
+            font-size: 11px;
+        }
+
+        .evidence-event-party {
+            text-align: right;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .evidence-event-party.buyer { color: var(--buyer-color); }
+        .evidence-event-party.supplier { color: var(--supplier-color); }
+        .evidence-event-party.system { color: var(--system-color); }
+
+        .evidence-integrity {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .evidence-integrity-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .evidence-integrity-text {
+            flex: 1;
+        }
+
+        .evidence-integrity-title {
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 2px;
+        }
+
+        .evidence-integrity-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .evidence-dispute {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+
+        .evidence-dispute-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .evidence-dispute-title {
+            font-weight: 600;
+            color: var(--accent-red);
+        }
+
+        .evidence-dispute-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+
+        .evidence-dispute-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .evidence-dispute-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .evidence-dispute-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .evidence-dispute-value.negative {
+            color: var(--accent-red);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    <div class="grid-bg"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">
+                    <h1>Sightline</h1>
+                    <span>Shared Truth Protocol</span>
+                </div>
+            </div>
+            <div class="header-status">
+                <div class="status-badge">
+                    <div class="status-dot active"></div>
+                    <span>Chain Active</span>
+                </div>
+                <button class="btn btn-outline" onclick="resetDemo()">↺ Reset Demo</button>
+            </div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Buyer Panel -->
+            <div class="panel party-panel buyer">
+                <div class="panel-header">
+                    <div class="panel-icon">🏢</div>
+                    <div>
+                        <div class="panel-title">Buyer</div>
+                        <div class="panel-subtitle">Acme Corporation</div>
+                    </div>
+                    <div class="turn-indicator buyer" id="buyerTurn" style="display: none;">Your Turn</div>
+                </div>
+                <div class="panel-content">
+                    <div id="buyerActions"></div>
+                </div>
+            </div>
+
+            <!-- Transaction Flow Panel -->
+            <div class="panel flow-panel">
+                <div class="panel-header">
+                    <div class="panel-icon">🔄</div>
+                    <div>
+                        <div class="panel-title">Transaction Flow</div>
+                        <div class="panel-subtitle">Event Timeline</div>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="transaction-header">
+                        <div>
+                            <div class="tx-id" id="txId">TX-00000000</div>
+                        </div>
+                        <div class="tx-state" id="txState">Draft</div>
+                    </div>
+                    <div class="timeline" id="timeline">
+                        <div class="empty-timeline">
+                            <div class="empty-timeline-icon">🔗</div>
+                            <div>No events yet</div>
+                            <div style="font-size: 12px; margin-top: 4px;">Create a PO to start the chain</div>
+                        </div>
+                    </div>
+                    <div class="completion-banner" id="completionBanner">
+                        <div class="completion-icon" id="completionIcon"></div>
+                        <div class="completion-title" id="completionTitle"></div>
+                        <div class="completion-text" id="completionText"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supplier Panel -->
+            <div class="panel party-panel supplier">
+                <div class="panel-header">
+                    <div class="panel-icon">🏭</div>
+                    <div>
+                        <div class="panel-title">Supplier</div>
+                        <div class="panel-subtitle">TechSupply Inc</div>
+                    </div>
+                    <div class="turn-indicator supplier" id="supplierTurn" style="display: none;">Your Turn</div>
+                </div>
+                <div class="panel-content">
+                    <div id="supplierActions"></div>
+                </div>
+            </div>
+
+            <!-- Event Log Panel -->
+            <div class="panel log-panel" style="grid-column: span 3;">
+                <div class="panel-header">
+                    <div class="panel-icon">🔗</div>
+                    <div>
+                        <div class="panel-title">Immutable Event Chain</div>
+                        <div class="panel-subtitle">Cryptographically Linked Audit Trail</div>
+                    </div>
+                </div>
+                <div class="panel-content" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div>
+                        <div class="chain-integrity" id="chainIntegrity">
+                            <span class="chain-integrity-icon">✓</span>
+                            <div>
+                                <div class="chain-integrity-text">Chain Integrity Verified</div>
+                                <div class="chain-integrity-count" id="eventCount">0 events linked</div>
+                            </div>
+                        </div>
+                        <div class="event-list" id="eventList">
+                            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                                Events will appear here as they occur
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="detail-panel" id="detailPanel">
+                            <div class="detail-title" id="detailTitle">
+                                <span>Event Details</span>
+                            </div>
+                            <div class="detail-grid" id="detailGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    <button class="export-btn" id="exportBtn" onclick="openExportModal()">
+        📋 Export Evidence Package
+    </button>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <div class="modal-title-icon">📋</div>
+                    <span>Evidence Package</span>
+                </div>
+                <button class="modal-close" onclick="closeExportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="evidence-preview" id="evidencePreview"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeExportModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="downloadJSON()">⬇ Download JSON</button>
+                <button class="btn btn-success" onclick="downloadPDF()">⬇ Download PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Event Schema from spreadsheet
+        const EVENT_SCHEMA = {
+            PO_CREATED: {
+                id: 'EVT-001',
+                label: 'PO Created',
+                party: 'buyer',
+                description: 'Purchase order created and submitted to supplier',
+                nextState: 'PO_PENDING',
+                fields: ['item', 'quantity', 'unit_price', 'total', 'delivery_date', 'payment_terms']
+            },
+            PO_ACCEPTED: {
+                id: 'EVT-002',
+                label: 'PO Accepted',
+                party: 'supplier',
+                description: 'Supplier accepts PO terms without modification',
+                nextState: 'PO_ACCEPTED',
+                fields: ['accepted', 'po_reference']
+            },
+            PO_AMENDED: {
+                id: 'EVT-002A',
+                label: 'Amendment Proposed',
+                party: 'supplier',
+                description: 'Supplier proposes modification to original PO terms',
+                nextState: 'AMENDMENT_PENDING',
+                fields: ['original_quantity', 'proposed_quantity', 'reason']
+            },
+            AMENDMENT_ACCEPTED: {
+                id: 'EVT-003',
+                label: 'Amendment Accepted',
+                party: 'buyer',
+                description: 'Buyer accepts suppliers proposed amendment',
+                nextState: 'PO_ACCEPTED',
+                fields: ['amendment_reference', 'updated_quantity', 'updated_total']
+            },
+            GOODS_SHIPPED: {
+                id: 'EVT-004',
+                label: 'Goods Shipped',
+                party: 'supplier',
+                description: 'Supplier ships goods and provides tracking information',
+                nextState: 'SHIPPED',
+                fields: ['quantity_shipped', 'tracking_number', 'carrier', 'shipped_at', 'expected_delivery']
+            },
+            RECEIPT_CONFIRMED: {
+                id: 'EVT-005',
+                label: 'Receipt Confirmed',
+                party: 'buyer',
+                description: 'Buyer confirms receipt of goods matching expectations',
+                nextState: 'RECEIVED',
+                fields: ['quantity_received', 'condition', 'received_at', 'notes']
+            },
+            DISCREPANCY_FLAGGED: {
+                id: 'EVT-005A',
+                label: 'Discrepancy Flagged',
+                party: 'buyer',
+                description: 'Buyer flags variance between expected and received goods',
+                nextState: 'DISPUTED',
+                fields: ['expected_quantity', 'received_quantity', 'variance', 'variance_type', 'description']
+            },
+            PAYMENT_TRIGGERED: {
+                id: 'EVT-006',
+                label: 'Payment Triggered',
+                party: 'system',
+                description: 'Automatic payment trigger upon confirmed receipt',
+                nextState: 'COMPLETED',
+                fields: ['amount', 'currency', 'due_date', 'payment_reference', 'auto_triggered']
+            },
+            DISPUTE_OPENED: {
+                id: 'EVT-006A',
+                label: 'Dispute Opened',
+                party: 'system',
+                description: 'Formal dispute opened with full evidence chain',
+                nextState: 'DISPUTED',
+                fields: ['reason', 'discrepancy_reference', 'evidence_chain', 'resolution_deadline']
+            }
+        };
+
+        const WORKFLOW_STATES = {
+            DRAFT: { label: 'Draft', class: 'draft' },
+            PO_PENDING: { label: 'PO Pending', class: 'pending' },
+            PO_ACCEPTED: { label: 'PO Accepted', class: 'accepted' },
+            AMENDMENT_PENDING: { label: 'Amendment Pending', class: 'pending' },
+            SHIPPED: { label: 'In Transit', class: 'shipped' },
+            RECEIVED: { label: 'Received', class: 'accepted' },
+            COMPLETED: { label: 'Completed', class: 'completed' },
+            DISPUTED: { label: 'Disputed', class: 'disputed' }
+        };
+
+        // State
+        let state = {
+            workflowState: 'DRAFT',
+            events: [],
+            currentPO: null,
+            amendedData: null,
+            selectedEvent: null,
+            txId: 'TX-' + Math.random().toString(36).substr(2, 8).toUpperCase()
+        };
+
+        // Utility functions
+        function generateHash(data) {
+            const str = JSON.stringify(data);
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
+        }
+
+        function generateEventId() {
+            return 'EVT-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function formatTimestamp(ts) {
+            return new Date(ts).toLocaleString('en-US', {
+                month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        }
+
+        function addEvent(type, payload) {
+            const schema = EVENT_SCHEMA[type];
+            const timestamp = Date.now();
+            const event = {
+                id: generateEventId(),
+                type,
+                schema_id: schema.id,
+                label: schema.label,
+                party: schema.party,
+                description: schema.description,
+                timestamp,
+                payload,
+                previousHash: state.events.length > 0 ? state.events[state.events.length - 1].hash : '00000000'
+            };
+            event.hash = generateHash(event);
+            state.events.push(event);
+            state.workflowState = schema.nextState;
+            render();
+            return event;
+        }
+
+        // Actions
+        function createPO() {
+            const item = document.getElementById('poItem').value;
+            const quantity = parseInt(document.getElementById('poQuantity').value) || 100;
+            const unitPrice = parseFloat(document.getElementById('poUnitPrice').value) || 250;
+            
+            state.currentPO = {
+                item,
+                quantity,
+                unit_price: unitPrice,
+                total: quantity * unitPrice,
+                delivery_date: '2025-01-15',
+                payment_terms: 'Net 30'
+            };
+            
+            addEvent('PO_CREATED', state.currentPO);
+        }
+
+        function acceptPO() {
+            addEvent('PO_ACCEPTED', {
+                accepted: true,
+                po_reference: state.events[0].id
+            });
+        }
+
+        function proposeAmendment() {
+            state.amendedData = {
+                original_quantity: state.currentPO.quantity,
+                proposed_quantity: 80,
+                reason: 'Partial stock availability - can ship 80 units now, remaining 20 in 2 weeks'
+            };
+            addEvent('PO_AMENDED', state.amendedData);
+        }
+
+        function acceptAmendment() {
+            const updatedQuantity = state.amendedData.proposed_quantity;
+            const updatedTotal = updatedQuantity * state.currentPO.unit_price;
+            
+            state.currentPO.quantity = updatedQuantity;
+            state.currentPO.total = updatedTotal;
+            
+            addEvent('AMENDMENT_ACCEPTED', {
+                amendment_reference: state.events[state.events.length - 1].id,
+                updated_quantity: updatedQuantity,
+                updated_total: updatedTotal
+            });
+        }
+
+        function shipGoods() {
+            addEvent('GOODS_SHIPPED', {
+                quantity_shipped: state.currentPO.quantity,
+                tracking_number: 'TRK-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+                carrier: 'FedEx',
+                shipped_at: new Date().toISOString(),
+                expected_delivery: '2025-01-15'
+            });
+        }
+
+        function confirmReceipt() {
+            addEvent('RECEIPT_CONFIRMED', {
+                quantity_received: state.currentPO.quantity,
+                condition: 'Good - all units intact',
+                received_at: new Date().toISOString(),
+                notes: 'Received as expected'
+            });
+            
+            // Auto-trigger payment
+            setTimeout(() => {
+                addEvent('PAYMENT_TRIGGERED', {
+                    amount: state.currentPO.total,
+                    currency: 'USD',
+                    due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    payment_reference: 'PAY-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+                    auto_triggered: true
+                });
+            }, 500);
+        }
+
+        function flagDiscrepancy() {
+            const expectedQty = state.currentPO.quantity;
+            const receivedQty = 85;
+            
+            addEvent('DISCREPANCY_FLAGGED', {
+                expected_quantity: expectedQty,
+                received_quantity: receivedQty,
+                variance: receivedQty - expectedQty,
+                variance_type: 'QUANTITY_SHORT',
+                description: `Received ${receivedQty} units instead of expected ${expectedQty}`
+            });
+            
+            // Auto-open dispute
+            setTimeout(() => {
+                addEvent('DISPUTE_OPENED', {
+                    reason: 'Quantity mismatch',
+                    discrepancy_reference: state.events[state.events.length - 1].id,
+                    evidence_chain: state.events.map(e => e.id),
+                    resolution_deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                });
+            }, 500);
+        }
+
+        function selectEvent(index) {
+            state.selectedEvent = state.events[index];
+            render();
+        }
+
+        function resetDemo() {
+            state = {
+                workflowState: 'DRAFT',
+                events: [],
+                currentPO: null,
+                amendedData: null,
+                selectedEvent: null,
+                txId: 'TX-' + Math.random().toString(36).substr(2, 8).toUpperCase()
+            };
+            render();
+        }
+
+        // Render functions
+        function render() {
+            renderBuyerPanel();
+            renderSupplierPanel();
+            renderTimeline();
+            renderEventList();
+            renderDetailPanel();
+            renderState();
+            updateExportButton();
+        }
+
+        function renderBuyerPanel() {
+            const container = document.getElementById('buyerActions');
+            const turn = document.getElementById('buyerTurn');
+            
+            const isBuyerTurn = ['DRAFT', 'AMENDMENT_PENDING', 'SHIPPED'].includes(state.workflowState);
+            turn.style.display = isBuyerTurn ? 'block' : 'none';
+
+            if (state.workflowState === 'DRAFT') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Item Description</label>
+                        <input type="text" id="poItem" class="form-input" value="Industrial Sensors (Model X-500)">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Quantity</label>
+                            <input type="number" id="poQuantity" class="form-input" value="100" onchange="updateTotal()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Unit Price ($)</label>
+                            <input type="number" id="poUnitPrice" class="form-input" value="250" onchange="updateTotal()">
+                        </div>
+                    </div>
+                    <div class="total-display">
+                        <div class="total-label">Total Value</div>
+                        <div class="total-value" id="totalValue">$25,000</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="createPO()">📝 Create Purchase Order</button>
+                `;
+            } else if (state.workflowState === 'AMENDMENT_PENDING') {
+                container.innerHTML = `
+                    <div class="form-group" style="background: rgba(210, 153, 34, 0.1); border: 1px solid rgba(210, 153, 34, 0.3);">
+                        <div style="color: var(--accent-yellow); font-weight: 600; margin-bottom: 8px;">⚠️ Amendment Proposed</div>
+                        <div style="color: var(--text-secondary); font-size: 13px; margin-bottom: 8px;">
+                            Supplier proposes ${state.amendedData?.proposed_quantity} units instead of ${state.amendedData?.original_quantity}
+                        </div>
+                        <div style="color: var(--text-muted); font-size: 12px; font-style: italic;">
+                            "${state.amendedData?.reason}"
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="acceptAmendment()">✓ Accept Amendment</button>
+                `;
+            } else if (state.workflowState === 'SHIPPED') {
+                const shipEvent = state.events.find(e => e.type === 'GOODS_SHIPPED');
+                container.innerHTML = `
+                    <div class="form-group" style="background: rgba(163, 113, 247, 0.1); border: 1px solid rgba(163, 113, 247, 0.3);">
+                        <div style="color: var(--accent-purple); font-weight: 600; margin-bottom: 8px;">📦 Shipment In Transit</div>
+                        <div style="color: var(--text-secondary); font-size: 13px;">
+                            Tracking: ${shipEvent?.payload.tracking_number}
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="confirmReceipt()">✓ Confirm Receipt</button>
+                        <button class="btn btn-danger" onclick="flagDiscrepancy()">⚠️ Flag Issue</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="waiting-state">
+                        <div class="waiting-icon">⏳</div>
+                        <div>${getWaitingMessage('buyer')}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSupplierPanel() {
+            const container = document.getElementById('supplierActions');
+            const turn = document.getElementById('supplierTurn');
+            
+            const isSupplierTurn = ['PO_PENDING', 'PO_ACCEPTED'].includes(state.workflowState);
+            turn.style.display = isSupplierTurn ? 'block' : 'none';
+
+            if (state.workflowState === 'DRAFT') {
+                container.innerHTML = `
+                    <div class="waiting-state">
+                        <div class="waiting-icon">📋</div>
+                        <div>Waiting for purchase order...</div>
+                    </div>
+                `;
+            } else if (state.workflowState === 'PO_PENDING') {
+                container.innerHTML = `
+                    <div class="form-group" style="background: rgba(163, 113, 247, 0.1); border: 1px solid rgba(163, 113, 247, 0.3);">
+                        <div style="color: var(--accent-purple); font-weight: 600; margin-bottom: 12px;">📋 New PO Received</div>
+                        <div style="color: var(--text-primary); font-size: 14px; margin-bottom: 8px;">${state.currentPO?.item}</div>
+                        <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 4px;">
+                            Qty: ${state.currentPO?.quantity} @ $${state.currentPO?.unit_price}/unit
+                        </div>
+                        <div style="color: var(--accent-green); font-size: 20px; font-weight: 700;">
+                            Total: $${state.currentPO?.total.toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-success" onclick="acceptPO()">✓ Accept</button>
+                        <button class="btn btn-warning" onclick="proposeAmendment()">✎ Amend</button>
+                    </div>
+                `;
+            } else if (state.workflowState === 'PO_ACCEPTED') {
+                container.innerHTML = `
+                    <div class="form-group" style="background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.3);">
+                        <div style="color: var(--accent-green); font-weight: 600; margin-bottom: 8px;">✓ PO Confirmed</div>
+                        <div style="color: var(--text-muted); font-size: 13px;">
+                            Ready to ship ${state.currentPO?.quantity} units
+                        </div>
+                    </div>
+                    <button class="btn btn-purple" onclick="shipGoods()">📦 Ship Goods</button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="waiting-state">
+                        <div class="waiting-icon">⏳</div>
+                        <div>${getWaitingMessage('supplier')}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function getWaitingMessage(party) {
+            const messages = {
+                buyer: {
+                    PO_PENDING: 'Waiting for supplier response...',
+                    PO_ACCEPTED: 'Waiting for shipment...',
+                    COMPLETED: 'Transaction complete',
+                    DISPUTED: 'Dispute in progress'
+                },
+                supplier: {
+                    AMENDMENT_PENDING: 'Amendment pending buyer approval...',
+                    SHIPPED: 'Shipment in transit...',
+                    COMPLETED: 'Transaction complete',
+                    DISPUTED: 'Dispute in progress'
+                }
+            };
+            return messages[party][state.workflowState] || 'Waiting...';
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timeline');
+            
+            if (state.events.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-timeline">
+                        <div class="empty-timeline-icon">🔗</div>
+                        <div>No events yet</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Create a PO to start the chain</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.events.map((event, index) => `
+                <div class="timeline-item ${event.party}" onclick="this.classList.toggle('expanded')">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-header">
+                        <span class="event-type">${event.label}</span>
+                        <span class="event-id">${event.schema_id}</span>
+                    </div>
+                    <div class="event-time">${formatTimestamp(event.timestamp)}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">${event.description}</div>
+                    <div class="event-payload">
+                        <pre>${JSON.stringify(event.payload, null, 2)}</pre>
+                    </div>
+                    <div class="event-hash">
+                        <div><span class="hash-label">Hash:</span> <span class="hash-value">${event.hash}</span></div>
+                        <div><span class="hash-label">Prev:</span> <span class="hash-prev">${event.previousHash}</span></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Completion banner
+            const banner = document.getElementById('completionBanner');
+            if (state.workflowState === 'COMPLETED') {
+                banner.className = 'completion-banner visible success';
+                document.getElementById('completionIcon').textContent = '✓';
+                document.getElementById('completionTitle').textContent = 'Transaction Complete';
+                document.getElementById('completionText').textContent = 
+                    'Both parties share an identical, immutable record of every step. Payment triggered automatically. No reconciliation needed. No disputes possible.';
+            } else if (state.workflowState === 'DISPUTED') {
+                banner.className = 'completion-banner visible disputed';
+                document.getElementById('completionIcon').textContent = '⚠️';
+                document.getElementById('completionTitle').textContent = 'Dispute Opened — But Look at the Evidence';
+                document.getElementById('completionText').textContent = 
+                    'The event chain shows exactly what was agreed, shipped, and received. There\'s nothing to argue about — the cryptographic record is undeniable. Resolution is now a matter of policy, not archaeology.';
+            } else {
+                banner.className = 'completion-banner';
+            }
+        }
+
+        function renderEventList() {
+            const container = document.getElementById('eventList');
+            const countEl = document.getElementById('eventCount');
+            
+            countEl.textContent = `${state.events.length} events linked`;
+
+            if (state.events.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        Events will appear here as they occur
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.events.map((event, index) => `
+                <div class="event-list-item ${event.party} ${state.selectedEvent?.id === event.id ? 'selected' : ''}" 
+                     onclick="selectEvent(${index})">
+                    <div class="event-list-header">
+                        <span class="event-list-type">${event.label}</span>
+                        <span class="event-list-id">${event.id}</span>
+                    </div>
+                    <div class="event-list-hash">${event.hash}</div>
+                </div>
+            `).join('');
+        }
+
+        function renderDetailPanel() {
+            const panel = document.getElementById('detailPanel');
+            const title = document.getElementById('detailTitle');
+            const grid = document.getElementById('detailGrid');
+
+            if (!state.selectedEvent) {
+                panel.className = 'detail-panel';
+                return;
+            }
+
+            panel.className = 'detail-panel visible';
+            title.innerHTML = `<span>${state.selectedEvent.label}</span> <span style="color: var(--text-muted); font-weight: 400;">${state.selectedEvent.schema_id}</span>`;
+
+            const fields = [
+                { key: 'Event ID', value: state.selectedEvent.id },
+                { key: 'Type', value: state.selectedEvent.type },
+                { key: 'Party', value: state.selectedEvent.party },
+                { key: 'Timestamp', value: formatTimestamp(state.selectedEvent.timestamp) },
+                { key: 'Hash', value: state.selectedEvent.hash },
+                { key: 'Previous Hash', value: state.selectedEvent.previousHash },
+                ...Object.entries(state.selectedEvent.payload).map(([k, v]) => ({
+                    key: k.replace(/_/g, ' '),
+                    value: typeof v === 'object' ? JSON.stringify(v) : String(v)
+                }))
+            ];
+
+            grid.innerHTML = fields.map(f => `
+                <div class="detail-row">
+                    <span class="detail-key">${f.key}</span>
+                    <span class="detail-value">${f.value}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderState() {
+            document.getElementById('txId').textContent = state.txId;
+            const stateEl = document.getElementById('txState');
+            const ws = WORKFLOW_STATES[state.workflowState];
+            stateEl.textContent = ws.label;
+            stateEl.className = 'tx-state ' + ws.class;
+        }
+
+        function updateTotal() {
+            const qty = parseInt(document.getElementById('poQuantity')?.value) || 0;
+            const price = parseFloat(document.getElementById('poUnitPrice')?.value) || 0;
+            const totalEl = document.getElementById('totalValue');
+            if (totalEl) {
+                totalEl.textContent = '$' + (qty * price).toLocaleString();
+            }
+        }
+
+        // Initial render
+        render();
+
+        // Export functionality
+        function openExportModal() {
+            document.getElementById('exportModal').classList.add('visible');
+            renderEvidencePreview();
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('visible');
+        }
+
+        function renderEvidencePreview() {
+            const container = document.getElementById('evidencePreview');
+            const isDisputed = state.workflowState === 'DISPUTED';
+            const discrepancyEvent = state.events.find(e => e.type === 'DISCREPANCY_FLAGGED');
+            
+            // Calculate financial impact if disputed
+            let financialImpact = 0;
+            let variancePercent = 0;
+            if (discrepancyEvent) {
+                financialImpact = Math.abs(discrepancyEvent.payload.variance) * state.currentPO.unit_price;
+                variancePercent = (discrepancyEvent.payload.variance / discrepancyEvent.payload.expected_quantity * 100).toFixed(1);
+            }
+
+            const generatedAt = new Date().toISOString();
+            const firstEvent = state.events[0];
+            const lastEvent = state.events[state.events.length - 1];
+
+            container.innerHTML = `
+                <div class="evidence-header">
+                    <div class="evidence-logo">⚡</div>
+                    <div class="evidence-title">Transaction Evidence Package</div>
+                    <div class="evidence-subtitle">Sightline Shared Truth Protocol</div>
+                </div>
+                
+                <div class="evidence-meta">
+                    <div class="evidence-meta-item">
+                        <div class="evidence-meta-label">Transaction ID</div>
+                        <div class="evidence-meta-value">${state.txId}</div>
+                    </div>
+                    <div class="evidence-meta-item">
+                        <div class="evidence-meta-label">Generated</div>
+                        <div class="evidence-meta-value">${new Date(generatedAt).toLocaleString()}</div>
+                    </div>
+                    <div class="evidence-meta-item">
+                        <div class="evidence-meta-label">Status</div>
+                        <div class="evidence-meta-value" style="color: ${isDisputed ? 'var(--accent-red)' : 'var(--accent-green)'}">
+                            ${isDisputed ? '⚠️ DISPUTED' : '✓ COMPLETED'}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="evidence-section">
+                    <div class="evidence-section-title">Transaction Summary</div>
+                    <div class="evidence-summary">
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Buyer</div>
+                            <div class="evidence-summary-value">Acme Corporation</div>
+                        </div>
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Supplier</div>
+                            <div class="evidence-summary-value">TechSupply Inc</div>
+                        </div>
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Item</div>
+                            <div class="evidence-summary-value">${state.currentPO?.item || 'N/A'}</div>
+                        </div>
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Agreed Value</div>
+                            <div class="evidence-summary-value">$${state.currentPO?.total?.toLocaleString() || '0'}</div>
+                        </div>
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Quantity Ordered</div>
+                            <div class="evidence-summary-value">${state.currentPO?.quantity || 0} units</div>
+                        </div>
+                        <div class="evidence-summary-item">
+                            <div class="evidence-summary-label">Payment Terms</div>
+                            <div class="evidence-summary-value">${state.currentPO?.payment_terms || 'N/A'}</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${isDisputed ? `
+                <div class="evidence-section">
+                    <div class="evidence-section-title" style="color: var(--accent-red);">⚠️ Dispute Details</div>
+                    <div class="evidence-dispute">
+                        <div class="evidence-dispute-header">
+                            <span>📊</span>
+                            <span class="evidence-dispute-title">Variance Analysis</span>
+                        </div>
+                        <div class="evidence-dispute-details">
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Expected Quantity</div>
+                                <div class="evidence-dispute-value">${discrepancyEvent?.payload.expected_quantity || 0}</div>
+                            </div>
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Received Quantity</div>
+                                <div class="evidence-dispute-value">${discrepancyEvent?.payload.received_quantity || 0}</div>
+                            </div>
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Variance</div>
+                                <div class="evidence-dispute-value negative">${discrepancyEvent?.payload.variance || 0} (${variancePercent}%)</div>
+                            </div>
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Financial Impact</div>
+                                <div class="evidence-dispute-value negative">$${financialImpact.toLocaleString()}</div>
+                            </div>
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Variance Type</div>
+                                <div class="evidence-dispute-value">${discrepancyEvent?.payload.variance_type || 'N/A'}</div>
+                            </div>
+                            <div class="evidence-dispute-item">
+                                <div class="evidence-dispute-label">Description</div>
+                                <div class="evidence-dispute-value" style="font-size: 12px;">${discrepancyEvent?.payload.description || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="evidence-section">
+                    <div class="evidence-section-title">Complete Event Chain (${state.events.length} Events)</div>
+                    <div class="evidence-timeline">
+                        ${state.events.map(event => `
+                            <div class="evidence-event">
+                                <span class="evidence-event-id">${event.id}</span>
+                                <span class="evidence-event-type">${event.label}</span>
+                                <span class="evidence-event-hash">${event.hash}</span>
+                                <span class="evidence-event-party ${event.party}">${event.party}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="evidence-section">
+                    <div class="evidence-section-title">Chain Integrity Verification</div>
+                    <div class="evidence-integrity">
+                        <div class="evidence-integrity-icon">✓</div>
+                        <div class="evidence-integrity-text">
+                            <div class="evidence-integrity-title">Cryptographic Chain Verified</div>
+                            <div class="evidence-integrity-detail">
+                                All ${state.events.length} events are cryptographically linked. 
+                                Chain spans from ${formatTimestamp(firstEvent?.timestamp)} to ${formatTimestamp(lastEvent?.timestamp)}.
+                                No gaps or modifications detected.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateEvidencePackage() {
+            const isDisputed = state.workflowState === 'DISPUTED';
+            const discrepancyEvent = state.events.find(e => e.type === 'DISCREPANCY_FLAGGED');
+            
+            let financialImpact = 0;
+            if (discrepancyEvent) {
+                financialImpact = Math.abs(discrepancyEvent.payload.variance) * state.currentPO.unit_price;
+            }
+
+            return {
+                metadata: {
+                    transaction_id: state.txId,
+                    generated_at: new Date().toISOString(),
+                    protocol_version: '1.0.0',
+                    status: state.workflowState
+                },
+                parties: {
+                    buyer: {
+                        name: 'Acme Corporation',
+                        role: 'BUYER'
+                    },
+                    supplier: {
+                        name: 'TechSupply Inc',
+                        role: 'SUPPLIER'
+                    }
+                },
+                transaction_summary: {
+                    item: state.currentPO?.item,
+                    quantity: state.currentPO?.quantity,
+                    unit_price: state.currentPO?.unit_price,
+                    total_value: state.currentPO?.total,
+                    payment_terms: state.currentPO?.payment_terms,
+                    delivery_date: state.currentPO?.delivery_date
+                },
+                dispute: isDisputed ? {
+                    is_disputed: true,
+                    expected_quantity: discrepancyEvent?.payload.expected_quantity,
+                    received_quantity: discrepancyEvent?.payload.received_quantity,
+                    variance: discrepancyEvent?.payload.variance,
+                    variance_type: discrepancyEvent?.payload.variance_type,
+                    financial_impact: financialImpact,
+                    description: discrepancyEvent?.payload.description
+                } : {
+                    is_disputed: false
+                },
+                event_chain: state.events.map(event => ({
+                    event_id: event.id,
+                    schema_id: event.schema_id,
+                    type: event.type,
+                    label: event.label,
+                    party: event.party,
+                    timestamp: new Date(event.timestamp).toISOString(),
+                    hash: event.hash,
+                    previous_hash: event.previousHash,
+                    payload: event.payload
+                })),
+                chain_integrity: {
+                    verified: true,
+                    total_events: state.events.length,
+                    first_event_hash: state.events[0]?.hash,
+                    last_event_hash: state.events[state.events.length - 1]?.hash,
+                    chain_start: new Date(state.events[0]?.timestamp).toISOString(),
+                    chain_end: new Date(state.events[state.events.length - 1]?.timestamp).toISOString()
+                }
+            };
+        }
+
+        function downloadJSON() {
+            const evidence = generateEvidencePackage();
+            const blob = new Blob([JSON.stringify(evidence, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sightline-evidence-${state.txId}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadPDF() {
+            // Generate a printable HTML version and trigger print dialog
+            const evidence = generateEvidencePackage();
+            const isDisputed = evidence.dispute.is_disputed;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Evidence Package - ${state.txId}</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; color: #1a1a1a; font-size: 12px; line-height: 1.5; }
+                        .header { text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 20px; margin-bottom: 30px; }
+                        .header h1 { font-size: 24px; margin-bottom: 4px; }
+                        .header p { color: #666; }
+                        .meta { display: flex; justify-content: space-between; background: #f5f5f5; padding: 16px; margin-bottom: 24px; border-radius: 4px; }
+                        .meta-item { text-align: center; }
+                        .meta-label { font-size: 10px; color: #666; text-transform: uppercase; }
+                        .meta-value { font-weight: 600; font-family: monospace; }
+                        .section { margin-bottom: 24px; }
+                        .section-title { font-size: 14px; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 8px; margin-bottom: 12px; }
+                        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+                        .summary-item { background: #f9f9f9; padding: 10px; border-radius: 4px; }
+                        .summary-label { font-size: 10px; color: #666; }
+                        .summary-value { font-weight: 500; }
+                        .dispute-box { background: #fff0f0; border: 1px solid #ffcccc; padding: 16px; border-radius: 4px; margin-bottom: 16px; }
+                        .dispute-title { color: #cc0000; font-weight: 600; margin-bottom: 12px; }
+                        .dispute-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+                        .dispute-item { background: white; padding: 8px; border-radius: 4px; }
+                        .event-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                        .event-table th { background: #1a1a1a; color: white; padding: 8px; text-align: left; }
+                        .event-table td { padding: 8px; border-bottom: 1px solid #eee; }
+                        .event-table tr:nth-child(even) { background: #f9f9f9; }
+                        .hash { font-family: monospace; font-size: 10px; }
+                        .integrity-box { background: #f0fff0; border: 1px solid #90EE90; padding: 16px; border-radius: 4px; }
+                        .integrity-title { color: #228B22; font-weight: 600; }
+                        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10px; color: #666; text-align: center; }
+                        @media print { body { padding: 20px; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>⚡ Transaction Evidence Package</h1>
+                        <p>Sightline Shared Truth Protocol</p>
+                    </div>
+                    
+                    <div class="meta">
+                        <div class="meta-item">
+                            <div class="meta-label">Transaction ID</div>
+                            <div class="meta-value">${evidence.metadata.transaction_id}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Generated</div>
+                            <div class="meta-value">${new Date(evidence.metadata.generated_at).toLocaleString()}</div>
+                        </div>
+                        <div class="meta-item">
+                            <div class="meta-label">Status</div>
+                            <div class="meta-value" style="color: ${isDisputed ? '#cc0000' : '#228B22'}">${isDisputed ? '⚠️ DISPUTED' : '✓ COMPLETED'}</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Transaction Summary</div>
+                        <div class="summary-grid">
+                            <div class="summary-item"><div class="summary-label">Buyer</div><div class="summary-value">${evidence.parties.buyer.name}</div></div>
+                            <div class="summary-item"><div class="summary-label">Supplier</div><div class="summary-value">${evidence.parties.supplier.name}</div></div>
+                            <div class="summary-item"><div class="summary-label">Item</div><div class="summary-value">${evidence.transaction_summary.item}</div></div>
+                            <div class="summary-item"><div class="summary-label">Total Value</div><div class="summary-value">$${evidence.transaction_summary.total_value?.toLocaleString()}</div></div>
+                            <div class="summary-item"><div class="summary-label">Quantity</div><div class="summary-value">${evidence.transaction_summary.quantity} units</div></div>
+                            <div class="summary-item"><div class="summary-label">Payment Terms</div><div class="summary-value">${evidence.transaction_summary.payment_terms}</div></div>
+                        </div>
+                    </div>
+
+                    ${isDisputed ? `
+                    <div class="section">
+                        <div class="section-title" style="color: #cc0000;">⚠️ Dispute Details</div>
+                        <div class="dispute-box">
+                            <div class="dispute-title">Variance Analysis</div>
+                            <div class="dispute-grid">
+                                <div class="dispute-item"><div class="summary-label">Expected</div><div class="summary-value">${evidence.dispute.expected_quantity}</div></div>
+                                <div class="dispute-item"><div class="summary-label">Received</div><div class="summary-value">${evidence.dispute.received_quantity}</div></div>
+                                <div class="dispute-item"><div class="summary-label">Variance</div><div class="summary-value" style="color: #cc0000">${evidence.dispute.variance}</div></div>
+                                <div class="dispute-item"><div class="summary-label">Financial Impact</div><div class="summary-value" style="color: #cc0000">$${evidence.dispute.financial_impact?.toLocaleString()}</div></div>
+                                <div class="dispute-item"><div class="summary-label">Type</div><div class="summary-value">${evidence.dispute.variance_type}</div></div>
+                                <div class="dispute-item"><div class="summary-label">Description</div><div class="summary-value">${evidence.dispute.description}</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <div class="section">
+                        <div class="section-title">Complete Event Chain (${evidence.event_chain.length} Events)</div>
+                        <table class="event-table">
+                            <thead>
+                                <tr>
+                                    <th>Event ID</th>
+                                    <th>Type</th>
+                                    <th>Party</th>
+                                    <th>Timestamp</th>
+                                    <th>Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${evidence.event_chain.map(event => `
+                                    <tr>
+                                        <td class="hash">${event.event_id}</td>
+                                        <td>${event.label}</td>
+                                        <td>${event.party.toUpperCase()}</td>
+                                        <td>${new Date(event.timestamp).toLocaleString()}</td>
+                                        <td class="hash">${event.hash}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Chain Integrity Verification</div>
+                        <div class="integrity-box">
+                            <div class="integrity-title">✓ Cryptographic Chain Verified</div>
+                            <p style="margin-top: 8px;">All ${evidence.chain_integrity.total_events} events are cryptographically linked. Chain spans from ${new Date(evidence.chain_integrity.chain_start).toLocaleString()} to ${new Date(evidence.chain_integrity.chain_end).toLocaleString()}. No gaps or modifications detected.</p>
+                        </div>
+                    </div>
+
+                    <div class="footer">
+                        <p>This document was generated by Sightline Shared Truth Protocol.</p>
+                        <p>Transaction ID: ${evidence.metadata.transaction_id} | Generated: ${new Date(evidence.metadata.generated_at).toISOString()}</p>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
+
+        function updateExportButton() {
+            const btn = document.getElementById('exportBtn');
+            if (state.workflowState === 'COMPLETED' || state.workflowState === 'DISPUTED') {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvoiceNet | Autonomous AP Engine</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span { color: var(--accent-blue); }
+
+        .nav-item {
+            padding: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: var(--accent-blue);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+        /* Views Logic */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header / Stats */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-label { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 8px; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.red { color: var(--accent-red); }
+
+        /* Tables & Panels */
+        .panel {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 20px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Badges & Indicators */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.open { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .badge.paid { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
+        .badge.blocked { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+        .badge.warning { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); }
+
+        .trust-score {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .score-high { background: rgba(34, 197, 94, 0.1); border: 2px solid var(--accent-green); color: var(--accent-green); }
+        .score-med { background: rgba(234, 179, 8, 0.1); border: 2px solid var(--accent-yellow); color: var(--accent-yellow); }
+        .score-low { background: rgba(239, 68, 68, 0.1); border: 2px solid var(--accent-red); color: var(--accent-red); }
+
+        /* Simulation Controls */
+        .sim-controls {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: var(--bg-card); border: 1px solid var(--border); }
+        button.action-btn { padding: 4px 8px; font-size: 0.75rem; }
+
+        /* Log Console */
+        .console {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #a3e635;
+            background: #000;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+        }
+        .console-line { margin-bottom: 4px; }
+        .console-line.error { color: var(--accent-red); }
+        .console-line.info { color: var(--text-muted); }
+        .console-line.action { color: var(--accent-blue); }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo">
+            <span>◆</span> InvoiceNet
+        </div>
+        <div class="nav-item active" onclick="switchView('dashboard')">📊 Dashboard</div>
+        <div class="nav-item" onclick="switchView('invoices')">📄 Invoices</div>
+        <div class="nav-item" onclick="switchView('suppliers')">🏢 Suppliers</div>
+    </div>
+
+    <div class="main">
+        
+        <div class="sim-controls">
+            <span style="color: var(--text-muted); margin-right: 10px;">Simulation Controller:</span>
+            <button onclick="startSimulation()">▶ Run Scenarios</button>
+            <button class="secondary" onclick="resetSim()">↺ Reset Data</button>
+            <span id="sim-status" style="margin-left: auto; color: var(--accent-yellow); font-size: 0.9rem;">Ready</span>
+        </div>
+
+        <div id="view-dashboard" class="view-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Processed</div>
+                    <div class="stat-value" id="stat-total">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Value Processed</div>
+                    <div class="stat-value" id="stat-value">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Blocks</div>
+                    <div class="stat-value red" id="stat-variance">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Auto-Resolved</div>
+                    <div class="stat-value green" id="stat-resolved">0</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>Live Pipeline (Recent)</span>
+                        <span class="badge open">Live State</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Supplier</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Variance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-table-body">
+                            </tbody>
+                    </table>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Sightline Ledger</div>
+                    <div class="console" id="console-output">
+                        <div class="console-line info">> System Initialized...</div>
+                        <div class="console-line info">> Waiting for Events...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-invoices" class="view-section">
+            <div class="panel">
+                <div class="panel-header">
+                    <span>Full Invoice Ledger</span>
+                    <div>
+                        <button class="action-btn secondary">Filter: All</button>
+                        <button class="action-btn secondary">Export CSV</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Received</th>
+                            <th>Reference (PO)</th>
+                            <th>Supplier</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Validation Detail</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoices-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-suppliers" class="view-section">
+            <div class="panel">
+                <div class="panel-header">Supplier Intelligence Network</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trust Score</th>
+                            <th>Supplier Name</th>
+                            <th>Agent Status</th>
+                            <th>Total Spend</th>
+                            <th>Variance Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliers-table-body">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- 1. SIGHTLINE DATA STRUCTURES ---
+
+    // Mock Supplier Database with Static Metadata
+    const supplierDB = {
+        'TechGlobal': { trust: 98, botActive: true, spend: 0, variances: 0 },
+        'CableCo': { trust: 45, botActive: false, spend: 0, variances: 0 },
+        'OfficeSupplies': { trust: 88, botActive: true, spend: 0, variances: 0 },
+        'Unknown': { trust: 50, botActive: false, spend: 0, variances: 0 }
+    };
+
+    class OrderState {
+        constructor(id, supplier) {
+            this.id = id;
+            this.supplier = supplier;
+            this.date = new Date().toISOString().split('T')[0];
+            this.poLimit = 0;
+            this.receivedValue = 0;
+            this.receivedQty = 0;
+            this.invoicedValue = 0;
+            this.invoicedQty = 0;
+            this.status = 'PENDING PO'; 
+            this.varianceType = null;
+        }
+    }
+
+    let orders = {};
+    let stats = { total: 0, value: 0, variances: 0, resolved: 0 };
+    let currentView = 'dashboard';
+
+    // --- 2. THE STATE ENGINE ---
+
+    function processEvent(event) {
+        // Init Order State if new
+        if (!orders[event.ref]) orders[event.ref] = new OrderState(event.ref, event.supplier || "Unknown");
+        let order = orders[event.ref];
+
+        // LOGIC: Ingest -> State Update
+        if (event.type === 'PurchaseOrder') {
+            order.poLimit = event.amount;
+            order.poQty = event.qty;
+            order.unitPrice = event.amount / event.qty;
+            order.status = 'AWAITING GOODS';
+            logToConsole(`[PO] Authorized ${event.amount} for ${order.supplier}`, 'info');
+        } 
+        else if (event.type === 'GoodsReceived') {
+            order.receivedQty += event.qty;
+            order.receivedValue += (event.qty * order.unitPrice);
+            order.status = 'AWAITING INVOICE';
+            logToConsole(`[RCPT] Warehouse received ${event.qty} units`, 'info');
+        }
+        else if (event.type === 'InvoiceReceived') {
+            order.invoicedValue += event.amount;
+            order.invoicedQty += event.qty;
+            order.invoiceId = event.invId;
+            
+            // Update Supplier Stats
+            if (supplierDB[order.supplier]) {
+                supplierDB[order.supplier].spend += event.amount;
+            }
+
+            stats.total++;
+            stats.value += event.amount;
+            
+            checkInvariants(order);
+        }
+        else if (event.type === 'CreditMemo') {
+            order.invoicedValue -= event.amount;
+            logToConsole(`[AGENT] ${order.supplier} Bot issued Credit: -$${event.amount}`, "action");
+            checkInvariants(order); 
+        }
+
+        renderAllViews();
+    }
+
+    function checkInvariants(order) {
+        order.status = 'PROCESSING';
+        order.varianceType = null;
+
+        // CHECK 1: Quantity Shield
+        if (order.invoicedQty > order.receivedQty) {
+            order.status = 'BLOCKED';
+            order.varianceType = `SHORTAGE: -${order.invoicedQty - order.receivedQty} units`;
+            logToConsole(`[VAR] BLOCKING ${order.id}: Shortage Detected`, "error");
+            
+            // Update Supplier Stats (Negative Impact)
+            if (supplierDB[order.supplier]) supplierDB[order.supplier].variances++;
+
+            // TRIGGER SUPPLIER AGENT (Auto-Resolve Logic)
+            if (supplierDB[order.supplier]?.botActive && (order.invoicedQty - order.receivedQty <= 2)) {
+               setTimeout(() => triggerSupplierBot(order), 1500);
+            }
+            return;
+        }
+
+        // CHECK 2: Price Shield
+        let expectedValue = order.invoicedQty * order.unitPrice;
+        if (order.invoicedValue > expectedValue + 0.01) {
+            order.status = 'BLOCKED';
+            let diff = order.invoicedValue - expectedValue;
+            order.varianceType = `OVERBILL: +$${diff.toFixed(2)}`;
+            logToConsole(`[VAR] BLOCKING ${order.id}: Price Mismatch`, "error");
+            if (supplierDB[order.supplier]) supplierDB[order.supplier].variances++;
+            return;
+        }
+
+        // IF PASS ALL
+        order.status = 'PAID';
+        order.varianceType = null;
+        logToConsole(`[PLAN] ${order.id} Matched. Payment Scheduled.`, "action");
+    }
+
+    function triggerSupplierBot(order) {
+        let diffQty = order.invoicedQty - order.receivedQty;
+        let creditAmt = diffQty * order.unitPrice;
+        
+        logToConsole(`[AGENT] ${order.supplier} Bot analyzing Block...`, "info");
+        
+        setTimeout(() => {
+            processEvent({
+                type: 'CreditMemo',
+                ref: order.id,
+                amount: creditAmt,
+                supplier: order.supplier
+            });
+            stats.resolved++;
+        }, 1000);
+    }
+
+    // --- 3. UI RENDERING & NAVIGATION ---
+
+    function switchView(viewName) {
+        // Update Variables
+        currentView = viewName;
+
+        // Update Nav Styling
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        // Update DOM Visibility
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.add('active');
+
+        renderAllViews();
+    }
+
+    function renderAllViews() {
+        renderDashboard();
+        renderInvoices();
+        renderSuppliers();
+    }
+
+    function renderDashboard() {
+        // Stats
+        let activeVariances = Object.values(orders).filter(o => o.status === 'BLOCKED').length;
+        document.getElementById('stat-total').innerText = stats.total;
+        document.getElementById('stat-value').innerText = '$' + stats.value.toLocaleString();
+        document.getElementById('stat-variance').innerText = activeVariances;
+        document.getElementById('stat-resolved').innerText = stats.resolved;
+
+        // Recent Invoices Table (Top 5)
+        const tbody = document.getElementById('dashboard-table-body');
+        tbody.innerHTML = '';
+        Object.values(orders).slice(-5).reverse().forEach(order => {
+            if (!order.invoicedValue && order.status !== 'BLOCKED') return; // Only show active/problematic
+            tbody.innerHTML += createInvoiceRow(order, true);
+        });
+    }
+
+    function renderInvoices() {
+        const tbody = document.getElementById('invoices-table-body');
+        tbody.innerHTML = '';
+        Object.values(orders).reverse().forEach(order => {
+            if (!order.poLimit) return; // Skip empty inits
+            tbody.innerHTML += createInvoiceRow(order, false);
+        });
+    }
+
+    function renderSuppliers() {
+        const tbody = document.getElementById('suppliers-table-body');
+        tbody.innerHTML = '';
+        
+        Object.entries(supplierDB).forEach(([name, data]) => {
+            if(name === 'Unknown') return;
+
+            // Calculate Dynamic Score
+            let scoreClass = 'score-high';
+            if (data.trust < 80) scoreClass = 'score-med';
+            if (data.trust < 50) scoreClass = 'score-low';
+
+            const row = `
+                <tr>
+                    <td><div class="trust-score ${scoreClass}">${data.trust}</div></td>
+                    <td><strong>${name}</strong><br><span style="color:#666;font-size:0.8em">ID: SUP-${name.substring(0,3).toUpperCase()}</span></td>
+                    <td>${data.botActive ? '<span class="badge paid">● Active</span>' : '<span class="badge blocked">○ Inactive</span>'}</td>
+                    <td>$${data.spend.toLocaleString()}</td>
+                    <td>${data.variances > 0 ? `<span style="color:var(--accent-red)">${data.variances} Incidents</span>` : '0%'}</td>
+                    <td>
+                        <button class="action-btn secondary">View Profile</button>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function createInvoiceRow(order, isDashboard) {
+        let badgeClass = 'open';
+        if (order.status === 'PAID') badgeClass = 'paid';
+        if (order.status === 'BLOCKED') badgeClass = 'blocked';
+        if (order.status.includes('AWAITING')) badgeClass = 'warning';
+
+        let varianceText = order.varianceType ? 
+            `<span style="color:var(--accent-red)">⚠ ${order.varianceType}</span>` : 
+            '<span style="color:var(--text-muted)">-</span>';
+
+        if (order.status === 'PAID' && order.varianceType === null && order.invoicedValue < (order.invoicedQty * order.unitPrice)) {
+                varianceText = `<span style="color:var(--accent-green)">✔ Auto-Resolved</span>`;
+        }
+
+        // Dashboard uses simplified columns
+        if (isDashboard) {
+            return `
+                <tr>
+                    <td><strong>${order.invoiceId || '...'}</strong></td>
+                    <td>${order.supplier}</td>
+                    <td>$${order.invoicedValue.toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${order.status}</span></td>
+                    <td>${varianceText}</td>
+                </tr>
+            `;
+        }
+
+        // Full Invoice View uses detailed columns
+        return `
+            <tr>
+                <td>${order.date}</td>
+                <td><span style="font-family:monospace">${order.id}</span></td>
+                <td>${order.supplier}</td>
+                <td>$${order.invoicedValue.toFixed(2)}</td>
+                <td><span class="badge ${badgeClass}">${order.status}</span></td>
+                <td>${varianceText}</td>
+                <td>
+                    ${order.status === 'BLOCKED' ? '<button class="action-btn">Resolve</button>' : '<button class="action-btn secondary">Details</button>'}
+                </td>
+            </tr>
+        `;
+    }
+
+    function logToConsole(msg, type) {
+        const consoleEl = document.getElementById('console-output');
+        const line = document.createElement('div');
+        line.className = `console-line ${type}`;
+        line.innerText = `> ${msg}`;
+        consoleEl.prepend(line);
+    }
+
+    // --- 4. SIMULATION LOGIC ---
+
+    const scenario = [
+        // Happy Path
+        { type: 'PurchaseOrder', ref: 'PO-101', supplier: 'TechGlobal', amount: 10000, qty: 10, delay: 500 },
+        { type: 'GoodsReceived', ref: 'PO-101', qty: 10, delay: 1500 },
+        { type: 'InvoiceReceived', ref: 'PO-101', invId: 'INV-001', amount: 10000, qty: 10, delay: 2500 },
+
+        // Price Fraud
+        { type: 'PurchaseOrder', ref: 'PO-102', supplier: 'CableCo', amount: 500, qty: 50, delay: 4000 },
+        { type: 'GoodsReceived', ref: 'PO-102', qty: 50, delay: 5000 },
+        { type: 'InvoiceReceived', ref: 'PO-102', invId: 'INV-ERR', amount: 5000, qty: 50, delay: 6000 },
+
+        // Shortage Auto-Resolve
+        { type: 'PurchaseOrder', ref: 'PO-103', supplier: 'OfficeSupplies', amount: 500, qty: 100, delay: 8000 },
+        { type: 'GoodsReceived', ref: 'PO-103', qty: 98, delay: 9000 },
+        { type: 'InvoiceReceived', ref: 'PO-103', invId: 'INV-SHORT', amount: 500, qty: 100, delay: 10000 }
+    ];
+
+    function startSimulation() {
+        resetSim();
+        document.getElementById('sim-status').innerText = "Running...";
+        document.getElementById('sim-status').style.color = "#22c55e";
+
+        scenario.forEach(step => {
+            setTimeout(() => {
+                processEvent(step);
+            }, step.delay);
+        });
+    }
+
+    function resetSim() {
+        orders = {};
+        // Reset Suppliers but keep Trust Scores static for demo
+        Object.keys(supplierDB).forEach(k => { supplierDB[k].spend = 0; supplierDB[k].variances = 0; });
+        stats = { total: 0, value: 0, variances: 0, resolved: 0 };
+        document.getElementById('console-output').innerHTML = '';
+        renderAllViews();
+        logToConsole("> Simulation Reset.", "info");
+    }
+
+    // Initial Render
+    renderAllViews();
+
+</script>
+
+</body>
+</html>

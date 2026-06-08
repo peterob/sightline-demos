@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.js"></script>
+<style>
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif; background:#0e0e10; color:#e7e7ea; min-height:100vh; }
+  .loader { display:flex; align-items:center; justify-content:center; min-height:100vh; color:#9b9ba2; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loader">Compiling React component…</div></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect, useReducer, Fragment } = React;
+
+const Lucide = window.lucide || {};
+function makeLucideComponent(iconName) {
+  return function LucideIcon(props = {}) {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+      if (!ref.current) return;
+      const icon = Lucide.icons[iconName] || Lucide.icons.HelpCircle;
+      const node = Lucide.createElement(icon);
+      ref.current.innerHTML = '';
+      ref.current.appendChild(node);
+    }, []);
+    return React.createElement('span', { ref, className: props.className, style: { display:'inline-flex', ...(props.style||{}) } });
+  };
+}
+
+const Check = makeLucideComponent('check');
+const X = makeLucideComponent('x');
+const AlertCircle = makeLucideComponent('alert-circle');
+const Shield = makeLucideComponent('shield');
+const Bell = makeLucideComponent('bell');
+const Plus = makeLucideComponent('plus');
+const Clock = makeLucideComponent('clock');
+const DollarSign = makeLucideComponent('dollar-sign');
+const ChevronRight = makeLucideComponent('chevron-right');
+const User = makeLucideComponent('user');
+const LogOut = makeLucideComponent('log-out');
+const Home = makeLucideComponent('home');
+const FileText = makeLucideComponent('file-text');
+const CreditCard = makeLucideComponent('credit-card');
+const ShieldCheck = makeLucideComponent('shield-check');
+
+
+
+
+
+// Mock Supabase client - replace with real Supabase in production
+const mockSupabase = {
+  auth: {
+    user: () => ({ id: 'user-123', email: 'treasurer@demo.com' }),
+    signOut: () => Promise.resolve()
+  },
+  from: (table) => ({
+    select: () => ({
+      eq: () => ({
+        single: () => Promise.resolve({ data: mockData[table]?.[0] || null })
+      }),
+      data: mockData[table] || []
+    }),
+    insert: (data) => Promise.resolve({ data, error: null })
+  }),
+  rpc: (fn, params) => {
+    console.log('RPC call:', fn, params);
+    return Promise.resolve({ data: mockRpcResponses[fn] || null });
+  }
+};
+
+// Mock data
+const mockData = {
+  hoa_users: [
+    { id: 'user-123', email: 'treasurer@demo.com', full_name: 'Jane Smith', role: 'treasurer', hoa_id: '123e4567-e89b-12d3-a456-426614174000' }
+  ],
+  dashboard_summary: [
+    {
+      hoa_name: 'Pine Ridge HOA Demo',
+      pending_approvals: 3,
+      completed_today: 2,
+      total_budget: 135000,
+      total_spent: 34700,
+      total_audit_events: 47,
+      unread_notifications: 4
+    }
+  ],
+  payment_tracking: [
+    {
+      id: '1',
+      transaction_id: 'PIN-2024-0042',
+      vendor_name: 'Green Thumb Landscaping',
+      amount: 2500,
+      category: 'Landscaping',
+      description: 'Monthly lawn maintenance and tree trimming',
+      status: 'pending',
+      urgency: 'standard',
+      submitted_by: 'user-456',
+      created_at: new Date().toISOString()
+    },
+    {
+      id: '2',
+      transaction_id: 'PIN-2024-0043',
+      vendor_name: 'QuickFix Plumbing',
+      amount: 5800,
+      category: 'Emergency Repairs',
+      description: 'Main water line repair - urgent',
+      status: 'treasurer_approved',
+      urgency: 'urgent',
+      submitted_by: 'user-456',
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    }
+  ],
+  budget_overview: [
+    { category_name: 'Landscaping', allocated_amount: 45000, spent_amount: 15000, spent_percentage: 33.33 },
+    { category_name: 'Maintenance', allocated_amount: 35000, spent_amount: 8000, spent_percentage: 22.86 },
+    { category_name: 'Emergency Repairs', allocated_amount: 25000, spent_amount: 2500, spent_percentage: 10.00 },
+    { category_name: 'Utilities', allocated_amount: 18000, spent_amount: 6200, spent_percentage: 34.44 },
+    { category_name: 'Insurance', allocated_amount: 12000, spent_amount: 3000, spent_percentage: 25.00 }
+  ],
+  notifications: [
+    {
+      id: '1',
+      subject: 'New Payment Request: Green Thumb Landscaping',
+      body: 'Amount: $2,500 for Landscaping. Transaction: PIN-2024-0042',
+      notification_type: 'payment_needs_approval',
+      read_at: null,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: '2',
+      subject: 'Payment Needs Board Approval: QuickFix Plumbing',
+      body: 'High-value payment of $5,800 requires board president approval',
+      notification_type: 'payment_partially_approved',
+      read_at: null,
+      created_at: new Date(Date.now() - 3600000).toISOString()
+    }
+  ]
+};
+
+const mockRpcResponses = {
+  get_transaction_verification: {
+    transaction_id: 'PIN-2024-0042',
+    vendor_name: 'Green Thumb Landscaping',
+    amount: 2500,
+    chain_valid: true,
+    total_events: 47,
+    verification_time_ms: 23,
+    verification_result: 'MATHEMATICALLY_IMPOSSIBLE_TO_FORGE',
+    audit_events_count: 3
+  },
+  system_health_check: [
+    { check_name: 'Hash Chain Integrity', status: 'PASS', details: 'Verified 47 events in 23 ms' },
+    { check_name: 'Database Constraints', status: 'PASS', details: 'All foreign key and check constraints are active' },
+    { check_name: 'Row Level Security', status: 'PASS', details: '8 RLS policies active' },
+    { check_name: 'Notification System', status: 'PASS', details: '12 total notifications sent' }
+  ]
+};
+
+// Components
+const Dashboard = ({ user, setActiveView }) => {
+  const [summary, setSummary] = useState(null);
+  const [recentPayments, setRecentPayments] = useState([]);
+
+  useEffect(() => {
+    // Load dashboard data
+    setSummary(mockData.dashboard_summary[0]);
+    setRecentPayments(mockData.payment_tracking);
+  }, []);
+
+  if (!summary) return <div>Loading...</div>;
+
+  const budgetUsed = (summary.total_spent / summary.total_budget) * 100;
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
+        <h1 className="text-2xl font-bold mb-2">Welcome back, {user.full_name}</h1>
+        <p className="text-blue-100">HOA Financial Management System - {summary.hoa_name}</p>
+      </div>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Pending Approvals</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.pending_approvals}</p>
+            </div>
+            <Clock className="h-8 w-8 text-yellow-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Completed Today</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.completed_today}</p>
+            </div>
+            <Check className="h-8 w-8 text-green-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Budget Used</p>
+              <p className="text-2xl font-bold text-gray-900">{budgetUsed.toFixed(1)}%</p>
+            </div>
+            <DollarSign className="h-8 w-8 text-blue-500" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-500 text-sm">Verified Events</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.total_audit_events}</p>
+            </div>
+            <Shield className="h-8 w-8 text-purple-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Payment Requests</h2>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {recentPayments.slice(0, 5).map((payment) => (
+            <div key={payment.id} className="p-6 hover:bg-gray-50 cursor-pointer" onClick={() => setActiveView('approvals')}>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <h3 className="text-sm font-medium text-gray-900">{payment.vendor_name}</h3>
+                    {payment.urgency === 'urgent' && (
+                      <span className="ml-2 px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Urgent</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">{payment.description}</p>
+                  <div className="flex items-center mt-2 text-xs text-gray-500">
+                    <span className="font-medium">${payment.amount.toLocaleString()}</span>
+                    <span className="mx-2">•</span>
+                    <span>{payment.category}</span>
+                    <span className="mx-2">•</span>
+                    <span>{payment.transaction_id}</span>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PaymentRequest = ({ user }) => {
+  const [formData, setFormData] = useState({
+    vendor_name: '',
+    amount: '',
+    category: 'Maintenance',
+    description: '',
+    urgency: 'standard',
+    vendor_contact_email: '',
+    vendor_contact_phone: '',
+    expected_completion_date: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Submitting payment request:', formData);
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+      setFormData({
+        vendor_name: '',
+        amount: '',
+        category: 'Maintenance',
+        description: '',
+        urgency: 'standard',
+        vendor_contact_email: '',
+        vendor_contact_phone: '',
+        expected_completion_date: ''
+      });
+    }, 3000);
+    setSubmitting(false);
+  };
+
+  if (success) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+          <Check className="h-12 w-12 text-green-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-green-900 mb-2">Payment Request Submitted!</h3>
+          <p className="text-green-700">Your request has been sent for approval.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white shadow rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Submit Payment Request</h2>
+        </div>
+        <div className="p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Vendor Name *
+            </label>
+            <input
+              type="text"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.vendor_name}
+              onChange={(e) => setFormData({...formData, vendor_name: e.target.value})}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount *
+              </label>
+              <input
+                type="number"
+                required
+                min="0.01"
+                step="0.01"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.amount}
+                onChange={(e) => setFormData({...formData, amount: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category *
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.category}
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
+              >
+                <option value="Landscaping">Landscaping</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Emergency Repairs">Emergency Repairs</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Insurance">Insurance</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description *
+            </label>
+            <textarea
+              required
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Urgency
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.urgency}
+                onChange={(e) => setFormData({...formData, urgency: e.target.value})}
+              >
+                <option value="standard">Standard</option>
+                <option value="urgent">Urgent</option>
+                <option value="emergency">Emergency</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expected Completion Date
+              </label>
+              <input
+                type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.expected_completion_date}
+                onChange={(e) => setFormData({...formData, expected_completion_date: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor Email
+              </label>
+              <input
+                type="email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.vendor_contact_email}
+                onChange={(e) => setFormData({...formData, vendor_contact_email: e.target.value})}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vendor Phone
+              </label>
+              <input
+                type="tel"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.vendor_contact_phone}
+                onChange={(e) => setFormData({...formData, vendor_contact_phone: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="pt-4">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400"
+            >
+              {submitting ? 'Submitting...' : 'Submit Payment Request'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ApprovalQueue = ({ user }) => {
+  const [payments, setPayments] = useState([]);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationData, setVerificationData] = useState(null);
+
+  useEffect(() => {
+    setPayments(mockData.payment_tracking.filter(p => p.status === 'pending' || p.status === 'treasurer_approved'));
+  }, []);
+
+  const handleApprove = async (paymentId) => {
+    console.log('Approving payment:', paymentId);
+    // Simulate approval
+    setPayments(payments.filter(p => p.id !== paymentId));
+  };
+
+  const handleReject = async (paymentId) => {
+    console.log('Rejecting payment:', paymentId);
+    // Simulate rejection
+    setPayments(payments.filter(p => p.id !== paymentId));
+  };
+
+  const verifyTransaction = async (transactionId) => {
+    setShowVerification(true);
+    // Simulate verification
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setVerificationData(mockRpcResponses.get_transaction_verification);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white shadow rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Pending Approvals</h2>
+          <p className="text-sm text-gray-500 mt-1">Review and approve payment requests</p>
+        </div>
+        
+        {payments.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">
+            No pending approvals at this time.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {payments.map((payment) => (
+              <div key={payment.id} className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center">
+                      <h3 className="text-lg font-medium text-gray-900">{payment.vendor_name}</h3>
+                      {payment.urgency === 'urgent' && (
+                        <span className="ml-2 px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Urgent</span>
+                      )}
+                      {payment.urgency === 'emergency' && (
+                        <span className="ml-2 px-2 py-1 text-xs rounded-full bg-red-600 text-white">Emergency</span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{payment.transaction_id}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-gray-900">${payment.amount.toLocaleString()}</p>
+                    <p className="text-sm text-gray-500">{payment.category}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-700">{payment.description}</p>
+                </div>
+                
+                {payment.status === 'treasurer_approved' && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                      <p className="text-sm text-yellow-800">
+                        This high-value payment requires board president approval
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => verifyTransaction(payment.transaction_id)}
+                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                  >
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                    Verify Transaction
+                  </button>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => handleReject(payment.id)}
+                      className="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 flex items-center"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleApprove(payment.id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Approve
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Verification Modal */}
+      {showVerification && verificationData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Transaction Verification</h3>
+              <button
+                onClick={() => setShowVerification(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <Shield className="h-6 w-6 text-green-600 mr-3" />
+                  <div>
+                    <p className="font-medium text-green-900">Cryptographically Verified</p>
+                    <p className="text-sm text-green-700">{verificationData.verification_result}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Transaction ID</p>
+                  <p className="font-medium">{verificationData.transaction_id}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Amount</p>
+                  <p className="font-medium">${verificationData.amount.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Audit Events</p>
+                  <p className="font-medium">{verificationData.audit_events_count}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Verification Time</p>
+                  <p className="font-medium">{verificationData.verification_time_ms}ms</p>
+                </div>
+              </div>
+              
+              <div className="pt-4">
+                <button
+                  onClick={() => setShowVerification(false)}
+                  className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const BudgetOverview = () => {
+  const [budgets, setBudgets] = useState([]);
+
+  useEffect(() => {
+    setBudgets(mockData.budget_overview);
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white shadow rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Budget Overview</h2>
+          <p className="text-sm text-gray-500 mt-1">Current fiscal year budget allocation and spending</p>
+        </div>
+        
+        <div className="p-6">
+          <div className="space-y-6">
+            {budgets.map((budget) => (
+              <div key={budget.category_name}>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium text-gray-900">{budget.category_name}</h3>
+                  <div className="text-sm text-gray-500">
+                    ${budget.spent_amount.toLocaleString()} / ${budget.allocated_amount.toLocaleString()}
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full ${
+                      budget.spent_percentage > 80 ? 'bg-red-500' :
+                      budget.spent_percentage > 60 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(budget.spent_percentage, 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-gray-500">{budget.spent_percentage.toFixed(1)}% used</span>
+                  <span className="text-xs text-gray-500">
+                    ${(budget.allocated_amount - budget.spent_amount).toLocaleString()} remaining
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-500">Total Budget</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${budgets.reduce((sum, b) => sum + b.allocated_amount, 0).toLocaleString()}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Total Spent</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${budgets.reduce((sum, b) => sum + b.spent_amount, 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SystemStatus = () => {
+  const [healthChecks, setHealthChecks] = useState([]);
+
+  useEffect(() => {
+    setHealthChecks(mockRpcResponses.system_health_check);
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white shadow rounded-lg">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">System Status</h2>
+          <p className="text-sm text-gray-500 mt-1">Cryptographic audit system health monitoring</p>
+        </div>
+        
+        <div className="p-6">
+          <div className="space-y-4">
+            {healthChecks.map((check, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  {check.status === 'PASS' ? (
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-500 mr-3" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-900">{check.check_name}</p>
+                    <p className="text-sm text-gray-500">{check.details}</p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                  check.status === 'PASS' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {check.status}
+                </span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+            <div className="flex items-start">
+              <Shield className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-blue-900">Cryptographic Protection Active</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  All transactions are protected by SHA-256 hash chains, making tampering mathematically impossible to hide.
+                  Each event is cryptographically linked to the previous one, creating an immutable audit trail.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NotificationCenter = ({ notifications, unreadCount }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        className="relative p-2 text-gray-600 hover:text-gray-900"
+      >
+        <Bell className="h-6 w-6" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      
+      {showDropdown && (
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50">
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="font-medium text-gray-900">Notifications</h3>
+          </div>
+          <div className="max-h-96 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">No new notifications</div>
+            ) : (
+              notifications.map((notif) => (
+                <div key={notif.id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${!notif.read_at ? 'bg-blue-50' : ''}`}>
+                  <p className="font-medium text-sm text-gray-900">{notif.subject}</p>
+                  <p className="text-sm text-gray-600 mt-1">{notif.body}</p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {new Date(notif.created_at).toLocaleString()}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main App Component
+function App() {
+  const [user, setUser] = useState(mockData.hoa_users[0]);
+  const [activeView, setActiveView] = useState('dashboard');
+  const [notifications, setNotifications] = useState(mockData.notifications);
+  const unreadCount = notifications.filter(n => !n.read_at).length;
+
+  const navigation = [
+    { id: 'dashboard', name: 'Dashboard', icon: Home },
+    { id: 'request', name: 'Submit Request', icon: Plus },
+    { id: 'approvals', name: 'Approvals', icon: FileText },
+    { id: 'budget', name: 'Budget', icon: CreditCard },
+    { id: 'status', name: 'System Status', icon: Shield }
+  ];
+
+  const handleLogout = () => {
+    console.log('Logging out...');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Shield className="h-8 w-8 text-blue-600 mr-3" />
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">HOA Payment System</h1>
+                <p className="text-xs text-gray-500">Cryptographically Verified</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <NotificationCenter notifications={notifications} unreadCount={unreadCount} />
+              
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
+                  <p className="text-xs text-gray-500">{user.role.replace('_', ' ').charAt(0).toUpperCase() + user.role.slice(1).replace('_', ' ')}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-gray-600 hover:text-gray-900"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8">
+          {/* Sidebar Navigation */}
+          <nav className="w-64 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveView(item.id)}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    activeView === item.id
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  {item.name}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Main Content */}
+          <main className="flex-1">
+            {activeView === 'dashboard' && <Dashboard user={user} setActiveView={setActiveView} />}
+            {activeView === 'request' && <PaymentRequest user={user} />}
+            {activeView === 'approvals' && <ApprovalQueue user={user} />}
+            {activeView === 'budget' && <BudgetOverview />}
+            {activeView === 'status' && <SystemStatus />}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+                
+const rootEl = document.getElementById('root');
+const root = ReactDOM.createRoot(rootEl);
+root.render(React.createElement(App));
+</script>
+</body>
+</html>

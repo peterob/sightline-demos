@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOA Payment System - AI Powered</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideUp {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+    
+    <script>
+        // ============================================================================
+        // CONFIGURATION - Update these with your Supabase credentials
+        // ============================================================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // React shortcuts
+        const { useState, useEffect, useCallback } = React;
+        const e = React.createElement;
+        
+        // ============================================================================
+        // SIMPLE LOGIN COMPONENT
+        // ============================================================================
+        function LoginPage({ onLogin }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            
+            const handleLogin = async (evt) => {
+                evt.preventDefault();
+                setLoading(true);
+                setError(null);
+                
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    setError(error.message);
+                    setLoading(false);
+                } else {
+                    onLogin(data.session);
+                }
+            };
+            
+            return e('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4' },
+                e('div', { className: 'max-w-md w-full' },
+                    e('div', { className: 'bg-white rounded-2xl shadow-xl p-8' },
+                        e('div', { className: 'text-center mb-8' },
+                            e('h1', { className: 'text-3xl font-bold text-gray-900' }, 'HOA Payment System'),
+                            e('p', { className: 'text-gray-600 mt-2' }, 'Cryptographically Secure • AI Powered')
+                        ),
+                        e('form', { onSubmit: handleLogin, className: 'space-y-6' },
+                            e('div', {},
+                                e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Email'),
+                                e('input', {
+                                    type: 'email',
+                                    value: email,
+                                    onChange: (evt) => setEmail(evt.target.value),
+                                    className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                                    placeholder: 'you@example.com',
+                                    required: true
+                                })
+                            ),
+                            e('div', {},
+                                e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Password'),
+                                e('input', {
+                                    type: 'password',
+                                    value: password,
+                                    onChange: (evt) => setPassword(evt.target.value),
+                                    className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                                    required: true
+                                })
+                            ),
+                            error && e('div', { className: 'bg-red-50 text-red-800 p-3 rounded-lg text-sm' }, error),
+                            e('button', {
+                                type: 'submit',
+                                disabled: loading,
+                                className: 'w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50'
+                            }, loading ? 'Signing in...' : 'Sign In')
+                        ),
+                        e('div', { className: 'mt-8 pt-8 border-t border-gray-200' },
+                            e('p', { className: 'text-center text-sm text-gray-600 mb-4' }, 'Demo credentials:'),
+                            e('div', { className: 'text-center text-xs text-gray-500' },
+                                e('div', {}, 'treasurer@demo.com / demo123'),
+                                e('div', {}, 'president@demo.com / demo123'),
+                                e('div', {}, 'resident@demo.com / demo123')
+                            )
+                        )
+                    )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // DASHBOARD COMPONENT
+        // ============================================================================
+        function Dashboard({ session, userProfile, onSignOut }) {
+            const [activeView, setActiveView] = useState('overview');
+            
+            const menuItems = [
+                { id: 'overview', label: 'Overview' },
+                { id: 'submit', label: 'Submit Payment' },
+                { id: 'payments', label: 'View Payments' },
+                { id: 'verify', label: 'Verify Chain' }
+            ];
+            
+            return e('div', { className: 'min-h-screen bg-gray-50' },
+                // Header
+                e('header', { className: 'bg-white shadow-sm border-b border-gray-200' },
+                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' },
+                        e('div', { className: 'flex justify-between items-center h-16' },
+                            e('div', { className: 'flex items-center' },
+                                e('h1', { className: 'text-xl font-semibold text-gray-900' }, 
+                                    userProfile?.hoas?.name || 'HOA Payment System'
+                                ),
+                                e('span', { className: 'ml-3 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full' }, 
+                                    'AI Powered'
+                                )
+                            ),
+                            e('div', { className: 'flex items-center space-x-4' },
+                                e('div', { className: 'text-right' },
+                                    e('p', { className: 'text-sm font-medium text-gray-900' }, 
+                                        userProfile?.full_name || session.user.email
+                                    ),
+                                    e('p', { className: 'text-xs text-gray-600' }, 
+                                        userProfile?.role?.replace('_', ' ') || 'User'
+                                    )
+                                ),
+                                e('button', {
+                                    onClick: onSignOut,
+                                    className: 'text-gray-600 hover:text-gray-900'
+                                }, 'Sign Out')
+                            )
+                        )
+                    )
+                ),
+                
+                // Content
+                e('div', { className: 'flex' },
+                    // Sidebar
+                    e('nav', { className: 'w-64 bg-white shadow-sm h-[calc(100vh-4rem)] border-r border-gray-200' },
+                        e('div', { className: 'p-4 space-y-1' },
+                            menuItems.map(item =>
+                                e('button', {
+                                    key: item.id,
+                                    onClick: () => setActiveView(item.id),
+                                    className: `w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                                        activeView === item.id
+                                            ? 'bg-blue-50 text-blue-700'
+                                            : 'text-gray-700 hover:bg-gray-50'
+                                    }`
+                                }, item.label)
+                            )
+                        )
+                    ),
+                    
+                    // Main content
+                    e('main', { className: 'flex-1 p-8' },
+                        activeView === 'overview' && e(Overview, { userProfile }),
+                        activeView === 'submit' && e(SubmitPayment, { userProfile }),
+                        activeView === 'payments' && e(PaymentsList, { userProfile }),
+                        activeView === 'verify' && e(VerifyChain, { userProfile })
+                    )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // OVERVIEW COMPONENT
+        // ============================================================================
+        function Overview({ userProfile }) {
+            return e('div', { className: 'space-y-6' },
+                e('div', {},
+                    e('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Dashboard Overview'),
+                    e('p', { className: 'text-gray-600 mt-1' }, 
+                        `Welcome back${userProfile?.full_name ? ', ' + userProfile.full_name : ''}!`
+                    )
+                ),
+                
+                // Features
+                e('div', { className: 'bg-white rounded-xl shadow-sm p-6 border border-gray-200' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 'System Features'),
+                    e('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        e('div', { className: 'flex items-start space-x-3' },
+                            e('div', { className: 'p-2 bg-green-100 text-green-600 rounded-lg' }, '🛡️'),
+                            e('div', {},
+                                e('h4', { className: 'font-medium text-gray-900' }, 'Cryptographic Security'),
+                                e('p', { className: 'text-sm text-gray-600' }, 
+                                    'Every transaction secured with SHA-256 hash chain'
+                                )
+                            )
+                        ),
+                        e('div', { className: 'flex items-start space-x-3' },
+                            e('div', { className: 'p-2 bg-blue-100 text-blue-600 rounded-lg' }, '🧠'),
+                            e('div', {},
+                                e('h4', { className: 'font-medium text-gray-900' }, 'AI Categorization'),
+                                e('p', { className: 'text-sm text-gray-600' }, 
+                                    'Automatic expense categorization with high accuracy'
+                                )
+                            )
+                        ),
+                        e('div', { className: 'flex items-start space-x-3' },
+                            e('div', { className: 'p-2 bg-red-100 text-red-600 rounded-lg' }, '⚠️'),
+                            e('div', {},
+                                e('h4', { className: 'font-medium text-gray-900' }, 'Anomaly Detection'),
+                                e('p', { className: 'text-sm text-gray-600' }, 
+                                    'AI-powered fraud detection on all payments'
+                                )
+                            )
+                        ),
+                        e('div', { className: 'flex items-start space-x-3' },
+                            e('div', { className: 'p-2 bg-purple-100 text-purple-600 rounded-lg' }, '📄'),
+                            e('div', {},
+                                e('h4', { className: 'font-medium text-gray-900' }, 'Document Processing'),
+                                e('p', { className: 'text-sm text-gray-600' }, 
+                                    'Extract data from invoices automatically'
+                                )
+                            )
+                        )
+                    )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // SUBMIT PAYMENT COMPONENT
+        // ============================================================================
+        function SubmitPayment({ userProfile }) {
+            const [formData, setFormData] = useState({
+                vendor_name: '',
+                amount: '',
+                category_name: '',
+                description: '',
+                urgency: 'standard'
+            });
+            const [submitting, setSubmitting] = useState(false);
+            const [success, setSuccess] = useState(false);
+            const [aiSuggestion, setAiSuggestion] = useState(null);
+            
+            // Simulate AI categorization
+            useEffect(() => {
+                if (formData.description.length > 10) {
+                    const desc = formData.description.toLowerCase();
+                    if (desc.includes('landscap') || desc.includes('lawn')) {
+                        setAiSuggestion({ category: 'Landscaping', confidence: 0.92 });
+                    } else if (desc.includes('electric') || desc.includes('utility')) {
+                        setAiSuggestion({ category: 'Utilities', confidence: 0.88 });
+                    } else if (desc.includes('repair') || desc.includes('maint')) {
+                        setAiSuggestion({ category: 'Maintenance', confidence: 0.85 });
+                    }
+                }
+            }, [formData.description]);
+            
+            const handleSubmit = async (evt) => {
+                evt.preventDefault();
+                setSubmitting(true);
+                
+                try {
+                    // In production, this would call your submit_payment_request function
+                    const { error } = await supabaseClient.rpc('submit_payment_request', {
+                        p_hoa_id: userProfile?.hoa_id || '550e8400-e29b-41d4-a716-446655440000',
+                        p_vendor_name: formData.vendor_name,
+                        p_amount: parseFloat(formData.amount),
+                        p_category_name: formData.category_name,
+                        p_description: formData.description,
+                        p_urgency: formData.urgency,
+                        p_submitted_by: userProfile?.id || session?.user?.id,
+                        p_digital_signature: 'demo_signature'
+                    });
+                    
+                    if (error) throw error;
+                    
+                    setSuccess(true);
+                    setFormData({
+                        vendor_name: '',
+                        amount: '',
+                        category_name: '',
+                        description: '',
+                        urgency: 'standard'
+                    });
+                    setTimeout(() => setSuccess(false), 3000);
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error submitting payment: ' + error.message);
+                } finally {
+                    setSubmitting(false);
+                }
+            };
+            
+            const updateField = (field, value) => {
+                setFormData({ ...formData, [field]: value });
+            };
+            
+            return e('div', { className: 'max-w-2xl' },
+                e('h2', { className: 'text-2xl font-bold text-gray-900 mb-6' }, 'Submit Payment Request'),
+                
+                success && e('div', { 
+                    className: 'mb-6 bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg' 
+                }, '✓ Payment request submitted successfully!'),
+                
+                e('form', { 
+                    onSubmit: handleSubmit, 
+                    className: 'space-y-6 bg-white rounded-xl shadow-sm p-6 border border-gray-200' 
+                },
+                    e('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' },
+                        e('div', {},
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Vendor Name'),
+                            e('input', {
+                                type: 'text',
+                                value: formData.vendor_name,
+                                onChange: (evt) => updateField('vendor_name', evt.target.value),
+                                className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                                required: true
+                            })
+                        ),
+                        e('div', {},
+                            e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Amount'),
+                            e('input', {
+                                type: 'number',
+                                step: '0.01',
+                                value: formData.amount,
+                                onChange: (evt) => updateField('amount', evt.target.value),
+                                className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                                required: true
+                            })
+                        )
+                    ),
+                    
+                    e('div', {},
+                        e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Description'),
+                        e('textarea', {
+                            value: formData.description,
+                            onChange: (evt) => updateField('description', evt.target.value),
+                            className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                            rows: 3,
+                            required: true
+                        })
+                    ),
+                    
+                    e('div', {},
+                        e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Category'),
+                        e('select', {
+                            value: formData.category_name,
+                            onChange: (evt) => updateField('category_name', evt.target.value),
+                            className: 'w-full px-4 py-2 border border-gray-300 rounded-lg',
+                            required: true
+                        },
+                            e('option', { value: '' }, 'Select a category'),
+                            e('option', { value: 'Landscaping' }, 'Landscaping'),
+                            e('option', { value: 'Utilities' }, 'Utilities'),
+                            e('option', { value: 'Maintenance' }, 'Maintenance'),
+                            e('option', { value: 'Professional Services' }, 'Professional Services')
+                        ),
+                        aiSuggestion && e('div', { className: 'mt-2 text-sm text-blue-600' },
+                            `🧠 AI suggests: ${aiSuggestion.category} (${Math.round(aiSuggestion.confidence * 100)}% confident)`
+                        )
+                    ),
+                    
+                    e('div', {},
+                        e('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Urgency'),
+                        e('select', {
+                            value: formData.urgency,
+                            onChange: (evt) => updateField('urgency', evt.target.value),
+                            className: 'w-full px-4 py-2 border border-gray-300 rounded-lg'
+                        },
+                            e('option', { value: 'standard' }, 'Standard'),
+                            e('option', { value: 'urgent' }, 'Urgent'),
+                            e('option', { value: 'emergency' }, 'Emergency')
+                        )
+                    ),
+                    
+                    e('div', { className: 'flex items-center justify-between pt-4' },
+                        e('div', { className: 'text-sm text-gray-600' }, 
+                            '🛡️ This payment will be cryptographically signed'
+                        ),
+                        e('button', {
+                            type: 'submit',
+                            disabled: submitting,
+                            className: 'px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50'
+                        }, submitting ? 'Submitting...' : 'Submit Request')
+                    )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // PAYMENTS LIST COMPONENT
+        // ============================================================================
+        function PaymentsList({ userProfile }) {
+            const [payments, setPayments] = useState([]);
+            const [loading, setLoading] = useState(true);
+            
+            useEffect(() => {
+                loadPayments();
+            }, []);
+            
+            const loadPayments = async () => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('payments')
+                        .select('*')
+                        .eq('hoa_id', userProfile?.hoa_id || '550e8400-e29b-41d4-a716-446655440000')
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    setPayments(data || []);
+                } catch (error) {
+                    console.error('Error loading payments:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            return e('div', {},
+                e('h2', { className: 'text-2xl font-bold text-gray-900 mb-6' }, 'Payment History'),
+                
+                e('div', { className: 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden' },
+                    loading 
+                        ? e('div', { className: 'p-8 text-center text-gray-500' }, 'Loading payments...')
+                        : payments.length === 0
+                        ? e('div', { className: 'p-8 text-center text-gray-500' }, 'No payments found')
+                        : e('table', { className: 'min-w-full divide-y divide-gray-200' },
+                            e('thead', { className: 'bg-gray-50' },
+                                e('tr', {},
+                                    e('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Transaction'),
+                                    e('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Vendor'),
+                                    e('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Amount'),
+                                    e('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'Status'),
+                                    e('th', { className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase' }, 'AI')
+                                )
+                            ),
+                            e('tbody', { className: 'bg-white divide-y divide-gray-200' },
+                                payments.map(payment =>
+                                    e('tr', { key: payment.id, className: 'hover:bg-gray-50' },
+                                        e('td', { className: 'px-6 py-4 whitespace-nowrap text-sm' }, 
+                                            payment.transaction_id || 'N/A'
+                                        ),
+                                        e('td', { className: 'px-6 py-4 whitespace-nowrap text-sm' }, 
+                                            payment.vendor_name
+                                        ),
+                                        e('td', { className: 'px-6 py-4 whitespace-nowrap text-sm font-medium' }, 
+                                            `$${parseFloat(payment.amount).toLocaleString()}`
+                                        ),
+                                        e('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                                            e('span', { 
+                                                className: `px-2 py-1 text-xs rounded-full ${
+                                                    payment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                    payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }` 
+                                            }, payment.status)
+                                        ),
+                                        e('td', { className: 'px-6 py-4 whitespace-nowrap text-xs' },
+                                            payment.ai_confidence_score 
+                                                ? `${Math.round(payment.ai_confidence_score * 100)}%`
+                                                : '-'
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // VERIFY CHAIN COMPONENT
+        // ============================================================================
+        function VerifyChain({ userProfile }) {
+            const [verifying, setVerifying] = useState(false);
+            const [result, setResult] = useState(null);
+            
+            const runVerification = async () => {
+                setVerifying(true);
+                try {
+                    const { data, error } = await supabaseClient.rpc('verify_hash_chain', {
+                        p_hoa_id: userProfile?.hoa_id || '550e8400-e29b-41d4-a716-446655440000',
+                        p_limit: 100
+                    });
+                    
+                    if (error) throw error;
+                    setResult(data[0]);
+                } catch (error) {
+                    console.error('Error:', error);
+                    setResult({ is_valid: false, error_message: error.message });
+                } finally {
+                    setVerifying(false);
+                }
+            };
+            
+            return e('div', {},
+                e('h2', { className: 'text-2xl font-bold text-gray-900 mb-6' }, 'Cryptographic Verification'),
+                
+                e('div', { className: 'bg-white rounded-xl shadow-sm p-6 border border-gray-200 text-center' },
+                    e('h3', { className: 'text-lg font-semibold text-gray-900 mb-4' }, 
+                        'Verify Audit Trail Integrity'
+                    ),
+                    e('p', { className: 'text-gray-600 mb-6' }, 
+                        'Cryptographically verify that no transactions have been tampered with'
+                    ),
+                    e('button', {
+                        onClick: runVerification,
+                        disabled: verifying,
+                        className: 'px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50'
+                    }, verifying ? 'Verifying...' : 'Run Verification'),
+                    
+                    result && e('div', { 
+                        className: `mt-6 p-4 rounded-lg ${
+                            result.is_valid ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                        }` 
+                    },
+                        e('div', { className: 'font-semibold' }, 
+                            result.is_valid ? '✓ ' + result.error_message : '✗ Verification Failed'
+                        ),
+                        result.total_verified && e('p', { className: 'text-sm mt-1' }, 
+                            `Verified ${result.total_verified} events in the hash chain`
+                        )
+                    )
+                )
+            );
+        }
+        
+        // ============================================================================
+        // MAIN APP COMPONENT
+        // ============================================================================
+        function App() {
+            const [session, setSession] = useState(null);
+            const [userProfile, setUserProfile] = useState(null);
+            const [loading, setLoading] = useState(true);
+            
+            useEffect(() => {
+                checkSession();
+            }, []);
+            
+            const checkSession = async () => {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        setSession(session);
+                        await loadUserProfile(session.user.id);
+                    }
+                } catch (error) {
+                    console.error('Session error:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            const loadUserProfile = async (userId) => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('hoa_users')
+                        .select('*, hoas(*)')
+                        .eq('id', userId)
+                        .single();
+                    
+                    if (data) setUserProfile(data);
+                } catch (error) {
+                    console.error('Profile error:', error);
+                }
+            };
+            
+            const handleLogin = (session) => {
+                setSession(session);
+                loadUserProfile(session.user.id);
+            };
+            
+            const handleSignOut = async () => {
+                await supabaseClient.auth.signOut();
+                setSession(null);
+                setUserProfile(null);
+            };
+            
+            if (loading) {
+                return e('div', { className: 'min-h-screen flex items-center justify-center' },
+                    e('div', { className: 'text-lg' }, 'Loading...')
+                );
+            }
+            
+            if (!session) {
+                return e(LoginPage, { onLogin: handleLogin });
+            }
+            
+            return e(Dashboard, { session, userProfile, onSignOut: handleSignOut });
+        }
+        
+        // ============================================================================
+        // RENDER THE APP
+        // ============================================================================
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(e(App));
+    </script>
+</body>
+</html>

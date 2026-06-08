@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — Both parties confirm before money moves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d1117;
+  --ink-2: #3a4150;
+  --ink-3: #6b7585;
+  --bg: #fafaf8;
+  --bg-2: #f3f2ef;
+  --line: #e4e2dc;
+  --gold: #c8a96e;
+  --gold-pale: #f5edd8;
+  --green: #1a8a4a;
+  --green-pale: #e8f5ee;
+  --red-pale: #fdecea;
+  --red: #c0392b;
+  --white: #ffffff;
+  --r: 8px;
+  --max: 1080px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.wrap { max-width: var(--max); margin: 0 auto; padding: 0 28px; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(250,250,248,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  height: 60px; gap: 24px;
+}
+.logo {
+  font-family: 'DM Mono', monospace;
+  font-weight: 500; font-size: 17px;
+  letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--ink);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  color: var(--bg); font-size: 13px; font-weight: 500;
+}
+.nav-links {
+  display: flex; align-items: center; gap: 28px;
+  font-size: 14px; font-weight: 400; color: var(--ink-2);
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-cta {
+  background: var(--ink); color: var(--bg);
+  padding: 8px 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 500;
+  transition: opacity .15s;
+}
+.nav-cta:hover { opacity: .8; }
+@media(max-width:700px){ .nav-links a:not(.nav-cta){ display:none; } }
+
+/* ── HERO ── */
+.hero {
+  padding: 96px 0 80px;
+  border-bottom: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 700px 400px at 70% -10%, rgba(200,169,110,0.10), transparent),
+    radial-gradient(ellipse 500px 300px at 0% 80%, rgba(26,138,74,0.06), transparent);
+  pointer-events: none;
+}
+
+.hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+@media(max-width:860px){ .hero-inner { grid-template-columns: 1fr; gap: 48px; } }
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-bottom: 24px;
+}
+.hero-tag::before {
+  content: '';
+  display: block; width: 20px; height: 1px;
+  background: var(--ink-3);
+}
+
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(40px, 5vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+.hero-body {
+  margin-top: 24px;
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink-2);
+  max-width: 46ch;
+}
+
+.hero-actions { display: flex; gap: 12px; margin-top: 36px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 999px;
+  font-size: 15px; font-weight: 500;
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.btn-dark { background: var(--ink); color: var(--white); }
+.btn-dark:hover { opacity: .85; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn-outline:hover { border-color: var(--ink-3); transform: translateY(-1px); }
+
+/* ── HERO CARD ── */
+.confirm-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(13,17,23,0.08), 0 2px 8px rgba(13,17,23,0.04);
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title {
+  font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.card-badge {
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 999px; background: var(--gold-pale);
+  color: #8a6a2a; letter-spacing: 0.04em;
+}
+.card-badge.held { background: #fff3cd; color: #856404; }
+.card-badge.confirmed { background: var(--green-pale); color: var(--green); }
+
+.payment-rows { padding: 0 20px; }
+.payment-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.payment-row:last-child { border-bottom: none; }
+.payment-row .label { color: var(--ink-3); font-weight: 400; }
+.payment-row .value { font-weight: 500; color: var(--ink); font-family: 'DM Mono', monospace; font-size: 13px; }
+.payment-row .value.amount { font-size: 16px; font-weight: 600; font-family: 'DM Sans', sans-serif; }
+
+.card-actions { padding: 16px 20px; display: grid; gap: 8px; border-top: 1px solid var(--line); background: var(--bg); }
+.action-btn {
+  padding: 11px 16px; border-radius: var(--r);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  border: none; text-align: center; transition: opacity .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.action-btn:hover { opacity: .85; }
+.action-confirm { background: var(--ink); color: var(--white); }
+.action-change { background: var(--bg-2); color: var(--ink); border: 1px solid var(--line); }
+.action-dispute { background: transparent; color: var(--red); font-size: 13px; }
+
+.card-footer {
+  padding: 12px 20px;
+  font-size: 12px; color: var(--ink-3);
+  border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 6px;
+}
+.card-footer::before { content: '🔒'; font-size: 11px; }
+
+/* ── STAT STRIP ── */
+.stat-strip {
+  border-bottom: 1px solid var(--line);
+  background: var(--white);
+}
+.stat-strip-inner {
+  display: flex; gap: 0; flex-wrap: wrap;
+}
+.stat-item {
+  flex: 1; min-width: 180px;
+  padding: 28px 32px;
+  border-right: 1px solid var(--line);
+}
+.stat-item:last-child { border-right: none; }
+.stat-n {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px; color: var(--ink);
+  line-height: 1.1;
+}
+.stat-l { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+
+/* ── SECTIONS ── */
+section { padding: 88px 0; }
+section.alt { background: var(--white); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+section.dark { background: var(--ink); border-top: none; border-bottom: none; }
+
+.sec-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-label::before { content: ''; display: block; width: 16px; height: 1px; background: var(--ink-3); }
+section.dark .sec-label { color: rgba(255,255,255,0.4); }
+section.dark .sec-label::before { background: rgba(255,255,255,0.4); }
+
+h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(30px, 3.5vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  max-width: 20ch;
+}
+h2 em { font-style: italic; color: var(--gold); }
+section.dark h2 { color: var(--white); }
+
+.sec-body {
+  font-size: 17px; line-height: 1.7;
+  color: var(--ink-2); max-width: 52ch;
+  margin-top: 16px;
+}
+section.dark .sec-body { color: rgba(255,255,255,0.55); }
+
+/* ── PROBLEM ── */
+.problem-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px; margin-top: 48px;
+  border: 1px solid var(--line); border-radius: 12px;
+  overflow: hidden;
+}
+@media(max-width:640px){ .problem-grid { grid-template-columns: 1fr; } }
+
+.prob-side {
+  padding: 32px 36px;
+  background: var(--white);
+}
+.prob-side.before { background: var(--bg-2); }
+.prob-side-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-bottom: 16px;
+}
+.prob-side.before .prob-side-label { color: var(--red); }
+.prob-side.after .prob-side-label { color: var(--green); }
+
+.prob-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 14px; font-size: 14px; line-height: 1.5;
+  color: var(--ink-2);
+}
+.prob-item .icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── HOW IT WORKS ── */
+.steps { margin-top: 56px; display: grid; gap: 0; }
+.step {
+  display: grid; grid-template-columns: 64px 1fr;
+  gap: 24px; padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+}
+.step:first-child { border-top: 1px solid var(--line); }
+.step-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; color: var(--ink-3);
+  padding-top: 3px;
+}
+.step-content h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; margin-bottom: 8px;
+}
+.step-content p { font-size: 15px; color: var(--ink-2); max-width: 52ch; line-height: 1.6; }
+.step-pivot {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--gold-pale); color: #8a6a2a;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 4px 10px; border-radius: 999px;
+  margin-top: 10px;
+}
+
+/* ── TWO SIDES ── */
+.sides-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 48px; margin-top: 56px;
+  align-items: start;
+}
+@media(max-width:720px){ .sides-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+.side-card {
+  border: 1px solid var(--line);
+  border-radius: 12px; overflow: hidden;
+  background: var(--white);
+}
+.side-card-head {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+.side-card-head h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px; margin-bottom: 4px;
+}
+.side-card-head p { font-size: 13px; color: var(--ink-3); }
+.side-card-body { padding: 20px 24px; }
+.side-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-bottom: 16px; font-size: 14px; line-height: 1.55;
+}
+.side-item:last-child { margin-bottom: 0; }
+.side-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; flex-shrink: 0;
+  font-size: 11px; font-weight: 700; margin-top: 1px;
+}
+.si-gold { background: var(--gold-pale); color: #8a6a2a; }
+.si-green { background: var(--green-pale); color: var(--green); }
+.side-item .si-text { color: var(--ink-2); }
+.side-item .si-text b { color: var(--ink); font-weight: 500; }
+
+/* ── FRAUD TABLE ── */
+.fraud-table {
+  margin-top: 48px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px; overflow: hidden;
+}
+.fraud-row {
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.fraud-row:last-child { border-bottom: none; }
+.fraud-row.head { background: rgba(255,255,255,0.04); }
+.fraud-cell {
+  padding: 16px 24px; font-size: 14px;
+  color: rgba(255,255,255,0.55);
+}
+.fraud-row.head .fraud-cell {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3);
+}
+.fraud-cell.attack { color: rgba(255,255,255,0.8); font-weight: 400; }
+.fraud-cell.bad { color: #f87171; }
+.fraud-cell.good { color: #4ade80; font-weight: 500; }
+
+/* ── DOWNSTREAM ── */
+.downstream-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 24px; margin-top: 48px;
+}
+@media(max-width:760px){ .downstream-grid { grid-template-columns: 1fr; } }
+
+.ds-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px; padding: 28px;
+}
+.ds-icon {
+  font-size: 20px; margin-bottom: 16px;
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--bg-2); display: grid; place-items: center;
+}
+.ds-card h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px; margin-bottom: 8px;
+}
+.ds-card p { font-size: 14px; color: var(--ink-2); line-height: 1.6; }
+
+/* ── TRIGGERS ── */
+.trigger-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-top: 48px;
+}
+@media(max-width:760px){ .trigger-grid { grid-template-columns: 1fr 1fr; } }
+@media(max-width:480px){ .trigger-grid { grid-template-columns: 1fr; } }
+
+.trigger-card {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: 10px; padding: 22px 20px;
+}
+.trigger-card h4 {
+  font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--ink);
+}
+.trigger-card p { font-size: 13px; color: var(--ink-3); line-height: 1.55; }
+
+/* ── CTA ── */
+.cta-section {
+  padding: 96px 0;
+  background: var(--bg); border-top: 1px solid var(--line);
+}
+.cta-inner {
+  background: var(--ink); border-radius: 20px;
+  padding: 64px 56px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 48px; align-items: center;
+}
+@media(max-width:640px){ .cta-inner { grid-template-columns: 1fr; padding: 40px 32px; } }
+.cta-inner h2 { color: var(--white); max-width: 24ch; }
+.cta-inner p { color: rgba(255,255,255,0.5); font-size: 16px; margin-top: 12px; max-width: 44ch; }
+.cta-btns { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+.btn-white { background: var(--white); color: var(--ink); }
+.btn-white:hover { opacity: .9; }
+.btn-ghost { background: transparent; color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.2); }
+.btn-ghost:hover { border-color: rgba(255,255,255,0.5); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--line);
+  padding: 40px 0;
+  background: var(--white);
+}
+.foot-inner {
+  display: flex; justify-content: space-between;
+  align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.foot-logo {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px; font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.foot-links {
+  display: flex; gap: 28px; font-size: 14px; color: var(--ink-3);
+}
+.foot-links a:hover { color: var(--ink); }
+.foot-copy { font-size: 13px; color: var(--ink-3); }
+
+/* ── UTILS ── */
+.mono { font-family: 'DM Mono', monospace; font-size: 0.9em; }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo">
+      <span class="logo-mark">C</span>
+      CAST
+    </div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#sides">Buyer & seller</a>
+      <a href="#fraud">Security</a>
+      <a href="#cta" class="nav-cta">Request access →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <div class="hero-tag">Commercial payments</div>
+      <h1>Both sides confirm<br><em>before</em> money moves.</h1>
+      <p class="hero-body">
+        Today, only the buyer approves a payment. The seller finds out when funds arrive — or don't. CAST requires both parties to confirm the same details before any payment is released. That confirmation becomes a permanent record both sides hold.
+      </p>
+      <div class="hero-actions">
+        <a href="#cta" class="btn btn-dark">Request access →</a>
+        <a href="#how" class="btn btn-outline">See how it works</a>
+      </div>
+    </div>
+
+    <div class="reveal in">
+      <div class="confirm-card">
+        <div class="card-header">
+          <span class="card-title">Trade Message · INV-1048</span>
+          <span class="card-badge held">Held for confirmation</span>
+        </div>
+        <div class="payment-rows">
+          <div class="payment-row">
+            <span class="label">Payer</span>
+            <span class="value">Acme Apparel Co.</span>
+          </div>
+          <div class="payment-row">
+            <span class="label">Seller</span>
+            <span class="value">Riverdale Textiles</span>
+          </div>
+          <div class="payment-row">
+            <span class="label">Invoice</span>
+            <span class="value">INV-1048</span>
+          </div>
+          <div class="payment-row">
+            <span class="label">Amount</span>
+            <span class="value amount">$47,000.00</span>
+          </div>
+          <div class="payment-row">
+            <span class="label">Pay date</span>
+            <span class="value">22 May 2026</span>
+          </div>
+          <div class="payment-row">
+            <span class="label">Destination account</span>
+            <span class="value">•••• 4821</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn action-confirm">Confirm these payment details</button>
+          <button class="action-btn action-change">Request a change</button>
+          <button class="action-btn action-dispute">Dispute</button>
+        </div>
+        <div class="card-footer">
+          Confirmation is cryptographically signed and time-stamped. It cannot be altered.
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ── STATS ── -->
+<div class="stat-strip">
+  <div class="wrap stat-strip-inner">
+    <div class="stat-item">
+      <div class="stat-n">1 of 2</div>
+      <div class="stat-l">Parties confirm terms before payment today</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-n">$2.9B</div>
+      <div class="stat-l">Lost annually to business email fraud in the US</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-n">0</div>
+      <div class="stat-l">Confirmed payments that can be fraudulently altered after signing</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-n">Both</div>
+      <div class="stat-l">Parties hold the same record, permanently</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PROBLEM ── -->
+<section>
+  <div class="wrap">
+    <div class="sec-label reveal">The problem</div>
+    <h2 class="reveal">Every payment today is <em>one-sided.</em></h2>
+    <p class="sec-body reveal">The buyer approves an invoice internally. The seller learns of the payment only when money arrives — or when something goes wrong. Neither side has a record the other co-signed.</p>
+
+    <div class="problem-grid reveal">
+      <div class="prob-side before">
+        <div class="prob-side-label">Today</div>
+        <div class="prob-item"><span class="icon">✗</span>Buyer approves the payment. Seller is not asked.</div>
+        <div class="prob-item"><span class="icon">✗</span>Fraud succeeds by intercepting one email address.</div>
+        <div class="prob-item"><span class="icon">✗</span>Disputes go unresolved because no one has a signed record.</div>
+        <div class="prob-item"><span class="icon">✗</span>Auditors and lenders reconstruct what happened from email threads.</div>
+        <div class="prob-item"><span class="icon">✗</span>A bank-account change reaches no one who can verify it.</div>
+      </div>
+      <div class="prob-side after">
+        <div class="prob-side-label">With CAST</div>
+        <div class="prob-item"><span class="icon">✓</span>Both parties confirm the same amount, account, and date.</div>
+        <div class="prob-item"><span class="icon">✓</span>Fraud requires both parties to collude — and gets recorded if they do.</div>
+        <div class="prob-item"><span class="icon">✓</span>Either party can produce the signed record instantly.</div>
+        <div class="prob-item"><span class="icon">✓</span>Auditors and lenders verify the record directly — no reconstruction.</div>
+        <div class="prob-item"><span class="icon">✓</span>A bank-account change triggers a mandatory confirmation step.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section class="alt" id="how">
+  <div class="wrap">
+    <div class="sec-label reveal">How it works</div>
+    <h2 class="reveal">Four steps. One shared record.</h2>
+    <p class="sec-body reveal">CAST sits alongside your existing accounting system. It does not replace your ERP. It adds one confirmation step before covered payments are released.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h3>Payment is flagged</h3>
+          <p>Your rules identify payments that need both parties to confirm — new vendors, bank-account changes, high-value amounts, rush payments, or duplicate invoices. Everything else passes through normally.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h3>Seller receives a secure link</h3>
+          <p>The seller gets a single link showing the exact payment details: amount, invoice number, payment date, and the last four digits of the destination account. No account setup. No app to install.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03 ·</div>
+        <div class="step-content">
+          <h3>Seller confirms, requests a change, or disputes</h3>
+          <p>The seller chooses one of three actions. Their response is cryptographically signed to the exact payment details and time-stamped. This is the shared record.</p>
+          <span class="step-pivot">The pivot — payment stays held until this happens</span>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h3>Payment releases with proof attached</h3>
+          <p>Once the seller confirms, the payment is released. The signed record travels with it — into your audit trail, your lender's review, and the seller's own records. Both sides hold the same document.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── BUYER & SELLER ── -->
+<section id="sides">
+  <div class="wrap">
+    <div class="sec-label reveal">Buyer & seller</div>
+    <h2 class="reveal">One record. <em>Two sides.</em></h2>
+    <p class="sec-body reveal">The buyer initiates. The seller confirms. Both hold the same signed document. This is what makes CAST different from a fraud tool — it is not a unilateral control. It is a shared record both parties produced.</p>
+
+    <div class="sides-grid">
+      <div class="side-card reveal">
+        <div class="side-card-head">
+          <h3>The buyer</h3>
+          <p>Finance teams, controllers, CFOs</p>
+        </div>
+        <div class="side-card-body">
+          <div class="side-item">
+            <div class="side-icon si-gold">→</div>
+            <span class="si-text"><b>No unilateral fraud.</b> A payment cannot release without the seller's signed confirmation — regardless of how the request arrived.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-gold">→</div>
+            <span class="si-text"><b>Audit is instant.</b> Every covered payment has a signed record. Reconstructing a decision from email threads is gone.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-gold">→</div>
+            <span class="si-text"><b>Lenders accept the records.</b> Asset-based lenders and factors can verify receivables without contacting the seller.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-gold">→</div>
+            <span class="si-text"><b>Disputes resolve faster.</b> Both parties start from the same document — not competing email threads.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-card reveal">
+        <div class="side-card-head">
+          <h3>The seller</h3>
+          <p>Vendors, suppliers, counterparties</p>
+        </div>
+        <div class="side-card-body">
+          <div class="side-item">
+            <div class="side-icon si-green">→</div>
+            <span class="si-text"><b>Confirm in one click.</b> A browser link. No app, no account, no integration with your own systems required.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-green">→</div>
+            <span class="si-text"><b>Verify your own bank details.</b> You see the destination account before the payment moves — not after.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-green">→</div>
+            <span class="si-text"><b>Hold a signed record of every payment.</b> Your copy of the confirmation is as valid as the buyer's. Use it for your own audit, collections, or financing.</span>
+          </div>
+          <div class="side-item">
+            <div class="side-icon si-green">→</div>
+            <span class="si-text"><b>Dispute before money moves.</b> If the details are wrong, you flag it before release — not after a misdirected payment.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FRAUD ── -->
+<section class="dark" id="fraud">
+  <div class="wrap">
+    <div class="sec-label reveal">Security</div>
+    <h2 class="reveal">Fraud that works today <em>stops working.</em></h2>
+    <p class="sec-body reveal">Most payment fraud succeeds because only one party needs to be deceived. CAST requires both parties to confirm. An attacker who controls one inbox, one email address, or one phone call cannot produce a bilateral confirmation.</p>
+
+    <div class="fraud-table reveal">
+      <div class="fraud-row head">
+        <div class="fraud-cell">Attack</div>
+        <div class="fraud-cell">Today</div>
+        <div class="fraud-cell">With CAST</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Fake invoice from external attacker</div>
+        <div class="fraud-cell bad">Succeeds</div>
+        <div class="fraud-cell good">Blocked — seller never confirms</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Bank-account change via email</div>
+        <div class="fraud-cell bad">Succeeds</div>
+        <div class="fraud-cell good">Blocked — change triggers confirmation</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Compromised vendor email</div>
+        <div class="fraud-cell bad">Succeeds</div>
+        <div class="fraud-cell good">Blocked — passkey required, not email</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Verbal instruction to AP team</div>
+        <div class="fraud-cell bad">Often succeeds</div>
+        <div class="fraud-cell good">No path — payment needs a signed record</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Rush payment bypass</div>
+        <div class="fraud-cell bad">Common failure</div>
+        <div class="fraud-cell good">Rush increases scrutiny, not speed</div>
+      </div>
+      <div class="fraud-row">
+        <div class="fraud-cell attack">Duplicate invoice</div>
+        <div class="fraud-cell bad">Partially caught</div>
+        <div class="fraud-cell good">Flagged automatically before release</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TRIGGERS ── -->
+<section class="alt" id="triggers">
+  <div class="wrap">
+    <div class="sec-label reveal">What gets covered</div>
+    <h2 class="reveal">Start where the <em>risk is highest.</em></h2>
+    <p class="sec-body reveal">You define which payments require confirmation. These are the six most common starting points. Everything below your thresholds passes through without interruption.</p>
+
+    <div class="trigger-grid">
+      <div class="trigger-card reveal">
+        <h4>First payment to a new vendor</h4>
+        <p>No relationship yet. Both parties confirm the destination before funds move.</p>
+      </div>
+      <div class="trigger-card reveal">
+        <h4>Bank-account change</h4>
+        <p>Any destination update triggers confirmation. The seller sees the account number before release.</p>
+      </div>
+      <div class="trigger-card reveal">
+        <h4>High-value payment</h4>
+        <p>Payments above your threshold require a bilateral confirmation before proceeding.</p>
+      </div>
+      <div class="trigger-card reveal">
+        <h4>Rush payment</h4>
+        <p>Urgency does not bypass controls. Rush payments still wait for the seller to confirm.</p>
+      </div>
+      <div class="trigger-card reveal">
+        <h4>Duplicate invoice risk</h4>
+        <p>Potential duplicates are held for confirmation or review before money moves.</p>
+      </div>
+      <div class="trigger-card reveal">
+        <h4>Seller non-response</h4>
+        <p>If the seller does not respond in time, the payment stays held. The exception is recorded.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DOWNSTREAM ── -->
+<section id="downstream">
+  <div class="wrap">
+    <div class="sec-label reveal">The record travels</div>
+    <h2 class="reveal">The proof is produced <em>once.</em></h2>
+    <p class="sec-body reveal">The signed record is created at transaction time. It moves with the payment through every system that needs to verify it — without anyone making calls or sending emails to reconstruct it.</p>
+
+    <div class="downstream-grid">
+      <div class="ds-card reveal">
+        <div class="ds-icon">📋</div>
+        <h3>Audit</h3>
+        <p>Every covered payment has a signed record. Auditors verify the record directly. They do not need to interview anyone or search email threads.</p>
+      </div>
+      <div class="ds-card reveal">
+        <div class="ds-icon">🏦</div>
+        <h3>Lenders</h3>
+        <p>Asset-based lenders and factors can verify that a receivable is real and agreed-to by both parties — without contacting the seller separately.</p>
+      </div>
+      <div class="ds-card reveal">
+        <div class="ds-icon">🛡</div>
+        <h3>Insurers</h3>
+        <p>A signed bilateral record changes the underwriting conversation for trade credit insurance. The claim is documented before it is filed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<div class="cta-section" id="cta">
+  <div class="wrap">
+    <div class="cta-inner reveal">
+      <div>
+        <h2>See it with one of your own payments.</h2>
+        <p>We walk through a real example from your AP queue. No commitment. 30 minutes.</p>
+      </div>
+      <div class="cta-btns">
+        <a href="mailto:peter@digitalfinancehq.com?subject=CAST%20demo" class="btn btn-white">Request a demo →</a>
+        <a href="#how" class="btn btn-ghost">Read the architecture</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="wrap foot-inner">
+    <div class="foot-logo">CAST</div>
+    <div class="foot-links">
+      <a href="#how">How it works</a>
+      <a href="#fraud">Security</a>
+      <a href="mailto:peter@digitalfinancehq.com">Contact</a>
+    </div>
+    <div class="foot-copy">© 2026 Digital Finance HQ · Both sides. One record.</div>
+  </div>
+</footer>
+
+<script>
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.borderBottomColor = scrollY > 8 ? 'var(--line)' : 'var(--line)';
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

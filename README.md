@@ -4,7 +4,8 @@ Private prototype gallery for customer demos, sales conversations, and CFO advis
 
 ## What's Inside
 
-- **167 prototypes** — 22 curated + 62 HTML + 83 JSX (React wrapped) — from chat exports spanning Dec 2025 – Jun 2026
+- **245 prototypes** — 22 curated + 125 HTML + 91 JSX (React wrapped) + 7 foundational Claude chat saves — spanning **Mar 2025 → Jun 2026** (the full ZTA → HOA → Sightline → CAST arc)
+- **63 entries flagged "ORIGINS"** (gold left border) trace the pre-Sightline ZTA/HOA period
 - **Master lead-sheet** as the new homepage (`index.html`) — dense vertical list, sorted newest first, search/filter by category, status, and type
 - **Curated gallery view** preserved at `gallery.html` (the original card-style grid)
 - **6 strategy documents** in `docs/` (catalog, feature matrix, demo paths, design insights, settlement architecture, proof-based settlement)
@@ -29,11 +30,15 @@ sightline-demos/
 │   └── …
 ├── prototypes-2026/        # 37 HTML prototypes from Claude Chat (Mar–Jun 2026)
 │   └── …
-└── prototypes-jsx/         # 83 React/JSX prototypes wrapped to render in-browser
-    ├── *.html              # 81 self-contained wrappers (Babel standalone + CDN React)
-    ├── source/             # Original .jsx files from past 90 days (8 files)
-    ├── 2025-source/        # Original .jsx files from past year (44 files)
-    └── home-claude-source/ # Original .jsx files from /home/claude/ scratch dir (31 files)
+├── prototypes-origins/     # 63 standalone HTMLs from Mar 2025 – May 2026 archive
+│   ├── *.html              # Individual ZTA/HOA/Sightline iterations
+│   └── chat-pages/         # 7 foundational Claude conversation saves (with _files folders)
+└── prototypes-jsx/         # 91 React/JSX prototypes wrapped to render in-browser
+    ├── *.html              # Self-contained wrappers (Babel standalone + CDN React)
+    ├── source/             # Original .jsx (past 90 days)
+    ├── 2025-source/        # Original .jsx (past year)
+    ├── home-claude-source/ # Original .jsx (/home/claude/ scratch dir)
+    └── universe-source/    # Original .jsx (from Universe of Files archive)
 ```
 
 ## How to Use the Lead Sheet

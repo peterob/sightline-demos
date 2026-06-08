@@ -1,0 +1,970 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial DVR (toy demo)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121a33;
+      --panel2:#0f1730;
+      --text:#e9ecf6;
+      --muted:#a9b2d6;
+      --line:rgba(255,255,255,0.10);
+      --accent:#8b5cf6;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(139,92,246,0.22), transparent 60%),
+        radial-gradient(1000px 500px at 90% 10%, rgba(139,92,246,0.12), transparent 55%),
+        var(--bg);
+      color:var(--text);
+    }
+    .wrap{ max-width:1120px; margin:0 auto; padding:18px 14px 36px; }
+
+    header{
+      padding:16px 16px 14px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: linear-gradient(135deg, rgba(139,92,246,0.14), rgba(18,26,51,0.92));
+    }
+    h1{ margin:0; font-size:20px; letter-spacing:0.2px; }
+    .sub{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .sub b{ color:var(--text); font-weight:850; }
+
+    .controls{
+      margin-top:14px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(18,26,51,0.65);
+    }
+    .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background: rgba(15,23,48,0.75);
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .pill b{ color:var(--text); font-weight:850; }
+    .dot{
+      width:8px; height:8px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(139,92,246,0.18);
+      display:inline-block;
+    }
+
+    .toggle{
+      margin-top:10px;
+      display:inline-flex;
+      border:1px solid var(--line);
+      border-radius:999px;
+      overflow:hidden;
+      background: rgba(15,23,48,0.75);
+    }
+    .toggle button{
+      border:0;
+      padding:9px 12px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:0.2px;
+      background: transparent;
+      color:var(--muted);
+    }
+    .toggle button.active{
+      background: rgba(139,92,246,0.18);
+      color:var(--text);
+    }
+    .hint{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    input[type="range"]{
+      width:min(760px, 100%);
+      margin-top:12px;
+      accent-color: var(--accent);
+    }
+    .rangeMeta{
+      display:flex;
+      justify-content:space-between;
+      margin-top:6px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .grid{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap:14px;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns:1fr; }
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(18,26,51,0.65);
+      overflow:hidden;
+    }
+    .panelHead{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(15,23,48,0.65);
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .panelHead .title{ font-size:13px; font-weight:950; letter-spacing:0.2px; }
+    .panelHead .meta{ font-size:12px; color:var(--muted); }
+    .panelBody{ padding:14px; }
+
+    .big{
+      margin:0;
+      font-size:32px;
+      font-weight:950;
+      line-height:1.05;
+      letter-spacing:0.2px;
+    }
+    .big small{ font-size:12px; color:var(--muted); font-weight:750; margin-left:8px; }
+
+    .desc{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .btnRow{ margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; }
+    .btn{
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(15,23,48,0.75);
+      color: var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn:hover{ border-color: rgba(255,255,255,0.22); }
+
+    .confBox{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+      padding:10px 12px;
+    }
+    .confTop{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+    .confTop .label{ font-size:12px; color:var(--muted); }
+    .confTop .value{ font-size:12px; color:var(--text); font-weight:950; }
+    .meter{
+      margin-top:8px;
+      height:10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.10);
+      background: rgba(18,26,51,0.45);
+      overflow:hidden;
+    }
+    .meterFill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--bad), var(--warn), var(--good));
+      border-radius:999px;
+    }
+    .confNote{ margin-top:8px; font-size:12px; color:var(--muted); line-height:1.4; }
+    .confMath{ margin-top:8px; font-size:12px; color:var(--muted); border-top:1px solid rgba(255,255,255,0.08); padding-top:8px; }
+    .confMath code{
+      background: rgba(18,26,51,0.55);
+      border:1px solid rgba(255,255,255,0.10);
+      padding:2px 6px;
+      border-radius:8px;
+      color: var(--text);
+    }
+
+    details{
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+      overflow:hidden;
+    }
+    summary{
+      cursor:pointer;
+      padding:10px 12px;
+      list-style:none;
+      user-select:none;
+      font-size:12px;
+      font-weight:950;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .detailBody{
+      padding:10px 12px 12px;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .list{
+      margin:0; padding:0;
+      list-style:none;
+      display:grid;
+      gap:8px;
+    }
+    .list li{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background: rgba(18,26,51,0.45);
+    }
+    .list li b{ color:var(--text); font-weight:900; }
+
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background: rgba(15,23,48,0.55);
+    }
+    th, td{
+      padding:10px 10px;
+      font-size:12px;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      vertical-align:top;
+    }
+    th{
+      text-align:left;
+      color:var(--muted);
+      font-weight:950;
+      background: rgba(18,26,51,0.35);
+    }
+    tr:last-child td{ border-bottom:none; }
+    .lagPill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:5px 9px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(18,26,51,0.45);
+      white-space:nowrap;
+      font-weight:950;
+      color:var(--text);
+    }
+    .lagDot{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+
+    /* Easter egg line (exactly one per panel) */
+    .egg{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+      opacity:0.92;
+    }
+
+    /* Modal */
+    .modalBack{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,0.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .modal{
+      width:min(820px, 100%);
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius:16px;
+      background: rgba(12,16,32,0.96);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.10);
+      background: rgba(15,23,48,0.65);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .modalTitle{ font-weight:950; font-size:13px; letter-spacing:0.2px; }
+    .modalBody{ padding:14px; }
+    .modalClose{
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(18,26,51,0.45);
+      color: var(--text);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:950;
+      cursor:pointer;
+    }
+    .modalClose:hover{ border-color: rgba(255,255,255,0.22); }
+
+    .foot{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.55;
+      opacity:0.95;
+    }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Financial DVR <span class="mono" style="opacity:.85;">(toy demo)</span></h1>
+      <div class="sub">
+        Scrub the tape to see the difference between <b>what we knew</b> and <b>what happened</b>.
+        Scrubbing does not change history. It only shows what your systems knew at the time.
+      </div>
+      <div class="sub">
+        <b>Confidence</b> is evidence completeness (deterministic math). It is not probability, not Monte Carlo, and not a generic “risk score.”
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="row">
+        <div class="pill"><span class="dot"></span> <span>As of</span> <b id="asOfLabel">—</b></div>
+        <div class="pill"><span>Range</span> <b id="rangeLabel">—</b></div>
+        <div class="pill"><span>Starting cash</span> <b id="startCashLabel">—</b></div>
+      </div>
+
+      <div class="toggle" role="tablist" aria-label="Replay mode">
+        <button id="btnKnown" class="active" type="button" role="tab" aria-selected="true">What we knew</button>
+        <button id="btnActual" type="button" role="tab" aria-selected="false">What happened</button>
+      </div>
+      <div class="hint" id="modeHint">
+        What we knew = postings and proofs observed by this date.
+      </div>
+
+      <input id="asOfRange" type="range" min="0" max="1" value="0" step="1" />
+      <div class="rangeMeta">
+        <span id="minDate">—</span>
+        <span id="maxDate">—</span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <!-- Panel A -->
+      <div class="panel">
+        <div class="panelHead">
+          <div class="title">Cash available</div>
+          <div class="meta" id="cashMeta">view: what we knew</div>
+        </div>
+        <div class="panelBody">
+          <p class="big" id="cashValue">$— <small id="cashBand">± $—</small></p>
+          <div class="desc" id="cashDesc">
+            This is the cash number the books could justify on the selected day.
+          </div>
+
+          <div class="confBox">
+            <div class="confTop">
+              <div class="label">Confidence (evidence completeness)</div>
+              <div class="value" id="confPct">—%</div>
+            </div>
+            <div class="meter"><div class="meterFill" id="confFill"></div></div>
+            <div class="confNote" id="confExplain">—</div>
+            <div class="confMath" id="confMath"></div>
+          </div>
+
+          <div class="btnRow">
+            <button class="btn" id="btnExplainCash" type="button">Explain this number</button>
+          </div>
+
+          <details>
+            <summary>
+              <span>Confidence inputs</span>
+              <span style="color:var(--muted); font-weight:850;">(tap)</span>
+            </summary>
+            <div class="detailBody">
+              <ul class="list" id="confInputs"></ul>
+            </div>
+          </details>
+
+          <details>
+            <summary>
+              <span>Cash calculation inputs</span>
+              <span style="color:var(--muted); font-weight:850;">(tap)</span>
+            </summary>
+            <div class="detailBody">
+              <ul class="list" id="cashInputs"></ul>
+            </div>
+          </details>
+
+          <!-- Easter egg: Panel A (one line only) -->
+          <div class="egg" id="eggCash"></div>
+        </div>
+      </div>
+
+      <!-- Panel B -->
+      <div class="panel">
+        <div class="panelHead">
+          <div class="title">Money in limbo</div>
+          <div class="meta">in between systems</div>
+        </div>
+        <div class="panelBody">
+          <p class="big" id="limboTotal">$— <small>open items</small></p>
+          <div class="desc">
+            Items that started but have not completed a verifiable lifecycle state by the selected date (received, settled, cashed, received into inventory).
+          </div>
+
+          <details open>
+            <summary>
+              <span>Breakdown</span>
+              <span style="color:var(--muted); font-weight:850;">(tap)</span>
+            </summary>
+            <div class="detailBody">
+              <ul class="list" id="limboBreakdown"></ul>
+            </div>
+          </details>
+
+          <!-- Easter egg: Panel B (one line only) -->
+          <div class="egg" id="eggLimbo"></div>
+        </div>
+      </div>
+
+      <!-- Panel C -->
+      <div class="panel" style="grid-column:1 / -1;">
+        <div class="panelHead">
+          <div class="title">GL lag</div>
+          <div class="meta">event date vs posting date</div>
+        </div>
+        <div class="panelBody">
+          <div class="desc" style="margin-top:0;">
+            Each row shows an event date (when it happened) and a posting date (when the GL learned about it).
+          </div>
+
+          <div style="margin-top:10px; overflow:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:170px;">Event</th>
+                  <th style="min-width:110px;">Event date</th>
+                  <th style="min-width:110px;">GL date</th>
+                  <th style="min-width:110px;">Lag</th>
+                  <th style="min-width:260px;">Impact</th>
+                  <th style="min-width:120px; text-align:right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody id="lagRows"></tbody>
+            </table>
+          </div>
+
+          <!-- Easter egg: Panel C (one line only) -->
+          <div class="egg" id="eggLag"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      Save as <span class="mono">financial-dvr.html</span> and open in a browser (desktop or iPhone Files → tap). No backend.
+      <div style="margin-top:6px; opacity:.95;">This is a toy. Unfortunately, it’s also correct.</div>
+    </div>
+  </div>
+
+  <!-- Explain modal -->
+  <div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-label="Explain cash">
+    <div class="modal">
+      <div class="modalHead">
+        <div class="modalTitle" id="modalTitle">Explain: cash available</div>
+        <button class="modalClose" id="modalClose" type="button">Close</button>
+      </div>
+      <div class="modalBody">
+        <div class="desc" id="modalIntro" style="margin-top:0;"></div>
+
+        <div class="pill" style="display:inline-flex; margin-top:10px;">
+          <span>As of</span> <b id="modalAsOf">—</b>
+        </div>
+
+        <div class="panel" style="margin-top:12px; background: rgba(15,23,48,0.55); border-radius:12px;">
+          <div class="panelHead" style="border-radius:12px 12px 0 0;">
+            <div class="title">Top contributors</div>
+            <div class="meta">largest deltas</div>
+          </div>
+          <div class="panelBody">
+            <ul class="list" id="modalContrib"></ul>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px; background: rgba(15,23,48,0.55); border-radius:12px;">
+          <div class="panelHead" style="border-radius:12px 12px 0 0;">
+            <div class="title">Evidence gaps</div>
+            <div class="meta">why the band exists</div>
+          </div>
+          <div class="panelBody">
+            <ul class="list" id="modalGaps"></ul>
+          </div>
+        </div>
+
+        <div class="foot" style="margin-top:12px;">
+          The modal is intentionally literal. If it’s not explainable, it’s not automation-safe.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * Goals implemented (reviewed):
+ * 1) Microcopy: consistent, dry, precise. Humor only in a single “egg” line per panel.
+ * 2) Easter eggs: exactly one line in each panel (Cash, Limbo, Lag). No extra jokes elsewhere.
+ *    - Cash egg depends on mode + confidence.
+ *    - Limbo egg depends on whether limbo is zero.
+ *    - Lag egg depends on whether there are any rows.
+ *
+ * Mode:
+ * - "What we knew": cash = postings with glDate <= T
+ * - "What happened": cash = events with eventDate <= T (demo proxy using lagEvents amounts)
+ *
+ * Confidence math (deterministic):
+ * U_limbo(T)   = sum(|amount|) for initiated <= T and completed > T
+ * U_backlog(T) = sum(|amount|) for eventDate <= T and glDate > T
+ * U_assump(T)  = 0 in this demo (hook included)
+ *
+ * Band(T)  = U_limbo + alpha*U_backlog + beta*U_assump
+ * Scale(T) = |Cash| + U_limbo + U_backlog + U_assump
+ * ratio    = Band / Scale
+ * BaseConf = 100 * exp(-lambda * ratio)
+ * LagPenalty = gamma * min(1, avgSoFarLag / Lmax)
+ * Conf = BaseConf * (1 - LagPenalty)
+ */
+
+// ---------- Utilities ----------
+const fmtUSD = (n) => {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  return sign + abs.toLocaleString(undefined, { style:"currency", currency:"USD", maximumFractionDigits:0 });
+};
+const parseDate = (s) => new Date(s + "T00:00:00");
+const daysBetween = (a, b) => Math.round((b - a) / (1000*60*60*24));
+const pretty = (d) => d.toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const pct = (x) => `${Math.round(x)}%`;
+
+// ---------- Parameters ----------
+const alpha = 0.5;
+const beta  = 1.0;
+const lambda = 1.5;
+const gamma = 0.25;
+const Lmax = 20;
+
+// ---------- Sample data ----------
+const startingCash = 7200000;
+
+const cashPostings = [
+  { label:"Shopify deposits (batch)", amount:+620000, glDate:"2025-09-05", note:"Deposits posted from Shopify payout file" },
+  { label:"Shopify deposits (batch)", amount:+540000, glDate:"2025-09-12", note:"Deposits posted after settlement" },
+  { label:"Refund reserve release",  amount:+150000, glDate:"2025-09-27", note:"Reserve released after reconciliation" },
+  { label:"Vendor wire - Aster Lighting", amount:-500000, glDate:"2025-09-19", note:"Posted after bank confirmation matched" },
+  { label:"Inventory prepay - Shenzhen Works", amount:-650000, glDate:"2025-09-22", note:"Posted late due to documentation chase" },
+  { label:"3PL invoice - Radial", amount:-310000, glDate:"2025-09-28", note:"Invoice lagged fulfillment activity" },
+  { label:"Payroll", amount:-410000, glDate:"2025-10-01", note:"Posted on regular cadence" },
+  { label:"Freight invoice - Ocean", amount:-180000, glDate:"2025-10-07", note:"Billed after sailing date" }
+];
+
+const limboItems = [
+  { type:"Wire sent, not confirmed received", amount:900000, initiated:"2025-09-03", completed:"2025-09-07", detail:"Two vendor wires awaiting beneficiary confirmation" },
+  { type:"Wire sent, not confirmed received", amount:450000, initiated:"2025-09-10", completed:"2025-09-16", detail:"Settlement + vendor confirmation lag" },
+  { type:"Inventory paid, not received", amount:650000, initiated:"2025-09-04", completed:"2025-10-03", detail:"Prepay made; goods on the water" },
+  { type:"Inventory paid, not received", amount:380000, initiated:"2025-09-18", completed:"2025-10-20", detail:"Second prepay; delayed sailing" },
+  { type:"Checks mailed, not cashed", amount:120000, initiated:"2025-09-08", completed:"2025-09-30", detail:"Several small vendors" },
+  { type:"AP approved, not paid", amount:200000, initiated:"2025-09-12", completed:"2025-10-04", detail:"Approved batch pending payment run" }
+];
+
+// Event stream with posting dates (used for lag table + “what happened” proxy + backlog bucket)
+const lagEvents = [
+  { name:"Vendor wire - Aster Lighting", eventDate:"2025-09-03", glDate:"2025-09-19", impact:"Liquidity visibility delayed", amount:-500000 },
+  { name:"Inventory prepay - Shenzhen Works", eventDate:"2025-09-04", glDate:"2025-09-22", impact:"Commitment existed before posting", amount:-650000 },
+  { name:"3PL fulfillment invoice (week 36)", eventDate:"2025-09-10", glDate:"2025-09-28", impact:"Margin & cash timing distorted", amount:-310000 },
+  { name:"Shopify deposits (payout)", eventDate:"2025-09-10", glDate:"2025-09-12", impact:"Cash receipts recognized late", amount:+540000 },
+  { name:"Freight invoice - Ocean leg", eventDate:"2025-09-19", glDate:"2025-10-07", impact:"Inbound cost visibility delayed", amount:-180000 },
+  { name:"Refund reserve release", eventDate:"2025-09-21", glDate:"2025-09-27", impact:"Cash unlocked after reconciliation", amount:+150000 },
+  { name:"Payroll", eventDate:"2025-09-30", glDate:"2025-10-01", impact:"Predictable cadence", amount:-410000 }
+];
+
+// ---------- Date range ----------
+const allDates = []
+  .concat(cashPostings.map(p => p.glDate))
+  .concat(limboItems.map(x => x.initiated), limboItems.map(x => x.completed))
+  .concat(lagEvents.map(e => e.eventDate), lagEvents.map(e => e.glDate))
+  .filter(Boolean)
+  .map(parseDate);
+
+const minD = new Date(Math.min(...allDates));
+const maxD = new Date(Math.max(...allDates));
+const dateList = [];
+for(let d = new Date(minD); d <= maxD; d.setDate(d.getDate()+1)) dateList.push(new Date(d));
+
+// ---------- DOM ----------
+const asOfRange = document.getElementById("asOfRange");
+const asOfLabel = document.getElementById("asOfLabel");
+const rangeLabel = document.getElementById("rangeLabel");
+const startCashLabel = document.getElementById("startCashLabel");
+const minDate = document.getElementById("minDate");
+const maxDate = document.getElementById("maxDate");
+
+const btnKnown = document.getElementById("btnKnown");
+const btnActual = document.getElementById("btnActual");
+const modeHint = document.getElementById("modeHint");
+
+const cashMeta = document.getElementById("cashMeta");
+const cashDesc = document.getElementById("cashDesc");
+const cashValue = document.getElementById("cashValue");
+const cashBand = document.getElementById("cashBand");
+
+const confPct = document.getElementById("confPct");
+const confFill = document.getElementById("confFill");
+const confExplain = document.getElementById("confExplain");
+const confMath = document.getElementById("confMath");
+const confInputs = document.getElementById("confInputs");
+const cashInputs = document.getElementById("cashInputs");
+
+const limboTotal = document.getElementById("limboTotal");
+const limboBreakdown = document.getElementById("limboBreakdown");
+const lagRows = document.getElementById("lagRows");
+
+const eggCash = document.getElementById("eggCash");
+const eggLimbo = document.getElementById("eggLimbo");
+const eggLag = document.getElementById("eggLag");
+
+const btnExplainCash = document.getElementById("btnExplainCash");
+
+// Modal
+const modalBack = document.getElementById("modalBack");
+const modalClose = document.getElementById("modalClose");
+const modalTitle = document.getElementById("modalTitle");
+const modalAsOf = document.getElementById("modalAsOf");
+const modalIntro = document.getElementById("modalIntro");
+const modalContrib = document.getElementById("modalContrib");
+const modalGaps = document.getElementById("modalGaps");
+
+let mode = "known";
+
+// ---------- Init UI ----------
+asOfRange.min = 0;
+asOfRange.max = dateList.length - 1;
+asOfRange.value = Math.floor(dateList.length * 0.38);
+
+asOfLabel.textContent = pretty(dateList[Number(asOfRange.value)]);
+minDate.textContent = pretty(dateList[0]);
+maxDate.textContent = pretty(dateList[dateList.length - 1]);
+rangeLabel.textContent = `${pretty(dateList[0])} → ${pretty(dateList[dateList.length - 1])}`;
+startCashLabel.textContent = fmtUSD(startingCash);
+
+// ---------- Helpers ----------
+function lagColor(days){
+  if(days >= 10) return "var(--bad)";
+  if(days >= 5)  return "var(--warn)";
+  return "var(--good)";
+}
+function computeBand(U_limbo, U_backlog, U_assump){
+  return U_limbo + alpha * U_backlog + beta * U_assump;
+}
+function computeScale(cashBase, U_limbo, U_backlog, U_assump){
+  return Math.abs(cashBase) + U_limbo + U_backlog + U_assump;
+}
+function baseConfidence(ratio){
+  return 100 * Math.exp(-lambda * ratio);
+}
+function lagPenalty(avgSoFarLagDays){
+  return gamma * clamp(avgSoFarLagDays / Lmax, 0, 1);
+}
+function cashAsKnown(asOf){
+  const postings = cashPostings.filter(p => parseDate(p.glDate) <= asOf);
+  return startingCash + postings.reduce((s,p)=>s+p.amount,0);
+}
+function cashAsOccurred(asOf){
+  const occurred = lagEvents.filter(e => parseDate(e.eventDate) <= asOf);
+  return startingCash + occurred.reduce((s,e)=>s+e.amount,0);
+}
+
+// ---------- Mode ----------
+function setMode(next){
+  mode = next;
+  btnKnown.classList.toggle("active", mode==="known");
+  btnActual.classList.toggle("active", mode==="actual");
+  btnKnown.setAttribute("aria-selected", mode==="known" ? "true" : "false");
+  btnActual.setAttribute("aria-selected", mode==="actual" ? "true" : "false");
+
+  if(mode === "known"){
+    modeHint.textContent = "What we knew = postings and proofs observed by this date.";
+    cashMeta.textContent = "view: what we knew";
+    cashDesc.textContent = "This is the cash number the books could justify on the selected day.";
+  } else {
+    modeHint.textContent = "What happened = events that occurred by this date (even if the GL learned later).";
+    cashMeta.textContent = "view: what happened";
+    cashDesc.textContent = "This is the cash number implied by events that had already occurred by the selected day.";
+  }
+  render(false);
+}
+btnKnown.addEventListener("click", ()=>setMode("known"));
+btnActual.addEventListener("click", ()=>setMode("actual"));
+
+// ---------- Modal ----------
+function openModal(payload){
+  modalBack.style.display = "flex";
+  modalTitle.textContent = (mode === "known") ? "Explain: cash available (what we knew)" : "Explain: cash available (what happened)";
+  modalAsOf.textContent = pretty(payload.asOf);
+
+  modalIntro.textContent =
+    (mode === "known")
+      ? "This is the explanation the system could support on that day."
+      : "This is the explanation implied by events that had occurred by that day.";
+
+  // Contributors
+  modalContrib.innerHTML = "";
+  payload.contrib.slice(0,8).forEach(x=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>${x.label}</b><div style="margin-top:3px;opacity:.95">${x.note}</div><div style="margin-top:3px;opacity:.75">Date: ${pretty(parseDate(x.when))}</div></span><span style="text-align:right;"><b>${fmtUSD(x.amt)}</b></span>`;
+    modalContrib.appendChild(li);
+  });
+  if(payload.contrib.length === 0){
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>No contributors</b><div style="margin-top:3px;opacity:.95">Nothing exists in this view yet.</div></span><span><b>${fmtUSD(0)}</b></span>`;
+    modalContrib.appendChild(li);
+  }
+
+  // Gaps
+  modalGaps.innerHTML = "";
+  payload.gaps.forEach(g=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>${g.k}</b><div style="margin-top:3px;opacity:.95">${g.note}</div></span><span style="text-align:right;"><b>${g.v}</b></span>`;
+    modalGaps.appendChild(li);
+  });
+}
+function closeModal(){ modalBack.style.display = "none"; }
+modalClose.addEventListener("click", closeModal);
+modalBack.addEventListener("click", (e)=>{ if(e.target === modalBack) closeModal(); });
+
+btnExplainCash.addEventListener("click", ()=>render(true));
+
+// ---------- Render ----------
+function render(openExplain){
+  const asOf = dateList[Number(asOfRange.value)];
+  asOfLabel.textContent = pretty(asOf);
+
+  // Cash value depends on mode
+  const cashBase = (mode === "known") ? cashAsKnown(asOf) : cashAsOccurred(asOf);
+  cashValue.childNodes[0].nodeValue = fmtUSD(cashBase) + " ";
+
+  // Limbo open set at T
+  const limboOpen = limboItems.filter(x=>{
+    const start = parseDate(x.initiated);
+    const end = x.completed ? parseDate(x.completed) : null;
+    return start <= asOf && (!end || end > asOf);
+  });
+
+  const U_limbo = limboOpen.reduce((s,x)=> s + Math.abs(x.amount), 0);
+  const limboSigned = limboOpen.reduce((s,x)=> s + x.amount, 0);
+  limboTotal.textContent = `${fmtUSD(limboSigned)} `;
+
+  // Backlog (occurred but not posted by T)
+  const backlog = lagEvents.filter(e => parseDate(e.eventDate) <= asOf && parseDate(e.glDate) > asOf);
+  const U_backlog = backlog.reduce((s,e)=> s + Math.abs(e.amount), 0);
+  const U_assump = 0;
+
+  // Confidence
+  const band = computeBand(U_limbo, U_backlog, U_assump);
+  const scale = computeScale(cashBase, U_limbo, U_backlog, U_assump);
+  const ratio = (scale <= 0) ? 1 : (band / scale);
+
+  const baseConf = baseConfidence(ratio);
+
+  const avgSoFarLag = backlog.length === 0 ? 0 : backlog.reduce((s,e)=> s + daysBetween(parseDate(e.eventDate), asOf), 0) / backlog.length;
+  const lp = lagPenalty(avgSoFarLag);
+  const conf = clamp(baseConf * (1 - lp), 0, 100);
+
+  cashBand.textContent = `± ${fmtUSD(Math.round(band))}`;
+  confPct.textContent = pct(conf);
+  confFill.style.width = `${conf}%`;
+
+  const confTone =
+    conf >= 80 ? "High evidence coverage." :
+    conf >= 60 ? "Moderate evidence coverage." :
+    conf >= 40 ? "Low evidence coverage." :
+    "Very low evidence coverage.";
+
+  confExplain.textContent =
+    `${confTone} Band = limbo (${fmtUSD(U_limbo)}) + ${alpha}× backlog (${fmtUSD(U_backlog)}) + ${beta}× assumptions (${fmtUSD(U_assump)}). ` +
+    `Timeliness haircut: ${Math.round(lp*100)}% (avg backlog age ${Math.round(avgSoFarLag)}d).`;
+
+  confMath.innerHTML =
+    `Math: <code>Band = U_limbo + α·U_backlog + β·U_assump</code> · ` +
+    `<code>ratio = Band / (|Cash| + U_limbo + U_backlog + U_assump)</code> · ` +
+    `<code>Conf = 100·e^{-λ·ratio}·(1−LagPenalty)</code>`;
+
+  // Confidence inputs table
+  confInputs.innerHTML = "";
+  [
+    { k:"U_limbo(T)", v: fmtUSD(U_limbo), note:"Initiated ≤ T and not completed by T" },
+    { k:"U_backlog(T)", v: fmtUSD(U_backlog), note:"Occurred ≤ T but GL-posted after T" },
+    { k:"U_assump(T)", v: fmtUSD(U_assump), note:"Assumptions (none in this demo)" },
+    { k:"Band(T)", v: fmtUSD(Math.round(band)), note:`α=${alpha}, β=${beta}` },
+    { k:"Scale(T)", v: fmtUSD(Math.round(scale)), note:"|Cash| + uncertainty buckets" },
+    { k:"ratio(T)", v: `${(ratio*100).toFixed(1)}%`, note:"Band / Scale" },
+    { k:"BaseConf(T)", v: `${baseConf.toFixed(1)}%`, note:`100·e^{-λ·ratio}, λ=${lambda}` },
+    { k:"LagPenalty(T)", v: `${(lp*100).toFixed(1)}%`, note:`γ=${gamma}, Lmax=${Lmax}` }
+  ].forEach(x=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>${x.k}</b><div style="margin-top:3px;opacity:.95">${x.note}</div></span><span style="text-align:right;"><b>${x.v}</b></span>`;
+    confInputs.appendChild(li);
+  });
+
+  // Cash calculation inputs (mode-specific)
+  cashInputs.innerHTML = "";
+  if(mode === "known"){
+    const postings = cashPostings.filter(p => parseDate(p.glDate) <= asOf);
+    const net = postings.reduce((s,p)=>s+p.amount,0);
+    [
+      { k:"Starting cash", v: fmtUSD(startingCash), note:"Opening balance" },
+      { k:"Included postings", v: `${postings.length} / ${cashPostings.length}`, note:"GL-posted ≤ as-of" },
+      { k:"Net posting effect", v: fmtUSD(net), note:"Sum of included postings" },
+      { k:"Backlog events", v: `${backlog.length}`, note:"Occurred but not yet posted" }
+    ].forEach(x=>{
+      const li = document.createElement("li");
+      li.innerHTML = `<span><b>${x.k}</b><div style="margin-top:3px;opacity:.95">${x.note}</div></span><span style="text-align:right;"><b>${x.v}</b></span>`;
+      cashInputs.appendChild(li);
+    });
+  } else {
+    const occurred = lagEvents.filter(e => parseDate(e.eventDate) <= asOf);
+    const net = occurred.reduce((s,e)=>s+e.amount,0);
+    [
+      { k:"Starting cash", v: fmtUSD(startingCash), note:"Opening balance" },
+      { k:"Included events", v: `${occurred.length} / ${lagEvents.length}`, note:"Event-date ≤ as-of" },
+      { k:"Net event effect", v: fmtUSD(net), note:"Sum of occurred event amounts" },
+      { k:"Still not posted", v: `${backlog.length}`, note:"GL had not learned yet" }
+    ].forEach(x=>{
+      const li = document.createElement("li");
+      li.innerHTML = `<span><b>${x.k}</b><div style="margin-top:3px;opacity:.95">${x.note}</div></span><span style="text-align:right;"><b>${x.v}</b></span>`;
+      cashInputs.appendChild(li);
+    });
+  }
+
+  // Limbo breakdown
+  limboBreakdown.innerHTML = "";
+  const byType = {};
+  limboOpen.forEach(x => { byType[x.type] = (byType[x.type]||0) + x.amount; });
+  const types = Object.keys(byType).sort((a,b)=>Math.abs(byType[b]) - Math.abs(byType[a]));
+  if(types.length === 0){
+    const li = document.createElement("li");
+    li.innerHTML = `<span><b>No open limbo items</b><div style="margin-top:3px;opacity:.95">Everything that started has completed.</div></span><span><b>${fmtUSD(0)}</b></span>`;
+    limboBreakdown.appendChild(li);
+  } else {
+    types.forEach(t=>{
+      const ex = limboOpen.find(x=>x.type===t);
+      const li = document.createElement("li");
+      li.innerHTML = `<span><b>${t}</b><div style="margin-top:3px;opacity:.95">${ex?.detail ?? ""}</div></span><span style="text-align:right;"><b>${fmtUSD(byType[t])}</b></span>`;
+      limboBreakdown.appendChild(li);
+    });
+  }
+
+  // Lag table rows (occurred ≤ T)
+  const occurredLag = lagEvents
+    .filter(e => parseDate(e.eventDate) <= asOf)
+    .map(e => ({
+      ...e,
+      lag: daysBetween(parseDate(e.eventDate), parseDate(e.glDate))
+    }))
+    .sort((a,b)=> b.lag - a.lag);
+
+  lagRows.innerHTML = "";
+  if(occurredLag.length === 0){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" style="color:var(--muted); font-weight:900;">No events occurred by this date.</td>`;
+    lagRows.appendChild(tr);
+  } else {
+    occurredLag.forEach(e=>{
+      const tr = document.createElement("tr");
+      const dot = lagColor(e.lag);
+      tr.innerHTML = `
+        <td><b>${e.name}</b></td>
+        <td>${pretty(parseDate(e.eventDate))}</td>
+        <td>${pretty(parseDate(e.glDate))}</td>
+        <td><span class="lagPill"><span class="lagDot" style="background:${dot}; box-shadow:0 0 0 3px rgba(255,255,255,0.06);"></span>${e.lag}d</span></td>
+        <td style="color:var(--muted);">${e.impact}</td>
+        <td style="text-align:right; font-weight:950;">${fmtUSD(e.amount)}</td>
+      `;
+      lagRows.appendChild(tr);
+    });
+  }
+
+  // --- Easter eggs (exactly one line per panel) ---
+  // Panel A egg
+  eggCash.textContent = (mode === "known")
+    ? (conf < 50 ? "This is what the books believed. Evidence coverage was not invited." : "This is what the books believed. Evidence mostly agrees.")
+    : (conf < 50 ? "Reality is available. Evidence is not." : "Reality looks boring when it’s well-instrumented.");
+
+  // Panel B egg
+  eggLimbo.textContent = (types.length === 0)
+    ? "Limbo is empty. Money is in exactly one place. For once."
+    : "These items are not cash, not inventory, and not available. They are in transit between systems.";
+
+  // Panel C egg
+  eggLag.textContent = (occurredLag.length === 0)
+    ? "Nothing happened on this day. Enjoy it."
+    : "Lag is not an accounting detail. It’s a time machine pointed at the wrong direction.";
+
+  // Explain modal (optional)
+  if(openExplain){
+    const contrib = (mode === "known")
+      ? cashPostings.filter(p => parseDate(p.glDate) <= asOf)
+          .map(p => ({ label:p.label, when:p.glDate, amt:p.amount, note:p.note }))
+          .sort((a,b)=>Math.abs(b.amt)-Math.abs(a.amt))
+      : lagEvents.filter(e => parseDate(e.eventDate) <= asOf)
+          .map(e => ({ label:e.name, when:e.eventDate, amt:e.amount, note:e.impact }))
+          .sort((a,b)=>Math.abs(b.amt)-Math.abs(a.amt));
+
+    const gaps = [
+      { k:"U_limbo",   v: fmtUSD(U_limbo),   note:"Initiated ≤ T and not completed by T" },
+      { k:"U_backlog", v: fmtUSD(U_backlog), note:"Occurred ≤ T but GL-posted after T" },
+      { k:"U_assump",  v: fmtUSD(U_assump),  note:"Assumptions (none in this demo)" }
+    ];
+
+    openModal({ asOf, contrib, gaps });
+  }
+}
+
+asOfRange.addEventListener("input", ()=>render(false));
+setMode("known");
+render(false);
+</script>
+</body>
+</html>
+```

@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sightline | Financial Coordination Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        bg: { 1: '#0a0b0d', 2: '#12141a', 3: '#1a1d24', card: '#1e2128' },
+        bdr: '#2a2e38',
+        tx: { 1: '#ffffff', 2: '#9aa0ab', m: '#6b7280' },
+        ac: { blue: '#4da6ff', green: '#00d4aa', red: '#ff6b6b', yellow: '#ffc107', orange: '#ff9f43', purple: '#a78bfa', cyan: '#22d3ee' }
+      }
+    }
+  }
+}
+</script>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0}
+.page{display:none}.page.active{display:block}
+.nav-i{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:#9aa0ab;font-size:13px;transition:all .15s}
+.nav-i:hover{background:#1a1d24;color:#fff}
+.nav-i.on{background:rgba(77,166,255,.15);color:#4da6ff}
+.badge{margin-left:auto;background:#ff9f43;color:#fff;font-size:10px;padding:2px 6px;border-radius:10px}
+.st{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.st-g{background:rgba(0,212,170,.15);color:#00d4aa}.st-r{background:rgba(255,107,107,.15);color:#ff6b6b}
+.st-y{background:rgba(255,193,7,.15);color:#ffc107}.st-b{background:rgba(77,166,255,.15);color:#4da6ff}
+.st-o{background:rgba(255,159,67,.15);color:#ff9f43}.st-p{background:rgba(167,139,250,.15);color:#a78bfa}
+table.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt th{text-align:left;padding:10px 12px;background:#1a1d24;border-bottom:1px solid #2a2e38;font-weight:600;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.dt td{padding:12px;border-bottom:1px solid #2a2e38;vertical-align:middle}
+.dt tr:hover{background:#1a1d24}.dt tr:last-child td{border-bottom:none}
+.mono{font-family:'SF Mono',Consolas,monospace}
+.gauge{height:6px;border-radius:3px;background:#2a2e38;overflow:hidden;flex:1}
+.gauge-fill{height:100%;border-radius:3px;transition:width .6s}
+.pulse{animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.card{background:#1e2128;border:1px solid #2a2e38;border-radius:10px;margin-bottom:16px}
+.card-h{padding:14px 16px;border-bottom:1px solid #2a2e38;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-b{padding:16px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#1e2128;border:1px solid #2a2e38;border-radius:12px;width:680px;max-height:85vh;overflow-y:auto}
+.expand-content{display:none;margin-top:10px;padding:12px;background:#12141a;border:1px solid #2a2e38;border-radius:8px}
+.expand-content.open{display:block}
+</style>
+</head>
+<body class="bg-bg-1 text-tx-1 h-screen overflow-hidden">
+<div class="flex h-screen">
+
+<!-- SIDEBAR -->
+<aside class="w-[200px] bg-bg-2 border-r border-bdr flex flex-col flex-shrink-0 overflow-y-auto">
+<div class="p-4 border-b border-bdr font-semibold text-lg flex items-center gap-2.5 sticky top-0 bg-bg-2">
+  <div class="w-7 h-7 bg-gradient-to-br from-ac-blue to-ac-purple rounded-md flex items-center justify-center text-xs font-bold">S</div>
+  Sightline
+</div>
+<div class="p-3 px-2">
+  <div class="text-[9px] font-semibold text-tx-m uppercase tracking-widest px-2 mb-1.5">Overview</div>
+  <div class="nav-i on" data-p="dashboard">📊 Dashboard</div>
+  <div class="nav-i" data-p="cash">💰 Cash Position</div>
+  <div class="nav-i" data-p="forecast">📈 13-Week Forecast</div>
+</div>
+<div class="p-3 px-2">
+  <div class="text-[9px] font-semibold text-tx-m uppercase tracking-widest px-2 mb-1.5">Operations</div>
+  <div class="nav-i" data-p="ar">📥 Collections (AR)</div>
+  <div class="nav-i" data-p="ap">📤 Payables (AP)</div>
+  <div class="nav-i" data-p="po">📋 Purchase Orders</div>
+  <div class="nav-i" data-p="approvals">✅ Approvals <span class="badge">3</span></div>
+  <div class="nav-i" data-p="payments">💸 Payment Runs</div>
+</div>
+<div class="p-3 px-2">
+  <div class="text-[9px] font-semibold text-tx-m uppercase tracking-widest px-2 mb-1.5">Intelligence</div>
+  <div class="nav-i" data-p="jobs">🏗️ Jobs &amp; Tasks</div>
+  <div class="nav-i" data-p="agents">🤖 Agents &amp; Skills</div>
+  <div class="nav-i" data-p="policies">📜 Policies</div>
+</div>
+<div class="p-3 px-2">
+  <div class="text-[9px] font-semibold text-tx-m uppercase tracking-widest px-2 mb-1.5">System</div>
+  <div class="nav-i" data-p="integrity">🔒 Integrity</div>
+  <div class="nav-i" data-p="events">📝 Event Log</div>
+  <div class="nav-i" data-p="config">⚙️ Configuration</div>
+</div>
+<div class="mt-auto p-3 border-t border-bdr">
+  <div class="flex items-center gap-2 px-2">
+    <div class="w-7 h-7 rounded-full bg-ac-blue/20 flex items-center justify-center text-xs text-ac-blue font-bold">MJ</div>
+    <div><div class="text-xs font-medium">M. Johnson</div><div class="text-[10px] text-tx-m">AP Manager</div></div>
+  </div>
+</div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 overflow-auto flex flex-col">
+<header class="px-6 py-3 border-b border-bdr flex items-center justify-between bg-bg-2 sticky top-0 z-10">
+  <div class="flex items-center gap-4">
+    <h1 class="text-base font-semibold" id="pageTitle">Dashboard</h1>
+    <span class="st st-p text-[10px]">AP Manager</span>
+  </div>
+  <div class="flex gap-6">
+    <div class="text-right"><div class="text-base font-semibold text-ac-green">$2,847,392</div><div class="text-[11px] text-tx-m">Cash Position</div></div>
+    <div class="text-right"><div class="text-base font-semibold text-ac-blue">94%</div><div class="text-[11px] text-tx-m">Forecast Confidence</div></div>
+    <div class="text-right"><div class="text-base font-semibold text-ac-green">94%</div><div class="text-[11px] text-tx-m">Job Automation</div></div>
+  </div>
+</header>
+<div class="flex-1 p-5 px-6 overflow-auto">
+<!-- ═══ DASHBOARD ═══ -->
+<div class="page active" id="p-dashboard">
+  <!-- Story Banner -->
+  <div class="rounded-xl p-4 px-5 mb-5 border border-ac-blue/30 bg-gradient-to-r from-ac-blue/10 to-ac-purple/10">
+    <p class="text-sm text-tx-2 leading-relaxed"><strong class="text-ac-blue">Today:</strong> 3 payments totaling $127,450 awaiting approval. AP Matching agent processed 52 invoices (98.1% auto-matched). Discount Optimizer captured $3,140 in early-pay discounts. Books current as of 2 minutes ago.</p>
+  </div>
+
+  <!-- Work Overview (NEW — Job-level automation) -->
+  <div class="card">
+    <div class="card-h"><span>🏗️ Work Overview — AP Manager</span><span class="st st-g text-[10px]">● 4 agents active</span></div>
+    <div class="card-b space-y-3">
+      <div class="flex items-center gap-4 p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="w-10 h-10 rounded-lg bg-ac-green/20 flex items-center justify-center text-lg">📄</div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Invoice Processing</span><span class="text-sm font-bold text-ac-green">98%</span></div>
+          <div class="gauge"><div class="gauge-fill bg-ac-green" style="width:98%"></div></div>
+          <div class="text-[10px] text-tx-m mt-1">51/52 automated today · <span class="text-ac-orange">1 needs you</span> · Skills: ThreeWayMatch, DuplicateDetection, BudgetCheck</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="w-10 h-10 rounded-lg bg-ac-blue/20 flex items-center justify-center text-lg">🏢</div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Vendor Credentialing</span><span class="text-sm font-bold text-ac-green">100%</span></div>
+          <div class="gauge"><div class="gauge-fill bg-ac-green" style="width:100%"></div></div>
+          <div class="text-[10px] text-tx-m mt-1">3/3 automated today · All clear · Skill: VendorVerification</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="w-10 h-10 rounded-lg bg-ac-orange/20 flex items-center justify-center text-lg">⚠️</div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Exception Resolution</span><span class="text-sm font-bold text-tx-m">Human</span></div>
+          <div class="gauge"><div class="gauge-fill bg-tx-m" style="width:0%"></div></div>
+          <div class="text-[10px] text-tx-m mt-1">2 open exceptions · Judgment required by design · Avg resolution: 1.8 hrs</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="w-10 h-10 rounded-lg bg-ac-purple/20 flex items-center justify-center text-lg">💸</div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between mb-1"><span class="text-sm font-semibold">Payment Run Management</span><span class="text-sm font-bold text-ac-green">100%</span></div>
+          <div class="gauge"><div class="gauge-fill bg-ac-green" style="width:100%"></div></div>
+          <div class="text-[10px] text-tx-m mt-1">4/4 automated · Scheduled: Friday Jan 31 · Skill: PaymentRelease</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Awaiting Decision -->
+  <div class="card">
+    <div class="card-h">⏳ Awaiting Your Decision</div>
+    <div class="card-b space-y-2.5">
+      <div class="p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <div class="text-sm font-medium">Invoice #4521 — TechSupply Inc</div>
+            <div class="text-[11px] text-tx-m mt-0.5">$47,250 · 2.6% variance from PO · AP Matching agent escalated</div>
+          </div>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 rounded-md text-xs font-medium bg-ac-green text-white">Approve</button>
+            <button class="px-3 py-1.5 rounded-md text-xs font-medium bg-bg-card text-tx-2 border border-bdr">Dispute</button>
+          </div>
+        </div>
+        <button onclick="this.nextElementSibling.classList.toggle('open')" class="text-[10px] text-ac-purple mt-2 cursor-pointer hover:underline">▶ Task Context &amp; Agent Evidence</button>
+        <div class="expand-content text-[11px] text-tx-2 space-y-2">
+          <div><span class="text-tx-m">Template:</span> Three-Way Match Escalation · <span class="text-tx-m">Job:</span> Invoice Processing</div>
+          <div><span class="text-tx-m">Skill:</span> ThreeWayMatch · 98.1% success · 0.3s execution</div>
+          <div><span class="text-tx-m">Agent verified:</span> <span class="text-ac-green">✓</span> Vendor credentialed · <span class="text-ac-green">✓</span> Within IT budget ($127K remain) · <span class="text-ac-red">✗</span> Variance 2.6% exceeds 2% threshold</div>
+          <div><span class="text-tx-m">Precedents:</span> Similar TechSupply variance approved 3× in 90 days by M. Johnson</div>
+          <div class="text-ac-purple">💡 Suggestion: Create policy to auto-approve TechSupply variances &lt;3%</div>
+        </div>
+      </div>
+      <div class="p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="flex items-center justify-between">
+          <div><div class="text-sm font-medium">PO #892 — DataCenter Corp</div><div class="text-[11px] text-tx-m mt-0.5">$62,000 · Above $50K threshold · Needs CFO approval</div></div>
+          <div class="flex gap-2"><button class="px-3 py-1.5 rounded-md text-xs font-medium bg-ac-green text-white">Approve</button><button class="px-3 py-1.5 rounded-md text-xs font-medium bg-bg-card text-tx-2 border border-bdr">Reject</button></div>
+        </div>
+        <button onclick="this.nextElementSibling.classList.toggle('open')" class="text-[10px] text-ac-purple mt-2 cursor-pointer hover:underline">▶ Task Context &amp; Agent Evidence</button>
+        <div class="expand-content text-[11px] text-tx-2 space-y-2">
+          <div><span class="text-tx-m">Template:</span> Authority Escalation · <span class="text-tx-m">Job:</span> Invoice Processing</div>
+          <div><span class="text-tx-m">Policy:</span> AUTH-002 · Route invoices &gt;$50K to CFO</div>
+          <div><span class="text-tx-m">Agent verified:</span> <span class="text-ac-green">✓</span> Vendor credentialed · <span class="text-ac-green">✓</span> IT budget available · <span class="text-ac-yellow">⚡</span> Amount exceeds authority level</div>
+        </div>
+      </div>
+      <div class="p-3 bg-bg-3 rounded-lg border border-bdr">
+        <div class="flex items-center justify-between">
+          <div><div class="text-sm font-medium">Early Pay — Acme Supplies</div><div class="text-[11px] text-tx-m mt-0.5">$18,200 · 2% discount · 14.6% APR equivalent</div></div>
+          <div class="flex gap-2"><button class="px-3 py-1.5 rounded-md text-xs font-medium bg-ac-green text-white">Capture</button><button class="px-3 py-1.5 rounded-md text-xs font-medium bg-bg-card text-tx-2 border border-bdr">Skip</button></div>
+        </div>
+        <button onclick="this.nextElementSibling.classList.toggle('open')" class="text-[10px] text-ac-purple mt-2 cursor-pointer hover:underline">▶ Task Context &amp; Agent Evidence</button>
+        <div class="expand-content text-[11px] text-tx-2 space-y-2">
+          <div><span class="text-tx-m">Template:</span> Discount Evaluation · <span class="text-tx-m">Job:</span> Payment Run Management</div>
+          <div><span class="text-tx-m">Skill:</span> DiscountOptimizer · APR analysis: 14.6% return equivalent</div>
+          <div><span class="text-tx-m">Cash impact:</span> -$17,836 (net of $364 discount) · Cash after: $2,329K · Above $500K reserve ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">186</div><div class="text-[11px] text-tx-m mt-1">Native Transactions</div><div class="text-[10px] text-ac-green mt-0.5">→ 0 reconciliation</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">847</div><div class="text-[11px] text-tx-m mt-1">Journal Entries</div><div class="text-[10px] text-ac-green mt-0.5">→ 0 manual</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$8,420</div><div class="text-[11px] text-tx-m mt-1">Discounts Captured</div><div class="text-[10px] text-ac-green mt-0.5">→ 12 opportunities</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$2.4M</div><div class="text-[11px] text-tx-m mt-1">Value Processed</div><div class="text-[10px] text-ac-green mt-0.5">→ 4 agents active</div></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="flex items-center gap-2 p-2.5 px-4 bg-ac-green/10 border border-ac-green/30 rounded-lg text-xs text-ac-green"><span class="w-2 h-2 bg-ac-green rounded-full pulse"></span>GL balanced · Trial balance $0.00 · Books current as of 2 min ago</div>
+</div>
+<!-- ═══ CASH POSITION ═══ -->
+<div class="page" id="p-cash">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$2,847,392</div><div class="text-[11px] text-tx-m mt-1">Total Cash</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$2,347,392</div><div class="text-[11px] text-tx-m mt-1">Available Cash</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-orange">$500,000</div><div class="text-[11px] text-tx-m mt-1">Reserve</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">$847,250</div><div class="text-[11px] text-tx-m mt-1">Committed (Unpaid)</div></div>
+  </div>
+  <div class="card"><div class="card-h"><span>💰 Cash Breakdown</span><span class="st st-b">As of Jan 29, 2026 2:34 PM</span></div><div class="card-b grid grid-cols-2 gap-5">
+    <div><div class="text-[13px] font-semibold text-tx-m mb-3">Bank Accounts</div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Operating — Chase ****4521</span><span>$1,847,392</span></div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Payroll — Chase ****4522</span><span>$650,000</span></div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Reserve — Chase ****4523</span><span>$350,000</span></div>
+      <div class="flex justify-between py-3 bg-bg-3 -mx-4 px-4 font-semibold text-[13px]"><span>Total Cash</span><span class="text-ac-green">$2,847,392</span></div>
+    </div>
+    <div><div class="text-[13px] font-semibold text-tx-m mb-3">Committed Outflows (Next 7 Days)</div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Scheduled Payments</span><span class="text-ac-red">-$423,150</span></div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Approved POs (pending invoice)</span><span class="text-ac-orange">-$284,100</span></div>
+      <div class="flex justify-between py-2.5 border-b border-bdr text-[13px]"><span>Payroll (Feb 1)</span><span class="text-ac-red">-$140,000</span></div>
+      <div class="flex justify-between py-3 bg-bg-3 -mx-4 px-4 font-semibold text-[13px]"><span>Net Available</span><span class="text-ac-blue">$2,000,142</span></div>
+    </div>
+  </div></div>
+</div>
+
+<!-- ═══ 13-WEEK FORECAST ═══ -->
+<div class="page" id="p-forecast">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$2.85M</div><div class="text-[11px] text-tx-m mt-1">Starting Cash</div><div class="text-[10px] text-ac-green">Week 1</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$3.21M</div><div class="text-[11px] text-tx-m mt-1">Ending Cash</div><div class="text-[10px] text-ac-blue">Week 13</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-orange">$1.82M</div><div class="text-[11px] text-tx-m mt-1">Low Point</div><div class="text-[10px] text-ac-yellow">Week 9</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">94%</div><div class="text-[11px] text-tx-m mt-1">Confidence</div><div class="text-[10px] text-tx-m">Based on commitments</div></div>
+  </div>
+  <div class="card"><div class="card-h"><span>📈 Weekly Forecast</span><div class="flex gap-2"><button class="px-2.5 py-1 rounded-md text-[11px] bg-bg-card text-tx-2 border border-bdr">Export</button><button class="px-2.5 py-1 rounded-md text-[11px] bg-ac-blue text-white">+ Scenario</button></div></div><div class="card-b"><table class="dt"><thead><tr><th>Week</th><th>Starting</th><th>Inflows</th><th>Outflows</th><th>Net</th><th>Ending</th><th>vs Reserve</th><th>Conf.</th></tr></thead><tbody>
+    <tr><td><strong>W1</strong></td><td>$2,847,392</td><td class="text-ac-green">+$423,000</td><td class="text-ac-red">-$547,250</td><td class="text-ac-red">-$124,250</td><td><strong>$2,723,142</strong></td><td><span class="st st-g">+$2.22M</span></td><td><span class="st st-g">98%</span></td></tr>
+    <tr><td><strong>W2</strong></td><td>$2,723,142</td><td class="text-ac-green">+$312,000</td><td class="text-ac-red">-$289,000</td><td class="text-ac-green">+$23,000</td><td><strong>$2,746,142</strong></td><td><span class="st st-g">+$2.25M</span></td><td><span class="st st-g">96%</span></td></tr>
+    <tr class="bg-ac-yellow/5"><td><strong>W9 ⚠️</strong></td><td>$2,012,000</td><td class="text-ac-green">+$156,000</td><td class="text-ac-red">-$348,000</td><td class="text-ac-red">-$192,000</td><td><strong class="text-ac-yellow">$1,820,000</strong></td><td><span class="st st-y">+$1.32M</span></td><td><span class="st st-y">87%</span></td></tr>
+    <tr><td><strong>W13</strong></td><td>$2,890,000</td><td class="text-ac-green">+$520,000</td><td class="text-ac-red">-$198,000</td><td class="text-ac-green">+$322,000</td><td><strong class="text-ac-green">$3,212,000</strong></td><td><span class="st st-g">+$2.71M</span></td><td><span class="st st-b">82%</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<!-- ═══ AR ═══ -->
+<div class="page" id="p-ar">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$1,247,850</div><div class="text-[11px] text-tx-m mt-1">Total AR</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$892,400</div><div class="text-[11px] text-tx-m mt-1">Current (71.5%)</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-orange">$287,200</div><div class="text-[11px] text-tx-m mt-1">Past Due (23%)</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-red">$68,250</div><div class="text-[11px] text-tx-m mt-1">90+ Days (5.5%)</div></div>
+  </div>
+  <div class="card"><div class="card-h">📊 Aging Summary</div><div class="card-b">
+    <div class="flex h-6 rounded-md overflow-hidden mb-2">
+      <div class="bg-ac-green flex items-center justify-center text-[10px] font-semibold" style="width:71.5%">Current</div>
+      <div class="bg-ac-blue flex items-center justify-center text-[10px] font-semibold" style="width:12%">1-30</div>
+      <div class="bg-ac-yellow flex items-center justify-center text-[10px] font-semibold text-black" style="width:6%">31-60</div>
+      <div class="bg-ac-orange flex items-center justify-center text-[10px] font-semibold" style="width:5%">61-90</div>
+      <div class="bg-ac-red flex items-center justify-center text-[10px] font-semibold" style="width:5.5%">90+</div>
+    </div>
+  </div></div>
+  <div class="card"><div class="card-h">📋 Open Invoices</div><div class="card-b"><table class="dt"><thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Due</th><th>Age</th><th>Status</th></tr></thead><tbody>
+    <tr><td><strong>INV-2894</strong></td><td>Acme Corp</td><td>$47,250</td><td>Feb 5</td><td><span class="st st-g">Current</span></td><td><span class="st st-b">Sent</span></td></tr>
+    <tr><td><strong>INV-2847</strong></td><td>GlobalTech Inc</td><td>$23,800</td><td>Jan 20</td><td><span class="st st-y">9 days</span></td><td><span class="st st-o">Reminder Sent</span></td></tr>
+    <tr><td><strong>INV-2756</strong></td><td>Smith &amp; Assoc</td><td>$68,250</td><td>Oct 15</td><td><span class="st st-r">106 days</span></td><td><span class="st st-r">Escalated</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<!-- ═══ AP ═══ -->
+<div class="page" id="p-ap">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-red">$847,250</div><div class="text-[11px] text-tx-m mt-1">Total AP</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$423,150</div><div class="text-[11px] text-tx-m mt-1">Due This Week</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$18,420</div><div class="text-[11px] text-tx-m mt-1">Discounts Available</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">52</div><div class="text-[11px] text-tx-m mt-1">Auto-Matched Today</div><div class="text-[10px] text-ac-green">98.1% success</div></div>
+  </div>
+  <div class="card"><div class="card-h"><span>📋 Invoices Pending Payment</span><button class="px-2.5 py-1 rounded-md text-[11px] bg-ac-blue text-white">Create Payment Run</button></div><div class="card-b"><table class="dt"><thead><tr><th>Invoice</th><th>Vendor</th><th>Amount</th><th>Due</th><th>PO Match</th><th>Discount</th><th>Status</th></tr></thead><tbody>
+    <tr><td><strong>VINV-8421</strong></td><td>TechSupply Inc</td><td>$47,250</td><td>Feb 1</td><td><span class="st st-y">2.6% var</span></td><td>—</td><td><span class="st st-o">Escalated</span></td></tr>
+    <tr><td><strong>VINV-8419</strong></td><td>Acme Supplies</td><td>$18,200</td><td>Feb 10</td><td><span class="st st-g">✓ Matched</span></td><td><span class="st st-g">2% / $364</span></td><td><span class="st st-b">Ready</span></td></tr>
+    <tr><td><strong>VINV-8415</strong></td><td>DataCenter Corp</td><td>$89,000</td><td>Feb 3</td><td><span class="st st-g">✓ Matched</span></td><td>—</td><td><span class="st st-b">Ready</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<!-- ═══ PO ═══ -->
+<div class="page" id="p-po">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">47</div><div class="text-[11px] text-tx-m mt-1">Open POs</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">12</div><div class="text-[11px] text-tx-m mt-1">Pending Approval</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">28</div><div class="text-[11px] text-tx-m mt-1">Awaiting Receipt</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-orange">7</div><div class="text-[11px] text-tx-m mt-1">Partially Received</div></div>
+  </div>
+  <div class="card"><div class="card-h"><span>📋 Purchase Orders</span><button class="px-2.5 py-1 rounded-md text-[11px] bg-ac-blue text-white">+ New PO</button></div><div class="card-b"><table class="dt"><thead><tr><th>PO #</th><th>Vendor</th><th>Amount</th><th>Created</th><th>Expected</th><th>Status</th></tr></thead><tbody>
+    <tr><td><strong>PO-892</strong></td><td>DataCenter Corp</td><td>$62,000</td><td>Jan 28</td><td>Feb 15</td><td><span class="st st-o">Pending Approval</span></td></tr>
+    <tr><td><strong>PO-891</strong></td><td>TechSupply Inc</td><td>$47,250</td><td>Jan 25</td><td>Feb 5</td><td><span class="st st-b">Awaiting Receipt</span></td></tr>
+    <tr><td><strong>PO-889</strong></td><td>Acme Supplies</td><td>$18,200</td><td>Jan 22</td><td>Jan 30</td><td><span class="st st-g">Received</span></td></tr>
+  </tbody></table></div></div>
+</div>
+
+<!-- ═══ APPROVALS ═══ -->
+<div class="page" id="p-approvals">
+  <div class="grid grid-cols-3 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-orange">3</div><div class="text-[11px] text-tx-m mt-1">Pending Your Approval</div><div class="text-[10px] text-tx-m">$127,450 total</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">47</div><div class="text-[11px] text-tx-m mt-1">Approved This Week</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">2.4 hrs</div><div class="text-[11px] text-tx-m mt-1">Avg. Approval Time</div><div class="text-[10px] text-ac-green">↓ 18% from last week</div></div>
+  </div>
+  <div class="card"><div class="card-h">⏳ Awaiting Your Approval</div><div class="card-b space-y-2.5">
+    <div class="p-3 bg-bg-3 rounded-lg border border-bdr"><div class="flex items-center justify-between"><div><div class="text-sm font-medium">PO #892 — DataCenter Corp</div><div class="text-[11px] text-tx-m">$62,000 · Server infrastructure · Above $50K threshold · Submitted by J. Smith</div></div><div class="flex gap-2"><button class="px-3 py-1.5 rounded-md text-xs bg-ac-green text-white">Approve</button><button class="px-3 py-1.5 rounded-md text-xs bg-bg-card text-tx-2 border border-bdr">Reject</button></div></div></div>
+    <div class="p-3 bg-bg-3 rounded-lg border border-bdr"><div class="flex items-center justify-between"><div><div class="text-sm font-medium">Invoice #4521 — TechSupply Inc</div><div class="text-[11px] text-tx-m">$47,250 · 2.6% variance from PO · AP Matching agent escalated</div></div><div class="flex gap-2"><button class="px-3 py-1.5 rounded-md text-xs bg-ac-green text-white">Approve</button><button class="px-3 py-1.5 rounded-md text-xs bg-bg-card text-tx-2 border border-bdr">Dispute</button></div></div></div>
+    <div class="p-3 bg-bg-3 rounded-lg border border-bdr"><div class="flex items-center justify-between"><div><div class="text-sm font-medium">Early Pay Discount — Acme Supplies</div><div class="text-[11px] text-tx-m">$18,200 · 2% discount ($364) · 14.6% APR equivalent</div></div><div class="flex gap-2"><button class="px-3 py-1.5 rounded-md text-xs bg-ac-green text-white">Capture</button><button class="px-3 py-1.5 rounded-md text-xs bg-bg-card text-tx-2 border border-bdr">Skip</button></div></div></div>
+  </div></div>
+</div>
+
+<!-- ═══ PAYMENTS ═══ -->
+<div class="page" id="p-payments">
+  <div class="grid grid-cols-4 gap-3 mb-4">
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-blue">$423,150</div><div class="text-[11px] text-tx-m mt-1">Next Run</div><div class="text-[10px] text-tx-m">Friday, Jan 31</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">12</div><div class="text-[11px] text-tx-m mt-1">Payments Queued</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold text-ac-green">$8,420</div><div class="text-[11px] text-tx-m mt-1">Discounts Captured</div></div>
+    <div class="bg-bg-3 border border-bdr rounded-lg p-3.5 text-center"><div class="text-2xl font-bold">$2.1M</div><div class="text-[11px] text-tx-m mt-1">Paid This Month</div></div>
+  </div>
+  <div class="card"><div class="card-h"><span>📅 Scheduled Payment Run — Jan 31</span><div class="flex gap-2"><button class="px-2.5 py-1 rounded-md text-[11px] bg-bg-card text-tx-2 border border-bdr">Edit</button><button class="px-2.5 py-1 rounded-md text-[11px] bg-ac-blue text-white">Execute Now</button></div></div><div class="card-b"><table class="dt"><thead><tr><th>Vendor</th><th>Invoice(s)</th><th>Amount</th><th>Method</th><th>Discount</th><th>Status</th></tr></thead><tbody>
+    <tr><td><strong>DataCenter Corp</strong></td><td>VINV-8415</td><td>$89,000</td><td>ACH</td><td>—</td><td><span class="st st-b">Queued</span></td></tr>
+    <tr><td><strong>TechSupply Inc</strong></td><td>VINV-8421</td><td>$47,250</td><td>ACH</td><td>—</td><td><span class="st st-o">Pending Approval</span></td></tr>
+    <tr><td><strong>Acme Supplies</strong></td><td>VINV-8419</td><td>$17,836</td><td>ACH</td><td><span class="st st-g">-$364</span></td><td><span class="st st-b">Queued</span></td></tr>
+  </tbody></table></div></div>
+</div>
+<!-- ======================== JOBS & TASKS ======================== -->
+<div class="page" id="p-jobs">
+
+<!-- Role Context Banner -->
+<div class="card" style="border-left:3px solid #a78bfa">
+<div class="card-b flex items-center justify-between">
+  <div>
+    <div class="text-sm font-semibold">Role: AP Manager <span class="st st-p ml-2">4 Jobs · 23 Task Templates · 94% Automated</span></div>
+    <div class="text-[11px] text-tx-2 mt-1">Your role is defined by the jobs below. Each job contains task templates — some fully automated by agent skills, others requiring your judgment.</div>
+  </div>
+  <div class="text-right">
+    <div class="text-xl font-bold text-ac-green">94%</div>
+    <div class="text-[10px] text-tx-m">Job Automation</div>
+  </div>
+</div>
+</div>
+
+<!-- Job Cards -->
+<div class="grid grid-cols-2 gap-4 mb-4">
+
+<!-- Job 1: Invoice Processing -->
+<div class="card">
+<div class="card-h">
+  <div class="flex items-center gap-2">📥 Invoice Processing <span class="st st-g text-[10px]">96% Auto</span></div>
+  <span class="text-[10px] text-tx-m">12 Templates</span>
+</div>
+<div class="card-b space-y-3">
+  <div class="flex items-center gap-2 text-[11px]"><div class="gauge" style="width:120px"><div class="gauge-fill bg-ac-green" style="width:96%"></div></div><span class="text-tx-m">Automation</span></div>
+  <div class="text-[11px] text-tx-2 mb-2">End-to-end invoice lifecycle from receipt through payment posting.</div>
+  <table class="dt">
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Invoice Ingestion & OCR</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Three-Way Match (PO ↔ GR ↔ Invoice)</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Duplicate Detection</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Budget Check & GL Coding</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-yellow/20 text-ac-yellow text-[9px] flex items-center justify-center">👤</span>
+        <span>Variance Escalation Review</span>
+      </div>
+    </td><td class="text-right"><span class="st st-y text-[9px]">Human</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Payment Scheduling</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+  </table>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">ThreeWayMatch</span>
+    <span class="st st-b text-[9px]">DuplicateDetect</span>
+    <span class="st st-b text-[9px]">BudgetCheck</span>
+    <span class="st st-b text-[9px]">FraudPattern</span>
+  </div>
+</div>
+</div>
+
+<!-- Job 2: Vendor Management -->
+<div class="card">
+<div class="card-h">
+  <div class="flex items-center gap-2">🏢 Vendor Management <span class="st st-g text-[10px]">91% Auto</span></div>
+  <span class="text-[10px] text-tx-m">5 Templates</span>
+</div>
+<div class="card-b space-y-3">
+  <div class="flex items-center gap-2 text-[11px]"><div class="gauge" style="width:120px"><div class="gauge-fill bg-ac-green" style="width:91%"></div></div><span class="text-tx-m">Automation</span></div>
+  <div class="text-[11px] text-tx-2 mb-2">Vendor onboarding, credentialing, performance monitoring, and compliance.</div>
+  <table class="dt">
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Vendor Credential Verification</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>W-9 / Tax ID Validation</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Insurance & License Monitoring</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-yellow/20 text-ac-yellow text-[9px] flex items-center justify-center">👤</span>
+        <span>New Vendor Approval</span>
+      </div>
+    </td><td class="text-right"><span class="st st-y text-[9px]">Human</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Performance Scoring</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+  </table>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">VendorVerify</span>
+    <span class="st st-b text-[9px]">ComplianceCheck</span>
+  </div>
+</div>
+</div>
+
+<!-- Job 3: Payment Optimization -->
+<div class="card">
+<div class="card-h">
+  <div class="flex items-center gap-2">💸 Payment Optimization <span class="st st-g text-[10px]">89% Auto</span></div>
+  <span class="text-[10px] text-tx-m">4 Templates</span>
+</div>
+<div class="card-b space-y-3">
+  <div class="flex items-center gap-2 text-[11px]"><div class="gauge" style="width:120px"><div class="gauge-fill bg-ac-green" style="width:89%"></div></div><span class="text-tx-m">Automation</span></div>
+  <div class="text-[11px] text-tx-2 mb-2">Discount capture, payment timing, batch optimization, and cash flow coordination.</div>
+  <table class="dt">
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Early Pay Discount Analysis</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Payment Batch Grouping</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Cash Flow Impact Forecast</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-yellow/20 text-ac-yellow text-[9px] flex items-center justify-center">👤</span>
+        <span>Large Payment Authorization</span>
+      </div>
+    </td><td class="text-right"><span class="st st-y text-[9px]">Human</span></td></tr>
+  </table>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">DiscountOptimizer</span>
+    <span class="st st-b text-[9px]">CashForecast</span>
+  </div>
+</div>
+</div>
+
+<!-- Job 4: Period Close -->
+<div class="card">
+<div class="card-h">
+  <div class="flex items-center gap-2">📅 Period Close <span class="st st-g text-[10px]">85% Auto</span></div>
+  <span class="text-[10px] text-tx-m">6 Templates</span>
+</div>
+<div class="card-b space-y-3">
+  <div class="flex items-center gap-2 text-[11px]"><div class="gauge" style="width:120px"><div class="gauge-fill bg-ac-green" style="width:85%"></div></div><span class="text-tx-m">Automation</span></div>
+  <div class="text-[11px] text-tx-2 mb-2">Month-end accruals, reconciliation, journal posting, and close checklist.</div>
+  <table class="dt">
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Accrual Calculation</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Auto Journal Posting</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Sub-Ledger Reconciliation</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-yellow/20 text-ac-yellow text-[9px] flex items-center justify-center">👤</span>
+        <span>Variance Investigation</span>
+      </div>
+    </td><td class="text-right"><span class="st st-y text-[9px]">Human</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-yellow/20 text-ac-yellow text-[9px] flex items-center justify-center">👤</span>
+        <span>Close Certification Sign-Off</span>
+      </div>
+    </td><td class="text-right"><span class="st st-y text-[9px]">Human</span></td></tr>
+    <tr><td class="text-[11px]">
+      <div class="flex items-center gap-2">
+        <span class="w-4 h-4 rounded bg-ac-green/20 text-ac-green text-[9px] flex items-center justify-center">🤖</span>
+        <span>Close Checklist Tracking</span>
+      </div>
+    </td><td class="text-right"><span class="st st-g text-[9px]">Auto</span></td></tr>
+  </table>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">JournalAutoPost</span>
+    <span class="st st-b text-[9px]">Reconciler</span>
+  </div>
+</div>
+</div>
+
+</div><!-- grid -->
+
+<!-- Task Instance Feed -->
+<div class="card">
+<div class="card-h">
+  <span>Active Task Instances</span>
+  <div class="flex gap-2">
+    <span class="st st-y text-[9px]">3 Awaiting Human</span>
+    <span class="st st-b text-[9px]">12 In Progress</span>
+    <span class="st st-g text-[9px]">847 Completed Today</span>
+  </div>
+</div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Task Instance</th><th>Job</th><th>Template</th><th>Skill</th><th>Status</th><th>Created</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px]"><span class="text-ac-yellow font-medium">INV-4892 Variance Review</span></td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] text-tx-2">Variance Escalation Review</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ThreeWayMatch</span></td>
+  <td><span class="st st-y text-[9px]">⏳ Awaiting Human</span></td>
+  <td class="text-[11px] text-tx-m mono">14:32</td>
+</tr>
+<tr>
+  <td class="text-[11px]"><span class="text-ac-yellow font-medium">VND-New: DataSync Corp</span></td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px] text-tx-2">New Vendor Approval</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">VendorVerify</span></td>
+  <td><span class="st st-y text-[9px]">⏳ Awaiting Human</span></td>
+  <td class="text-[11px] text-tx-m mono">13:58</td>
+</tr>
+<tr>
+  <td class="text-[11px]"><span class="text-ac-yellow font-medium">PAY-Batch #47 Auth</span></td>
+  <td class="text-[11px] text-tx-2">Payment Optimization</td>
+  <td class="text-[11px] text-tx-2">Large Payment Authorization</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">DiscountOptimizer</span></td>
+  <td><span class="st st-y text-[9px]">⏳ Awaiting Human</span></td>
+  <td class="text-[11px] text-tx-m mono">13:45</td>
+</tr>
+<tr>
+  <td class="text-[11px]">INV-4893 Three-Way Match</td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] text-tx-2">Three-Way Match</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ThreeWayMatch</span></td>
+  <td><span class="st st-b text-[9px]">⚙️ Processing</span></td>
+  <td class="text-[11px] text-tx-m mono">14:41</td>
+</tr>
+<tr>
+  <td class="text-[11px]">INV-4891 Budget Check</td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] text-tx-2">Budget Check & GL Coding</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">BudgetCheck</span></td>
+  <td><span class="st st-g text-[9px]">✓ Complete</span></td>
+  <td class="text-[11px] text-tx-m mono">14:38</td>
+</tr>
+<tr>
+  <td class="text-[11px]">VND-Cert: Acme Lumber</td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px] text-tx-2">Insurance & License Monitoring</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ComplianceCheck</span></td>
+  <td><span class="st st-g text-[9px]">✓ Complete</span></td>
+  <td class="text-[11px] text-tx-m mono">14:22</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-jobs -->
+
+<!-- ======================== AGENTS & SKILLS ======================== -->
+<div class="page" id="p-agents">
+
+<!-- Skill Registry Header -->
+<div class="card" style="border-left:3px solid #4da6ff">
+<div class="card-b flex items-center justify-between">
+  <div>
+    <div class="text-sm font-semibold">Agent Skill Registry <span class="st st-b ml-2">9 Skills Active · 4 Agents Running</span></div>
+    <div class="text-[11px] text-tx-2 mt-1">Atomic, composable capabilities. Each skill does one thing and is measured independently. Agents compose skills to execute task templates.</div>
+  </div>
+  <div class="flex gap-4 text-right">
+    <div><div class="text-lg font-bold text-ac-green">97.3%</div><div class="text-[10px] text-tx-m">Avg Success</div></div>
+    <div><div class="text-lg font-bold text-ac-blue">0.4s</div><div class="text-[10px] text-tx-m">Avg Latency</div></div>
+  </div>
+</div>
+</div>
+
+<!-- Skills Grid -->
+<div class="grid grid-cols-3 gap-3 mb-4">
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">🔍 ThreeWayMatch</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Matches Purchase Order ↔ Goods Receipt ↔ Invoice. Flags variance above configurable threshold.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">98.1%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:98%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.3s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Invocations (24h)</span><span>342</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Used By</span><span class="text-ac-purple">Invoice Processing</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">PO</span> <span class="st st-p text-[9px]">GoodsReceipt</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">🛡️ DuplicateDetect</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Fuzzy matching on vendor+amount+date+description. Catches exact and near-duplicates within configurable window.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">99.7%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:99.7%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.1s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Invocations (24h)</span><span>342</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Duplicates Caught</span><span class="text-ac-red">7</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">📊 BudgetCheck</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Validates spend against budget allocation by GL code and department. Auto-assigns GL coding.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">96.8%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:96.8%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.4s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Invocations (24h)</span><span>335</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Over-Budget Flags</span><span class="text-ac-yellow">12</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">Budget</span> <span class="st st-p text-[9px]">GLCode</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">✅ VendorVerify</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Validates vendor credentials: W-9, tax ID, insurance, licenses. Continuous monitoring with expiry alerts.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">97.2%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:97.2%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">1.2s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Vendors Monitored</span><span>89</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Expiry Alerts</span><span class="text-ac-orange">3</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Vendor</span> <span class="st st-p text-[9px]">Contract</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">🚨 FraudPattern</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Behavioral anomaly detection across invoice patterns, amounts, timing, and vendor relationships.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">94.5%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:94.5%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.8s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Anomalies Flagged (30d)</span><span class="text-ac-red">4</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">False Positive Rate</span><span>5.5%</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">Vendor</span> <span class="st st-p text-[9px]">Payment</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">💰 DiscountOptimizer</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Evaluates early-pay discounts vs. cash position. Recommends optimal payment timing per invoice.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">99.1%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:99.1%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.2s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Discounts Captured (MTD)</span><span class="text-ac-green">$14,200</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Discounts Missed</span><span class="text-tx-m">$0</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">Payment</span> <span class="st st-p text-[9px]">CashPosition</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">📬 CollectionsDunning</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Automated dunning sequences for overdue AR. Escalation tiers with configurable timing and tone.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">96.3%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:96.3%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Active Sequences</span><span>18</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Collected (MTD)</span><span class="text-ac-green">$127,400</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">Customer</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">📖 JournalAutoPost</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">Generates and posts journal entries from settled transactions. Double-entry with full GL coding.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Success Rate</span><span class="text-ac-green font-medium">99.4%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-green" style="width:99.4%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Avg Latency</span><span class="mono">0.15s</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Entries Posted (24h)</span><span>284</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">JournalEntry</span> <span class="st st-p text-[9px]">GLCode</span> <span class="st st-p text-[9px]">Ledger</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-h"><span class="flex items-center gap-2">🔮 CashForecast</span><span class="st st-g text-[9px]">Active</span></div>
+<div class="card-b text-[11px] space-y-2">
+  <div class="text-tx-2">13-week rolling cash forecast from AR/AP pipeline, recurring obligations, and seasonal patterns.</div>
+  <div class="flex justify-between"><span class="text-tx-m">Confidence</span><span class="text-ac-blue font-medium">94%</span></div>
+  <div class="flex items-center gap-2"><div class="gauge"><div class="gauge-fill bg-ac-blue" style="width:94%"></div></div></div>
+  <div class="flex justify-between"><span class="text-tx-m">Forecast Horizon</span><span>13 weeks</span></div>
+  <div class="flex justify-between"><span class="text-tx-m">Last Updated</span><span class="mono">2 min ago</span></div>
+  <div class="mt-1"><span class="text-tx-m text-[10px]">Objects:</span> <span class="st st-p text-[9px]">CashPosition</span> <span class="st st-p text-[9px]">Invoice</span> <span class="st st-p text-[9px]">Payment</span></div>
+</div>
+</div>
+
+</div><!-- grid -->
+
+<!-- Running Agents -->
+<div class="card">
+<div class="card-h"><span>Running Agents</span><span class="text-[10px] text-tx-m">Agents compose skills to execute task templates</span></div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Agent</th><th>Current Task</th><th>Skills In Use</th><th>Status</th><th>Uptime</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] font-medium">AP Processing Agent</td>
+  <td class="text-[11px] text-tx-2">INV-4893 Three-Way Match</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ThreeWayMatch</span> <span class="st st-b text-[9px]">DuplicateDetect</span> <span class="st st-b text-[9px]">BudgetCheck</span></td>
+  <td><span class="st st-g text-[9px] pulse">● Running</span></td>
+  <td class="text-[11px] mono text-tx-m">4h 22m</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Vendor Compliance Agent</td>
+  <td class="text-[11px] text-tx-2">Daily credential scan</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">VendorVerify</span> <span class="st st-b text-[9px]">ComplianceCheck</span></td>
+  <td><span class="st st-g text-[9px] pulse">● Running</span></td>
+  <td class="text-[11px] mono text-tx-m">4h 22m</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Collections Agent</td>
+  <td class="text-[11px] text-tx-2">AR-2847 Dunning Tier 2</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">CollectionsDunning</span></td>
+  <td><span class="st st-g text-[9px] pulse">● Running</span></td>
+  <td class="text-[11px] mono text-tx-m">4h 22m</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Forecast Agent</td>
+  <td class="text-[11px] text-tx-2">Weekly projection refresh</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">CashForecast</span> <span class="st st-b text-[9px]">DiscountOptimizer</span></td>
+  <td><span class="st st-g text-[9px] pulse">● Running</span></td>
+  <td class="text-[11px] mono text-tx-m">4h 22m</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-agents -->
+<!-- ======================== POLICIES ======================== -->
+<div class="page" id="p-policies">
+
+<!-- Learning Loop Banner -->
+<div class="card" style="border-left:3px solid #00d4aa">
+<div class="card-b flex items-center justify-between">
+  <div>
+    <div class="text-sm font-semibold">Policy Engine <span class="st st-g ml-2">Learning Loop Active</span></div>
+    <div class="text-[11px] text-tx-2 mt-1">Policies are living rules. Exceptions create patterns → patterns suggest new task templates → admin approves → automation expands.</div>
+  </div>
+  <div class="flex gap-6 text-right">
+    <div><div class="text-lg font-bold text-ac-green">47</div><div class="text-[10px] text-tx-m">Active Policies</div></div>
+    <div><div class="text-lg font-bold text-ac-purple">3</div><div class="text-[10px] text-tx-m">Suggested</div></div>
+    <div><div class="text-lg font-bold text-ac-blue">12</div><div class="text-[10px] text-tx-m">Learned (90d)</div></div>
+  </div>
+</div>
+</div>
+
+<!-- Suggested Policies from Learning Loop -->
+<div class="card" style="border:1px solid rgba(167,139,250,.3)">
+<div class="card-h"><span class="text-ac-purple">🧠 Suggested Policies — From Exception Patterns</span><span class="st st-p text-[9px]">3 Pending Review</span></div>
+<div class="card-b space-y-3">
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-2">
+    <div class="text-[12px] font-medium">Auto-approve TechSupply variance ≤ 3%</div>
+    <div class="flex gap-2"><button class="px-3 py-1 bg-ac-green/20 text-ac-green rounded text-[10px] font-medium">Approve</button><button class="px-3 py-1 bg-bg-3 text-tx-2 rounded text-[10px]">Dismiss</button></div>
+  </div>
+  <div class="text-[11px] text-tx-2">Pattern: 8 manual approvals for TechSupply invoices with variance 2-3% in past 60 days. All approved. Confidence: 92%</div>
+  <div class="flex gap-3 mt-2 text-[10px] text-tx-m">
+    <span>Job: Invoice Processing</span>
+    <span>Template: Variance Escalation Review</span>
+    <span>Skill: ThreeWayMatch</span>
+    <span>Impact: ~4 fewer human reviews/month</span>
+  </div>
+</div>
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-2">
+    <div class="text-[12px] font-medium">Auto-renew vendors with 12+ month history & clean record</div>
+    <div class="flex gap-2"><button class="px-3 py-1 bg-ac-green/20 text-ac-green rounded text-[10px] font-medium">Approve</button><button class="px-3 py-1 bg-bg-3 text-tx-2 rounded text-[10px]">Dismiss</button></div>
+  </div>
+  <div class="text-[11px] text-tx-2">Pattern: 14 vendor re-approvals for established vendors with no compliance issues. All rubber-stamped within 5 min. Confidence: 88%</div>
+  <div class="flex gap-3 mt-2 text-[10px] text-tx-m">
+    <span>Job: Vendor Management</span>
+    <span>Template: New Vendor Approval</span>
+    <span>Skill: VendorVerify</span>
+    <span>Impact: ~6 fewer human reviews/month</span>
+  </div>
+</div>
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-2">
+    <div class="text-[12px] font-medium">Batch payments under $5K without individual authorization</div>
+    <div class="flex gap-2"><button class="px-3 py-1 bg-ac-green/20 text-ac-green rounded text-[10px] font-medium">Approve</button><button class="px-3 py-1 bg-bg-3 text-tx-2 rounded text-[10px]">Dismiss</button></div>
+  </div>
+  <div class="text-[11px] text-tx-2">Pattern: 22 small-batch payment approvals under $5K, all approved same-day, no exceptions. Confidence: 95%</div>
+  <div class="flex gap-3 mt-2 text-[10px] text-tx-m">
+    <span>Job: Payment Optimization</span>
+    <span>Template: Large Payment Authorization</span>
+    <span>Skill: DiscountOptimizer</span>
+    <span>Impact: ~10 fewer human reviews/month</span>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- Active Policies Table -->
+<div class="card">
+<div class="card-h"><span>Active Policies</span><span class="text-[10px] text-tx-m">47 policies governing automation behavior</span></div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Policy</th><th>Type</th><th>Job</th><th>Threshold</th><th>Invocations (30d)</th><th>Source</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] font-medium">Invoice auto-approve ≤ $10K + exact match</td>
+  <td><span class="st st-g text-[9px]">Approval</span></td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] mono">≤ $10,000</td>
+  <td class="text-[11px] mono">247</td>
+  <td><span class="st st-b text-[9px]">Configured</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Three-way match tolerance 2%</td>
+  <td><span class="st st-b text-[9px]">Validation</span></td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] mono">≤ 2.0%</td>
+  <td class="text-[11px] mono">342</td>
+  <td><span class="st st-b text-[9px]">Configured</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Duplicate window 180 days</td>
+  <td><span class="st st-y text-[9px]">Detection</span></td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] mono">180 days</td>
+  <td class="text-[11px] mono">342</td>
+  <td><span class="st st-b text-[9px]">Configured</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Vendor insurance expiry alert 30 days</td>
+  <td><span class="st st-o text-[9px]">Compliance</span></td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px] mono">30 days</td>
+  <td class="text-[11px] mono">89</td>
+  <td><span class="st st-b text-[9px]">Configured</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Early-pay discount capture if APR > 18%</td>
+  <td><span class="st st-g text-[9px]">Optimization</span></td>
+  <td class="text-[11px] text-tx-2">Payment Optimization</td>
+  <td class="text-[11px] mono">> 18% APR</td>
+  <td class="text-[11px] mono">156</td>
+  <td><span class="st st-p text-[9px]">Learned</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Recurring vendor auto-GL code from history</td>
+  <td><span class="st st-b text-[9px]">Automation</span></td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px] mono">3+ matches</td>
+  <td class="text-[11px] mono">298</td>
+  <td><span class="st st-p text-[9px]">Learned</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-policies -->
+
+
+<!-- ======================== INTEGRITY ======================== -->
+<div class="page" id="p-integrity">
+
+<div class="card" style="border-left:3px solid #00d4aa">
+<div class="card-b flex items-center justify-between">
+  <div>
+    <div class="text-sm font-semibold">Integrity — Hash Chain & Lineage <span class="st st-g ml-2">Chain Valid</span></div>
+    <div class="text-[11px] text-tx-2 mt-1">Every event is hashed and chained. Full lineage from source document through settlement to ledger posting. Immutable audit trail.</div>
+  </div>
+  <div class="flex gap-6 text-right">
+    <div><div class="text-lg font-bold text-ac-green">✓</div><div class="text-[10px] text-tx-m">Chain Valid</div></div>
+    <div><div class="text-lg font-bold">48,291</div><div class="text-[10px] text-tx-m">Events Hashed</div></div>
+    <div><div class="text-lg font-bold text-ac-green">0</div><div class="text-[10px] text-tx-m">Breaks</div></div>
+  </div>
+</div>
+</div>
+
+<!-- Lineage Visualization -->
+<div class="card">
+<div class="card-h"><span>Event Lineage — INV-4891 (TechSupply)</span><span class="text-[10px] text-tx-m">Full chain from source to ledger</span></div>
+<div class="card-b">
+  <div class="flex items-center gap-2 text-[11px] flex-wrap">
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-tx-m">SOURCE</div>
+      <div class="font-medium">PDF Invoice</div>
+      <div class="text-[9px] text-tx-m mono mt-1">a3f2...c891</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-tx-m">EVENT</div>
+      <div class="font-medium">Invoice Received</div>
+      <div class="text-[9px] text-tx-m mono mt-1">b7d1...e442</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-ac-blue">SKILL</div>
+      <div class="font-medium">ThreeWayMatch</div>
+      <div class="text-[9px] text-tx-m mono mt-1">c9a3...f117</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-tx-m">POLICY</div>
+      <div class="font-medium">Auto-Approve ≤$10K</div>
+      <div class="text-[9px] text-tx-m mono mt-1">d4b2...a893</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-tx-m">WORK ORDER</div>
+      <div class="font-medium">Schedule Payment</div>
+      <div class="text-[9px] text-tx-m mono mt-1">e8c1...d234</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-bg-2 rounded border border-bdr text-center">
+      <div class="text-[9px] text-tx-m">SETTLEMENT</div>
+      <div class="font-medium">ACH Executed</div>
+      <div class="text-[9px] text-tx-m mono mt-1">f2a7...b561</div>
+    </div>
+    <span class="text-tx-m">→</span>
+    <div class="px-3 py-2 bg-ac-green/10 rounded border border-ac-green/30 text-center">
+      <div class="text-[9px] text-ac-green">LEDGER</div>
+      <div class="font-medium text-ac-green">GL Posted</div>
+      <div class="text-[9px] text-tx-m mono mt-1">g1d9...c778</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Hash Chain Table -->
+<div class="card">
+<div class="card-h"><span>Recent Hash Chain</span><span class="text-[10px] text-tx-m">Latest 6 verified entries</span></div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Seq</th><th>Timestamp</th><th>Event</th><th>Actor</th><th>Hash</th><th>Prev Hash</th><th>Status</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] mono">48,291</td>
+  <td class="text-[11px] mono text-tx-m">14:41:03</td>
+  <td class="text-[11px]">INV-4893 Match Started</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Agent</span></td>
+  <td class="text-[11px] mono text-tx-m">f8a2...3d91</td>
+  <td class="text-[11px] mono text-tx-m">e7c1...2b84</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] mono">48,290</td>
+  <td class="text-[11px] mono text-tx-m">14:38:47</td>
+  <td class="text-[11px]">INV-4891 GL Posted</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Agent</span></td>
+  <td class="text-[11px] mono text-tx-m">e7c1...2b84</td>
+  <td class="text-[11px] mono text-tx-m">d6b0...1a73</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] mono">48,289</td>
+  <td class="text-[11px] mono text-tx-m">14:35:22</td>
+  <td class="text-[11px]">PAY-Batch #46 Settled</td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">⚙ System</span></td>
+  <td class="text-[11px] mono text-tx-m">d6b0...1a73</td>
+  <td class="text-[11px] mono text-tx-m">c5a9...0962</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] mono">48,288</td>
+  <td class="text-[11px] mono text-tx-m">14:32:15</td>
+  <td class="text-[11px]">INV-4892 Escalated to Human</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Agent</span></td>
+  <td class="text-[11px] mono text-tx-m">c5a9...0962</td>
+  <td class="text-[11px] mono text-tx-m">b4a8...9851</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] mono">48,287</td>
+  <td class="text-[11px] mono text-tx-m">14:28:33</td>
+  <td class="text-[11px]">VND-DataSync Credential Check</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Agent</span></td>
+  <td class="text-[11px] mono text-tx-m">b4a8...9851</td>
+  <td class="text-[11px] mono text-tx-m">a3a7...8740</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] mono">48,286</td>
+  <td class="text-[11px] mono text-tx-m">14:22:11</td>
+  <td class="text-[11px]">VND-Acme Insurance Verified</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Agent</span></td>
+  <td class="text-[11px] mono text-tx-m">a3a7...8740</td>
+  <td class="text-[11px] mono text-tx-m">92a6...7639</td>
+  <td><span class="st st-g text-[9px]">✓ Valid</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-integrity -->
+
+
+<!-- ======================== EVENT LOG ======================== -->
+<div class="page" id="p-events">
+
+<div class="card">
+<div class="card-h">
+  <span>Event Log — Real-Time</span>
+  <div class="flex gap-2">
+    <span class="st st-b text-[9px]">🤖 Agent: 72%</span>
+    <span class="st st-y text-[9px]">👤 Human: 8%</span>
+    <span class="st st-p text-[9px]">⚙ System: 20%</span>
+  </div>
+</div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Time</th><th>Event</th><th>Actor</th><th>Task Template</th><th>Job</th><th>Skill</th><th>Object</th><th>Hash</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:41</td>
+  <td class="text-[11px]">Three-Way Match initiated</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 AP Agent</span></td>
+  <td class="text-[11px] text-tx-2">Three-Way Match</td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ThreeWayMatch</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">INV-4893</span></td>
+  <td class="text-[11px] mono text-tx-m">f8a2..3d</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:38</td>
+  <td class="text-[11px]">Journal entry posted — AP clearing</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 AP Agent</span></td>
+  <td class="text-[11px] text-tx-2">Auto Journal Posting</td>
+  <td class="text-[11px] text-tx-2">Period Close</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">JournalAutoPost</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">INV-4891</span></td>
+  <td class="text-[11px] mono text-tx-m">e7c1..2b</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:35</td>
+  <td class="text-[11px]">Payment batch #46 settled via ACH</td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">⚙ System</span></td>
+  <td class="text-[11px] text-tx-2">Payment Scheduling</td>
+  <td class="text-[11px] text-tx-2">Payment Optimization</td>
+  <td class="text-[11px] text-tx-m">—</td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">PAY-#46</span></td>
+  <td class="text-[11px] mono text-tx-m">d6b0..1a</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:32</td>
+  <td class="text-[11px] text-ac-yellow">⚠ Variance 2.6% — escalated to human</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 AP Agent</span></td>
+  <td class="text-[11px] text-tx-2">Variance Escalation</td>
+  <td class="text-[11px] text-tx-2">Invoice Processing</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ThreeWayMatch</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">INV-4892</span></td>
+  <td class="text-[11px] mono text-tx-m">c5a9..09</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:28</td>
+  <td class="text-[11px]">Vendor credential check — DataSync Corp</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Vendor Agent</span></td>
+  <td class="text-[11px] text-tx-2">Vendor Credential Verify</td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">VendorVerify</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">VND-DataSync</span></td>
+  <td class="text-[11px] mono text-tx-m">b4a8..98</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:22</td>
+  <td class="text-[11px]">Insurance certificate verified — Acme Lumber</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Vendor Agent</span></td>
+  <td class="text-[11px] text-tx-2">Insurance Monitoring</td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">ComplianceCheck</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">VND-Acme</span></td>
+  <td class="text-[11px] mono text-tx-m">a3a7..87</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:15</td>
+  <td class="text-[11px]">Dunning Tier 2 email sent</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 Collections</span></td>
+  <td class="text-[11px] text-tx-2">Dunning Sequence</td>
+  <td class="text-[11px] text-tx-2">Collections</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">CollectionsDunning</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">AR-2847</span></td>
+  <td class="text-[11px] mono text-tx-m">92a6..76</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">14:08</td>
+  <td class="text-[11px]">Early-pay discount captured — 2/10 net 30</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 AP Agent</span></td>
+  <td class="text-[11px] text-tx-2">Discount Analysis</td>
+  <td class="text-[11px] text-tx-2">Payment Optimization</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">DiscountOptimizer</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">INV-4889</span></td>
+  <td class="text-[11px] mono text-tx-m">81a5..65</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">13:58</td>
+  <td class="text-[11px]">New vendor application — DataSync Corp</td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">⚙ System</span></td>
+  <td class="text-[11px] text-tx-2">New Vendor Approval</td>
+  <td class="text-[11px] text-tx-2">Vendor Management</td>
+  <td class="text-[11px] text-tx-m">—</td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">VND-DataSync</span></td>
+  <td class="text-[11px] mono text-tx-m">70a4..54</td>
+</tr>
+<tr>
+  <td class="text-[11px] mono text-tx-m">13:45</td>
+  <td class="text-[11px]">Payment batch #47 assembled — $142,800</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">🤖 AP Agent</span></td>
+  <td class="text-[11px] text-tx-2">Payment Batch Grouping</td>
+  <td class="text-[11px] text-tx-2">Payment Optimization</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">DiscountOptimizer</span></td>
+  <td class="text-[11px]"><span class="st st-p text-[9px]">PAY-#47</span></td>
+  <td class="text-[11px] mono text-tx-m">6fa3..43</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-events -->
+
+
+<!-- ======================== CONFIGURATION ======================== -->
+<div class="page" id="p-config">
+
+<div class="card" style="border-left:3px solid #4da6ff">
+<div class="card-b">
+  <div class="text-sm font-semibold mb-1">Configuration — Ontology & Job Bundles</div>
+  <div class="text-[11px] text-tx-2">The configuration layer defines what changes per deployment. The invariant core (Event Capture → Policy → Work Order → Settlement → Ledger → Hash Chain) never changes.</div>
+</div>
+</div>
+
+<div class="grid grid-cols-2 gap-4 mb-4">
+
+<!-- Ontology: Typed Objects -->
+<div class="card">
+<div class="card-h"><span>Ontology — Typed Objects</span><span class="text-[10px] text-tx-m">12 Object Types</span></div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Object Type</th><th>Declared Actions</th><th>Instances</th><th>Skills</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] font-medium">📄 Invoice</td>
+  <td class="text-[11px] text-tx-2">.match() .approve() .reject() .post()</td>
+  <td class="text-[11px] mono">1,847</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">5</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">🏢 Vendor</td>
+  <td class="text-[11px] text-tx-2">.credential() .onboard() .score() .suspend()</td>
+  <td class="text-[11px] mono">89</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">2</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">📋 PurchaseOrder</td>
+  <td class="text-[11px] text-tx-2">.create() .approve() .receive() .close()</td>
+  <td class="text-[11px] mono">423</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">1</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">💸 Payment</td>
+  <td class="text-[11px] text-tx-2">.schedule() .execute() .reconcile() .void()</td>
+  <td class="text-[11px] mono">2,134</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">2</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">📊 Budget</td>
+  <td class="text-[11px] text-tx-2">.allocate() .check() .transfer() .freeze()</td>
+  <td class="text-[11px] mono">24</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">1</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">📖 JournalEntry</td>
+  <td class="text-[11px] text-tx-2">.post() .reverse() .accrue()</td>
+  <td class="text-[11px] mono">4,892</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">1</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">🔐 Contract</td>
+  <td class="text-[11px] text-tx-2">.activate() .renew() .terminate()</td>
+  <td class="text-[11px] mono">34</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">1</span></td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">💰 CashPosition</td>
+  <td class="text-[11px] text-tx-2">.snapshot() .forecast() .alert()</td>
+  <td class="text-[11px] mono">1</td>
+  <td class="text-[11px]"><span class="st st-b text-[9px]">1</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Job Bundles -->
+<div class="card">
+<div class="card-h"><span>Job Bundles — Pre-loaded Templates</span><span class="text-[10px] text-tx-m">Best-practice configurations</span></div>
+<div class="card-b space-y-3">
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-1">
+    <div class="text-[12px] font-medium">📦 AP Full Automation Bundle</div>
+    <span class="st st-g text-[9px]">Active</span>
+  </div>
+  <div class="text-[11px] text-tx-2 mb-2">Complete AP workflow: invoice ingestion through payment execution. 12 task templates, 4 skills, 6 policies.</div>
+  <div class="flex gap-4 text-[10px] text-tx-m">
+    <span>Jobs: Invoice Processing, Payment Optimization</span>
+  </div>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">ThreeWayMatch</span>
+    <span class="st st-b text-[9px]">DuplicateDetect</span>
+    <span class="st st-b text-[9px]">BudgetCheck</span>
+    <span class="st st-b text-[9px]">DiscountOptimizer</span>
+  </div>
+</div>
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-1">
+    <div class="text-[12px] font-medium">📦 Vendor Compliance Bundle</div>
+    <span class="st st-g text-[9px]">Active</span>
+  </div>
+  <div class="text-[11px] text-tx-2 mb-2">Vendor lifecycle from onboarding through continuous monitoring. 5 task templates, 2 skills, 3 policies.</div>
+  <div class="flex gap-4 text-[10px] text-tx-m">
+    <span>Jobs: Vendor Management</span>
+  </div>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">VendorVerify</span>
+    <span class="st st-b text-[9px]">ComplianceCheck</span>
+  </div>
+</div>
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-1">
+    <div class="text-[12px] font-medium">📦 AR Collections Bundle</div>
+    <span class="st st-g text-[9px]">Active</span>
+  </div>
+  <div class="text-[11px] text-tx-2 mb-2">Automated dunning, aging analysis, and collection workflows. 4 task templates, 1 skill, 2 policies.</div>
+  <div class="flex gap-4 text-[10px] text-tx-m">
+    <span>Jobs: Collections Management</span>
+  </div>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">CollectionsDunning</span>
+  </div>
+</div>
+
+<div class="p-3 bg-bg-2 rounded-lg border border-bdr">
+  <div class="flex items-center justify-between mb-1">
+    <div class="text-[12px] font-medium">📦 Month-End Close Bundle</div>
+    <span class="st st-g text-[9px]">Active</span>
+  </div>
+  <div class="text-[11px] text-tx-2 mb-2">Period close automation: accruals, reconciliation, journal posting, close checklist. 6 task templates, 2 skills, 4 policies.</div>
+  <div class="flex gap-4 text-[10px] text-tx-m">
+    <span>Jobs: Period Close</span>
+  </div>
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <span class="st st-b text-[9px]">JournalAutoPost</span>
+    <span class="st st-b text-[9px]">Reconciler</span>
+  </div>
+</div>
+
+</div>
+</div>
+
+</div><!-- grid -->
+
+<!-- Role Definitions -->
+<div class="card">
+<div class="card-h"><span>Role Definitions</span><span class="text-[10px] text-tx-m">Who owns what jobs</span></div>
+<div class="card-b p-0">
+<table class="dt">
+<thead><tr><th>Role</th><th>Jobs Assigned</th><th>Task Templates</th><th>Automation %</th><th>Human Tasks/Day</th></tr></thead>
+<tbody>
+<tr>
+  <td class="text-[11px] font-medium">AP Manager</td>
+  <td class="text-[11px] text-tx-2">Invoice Processing, Vendor Mgmt, Payment Opt, Period Close</td>
+  <td class="text-[11px] mono">27</td>
+  <td class="text-[11px]"><div class="flex items-center gap-2"><div class="gauge" style="width:80px"><div class="gauge-fill bg-ac-green" style="width:94%"></div></div><span>94%</span></div></td>
+  <td class="text-[11px] mono">~6</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">AR Manager</td>
+  <td class="text-[11px] text-tx-2">Collections Mgmt, Revenue Recognition</td>
+  <td class="text-[11px] mono">8</td>
+  <td class="text-[11px]"><div class="flex items-center gap-2"><div class="gauge" style="width:80px"><div class="gauge-fill bg-ac-green" style="width:88%"></div></div><span>88%</span></div></td>
+  <td class="text-[11px] mono">~4</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">Controller</td>
+  <td class="text-[11px] text-tx-2">Period Close, Financial Reporting, Compliance</td>
+  <td class="text-[11px] mono">14</td>
+  <td class="text-[11px]"><div class="flex items-center gap-2"><div class="gauge" style="width:80px"><div class="gauge-fill bg-ac-green" style="width:82%"></div></div><span>82%</span></div></td>
+  <td class="text-[11px] mono">~8</td>
+</tr>
+<tr>
+  <td class="text-[11px] font-medium">CFO</td>
+  <td class="text-[11px] text-tx-2">Cash Oversight, Strategic Decisions, Exceptions</td>
+  <td class="text-[11px] mono">6</td>
+  <td class="text-[11px]"><div class="flex items-center gap-2"><div class="gauge" style="width:80px"><div class="gauge-fill bg-ac-yellow" style="width:60%"></div></div><span>60%</span></div></td>
+  <td class="text-[11px] mono">~3</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div><!-- /p-config -->
+<!-- ======================== OBJECT DETAIL MODAL ======================== -->
+<div class="modal-bg" id="objModal">
+<div class="modal">
+  <div class="p-4 border-b border-bdr flex items-center justify-between">
+    <div class="text-sm font-semibold" id="modalTitle">Object Detail</div>
+    <button onclick="document.getElementById('objModal').classList.remove('open')" class="text-tx-m hover:text-tx-1 text-lg cursor-pointer">&times;</button>
+  </div>
+  <div class="p-4" id="modalBody">
+    <!-- Populated by JS -->
+  </div>
+</div>
+</div>
+
+</div><!-- /flex-1 p-5 -->
+</main>
+</div><!-- /flex h-screen -->
+
+<script>
+// ===== PAGE NAVIGATION =====
+const navItems = document.querySelectorAll('.nav-i[data-p]');
+const pages = document.querySelectorAll('.page');
+const pageTitle = document.getElementById('pageTitle');
+
+const titles = {
+  dashboard: 'Dashboard',
+  cash: 'Cash Position',
+  forecast: '13-Week Forecast',
+  ar: 'Collections (AR)',
+  ap: 'Payables (AP)',
+  po: 'Purchase Orders',
+  approvals: 'Approvals',
+  payments: 'Payment Runs',
+  jobs: 'Jobs & Tasks',
+  agents: 'Agents & Skills',
+  policies: 'Policies',
+  integrity: 'Integrity',
+  events: 'Event Log',
+  config: 'Configuration'
+};
+
+function showPage(id) {
+  pages.forEach(p => p.classList.remove('active'));
+  navItems.forEach(n => n.classList.remove('on'));
+  const target = document.getElementById('p-' + id);
+  if (target) {
+    target.classList.add('active');
+    pageTitle.textContent = titles[id] || id;
+  }
+  navItems.forEach(n => {
+    if (n.getAttribute('data-p') === id) n.classList.add('on');
+  });
+}
+
+navItems.forEach(n => {
+  n.addEventListener('click', () => showPage(n.getAttribute('data-p')));
+});
+
+// Show dashboard by default
+showPage('dashboard');
+
+// ===== OBJECT DETAIL MODAL =====
+const modal = document.getElementById('objModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+
+const objectData = {
+  'INV-4892': {
+    type: 'Invoice',
+    title: 'INV-4892 — TechSupply Partners',
+    fields: [
+      ['Vendor', 'TechSupply Partners'],
+      ['Amount', '$12,480.00'],
+      ['PO', 'PO-2024-0847'],
+      ['Variance', '2.6% ($324.80)'],
+      ['Status', 'Awaiting Human Review'],
+      ['GL Code', '6100 - IT Equipment'],
+      ['Department', 'Information Technology'],
+      ['Budget Remaining', '$47,200 of $180,000']
+    ],
+    actions: ['Invoice.approve()', 'Invoice.reject()', 'Invoice.post()'],
+    events: [
+      '14:32 — Escalated to human (variance 2.6% > 2% threshold)',
+      '14:31 — Budget check passed (within IT allocation)',
+      '14:31 — Duplicate check passed (no matches in 180d)',
+      '14:30 — Three-way match: 2.6% variance detected',
+      '14:29 — OCR extracted: $12,480 from PDF',
+      '14:28 — Invoice received via email'
+    ],
+    skills: ['ThreeWayMatch (2.6% variance)', 'DuplicateDetect (clear)', 'BudgetCheck (passed)'],
+    lineage: 'PDF → OCR → Match → Escalation → [Awaiting Decision]'
+  },
+  'INV-4891': {
+    type: 'Invoice',
+    title: 'INV-4891 — Acme Lumber',
+    fields: [
+      ['Vendor', 'Acme Lumber Co.'],
+      ['Amount', '$8,340.00'],
+      ['PO', 'PO-2024-0839'],
+      ['Variance', '0.0% (exact match)'],
+      ['Status', 'Complete — GL Posted'],
+      ['GL Code', '5200 - Materials'],
+      ['Department', 'Operations']
+    ],
+    actions: ['Invoice.reverse()'],
+    events: [
+      '14:38 — Journal entry posted (Dr Materials, Cr AP)',
+      '14:37 — Payment scheduled for batch #47',
+      '14:36 — Auto-approved (exact match + under $10K)',
+      '14:35 — Three-way match: exact match',
+      '14:34 — Duplicate check passed',
+      '14:33 — Invoice received via portal upload'
+    ],
+    skills: ['ThreeWayMatch (exact)', 'DuplicateDetect (clear)', 'BudgetCheck (passed)', 'JournalAutoPost (posted)'],
+    lineage: 'Portal → OCR → Match → Auto-Approve → Schedule → Post → GL ✓'
+  }
+};
+
+function showObject(id) {
+  const obj = objectData[id];
+  if (!obj) return;
+  modalTitle.textContent = obj.title;
+
+  let html = '<div class="grid grid-cols-2 gap-4">';
+
+  // Fields
+  html += '<div class="space-y-2">';
+  html += '<div class="text-[11px] font-semibold text-tx-m uppercase tracking-wider mb-2">Object Fields</div>';
+  obj.fields.forEach(([k,v]) => {
+    html += '<div class="flex justify-between text-[11px]"><span class="text-tx-m">' + k + '</span><span class="font-medium">' + v + '</span></div>';
+  });
+  html += '</div>';
+
+  // Actions & Skills
+  html += '<div class="space-y-3">';
+  html += '<div>';
+  html += '<div class="text-[11px] font-semibold text-tx-m uppercase tracking-wider mb-2">Declared Actions</div>';
+  obj.actions.forEach(a => {
+    html += '<div class="text-[11px] text-ac-blue mono">' + a + '</div>';
+  });
+  html += '</div>';
+  html += '<div>';
+  html += '<div class="text-[11px] font-semibold text-tx-m uppercase tracking-wider mb-2">Skills Applied</div>';
+  obj.skills.forEach(s => {
+    html += '<div class="text-[11px] text-tx-2">' + s + '</div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  // Lineage
+  html += '<div class="mt-4 p-3 bg-bg-2 rounded border border-bdr">';
+  html += '<div class="text-[11px] font-semibold text-tx-m uppercase tracking-wider mb-1">Lineage</div>';
+  html += '<div class="text-[11px] mono text-ac-green">' + obj.lineage + '</div>';
+  html += '</div>';
+
+  // Event History
+  html += '<div class="mt-3">';
+  html += '<div class="text-[11px] font-semibold text-tx-m uppercase tracking-wider mb-2">Event History</div>';
+  obj.events.forEach(e => {
+    html += '<div class="text-[11px] text-tx-2 py-1 border-b border-bdr/50">' + e + '</div>';
+  });
+  html += '</div>';
+
+  modalBody.innerHTML = html;
+  modal.classList.add('open');
+}
+
+// Close modal on background click
+modal.addEventListener('click', function(e) {
+  if (e.target === modal) modal.classList.remove('open');
+});
+
+// ===== EXPAND/COLLAPSE TOGGLES =====
+document.querySelectorAll('.expand-content').forEach(el => {
+  const btn = el.previousElementSibling;
+  if (btn && btn.tagName === 'BUTTON') {
+    // Already wired via onclick in HTML
+  }
+});
+
+// ===== KEYBOARD SHORTCUTS =====
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    modal.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>

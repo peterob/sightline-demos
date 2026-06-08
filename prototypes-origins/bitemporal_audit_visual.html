@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What "Documented" Really Means</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0b;
+            --bg-card: #111113;
+            --border: #222225;
+            --text-primary: #e8e8e9;
+            --text-secondary: #6b6b70;
+            --text-dim: #45454a;
+            --red-primary: #e54d4d;
+            --red-dim: #3d1f1f;
+            --green-primary: #4de590;
+            --green-dim: #1f3d28;
+            --blue-primary: #4d8ee5;
+            --blue-dim: #1f2a3d;
+            --amber-primary: #e5b84d;
+            --amber-dim: #3d351f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 3.2rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .panel-header.traditional {
+            background: linear-gradient(135deg, var(--red-dim) 0%, transparent 100%);
+        }
+
+        .panel-header.bitemporal {
+            background: linear-gradient(135deg, var(--green-dim) 0%, transparent 100%);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.red { background: var(--red-primary); }
+        .status-dot.green { background: var(--green-primary); }
+
+        .panel-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-secondary);
+        }
+
+        .panel-body {
+            padding: 24px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 8px;
+            bottom: 8px;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .event {
+            position: relative;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: fadeSlideIn 0.5s ease forwards;
+        }
+
+        .event:nth-child(1) { animation-delay: 0.1s; }
+        .event:nth-child(2) { animation-delay: 0.2s; }
+        .event:nth-child(3) { animation-delay: 0.3s; }
+        .event:nth-child(4) { animation-delay: 0.4s; }
+        .event:nth-child(5) { animation-delay: 0.5s; }
+        .event:nth-child(6) { animation-delay: 0.6s; }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .event::before {
+            content: '';
+            position: absolute;
+            left: -26px;
+            top: 6px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--bg-dark);
+            border: 2px solid var(--text-dim);
+        }
+
+        .event.recorded::before {
+            border-color: var(--green-primary);
+            background: var(--green-primary);
+        }
+
+        .event.missing::before {
+            border-color: var(--red-primary);
+            border-style: dashed;
+        }
+
+        .event.fabricated::before {
+            border-color: var(--amber-primary);
+            background: var(--amber-primary);
+        }
+
+        .event.audit::before {
+            border-color: var(--blue-primary);
+            background: var(--blue-primary);
+        }
+
+        .event-time {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .event-label {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .event-detail {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .event-timestamps {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 3px;
+            font-size: 0.65rem;
+        }
+
+        .timestamp-label {
+            color: var(--text-dim);
+        }
+
+        .timestamp-value {
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timestamp-value.valid { color: var(--green-primary); }
+        .timestamp-value.transaction { color: var(--blue-primary); }
+
+        .verdict {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .verdict.fail {
+            background: var(--red-dim);
+            border-color: rgba(229, 77, 77, 0.3);
+        }
+
+        .verdict.pass {
+            background: var(--green-dim);
+            border-color: rgba(77, 229, 144, 0.3);
+        }
+
+        .verdict-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        .verdict.fail .verdict-header { color: var(--red-primary); }
+        .verdict.pass .verdict-header { color: var(--green-primary); }
+
+        .verdict-text {
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .insight-section {
+            margin-top: 60px;
+        }
+
+        .insight-header {
+            font-family: 'Instrument Serif', serif;
+            font-size: 1.8rem;
+            font-weight: 400;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .query-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .query-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .query-text {
+            font-family: 'Instrument Serif', serif;
+            font-size: 1.4rem;
+            font-style: italic;
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .answer-box {
+            padding: 24px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .answer-box.traditional {
+            background: linear-gradient(180deg, var(--red-dim) 0%, var(--bg-card) 100%);
+        }
+
+        .answer-box.bitemporal {
+            background: linear-gradient(180deg, var(--green-dim) 0%, var(--bg-card) 100%);
+        }
+
+        .answer-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .answer-box.traditional .answer-label { color: var(--red-primary); }
+        .answer-box.bitemporal .answer-label { color: var(--green-primary); }
+
+        .answer-text {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .proof-block {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .proof-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .proof-line:last-child {
+            border-bottom: none;
+        }
+
+        .proof-key {
+            color: var(--text-secondary);
+        }
+
+        .proof-value {
+            color: var(--green-primary);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .proof-result {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            color: var(--green-primary);
+            font-weight: 600;
+        }
+
+        .bottom-line {
+            margin-top: 60px;
+            text-align: center;
+            padding: 40px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg-card);
+        }
+
+        .bottom-line-text {
+            font-family: 'Instrument Serif', serif;
+            font-size: 1.6rem;
+            font-weight: 400;
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .highlight {
+            color: var(--green-primary);
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        @media (max-width: 900px) {
+            .comparison, .answers {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="subtitle">The Structural Difference</div>
+            <h1>What "Documented" Really Means</h1>
+        </header>
+
+        <div class="comparison">
+            <!-- Traditional System Panel -->
+            <div class="panel">
+                <div class="panel-header traditional">
+                    <div class="status-dot red"></div>
+                    <div class="panel-title">Traditional System</div>
+                </div>
+                <div class="panel-body">
+                    <div class="timeline">
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-15</div>
+                            <div class="event-label">Benefit Application Filed</div>
+                            <div class="event-detail">Applicant claims eligibility</div>
+                        </div>
+                        <div class="event missing">
+                            <div class="event-time">???</div>
+                            <div class="event-label">Identity Verification</div>
+                            <div class="event-detail">No timestamp recorded</div>
+                        </div>
+                        <div class="event missing">
+                            <div class="event-time">???</div>
+                            <div class="event-label">Eligibility Check</div>
+                            <div class="event-detail">Record exists, timing unknown</div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-18</div>
+                            <div class="event-label">Payment Authorized</div>
+                            <div class="event-detail">$4,200 disbursed</div>
+                        </div>
+                        <div class="event audit">
+                            <div class="event-time">2024-11-05</div>
+                            <div class="event-label">Audit Request</div>
+                            <div class="event-detail">Documentation requested</div>
+                        </div>
+                        <div class="event fabricated">
+                            <div class="event-time">2024-11-08</div>
+                            <div class="event-label">Documentation Assembled</div>
+                            <div class="event-detail">Evidence gathered for auditor</div>
+                        </div>
+                    </div>
+                    <div class="verdict fail">
+                        <div class="verdict-header">Audit Finding</div>
+                        <div class="verdict-text">
+                            Cannot determine whether verification occurred before payment. 
+                            Documentation exists but temporal sequence is unverifiable.
+                            Classified as: <strong>Insufficient Documentation</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bitemporal System Panel -->
+            <div class="panel">
+                <div class="panel-header bitemporal">
+                    <div class="status-dot green"></div>
+                    <div class="panel-title">Bitemporal System (CAST)</div>
+                </div>
+                <div class="panel-body">
+                    <div class="timeline">
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-15</div>
+                            <div class="event-label">Benefit Application Filed</div>
+                            <div class="event-detail">Applicant claims eligibility</div>
+                            <div class="event-timestamps">
+                                <div><span class="timestamp-label">Valid:</span> <span class="timestamp-value valid">2024-03-15 09:14:22</span></div>
+                                <div><span class="timestamp-label">Recorded:</span> <span class="timestamp-value transaction">2024-03-15 09:14:23</span></div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-15</div>
+                            <div class="event-label">Identity Verification</div>
+                            <div class="event-detail">SSA cross-match confirmed</div>
+                            <div class="event-timestamps">
+                                <div><span class="timestamp-label">Valid:</span> <span class="timestamp-value valid">2024-03-15 09:14:22</span></div>
+                                <div><span class="timestamp-label">Recorded:</span> <span class="timestamp-value transaction">2024-03-15 09:15:47</span></div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-16</div>
+                            <div class="event-label">Eligibility Check</div>
+                            <div class="event-detail">Policy v3.2 criteria evaluated</div>
+                            <div class="event-timestamps">
+                                <div><span class="timestamp-label">Valid:</span> <span class="timestamp-value valid">2024-03-15 09:14:22</span></div>
+                                <div><span class="timestamp-label">Recorded:</span> <span class="timestamp-value transaction">2024-03-16 14:22:08</span></div>
+                            </div>
+                        </div>
+                        <div class="event recorded">
+                            <div class="event-time">2024-03-18</div>
+                            <div class="event-label">Payment Authorized</div>
+                            <div class="event-detail">$4,200 disbursed</div>
+                            <div class="event-timestamps">
+                                <div><span class="timestamp-label">Valid:</span> <span class="timestamp-value valid">2024-03-18 10:00:00</span></div>
+                                <div><span class="timestamp-label">Recorded:</span> <span class="timestamp-value transaction">2024-03-18 10:00:01</span></div>
+                            </div>
+                        </div>
+                        <div class="event audit">
+                            <div class="event-time">2024-11-05</div>
+                            <div class="event-label">Audit Request</div>
+                            <div class="event-detail">Documentation requested</div>
+                        </div>
+                    </div>
+                    <div class="verdict pass">
+                        <div class="verdict-header">Audit Finding</div>
+                        <div class="verdict-text">
+                            Temporal sequence cryptographically verified. All verification 
+                            events recorded before payment authorization. No events added 
+                            after audit request. <strong>Properly Documented</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insight Section -->
+        <div class="insight-section">
+            <div class="insight-header">The Query That Changes Everything</div>
+            
+            <div class="query-box">
+                <div class="query-label">The Auditor's Real Question</div>
+                <div class="query-text">
+                    "Did the evidence supporting this payment exist at the time of payment—<br>
+                    or was it assembled after we asked for it?"
+                </div>
+            </div>
+
+            <div class="answers">
+                <div class="answer-box traditional">
+                    <div class="answer-label">Traditional System Response</div>
+                    <div class="answer-text">
+                        "Here is the documentation."
+                        <br><br>
+                        <em style="color: var(--text-secondary);">
+                            Cannot prove temporal sequence. Cannot distinguish between 
+                            contemporaneous records and retroactive assembly. 
+                            System does not capture when facts were recorded—only what 
+                            the current state shows.
+                        </em>
+                    </div>
+                </div>
+
+                <div class="answer-box bitemporal">
+                    <div class="answer-label">CAST Response</div>
+                    <div class="answer-text">
+                        "Here is cryptographic proof of temporal sequence."
+                    </div>
+                    <div class="proof-block">
+                        <div class="proof-line">
+                            <span class="proof-key">Identity verification recorded</span>
+                            <span class="proof-value">2024-03-15 09:15:47</span>
+                        </div>
+                        <div class="proof-line">
+                            <span class="proof-key">Eligibility check recorded</span>
+                            <span class="proof-value">2024-03-16 14:22:08</span>
+                        </div>
+                        <div class="proof-line">
+                            <span class="proof-key">Payment authorized</span>
+                            <span class="proof-value">2024-03-18 10:00:01</span>
+                        </div>
+                        <div class="proof-line">
+                            <span class="proof-key">Audit request received</span>
+                            <span class="proof-value">2024-11-05 11:30:00</span>
+                        </div>
+                        <div class="proof-result">
+                            ✓ All evidence precedes payment<br>
+                            ✓ No records added post-audit-request<br>
+                            ✓ Sequence immutable by design
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Line -->
+        <div class="bottom-line">
+            <div class="bottom-line-text">
+                Traditional systems document <em>that</em> a payment was made.<br>
+                CAST proves <span class="highlight">what was known when it was made</span>—<br>
+                and that the proof wasn't assembled for the auditor.
+            </div>
+        </div>
+
+        <div class="footer">
+            CAST / Sightline — Temporal Integrity for Federal Financial Systems
+        </div>
+    </div>
+</body>
+</html>

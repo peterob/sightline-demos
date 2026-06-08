@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NewBank — CAST/Sightline Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f0e;
+    --ink-2: #3a3936;
+    --ink-3: #7a7870;
+    --ink-4: #b8b5ac;
+    --paper: #f5f3ee;
+    --paper-2: #ede9e2;
+    --paper-3: #e2ddd4;
+    --accent: #1a3a2a;
+    --accent-2: #2d5c42;
+    --accent-light: #e8f0eb;
+    --amber: #8c5a00;
+    --amber-light: #fdf0d8;
+    --coral: #8c2a1a;
+    --coral-light: #fce8e4;
+    --blue: #1a2e4a;
+    --blue-light: #e4ecf5;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Fraunces', serif;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 48px 64px 40px;
+    border-bottom: 1px solid var(--paper-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .header-left { max-width: 560px; }
+  .doc-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 300;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+  .header h1 em {
+    font-style: italic;
+    color: var(--accent-2);
+  }
+  .header-meta {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    line-height: 2;
+  }
+
+  /* ── LAYOUT ── */
+  .page { padding: 0 64px 80px; max-width: 1200px; margin: 0 auto; }
+
+  /* ── SECTION HEADERS ── */
+  .section {
+    margin-top: 56px;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--paper-3);
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    letter-spacing: 0.06em;
+  }
+  .section-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .section-sub {
+    font-size: 13px;
+    color: var(--ink-3);
+    margin-left: auto;
+    font-style: italic;
+  }
+
+  /* ── PAIN POINT CARDS ── */
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .pain-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-3);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .pain-card .pain-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .pain-card .pain-title {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .pain-card p {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .pain-card .pain-cost {
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--coral);
+    background: var(--coral-light);
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-diagram {
+    background: var(--ink);
+    border-radius: 12px;
+    padding: 40px;
+    color: var(--paper);
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-diagram::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 39px,
+      rgba(255,255,255,0.03) 39px,
+      rgba(255,255,255,0.03) 40px
+    );
+    pointer-events: none;
+  }
+
+  .arch-layer {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 24px;
+  }
+  .arch-layer:last-child { margin-bottom: 0; }
+
+  .arch-layer-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 10px;
+  }
+
+  .arch-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .arch-box {
+    border-radius: 6px;
+    padding: 12px 16px;
+    min-width: 140px;
+    flex: 1;
+  }
+  .arch-box.source {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .arch-box.cast {
+    background: rgba(26,58,42,0.6);
+    border: 1px solid rgba(45,92,66,0.8);
+  }
+  .arch-box.sightline {
+    background: rgba(26,46,74,0.6);
+    border: 1px solid rgba(26,46,74,0.9);
+  }
+  .arch-box.agent {
+    background: rgba(140,90,0,0.3);
+    border: 1px solid rgba(140,90,0,0.6);
+  }
+  .arch-box.output {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .arch-box-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 3px;
+  }
+  .arch-box.source .arch-box-title { color: rgba(255,255,255,0.7); }
+  .arch-box.cast .arch-box-title { color: #9fcfb0; }
+  .arch-box.sightline .arch-box-title { color: #93b8d8; }
+  .arch-box.agent .arch-box-title { color: #f0c97a; }
+  .arch-box.output .arch-box-title { color: rgba(255,255,255,0.5); }
+
+  .arch-box-sub {
+    font-size: 11px;
+    line-height: 1.4;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .arch-connector {
+    text-align: center;
+    padding: 6px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── EVENT SCHEMA TABLE ── */
+  .schema-block {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-3);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .schema-phase {
+    border-bottom: 1px solid var(--paper-3);
+  }
+  .schema-phase:last-child { border-bottom: none; }
+  .schema-phase-header {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px 120px;
+    gap: 0;
+    background: var(--paper-3);
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .schema-event {
+    display: grid;
+    grid-template-columns: 200px 1fr 160px 120px;
+    gap: 0;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--paper-3);
+    align-items: start;
+  }
+  .schema-event:last-child { border-bottom: none; }
+  .schema-event:hover { background: var(--paper); }
+
+  .evt-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    padding-right: 16px;
+  }
+  .evt-agents {
+    font-size: 12px;
+    color: var(--ink-2);
+    padding-right: 16px;
+  }
+  .evt-agents .agent-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin: 1px 2px 1px 0;
+  }
+  .ag-borrower { background: var(--accent-light); color: var(--accent); }
+  .ag-bank { background: var(--blue-light); color: var(--blue); }
+  .ag-supplier { background: var(--amber-light); color: var(--amber); }
+  .ag-carrier { background: var(--coral-light); color: var(--coral); }
+  .ag-warehouse { background: #f0ede8; color: #5a4a30; }
+
+  .evt-gate {
+    font-size: 12px;
+    color: var(--ink-3);
+    padding-right: 16px;
+  }
+  .gate-pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .gate-bilateral { background: var(--accent-light); color: var(--accent); }
+  .gate-unilateral { background: var(--paper-3); color: var(--ink-3); }
+  .gate-three { background: var(--amber-light); color: var(--amber); }
+
+  .evt-trust {
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .trust-high { color: var(--accent-2); }
+  .trust-med { color: var(--amber); }
+  .trust-pend { color: var(--ink-4); }
+
+  /* ── SIGHTLINE METRICS ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-3);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .metric-val {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .metric-sub {
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .metric-delta {
+    font-family: var(--mono);
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .delta-pos { color: var(--accent-2); }
+  .delta-neg { color: var(--coral); }
+  .delta-warn { color: var(--amber); }
+
+  /* ── BORROWING BASE ── */
+  .bb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .bb-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--paper-3);
+    border-bottom: 1px solid var(--paper-3);
+  }
+  .bb-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--paper-3);
+    color: var(--ink-2);
+    vertical-align: top;
+  }
+  .bb-table tr:last-child td { border-bottom: none; }
+  .bb-table tr:hover td { background: var(--paper-2); }
+  .bb-table .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+    color: var(--ink);
+  }
+  .bb-table .num.total {
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .bb-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  .bb-verified { background: var(--accent-light); color: var(--accent); }
+  .bb-partial { background: var(--amber-light); color: var(--amber); }
+  .bb-unverified { background: var(--coral-light); color: var(--coral); }
+
+  /* ── AI AGENT CARDS ── */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .agent-card {
+    border: 1px solid var(--paper-3);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .agent-card-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--paper-3);
+  }
+  .agent-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .icon-monitor { background: var(--accent-light); color: var(--accent); }
+  .icon-alert { background: var(--amber-light); color: var(--amber); }
+  .icon-cert { background: var(--blue-light); color: var(--blue); }
+  .icon-variance { background: var(--coral-light); color: var(--coral); }
+
+  .agent-card-title {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ink);
+  }
+  .agent-card-body {
+    padding: 16px 18px;
+    background: var(--paper-2);
+  }
+  .agent-card-body p {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    margin-bottom: 10px;
+  }
+  .agent-trigger {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    border-left: 2px solid var(--paper-3);
+    padding-left: 10px;
+    margin-top: 8px;
+  }
+  .agent-trigger strong {
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+
+  /* ── VALUE BRIDGE ── */
+  .bridge-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .bridge-table th {
+    text-align: left;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: var(--paper-3);
+    border-bottom: 1px solid var(--paper-3);
+  }
+  .bridge-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--paper-3);
+    color: var(--ink-2);
+  }
+  .bridge-table tr:last-child td {
+    border-bottom: none;
+    font-weight: 500;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .bridge-table .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+  }
+  .bridge-table .num.benefit { color: var(--accent-2); }
+  .bridge-table .num.total-val {
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 13px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 64px;
+    padding: 24px 64px;
+    border-top: 1px solid var(--paper-3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-brand {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 300;
+    color: var(--ink-3);
+  }
+  .footer-brand em { font-style: italic; color: var(--accent-2); }
+  .footer-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    text-align: right;
+    line-height: 2;
+  }
+
+  /* ── UTILITIES ── */
+  .prose {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    max-width: 720px;
+    margin-bottom: 24px;
+  }
+  .prose strong { color: var(--ink); font-weight: 500; }
+
+  .callout {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent-2);
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 20px 0;
+    font-size: 13px;
+    color: var(--accent);
+    line-height: 1.55;
+  }
+
+  @media print {
+    body { background: white; }
+    .arch-diagram { background: #1a1a18; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="doc-label">Architecture Design Document · Confidential</div>
+    <h1>NewBank CAST/Sightline<br><em>Applied to Crate & Barrel</em></h1>
+  </div>
+  <div class="header-meta">
+    Prepared by DFHQ<br>
+    CAST v1.3 · Sightline v1.0<br>
+    April 2026
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- SECTION 1: BORROWER CONTEXT -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Borrower context — why Crate & Barrel fits</span>
+      <span class="section-sub">The structural pain points CAST addresses</span>
+    </div>
+
+    <p class="prose">
+      Crate & Barrel operates three retail brands (Crate & Barrel, CB2, Hudson Grace) with a heavy import supply chain across Asia and Europe. Seasonal inventory build peaks August–October ahead of Q4. Their ABL facility is structured against inventory and AR — both of which carry the standard problem: <strong>every number in the borrowing base certificate is borrower-reported.</strong>
+    </p>
+
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-label">Pain point 01</div>
+        <div class="pain-title">Monthly certificate lag</div>
+        <p>Borrowing base certified monthly via spreadsheet. NewBank's credit team reconciles against aged inventory reports 3–4 days after period close. The facility is over- or under-drawn for the entire interim.</p>
+        <span class="pain-cost">~$800K annual cost of carry inefficiency</span>
+      </div>
+      <div class="pain-card">
+        <div class="pain-label">Pain point 02</div>
+        <div class="pain-title">In-transit inventory haircut</div>
+        <p>Goods in transit between Asian manufacturers and Chicago DCs are either excluded from the borrowing base or haircut to 40–50% because the lender cannot verify location, condition, or title.</p>
+        <span class="pain-cost">~$12M excluded collateral at peak season</span>
+      </div>
+      <div class="pain-card">
+        <div class="pain-label">Pain point 03</div>
+        <div class="pain-title">Multi-brand concentration</div>
+        <p>CB2 and Crate & Barrel share suppliers and warehouse infrastructure. Cross-brand concentration exposure is invisible in monthly certificate reporting — it only surfaces at audit.</p>
+        <span class="pain-cost">Hidden covenant risk at peak</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SYSTEM ARCHITECTURE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">System architecture</span>
+      <span class="section-sub">Five layers, two primitives</span>
+    </div>
+
+    <div class="arch-diagram">
+
+      <div class="arch-layer">
+        <div class="arch-layer-label">Layer 1 — Event sources (C&B side)</div>
+        <div class="arch-row">
+          <div class="arch-box source">
+            <div class="arch-box-title">ERP / Oracle</div>
+            <div class="arch-box-sub">PO issuance, AP records, cost basis</div>
+          </div>
+          <div class="arch-box source">
+            <div class="arch-box-title">WMS / Manhattan</div>
+            <div class="arch-box-sub">Warehouse receipts, inventory counts, locations</div>
+          </div>
+          <div class="arch-box source">
+            <div class="arch-box-title">Carrier APIs</div>
+            <div class="arch-box-sub">Bills of lading, in-transit status, ETA</div>
+          </div>
+          <div class="arch-box source">
+            <div class="arch-box-title">Supplier portal</div>
+            <div class="arch-box-sub">PO confirmations, ship notices, invoices</div>
+          </div>
+          <div class="arch-box source">
+            <div class="arch-box-title">POS / Salesforce</div>
+            <div class="arch-box-sub">AR, collections, customer payments</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector">↓ structured event stream · valid_time + agent_id + payload ↓</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-label">Layer 2 — CAST verification core</div>
+        <div class="arch-row">
+          <div class="arch-box cast">
+            <div class="arch-box-title">Event primitives</div>
+            <div class="arch-box-sub">PO_SUBMITTED → SUPPLIER_CONFIRMED → GOODS_SHIPPED → GOODS_RECEIVED → INVOICE_MATCHED → REPAID</div>
+          </div>
+          <div class="arch-box cast">
+            <div class="arch-box-title">Bilateral gates</div>
+            <div class="arch-box-sub">Each state transition requires agent confirmation from both parties. No unilateral state changes.</div>
+          </div>
+          <div class="arch-box cast">
+            <div class="arch-box-title">Policy versions</div>
+            <div class="arch-box-sub">Advance rates, eligible collateral, concentration limits, variance tolerances — versioned and immutable at bilateral gate.</div>
+          </div>
+          <div class="arch-box cast">
+            <div class="arch-box-title">Postings</div>
+            <div class="arch-box-sub">Ledger records downstream of verified bilateral events. Cannot be created without a signed bilateral event.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector">↓ event log · bitemporal index (valid_time, recorded_time) ↓</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-label">Layer 3 — Sightline observability</div>
+        <div class="arch-row">
+          <div class="arch-box sightline">
+            <div class="arch-box-title">Bitemporal store</div>
+            <div class="arch-box-sub">Every event indexed by both valid_time and recorded_time. Full audit reconstruction at any point-in-time.</div>
+          </div>
+          <div class="arch-box sightline">
+            <div class="arch-box-title">Real-time borrowing base</div>
+            <div class="arch-box-sub">Continuous calculation from verified events. No monthly certificate. NewBank reads live.</div>
+          </div>
+          <div class="arch-box sightline">
+            <div class="arch-box-title">Gap detection</div>
+            <div class="arch-box-sub">Recording lag alerts. Variance detection. Concentration monitoring. Covenant proximity.</div>
+          </div>
+          <div class="arch-box sightline">
+            <div class="arch-box-title">Portfolio view</div>
+            <div class="arch-box-sub">All C&B facilities, all brands, cross-collateral exposure, trust level distribution.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector">↓ structured state · queryable API · agent surface ↓</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-label">Layer 4 — AI agents</div>
+        <div class="arch-row">
+          <div class="arch-box agent">
+            <div class="arch-box-title">Borrowing base agent</div>
+            <div class="arch-box-sub">Continuous certification. Flags ineligible collateral. Drafts availability notices.</div>
+          </div>
+          <div class="arch-box agent">
+            <div class="arch-box-title">Variance agent</div>
+            <div class="arch-box-sub">Detects receipt shortfalls, price variances, unit count discrepancies vs policy tolerance.</div>
+          </div>
+          <div class="arch-box agent">
+            <div class="arch-box-title">Covenant monitor</div>
+            <div class="arch-box-sub">Tracks concentration limits, advance rate eligibility, seasonal over-advance windows.</div>
+          </div>
+          <div class="arch-box agent">
+            <div class="arch-box-title">Credit analyst agent</div>
+            <div class="arch-box-sub">Drafts field exam prep, collateral audit reports, borrower communication from live state.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector">↓ decisions · reports · alerts · structured outputs ↓</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-label">Layer 5 — Outputs</div>
+        <div class="arch-row">
+          <div class="arch-box output">
+            <div class="arch-box-title">NewBank credit team</div>
+            <div class="arch-box-sub">Live dashboard, covenant alerts, borrowing base availability</div>
+          </div>
+          <div class="arch-box output">
+            <div class="arch-box-title">C&B treasury</div>
+            <div class="arch-box-sub">Availability notices, draw confirmations, variance notifications</div>
+          </div>
+          <div class="arch-box output">
+            <div class="arch-box-title">Audit / compliance</div>
+            <div class="arch-box-sub">Point-in-time reconstructions, bitemporal audit trail, posting history</div>
+          </div>
+          <div class="arch-box output">
+            <div class="arch-box-title">Risk / portfolio</div>
+            <div class="arch-box-sub">Cross-brand concentration, trust level distribution, gap analytics</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SECTION 3: EVENT SCHEMA -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Event schema — PO to settlement</span>
+      <span class="section-sub">C&B import PO, $480K, 12,000 units</span>
+    </div>
+
+    <div class="schema-block">
+      <div class="schema-phase-header">
+        <div>Event type</div>
+        <div>Confirming agents</div>
+        <div>Gate type</div>
+        <div>Trust level</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">PO_SUBMITTED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-borrower">C&B</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-unilateral">Unilateral</span></div>
+        <div class="evt-trust trust-med">MEDIUM</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">PO_FINANCING_APPROVED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-borrower">C&B</span>
+          <span class="agent-tag ag-bank">NewBank</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-bilateral">Bilateral</span></div>
+        <div class="evt-trust trust-high">HIGH</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">SUPPLIER_PO_CONFIRMED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-borrower">C&B</span>
+          <span class="agent-tag ag-supplier">Supplier</span>
+          <span class="agent-tag ag-bank">NewBank</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-three">Three-party</span></div>
+        <div class="evt-trust trust-high">HIGH — cost basis locked</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">GOODS_SHIPPED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-supplier">Supplier</span>
+          <span class="agent-tag ag-carrier">Carrier</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-bilateral">Bilateral</span></div>
+        <div class="evt-trust trust-high">HIGH — in-transit eligible</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">GOODS_RECEIVED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-borrower">C&B</span>
+          <span class="agent-tag ag-warehouse">Warehouse</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-bilateral">Bilateral</span></div>
+        <div class="evt-trust trust-high">HIGH — variance captured</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">SUPPLIER_INVOICE_MATCHED</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-supplier">Supplier</span>
+          <span class="agent-tag ag-borrower">C&B</span>
+          <span class="agent-tag ag-bank">NewBank</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-three">Three-party</span></div>
+        <div class="evt-trust trust-high">HIGH — AP verified</div>
+      </div>
+
+      <div class="schema-event">
+        <div class="evt-name">FACILITY_REPAID → POSTING</div>
+        <div class="evt-agents">
+          <span class="agent-tag ag-borrower">C&B</span>
+          <span class="agent-tag ag-bank">NewBank</span>
+        </div>
+        <div class="evt-gate"><span class="gate-pill gate-bilateral">Bilateral → Posted</span></div>
+        <div class="evt-trust trust-high">HIGH — case closes</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:20px;">
+      The GOODS_SHIPPED event with carrier confirmation is what unlocks in-transit collateral eligibility. NewBank can advance against goods on water once the bilateral carrier event is posted — eliminating the standard 40–50% haircut on in-transit inventory. At C&B's import volumes, that's a material facility expansion with no incremental credit risk.
+    </div>
+  </div>
+
+  <!-- SECTION 4: SIGHTLINE BORROWING BASE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Sightline — real-time borrowing base</span>
+      <span class="section-sub">Continuous vs monthly certificate model</span>
+    </div>
+
+    <p class="prose">
+      Under the traditional model, C&B submits a borrowing base certificate monthly. NewBank receives it 3–4 days after period close, reconciles, and confirms availability. The facility is effectively unmanaged for most of the month. Under CAST/Sightline, the borrowing base is a live calculation derived from verified events — updated on every bilateral confirmation.
+    </p>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Available credit</div>
+        <div class="metric-val">$47.2M</div>
+        <div class="metric-sub">vs $38.4M traditional model</div>
+        <div class="metric-delta delta-pos">+$8.8M unlocked</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">In-transit eligible</div>
+        <div class="metric-val">$12.1M</div>
+        <div class="metric-sub">Previously excluded / haircut</div>
+        <div class="metric-delta delta-pos">Carrier-verified</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Certificate lag</div>
+        <div class="metric-val">0 days</div>
+        <div class="metric-sub">vs 28–34 days traditional</div>
+        <div class="metric-delta delta-pos">Continuous</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Open variances</div>
+        <div class="metric-val">3</div>
+        <div class="metric-sub">Within policy tolerance</div>
+        <div class="metric-delta delta-warn">Monitoring</div>
+      </div>
+    </div>
+
+    <div class="schema-block">
+      <table class="bb-table">
+        <thead>
+          <tr>
+            <th>Collateral category</th>
+            <th>Brand</th>
+            <th>Gross value</th>
+            <th>Advance rate</th>
+            <th>Net eligible</th>
+            <th>Verification</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Finished goods — domestic DC</td>
+            <td>Crate & Barrel</td>
+            <td class="num">$28,400,000</td>
+            <td class="num">85%</td>
+            <td class="num">$24,140,000</td>
+            <td><span class="bb-status bb-verified">Verified</span></td>
+          </tr>
+          <tr>
+            <td>Finished goods — domestic DC</td>
+            <td>CB2</td>
+            <td class="num">$14,200,000</td>
+            <td class="num">85%</td>
+            <td class="num">$12,070,000</td>
+            <td><span class="bb-status bb-verified">Verified</span></td>
+          </tr>
+          <tr>
+            <td>In-transit — carrier confirmed</td>
+            <td>Crate & Barrel</td>
+            <td class="num">$16,100,000</td>
+            <td class="num">75%</td>
+            <td class="num">$12,075,000</td>
+            <td><span class="bb-status bb-verified">Carrier BOL</span></td>
+          </tr>
+          <tr>
+            <td>In-transit — supplier only</td>
+            <td>CB2</td>
+            <td class="num">$4,800,000</td>
+            <td class="num">50%</td>
+            <td class="num">$2,400,000</td>
+            <td><span class="bb-status bb-partial">Partial</span></td>
+          </tr>
+          <tr>
+            <td>PO advance — supplier confirmed</td>
+            <td>Hudson Grace</td>
+            <td class="num">$3,200,000</td>
+            <td class="num">70%</td>
+            <td class="num">$2,240,000</td>
+            <td><span class="bb-status bb-verified">3-party</span></td>
+          </tr>
+          <tr>
+            <td>AR — verified payments</td>
+            <td>All brands</td>
+            <td class="num">$8,900,000</td>
+            <td class="num">80%</td>
+            <td class="num">$7,120,000</td>
+            <td><span class="bb-status bb-verified">POS verified</span></td>
+          </tr>
+          <tr>
+            <td>AR — unverified / aging >60d</td>
+            <td>All brands</td>
+            <td class="num">$2,100,000</td>
+            <td class="num">0%</td>
+            <td class="num">$0</td>
+            <td><span class="bb-status bb-unverified">Ineligible</span></td>
+          </tr>
+          <tr>
+            <td colspan="4" style="font-weight:500;font-family:var(--mono);font-size:12px;color:var(--accent);padding:12px 14px;background:var(--accent-light)">Total eligible borrowing base</td>
+            <td class="num total">$60,045,000</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 5: AI AGENTS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">AI agent use cases</span>
+      <span class="section-sub">Where structured event state enables order-of-magnitude leverage</span>
+    </div>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-icon icon-monitor">BB</div>
+          <div class="agent-card-title">Continuous borrowing base agent</div>
+        </div>
+        <div class="agent-card-body">
+          <p>Recalculates the borrowing base on every bilateral event confirmation. When a GOODS_RECEIVED event posts a 60-unit variance, the agent immediately adjusts eligible collateral, checks whether the variance breaches policy tolerance, and either absorbs it (within tolerance) or issues an availability reduction notice to C&B treasury.</p>
+          <div class="agent-trigger"><strong>Trigger:</strong> Any bilateral event that changes collateral composition or value<br><strong>Output:</strong> Updated availability, draw limit, variance notice if required</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-icon icon-alert">CV</div>
+          <div class="agent-card-title">Covenant proximity monitor</div>
+        </div>
+        <div class="agent-card-body">
+          <p>Tracks concentration limits across C&B's three brands continuously. When CB2 and Crate & Barrel both draw against the same supplier's inventory, the agent detects the concentration event and compares it against the policy version's limits — before it becomes a covenant violation. Flags to NewBank's credit team with 72-hour advance notice.</p>
+          <div class="agent-trigger"><strong>Trigger:</strong> Cross-brand supplier concentration approaching 25% limit<br><strong>Output:</strong> Alert to credit team, draft covenant waiver memo if breached</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-icon icon-cert">FA</div>
+          <div class="agent-card-title">Field exam automation agent</div>
+        </div>
+        <div class="agent-card-body">
+          <p>Traditional ABL field exams require a credit analyst to spend 3–5 days on-site reconciling borrower records against the borrowing base. With CAST, the bitemporal event log is the field exam. The agent prepares the exam report from structured state — every inventory count, every receipt event, every variance — before the examiner arrives. On-site time drops to verification of the AI-prepared report.</p>
+          <div class="agent-trigger"><strong>Trigger:</strong> Scheduled field exam or covenant trigger<br><strong>Output:</strong> Pre-populated exam report, variance analysis, exception list</div>
+        </div>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-icon icon-variance">VA</div>
+          <div class="agent-card-title">Variance pattern agent</div>
+        </div>
+        <div class="agent-card-body">
+          <p>Across C&B's import PO portfolio, receipt variances follow patterns — specific suppliers, specific shipping lanes, specific seasons. The agent analyzes variance history across all bilateral receipt events, identifies suppliers with consistent short-shipment patterns, and feeds this into advance rate recommendations. A supplier with a 2% average variance gets a policy-version advance rate adjustment at next renewal.</p>
+          <div class="agent-trigger"><strong>Trigger:</strong> Quarterly portfolio review or new supplier onboarding<br><strong>Output:</strong> Supplier risk scores, advance rate recommendations, policy version update memo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: VALUE BRIDGE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Value bridge — C&B annual benefit</span>
+      <span class="section-sub">Quantified against traditional ABL model</span>
+    </div>
+
+    <div class="schema-block">
+      <table class="bridge-table">
+        <thead>
+          <tr>
+            <th>Value driver</th>
+            <th>Mechanism</th>
+            <th style="text-align:right">Annual benefit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>In-transit collateral unlock</td>
+            <td>Carrier-confirmed events lift in-transit advance rate from 45% to 75%. $12M additional eligible collateral at 8% facility cost.</td>
+            <td class="num benefit">$960,000</td>
+          </tr>
+          <tr>
+            <td>Pricing improvement</td>
+            <td>HIGH trust data (3-party verified) supports 200–250bps tighter facility pricing on $50M facility vs borrower-reported inputs.</td>
+            <td class="num benefit">$1,125,000</td>
+          </tr>
+          <tr>
+            <td>Certificate preparation cost</td>
+            <td>Monthly borrowing base certificate preparation (C&B treasury + NewBank reconciliation) eliminated. ~200 hours/year at blended $150/hr.</td>
+            <td class="num benefit">$30,000</td>
+          </tr>
+          <tr>
+            <td>Field exam cost reduction</td>
+            <td>Annual field exam from 5 days to 1.5 days. External examiner fees + C&B management time.</td>
+            <td class="num benefit">$85,000</td>
+          </tr>
+          <tr>
+            <td>Dispute elimination</td>
+            <td>PO terms, receipt counts, cost basis locked at bilateral gate. No retroactive renegotiation. Estimated 3–4 disputes/year at $40K average resolution cost.</td>
+            <td class="num benefit">$140,000</td>
+          </tr>
+          <tr>
+            <td>Working capital release</td>
+            <td>Continuous availability vs end-of-month certificate. C&B carries less cash buffer against facility uncertainty. One-time benefit.</td>
+            <td class="num benefit">$2,400,000 one-time</td>
+          </tr>
+          <tr>
+            <td colspan="2">Total quantifiable annual benefit (excl. one-time)</td>
+            <td class="num total-val">$2,340,000 / yr</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-brand">New<em>Bank</em> · CAST/Sightline</div>
+  <div class="footer-meta">
+    Digital Finance HQ · digitalfinancehq.com<br>
+    CAST v1.3 · Architecture Design · Confidential
+  </div>
+</div>
+
+</body>
+</html>

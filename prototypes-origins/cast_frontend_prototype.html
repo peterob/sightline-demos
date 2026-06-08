@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST • Confirm &amp; Pay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        body { font-family: 'Inter', system_ui, sans-serif; }
+        .logo-font { font-family: 'Space Grotesk', sans-serif; }
+        .nav-active { border-bottom: 3px solid #0ea5e9; }
+        .event-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+        .status-confirmed { background: linear-gradient(90deg, #10b981, #34d399); }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+            <div class="p-6 border-b border-zinc-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-sky-500 rounded-xl flex items-center justify-center text-white font-bold logo-font text-2xl">C</div>
+                    <div>
+                        <span class="logo-font text-3xl font-semibold tracking-tighter">CAST</span>
+                    </div>
+                </div>
+                <p class="text-xs text-zinc-500 mt-1">Verifiable Commercial Agreements</p>
+            </div>
+            
+            <div class="p-3 flex-1 overflow-auto">
+                <nav class="space-y-1">
+                    <a onclick="navigateTo('dashboard')" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl hover:bg-zinc-800 nav-active" id="nav-dashboard">
+                        <i class="fa-solid fa-house w-4"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a onclick="navigateTo('invoices')" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl hover:bg-zinc-800" id="nav-invoices">
+                        <i class="fa-solid fa-file-invoice w-4"></i>
+                        <span>Pending Confirmations</span>
+                    </a>
+                    <a onclick="navigateTo('agreements')" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl hover:bg-zinc-800" id="nav-agreements">
+                        <i class="fa-solid fa-handshake w-4"></i>
+                        <span>Bilateral Agreements</span>
+                    </a>
+                    <a onclick="navigateTo('lineage')" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl hover:bg-zinc-800" id="nav-lineage">
+                        <i class="fa-solid fa-link w-4"></i>
+                        <span>Lineage Explorer</span>
+                    </a>
+                    <a onclick="navigateTo('audit')" class="nav-item flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl hover:bg-zinc-800" id="nav-audit">
+                        <i class="fa-solid fa-magnifying-glass w-4"></i>
+                        <span>Audit Portal</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="p-4 border-t border-zinc-800">
+                <div class="flex items-center gap-3 bg-zinc-800 rounded-2xl p-3">
+                    <div class="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-xs font-mono">PO</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate">Peter O’Brien</div>
+                        <div class="text-xs text-zinc-500">Digital Finance HQ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Nav -->
+            <header class="h-16 border-b border-zinc-800 bg-zinc-900 px-8 flex items-center justify-between">
+                <div class="flex items-center gap-8">
+                    <div onclick="navigateTo('dashboard')" class="cursor-pointer flex items-center gap-2 text-sky-400">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span class="font-medium">Back to CAST</span>
+                    </div>
+                    <h1 class="text-xl font-semibold" id="page-title">AP Dashboard</h1>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center bg-zinc-800 rounded-3xl px-4 py-1.5 text-sm">
+                        <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse mr-2"></div>
+                        <span class="text-emerald-400 font-medium">All systems verifiable</span>
+                    </div>
+                    <button onclick="showVendorDemo()" 
+                            class="bg-white text-zinc-900 px-5 py-2 rounded-2xl font-semibold flex items-center gap-2 hover:bg-zinc-100 transition-colors">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Simulate Vendor Confirmation</span>
+                    </button>
+                    <div class="flex items-center gap-2 bg-zinc-800 rounded-2xl p-1">
+                        <button onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-zinc-700">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="flex-1 overflow-auto p-8">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h2 class="text-3xl font-semibold tracking-tight">Good afternoon, Peter</h2>
+                            <p class="text-zinc-400">3 confirmations pending • $287k at risk</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="filterInvoices('all')" 
+                                    class="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-sm font-medium">All</button>
+                            <button onclick="filterInvoices('high')" 
+                                    class="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-2xl text-sm font-medium">High Risk</button>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-4 gap-6 mb-10">
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                            <div class="text-emerald-400 text-sm font-medium">CONFIRMED TODAY</div>
+                            <div class="text-5xl font-semibold mt-2">$184k</div>
+                            <div class="text-xs text-zinc-500 mt-1">12 Bilateral Events</div>
+                        </div>
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                            <div class="text-amber-400 text-sm font-medium">PENDING</div>
+                            <div class="text-5xl font-semibold mt-2">3</div>
+                            <div class="text-xs text-zinc-500 mt-1">$287k awaiting vendor sign-off</div>
+                        </div>
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                            <div class="text-sky-400 text-sm font-medium">AVG CONFIRM TIME</div>
+                            <div class="text-5xl font-semibold mt-2">47s</div>
+                            <div class="text-xs text-zinc-500 mt-1">↓ 68% from last month</div>
+                        </div>
+                        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+                            <div class="text-white text-sm font-medium">FRAUD AVOIDED YTD</div>
+                            <div class="text-5xl font-semibold mt-2">$2.4M</div>
+                            <div class="absolute -bottom-6 -right-6 text-[120px] font-black text-emerald-500/10">✓</div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Invoices -->
+                    <h3 class="font-semibold mb-4 flex items-center gap-2">
+                        <span>Pending Vendor Confirmations</span>
+                        <span class="bg-rose-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="invoice-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoices View -->
+            <div id="view-invoices" class="flex-1 overflow-auto p-8 hidden">
+                <div class="max-w-5xl mx-auto">
+                    <h2 class="text-3xl font-semibold mb-8">Pending Confirmations</h2>
+                    <div id="full-invoice-list" class="space-y-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agreements View -->
+            <div id="view-agreements" class="flex-1 overflow-auto p-8 hidden">
+                <div class="max-w-5xl mx-auto">
+                    <h2 class="text-3xl font-semibold mb-6">Bilateral Agreements</h2>
+                    <div class="bg-zinc-900 rounded-3xl p-8">
+                        <div class="flex justify-between mb-6">
+                            <input type="text" id="search-agreements" 
+                                   class="bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-3 w-96 focus:outline-none focus:border-sky-500" 
+                                   placeholder="Search agreements...">
+                            <button onclick="createNewAgreement()" 
+                                    class="bg-sky-500 hover:bg-sky-600 px-6 py-3 rounded-2xl font-medium flex items-center gap-2">
+                                <i class="fa-solid fa-plus"></i> New Agreement
+                            </button>
+                        </div>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-zinc-800 text-left text-sm text-zinc-400">
+                                    <th class="pb-4">Vendor</th>
+                                    <th class="pb-4">Amount</th>
+                                    <th class="pb-4">Status</th>
+                                    <th class="pb-4">Last Event</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agreements-table" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lineage Explorer -->
+            <div id="view-lineage" class="flex-1 overflow-auto p-8 hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-semibold mb-8">Lineage Explorer</h2>
+                    <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-8">
+                        <div class="flex gap-6 mb-8">
+                            <div class="flex-1">
+                                <div class="text-xs uppercase tracking-widest text-zinc-500 mb-2">Bilateral Event ID</div>
+                                <div onclick="showLineageDetail()" class="font-mono bg-black p-4 rounded-2xl cursor-pointer hover:bg-zinc-950 border border-emerald-900">evt_9f3k2m9x7p</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-xs uppercase tracking-widest text-zinc-500 mb-2">Lineage Hash</div>
+                                <div class="font-mono text-xs bg-black p-4 rounded-2xl break-all">sha256:8a2b4c9d7e1f3a5b6c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b</div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-8">
+                            <div class="event-card bg-zinc-800 border border-emerald-900 rounded-3xl p-6">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-3">
+                                            <div class="status-confirmed w-6 h-6 rounded-2xl flex items-center justify-center text-xs">✓</div>
+                                            <div>
+                                                <div class="font-medium">Vendor Confirmation</div>
+                                                <div class="text-emerald-400 text-sm">Acme Supplies • $45,672</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right text-xs text-zinc-400">
+                                        2026-06-07<br>14:22 UTC
+                                    </div>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-zinc-700 text-xs font-mono text-zinc-400">
+                                    Signed with passkey • Replayable from schema
+                                </div>
+                            </div>
+                            
+                            <div class="pl-12 border-l border-dashed border-zinc-700 ml-3">
+                                <div class="event-card bg-zinc-800 rounded-3xl p-6">
+                                    <div class="flex justify-between items-start">
+                                        <div class="font-medium">Posting Created</div>
+                                        <span class="text-xs px-3 py-1 bg-sky-900 text-sky-300 rounded-full">Schema Enforced</span>
+                                    </div>
+                                    <div class="text-xs text-zinc-400 mt-1">Non-nullable FK: BilateralEvent → Posting</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="replayLineage()" 
+                                class="mt-10 w-full py-4 bg-white text-zinc-900 rounded-3xl font-semibold flex items-center justify-center gap-3 hover:bg-zinc-100">
+                            <i class="fa-solid fa-play"></i>
+                            REPLAY LINEAGE PROOF
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Portal -->
+            <div id="view-audit" class="flex-1 overflow-auto p-8 hidden">
+                <div class="max-w-5xl mx-auto">
+                    <h2 class="text-3xl font-semibold mb-8">Audit &amp; Verifier Portal</h2>
+                    <div class="bg-zinc-900 rounded-3xl p-10">
+                        <div class="flex items-center justify-center py-12 border border-dashed border-zinc-700 rounded-3xl">
+                            <div class="text-center">
+                                <i class="fa-solid fa-shield-halved text-6xl text-emerald-400 mb-6"></i>
+                                <div class="text-2xl font-semibold mb-2">Reconstruct from Database Rows</div>
+                                <p class="max-w-xs mx-auto text-zinc-400">Structural guarantees make unilateral fraud architecturally impossible</p>
+                                <button onclick="showAuditDemo()" 
+                                        class="mt-8 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-medium">
+                                    Run Full Verification
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Confirmation Modal -->
+    <div id="vendor-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div class="bg-zinc-900 w-full max-w-lg mx-4 rounded-3xl overflow-hidden">
+            <div class="p-8">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="inline-flex items-center gap-2 bg-emerald-900 text-emerald-300 text-xs px-3 py-1 rounded-2xl">
+                            <i class="fa-solid fa-lock"></i> SECURE CONFIRMATION
+                        </div>
+                        <h3 class="text-2xl font-semibold mt-4">Confirm Invoice #INV-9382</h3>
+                        <p class="text-zinc-400">Acme Corp • Due Net 30</p>
+                    </div>
+                    <button onclick="hideVendorModal()" class="text-zinc-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-2xl"></i>
+                    </button>
+                </div>
+                
+                <div class="my-8 bg-zinc-950 rounded-2xl p-6 space-y-6">
+                    <div class="flex justify-between">
+                        <span class="text-zinc-400">Amount</span>
+                        <span class="font-mono text-2xl font-semibold">$45,672.00</span>
+                    </div>
+                    <div>
+                        <div class="text-xs text-zinc-400 mb-2">LINE ITEMS</div>
+                        <div class="text-sm space-y-2">
+                            <div class="flex justify-between"><span>Widget A (x120)</span><span>$32,400</span></div>
+                            <div class="flex justify-between"><span>Shipping</span><span>$2,150</span></div>
+                            <div class="flex justify-between"><span>Taxes</span><span>$11,122</span></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div onclick="confirmVendor()" 
+                     class="bg-emerald-500 hover:bg-emerald-600 cursor-pointer text-center py-6 rounded-3xl text-xl font-semibold text-emerald-950">
+                    CONFIRM AGREEMENT &amp; RELEASE PAYMENT
+                </div>
+                
+                <div onclick="disputeVendor()" 
+                     class="mt-4 text-center text-rose-400 hover:text-rose-300 cursor-pointer text-sm">
+                    Request Changes
+                </div>
+            </div>
+            
+            <div class="bg-black/40 px-8 py-6 text-xs text-zinc-400 border-t border-zinc-800">
+                Signed with passkey • Event pinned to immutable lineage • CAST Schema Invariant Enforced
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+        <i class="fa-solid fa-check-circle"></i>
+        <span id="toast-text"></span>
+    </div>
+
+    <script>
+        function tailwindInit() {
+            // Tailwind already loaded via CDN
+        }
+        
+        const invoices = [
+            {
+                id: "INV-9382",
+                vendor: "Acme Supplies",
+                amount: "$45,672",
+                risk: "high",
+                status: "pending"
+            },
+            {
+                id: "INV-7491",
+                vendor: "Beta Logistics",
+                amount: "$128,450",
+                risk: "medium",
+                status: "pending"
+            },
+            {
+                id: "INV-2210",
+                vendor: "Gamma Tech",
+                amount: "$12,890",
+                risk: "low",
+                status: "pending"
+            }
+        ];
+        
+        function renderInvoices(containerId, filtered = null) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            const toRender = filtered || invoices;
+            
+            toRender.forEach(inv => {
+                const div = document.createElement('div');
+                div.className = `bg-zinc-900 border border-zinc-800 rounded-3xl p-6 event-card cursor-pointer`;
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-mono text-xs text-zinc-500">${inv.id}</div>
+                            <div class="font-semibold mt-1">${inv.vendor}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-semibold">${inv.amount}</div>
+                            <div class="text-xs ${inv.risk === 'high' ? 'text-rose-400' : 'text-amber-400'}">${inv.risk.toUpperCase()} RISK</div>
+                        </div>
+                    </div>
+                    <div onclick="event.stopImmediatePropagation(); showVendorDemo()" 
+                         class="mt-8 bg-white text-zinc-900 text-center py-4 rounded-2xl font-semibold text-sm">
+                        SEND CONFIRMATION LINK
+                    </div>
+                `;
+                div.onclick = () => showVendorDemo();
+                container.appendChild(div);
+            });
+        }
+        
+        function renderAgreements() {
+            const tbody = document.getElementById('agreements-table');
+            tbody.innerHTML = `
+                <tr class="border-b border-zinc-800 hover:bg-zinc-950">
+                    <td class="py-5">Acme Supplies</td>
+                    <td class="py-5 font-medium">$45,672</td>
+                    <td class="py-5"><span class="px-4 py-1 bg-emerald-900 text-emerald-300 text-xs rounded-3xl">Confirmed</span></td>
+                    <td class="py-5 text-xs text-zinc-400">Vendor signed • 2h ago</td>
+                </tr>
+                <tr class="border-b border-zinc-800 hover:bg-zinc-950">
+                    <td class="py-5">Beta Logistics</td>
+                    <td class="py-5 font-medium">$128,450</td>
+                    <td class="py-5"><span class="px-4 py-1 bg-amber-900 text-amber-300 text-xs rounded-3xl">Pending</span></td>
+                    <td class="py-5 text-xs text-zinc-400">Sent 14m ago</td>
+                </tr>
+            `;
+        }
+        
+        function navigateTo(view) {
+            // Hide all views
+            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+            // Show target
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            
+            // Update title
+            const titles = {
+                'dashboard': 'AP Dashboard',
+                'invoices': 'Pending Confirmations',
+                'agreements': 'Bilateral Agreements',
+                'lineage': 'Lineage Explorer',
+                'audit': 'Audit Portal'
+            };
+            document.getElementById('page-title').textContent = titles[view] || 'CAST';
+            
+            // Update active nav
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('nav-active');
+                if (nav.id === `nav-${view}`) nav.classList.add('nav-active');
+            });
+            
+            if (view === 'invoices') renderInvoices('full-invoice-list', invoices);
+            if (view === 'agreements') renderAgreements();
+        }
+        
+        function showVendorDemo() {
+            document.getElementById('vendor-modal').classList.remove('hidden');
+            document.getElementById('vendor-modal').classList.add('flex');
+        }
+        
+        function hideVendorModal() {
+            const modal = document.getElementById('vendor-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        function confirmVendor() {
+            hideVendorModal();
+            showToast("Vendor confirmed! Bilateral Event recorded. Lineage updated.");
+            
+            // Simulate update
+            setTimeout(() => {
+                navigateTo('dashboard');
+            }, 1200);
+        }
+        
+        function disputeVendor() {
+            hideVendorModal();
+            showToast("Dispute initiated. New Bilateral Event version created.");
+        }
+        
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3800);
+        }
+        
+        function filterInvoices(level) {
+            let filtered = invoices;
+            if (level === 'high') {
+                filtered = invoices.filter(i => i.risk === 'high');
+            }
+            renderInvoices('invoice-grid', filtered);
+        }
+        
+        function showLineageDetail() {
+            showToast("Lineage hash verified. Schema invariants hold.");
+        }
+        
+        function replayLineage() {
+            showToast("Lineage replay complete. Deterministic match confirmed.");
+        }
+        
+        function showAuditDemo() {
+            showToast("Full verification passed. No unilateral actions detected.");
+        }
+        
+        function createNewAgreement() {
+            showToast("Agreement builder opened (demo).");
+        }
+        
+        function toggleTheme() {
+            showToast("Theme switcher coming in v1.1");
+        }
+        
+        // Initialize
+        window.onload = function() {
+            renderInvoices('invoice-grid');
+            navigateTo('dashboard');
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.metaKey && e.key === "k") {
+                    e.preventDefault();
+                    showToast("Command palette would open here");
+                }
+            });
+        };
+    </script>
+</body>
+</html>

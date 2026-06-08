@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | PO-Level Micro Lending</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-tertiary: #1a1a1d;
+            --bg-card: #141416;
+            --border: #2a2a2e;
+            --border-active: #3a3a3e;
+            --text-primary: #f0f0f2;
+            --text-secondary: #8a8a8e;
+            --text-muted: #5a5a5e;
+            --accent-green: #22c55e;
+            --accent-green-dim: rgba(34, 197, 94, 0.15);
+            --accent-blue: #3b82f6;
+            --accent-blue-dim: rgba(59, 130, 246, 0.15);
+            --accent-amber: #f59e0b;
+            --accent-amber-dim: rgba(245, 158, 11, 0.15);
+            --accent-red: #ef4444;
+            --accent-red-dim: rgba(239, 68, 68, 0.15);
+            --accent-purple: #a855f7;
+            --accent-purple-dim: rgba(168, 85, 247, 0.15);
+            --accent-cyan: #06b6d4;
+            --accent-cyan-dim: rgba(6, 182, 212, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-cyan) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 20px;
+            height: 20px;
+            stroke: white;
+            stroke-width: 2.5;
+            fill: none;
+        }
+
+        .logo-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 0 8px;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Portfolio Summary */
+        .portfolio-summary {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .portfolio-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .portfolio-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin-bottom: 12px;
+        }
+
+        .portfolio-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .portfolio-stat {
+            background: var(--bg-secondary);
+            padding: 8px 10px;
+            border-radius: 4px;
+        }
+
+        .portfolio-stat-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .portfolio-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Nav */
+        .nav-section {
+            margin-bottom: 20px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 13px;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .nav-item svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .nav-badge.green { background: var(--accent-green); color: var(--bg-primary); }
+        .nav-badge.amber { background: var(--accent-amber); color: var(--bg-primary); }
+        .nav-badge.red { background: var(--accent-red); color: white; }
+
+        /* PO List */
+        .po-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .po-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            margin-bottom: 4px;
+        }
+
+        .po-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .po-item.active {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-active);
+        }
+
+        .po-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .po-status-dot.performing { background: var(--accent-green); }
+        .po-status-dot.slow { background: var(--accent-amber); }
+        .po-status-dot.workout { background: var(--accent-red); }
+        .po-status-dot.paid { background: var(--accent-blue); }
+
+        .po-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .po-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .po-item-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .po-item-amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .po-item-progress {
+            height: 3px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .po-item-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .po-item-progress-bar.performing { background: var(--accent-green); }
+        .po-item-progress-bar.slow { background: var(--accent-amber); }
+        .po-item-progress-bar.workout { background: var(--accent-red); }
+        .po-item-progress-bar.paid { background: var(--accent-blue); }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .integrations {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .integration-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .integration-badge.connected {
+            border: 1px solid var(--accent-green-dim);
+        }
+
+        .integration-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        /* Main Content */
+        .main {
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-pill {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .status-pill.performing {
+            background: var(--accent-green-dim);
+            color: var(--accent-green);
+        }
+
+        .status-pill.slow {
+            background: var(--accent-amber-dim);
+            color: var(--accent-amber);
+        }
+
+        .status-pill.workout {
+            background: var(--accent-red-dim);
+            color: var(--accent-red);
+        }
+
+        .header-left p {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--border-active);
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: #1ea550;
+        }
+
+        /* Top Stats */
+        .top-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .top-stat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .top-stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .top-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .top-stat-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .top-stat-value.green { color: var(--accent-green); }
+        .top-stat-value.blue { color: var(--accent-blue); }
+        .top-stat-value.amber { color: var(--accent-amber); }
+        .top-stat-value.red { color: var(--accent-red); }
+        .top-stat-value.cyan { color: var(--accent-cyan); }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title svg {
+            width: 15px;
+            height: 15px;
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            color: var(--accent-green);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .live-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .card-body {
+            padding: 18px;
+        }
+
+        /* Waterfall Visualization */
+        .waterfall {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .waterfall-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .waterfall-label {
+            width: 140px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .waterfall-bar-container {
+            flex: 1;
+            height: 28px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .waterfall-bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            color: white;
+            transition: width 0.5s ease;
+        }
+
+        .waterfall-bar.cogs { background: var(--accent-purple); }
+        .waterfall-bar.repayment { background: var(--accent-green); }
+        .waterfall-bar.fee { background: var(--accent-cyan); }
+        .waterfall-bar.margin { background: var(--accent-blue); }
+
+        .waterfall-amount {
+            width: 80px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Inventory Table */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .inventory-location {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .inventory-location-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .inventory-location-name {
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inventory-location-name svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .inventory-location-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .inventory-location-units {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Sales Feed */
+        .sales-feed {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .sale-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sale-item:last-child {
+            border-bottom: none;
+        }
+
+        .sale-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-green-dim);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sale-icon svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--accent-green);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .sale-content {
+            flex: 1;
+        }
+
+        .sale-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sale-order {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .sale-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .sale-details {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .sale-detail {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .sale-detail span {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-primary);
+        }
+
+        /* Repayment Progress */
+        .repayment-section {
+            margin-top: 16px;
+        }
+
+        .repayment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .repayment-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .repayment-amounts {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .repayment-amounts .paid {
+            color: var(--accent-green);
+        }
+
+        .repayment-amounts .total {
+            color: var(--text-muted);
+        }
+
+        .repayment-bar {
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .repayment-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green) 0%, var(--accent-cyan) 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .repayment-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .repayment-stat {
+            text-align: center;
+        }
+
+        .repayment-stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .repayment-stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Aging Alert */
+        .aging-alert {
+            background: var(--accent-amber-dim);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 16px;
+        }
+
+        .aging-alert.critical {
+            background: var(--accent-red-dim);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .aging-alert-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .aging-alert-header svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--accent-amber);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .aging-alert.critical .aging-alert-header svg {
+            stroke: var(--accent-red);
+        }
+
+        .aging-alert-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-amber);
+        }
+
+        .aging-alert.critical .aging-alert-title {
+            color: var(--accent-red);
+        }
+
+        .aging-alert-body {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .aging-alert-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .aging-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .aging-btn.primary {
+            background: var(--accent-amber);
+            color: var(--bg-primary);
+        }
+
+        .aging-alert.critical .aging-btn.primary {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .aging-btn.secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        /* Function Panel */
+        .function-panel {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .function-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .function-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--accent-cyan);
+        }
+
+        .function-trigger {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .function-body {
+            padding: 12px 14px;
+        }
+
+        .function-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+        }
+
+        .function-row:not(:last-child) {
+            border-bottom: 1px dashed var(--border);
+        }
+
+        .function-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .function-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 16px;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 0;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+        }
+
+        .timeline-dot.complete {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .timeline-dot.active {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 4px var(--accent-cyan-dim);
+        }
+
+        .timeline-content {
+            padding-left: 8px;
+        }
+
+        .timeline-title {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .timeline-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-active);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            .top-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+            .top-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Sightline</span>
+            </div>
+            <div class="logo-sub">PO-Level Micro Lending</div>
+
+            <!-- Portfolio Summary -->
+            <div class="portfolio-summary">
+                <div class="portfolio-label">Total Exposure</div>
+                <div class="portfolio-value">$176,000</div>
+                <div class="portfolio-stats">
+                    <div class="portfolio-stat">
+                        <div class="portfolio-stat-label">Active POs</div>
+                        <div class="portfolio-stat-value">5</div>
+                    </div>
+                    <div class="portfolio-stat">
+                        <div class="portfolio-stat-label">Avg Payback</div>
+                        <div class="portfolio-stat-value">34 days</div>
+                    </div>
+                    <div class="portfolio-stat">
+                        <div class="portfolio-stat-label">Performing</div>
+                        <div class="portfolio-stat-value" style="color: var(--accent-green);">80%</div>
+                    </div>
+                    <div class="portfolio-stat">
+                        <div class="portfolio-stat-label">At Risk</div>
+                        <div class="portfolio-stat-value" style="color: var(--accent-amber);">$60K</div>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-label">Views</div>
+                <div class="nav-item active">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    PO Detail
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                    Portfolio
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Event Stream
+                </div>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-label">Active POs</div>
+                <div class="po-list">
+                    <div class="po-item active" data-po="001">
+                        <div class="po-status-dot performing"></div>
+                        <div class="po-item-content">
+                            <div class="po-item-header">
+                                <span class="po-item-id">PO-001</span>
+                                <span class="po-item-amount">$40K</span>
+                            </div>
+                            <div class="po-item-progress">
+                                <div class="po-item-progress-bar performing" style="width: 67%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="po-item" data-po="002">
+                        <div class="po-status-dot performing"></div>
+                        <div class="po-item-content">
+                            <div class="po-item-header">
+                                <span class="po-item-id">PO-002</span>
+                                <span class="po-item-amount">$24K</span>
+                            </div>
+                            <div class="po-item-progress">
+                                <div class="po-item-progress-bar performing" style="width: 88%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="po-item" data-po="003">
+                        <div class="po-status-dot slow"></div>
+                        <div class="po-item-content">
+                            <div class="po-item-header">
+                                <span class="po-item-id">PO-003</span>
+                                <span class="po-item-amount">$60K</span>
+                            </div>
+                            <div class="po-item-progress">
+                                <div class="po-item-progress-bar slow" style="width: 23%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="po-item" data-po="004">
+                        <div class="po-status-dot paid"></div>
+                        <div class="po-item-content">
+                            <div class="po-item-header">
+                                <span class="po-item-id">PO-004</span>
+                                <span class="po-item-amount">$32K</span>
+                            </div>
+                            <div class="po-item-progress">
+                                <div class="po-item-progress-bar paid" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="po-item" data-po="005">
+                        <div class="po-status-dot performing"></div>
+                        <div class="po-item-content">
+                            <div class="po-item-header">
+                                <span class="po-item-id">PO-005</span>
+                                <span class="po-item-amount">$20K</span>
+                            </div>
+                            <div class="po-item-progress">
+                                <div class="po-item-progress-bar performing" style="width: 45%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="integrations">
+                    <div class="integration-badge connected">
+                        <span class="dot"></span>
+                        Shopify
+                    </div>
+                    <div class="integration-badge connected">
+                        <span class="dot"></span>
+                        Bank
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <div class="header-left">
+                    <h1>
+                        PO-001 · Brass Pendant Lights
+                        <span class="status-pill performing">Performing</span>
+                    </h1>
+                    <p>HomeLight Co → Shenzhen Luminance · Financed by Horizon Capital</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        History
+                    </button>
+                    <button class="btn btn-secondary">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export
+                    </button>
+                </div>
+            </header>
+
+            <!-- Top Stats -->
+            <div class="top-stats">
+                <div class="top-stat">
+                    <div class="top-stat-label">PO Amount</div>
+                    <div class="top-stat-value">$50,000</div>
+                    <div class="top-stat-sub">1,000 units @ $50</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-label">Advance</div>
+                    <div class="top-stat-value cyan">$40,000</div>
+                    <div class="top-stat-sub">80% advance rate</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-label">Repaid</div>
+                    <div class="top-stat-value green">$26,800</div>
+                    <div class="top-stat-sub">67% of principal</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-label">Remaining</div>
+                    <div class="top-stat-value amber">$13,200</div>
+                    <div class="top-stat-sub">Est. 12 days to payoff</div>
+                </div>
+                <div class="top-stat">
+                    <div class="top-stat-label">Days Since Receipt</div>
+                    <div class="top-stat-value">28</div>
+                    <div class="top-stat-sub">Threshold: 90 days</div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div class="content-grid">
+                <!-- Left Column -->
+                <div class="left-column">
+                    <!-- Per-Sale Waterfall -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                                Per-Sale Waterfall
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Auto-applied on each Shopify order</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="waterfall">
+                                <div class="waterfall-row">
+                                    <div class="waterfall-label">Sale Price</div>
+                                    <div class="waterfall-bar-container">
+                                        <div class="waterfall-bar" style="width: 100%; background: var(--bg-secondary); color: var(--text-primary);">$99.00</div>
+                                    </div>
+                                    <div class="waterfall-amount">$99.00</div>
+                                </div>
+                                <div class="waterfall-row">
+                                    <div class="waterfall-label">COGS (to supplier)</div>
+                                    <div class="waterfall-bar-container">
+                                        <div class="waterfall-bar cogs" style="width: 50.5%;">$50.00</div>
+                                    </div>
+                                    <div class="waterfall-amount">$50.00</div>
+                                </div>
+                                <div class="waterfall-row">
+                                    <div class="waterfall-label">Lender Repayment</div>
+                                    <div class="waterfall-bar-container">
+                                        <div class="waterfall-bar repayment" style="width: 40.4%;">$40.00</div>
+                                    </div>
+                                    <div class="waterfall-amount">$40.00</div>
+                                </div>
+                                <div class="waterfall-row">
+                                    <div class="waterfall-label">Interest/Fee</div>
+                                    <div class="waterfall-bar-container">
+                                        <div class="waterfall-bar fee" style="width: 2%;">$2</div>
+                                    </div>
+                                    <div class="waterfall-amount">$2.00</div>
+                                </div>
+                                <div class="waterfall-row">
+                                    <div class="waterfall-label">Borrower Margin</div>
+                                    <div class="waterfall-bar-container">
+                                        <div class="waterfall-bar margin" style="width: 7.1%;">$7</div>
+                                    </div>
+                                    <div class="waterfall-amount">$7.00</div>
+                                </div>
+                            </div>
+
+                            <div class="repayment-section">
+                                <div class="repayment-header">
+                                    <span class="repayment-label">Repayment Progress</span>
+                                    <span class="repayment-amounts">
+                                        <span class="paid">$26,800</span>
+                                        <span class="total">/ $40,000</span>
+                                    </span>
+                                </div>
+                                <div class="repayment-bar">
+                                    <div class="repayment-bar-fill" style="width: 67%"></div>
+                                </div>
+                                <div class="repayment-stats">
+                                    <div class="repayment-stat">
+                                        <div class="repayment-stat-value">670</div>
+                                        <div class="repayment-stat-label">Units Sold</div>
+                                    </div>
+                                    <div class="repayment-stat">
+                                        <div class="repayment-stat-value">330</div>
+                                        <div class="repayment-stat-label">Units Remaining</div>
+                                    </div>
+                                    <div class="repayment-stat">
+                                        <div class="repayment-stat-value">24/day</div>
+                                        <div class="repayment-stat-label">Sell Rate</div>
+                                    </div>
+                                    <div class="repayment-stat">
+                                        <div class="repayment-stat-value" style="color: var(--accent-green);">~12 days</div>
+                                        <div class="repayment-stat-label">Est. Payoff</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inventory Tracking -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                Inventory Position
+                            </div>
+                            <div class="live-indicator">LIVE</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="inventory-grid">
+                                <div class="inventory-location">
+                                    <div class="inventory-location-header">
+                                        <div class="inventory-location-name">
+                                            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                                            Charleston Warehouse
+                                        </div>
+                                    </div>
+                                    <div class="inventory-location-value">310 units</div>
+                                    <div class="inventory-location-units">$15,500 value · Bin A-14</div>
+                                </div>
+                                <div class="inventory-location">
+                                    <div class="inventory-location-header">
+                                        <div class="inventory-location-name">
+                                            <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/></svg>
+                                            In Transit (3PL)
+                                        </div>
+                                    </div>
+                                    <div class="inventory-location-value">20 units</div>
+                                    <div class="inventory-location-units">$1,000 value · To customers</div>
+                                </div>
+                                <div class="inventory-location">
+                                    <div class="inventory-location-header">
+                                        <div class="inventory-location-name">
+                                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            Sold (Pending Ship)
+                                        </div>
+                                    </div>
+                                    <div class="inventory-location-value">0 units</div>
+                                    <div class="inventory-location-units">All orders fulfilled</div>
+                                </div>
+                                <div class="inventory-location">
+                                    <div class="inventory-location-header">
+                                        <div class="inventory-location-name">
+                                            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                            Delivered
+                                        </div>
+                                    </div>
+                                    <div class="inventory-location-value" style="color: var(--accent-blue);">670 units</div>
+                                    <div class="inventory-location-units">$66,330 revenue generated</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales Feed -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                Shopify Sales Feed
+                            </div>
+                            <div class="live-indicator">LIVE</div>
+                        </div>
+                        <div class="card-body sales-feed" id="salesFeed">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="right-column">
+                    <!-- Active Functions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                                Standard Functions
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="function-panel">
+                                <div class="function-header">
+                                    <span class="function-name">sales_waterfall</span>
+                                    <span class="function-trigger">on: order_fulfilled</span>
+                                </div>
+                                <div class="function-body">
+                                    <div class="function-row">
+                                        <span class="function-label">Lender Priority</span>
+                                        <span class="function-value">1st</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Per-Unit Allocation</span>
+                                        <span class="function-value">$40.00</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Fee Rate</span>
+                                        <span class="function-value">5% APR</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Auto-Sweep</span>
+                                        <span class="function-value" style="color: var(--accent-green);">Enabled</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="function-panel">
+                                <div class="function-header">
+                                    <span class="function-name">inventory_tracking</span>
+                                    <span class="function-trigger">on: shipment_*, receipt_*</span>
+                                </div>
+                                <div class="function-body">
+                                    <div class="function-row">
+                                        <span class="function-label">Current Units</span>
+                                        <span class="function-value">330</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Collateral Value</span>
+                                        <span class="function-value">$16,500</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Coverage Ratio</span>
+                                        <span class="function-value" style="color: var(--accent-green);">125%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="function-panel">
+                                <div class="function-header">
+                                    <span class="function-name">aging_assessment</span>
+                                    <span class="function-trigger">daily @ 00:00 UTC</span>
+                                </div>
+                                <div class="function-body">
+                                    <div class="function-row">
+                                        <span class="function-label">Days Since Receipt</span>
+                                        <span class="function-value">28</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Warning Threshold</span>
+                                        <span class="function-value">60 days</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Workout Threshold</span>
+                                        <span class="function-value">90 days</span>
+                                    </div>
+                                    <div class="function-row">
+                                        <span class="function-label">Status</span>
+                                        <span class="function-value" style="color: var(--accent-green);">On Track</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PO Timeline -->
+                    <div class="card" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                PO Lifecycle
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-dot complete"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">PO Issued + Financing Approved</div>
+                                        <div class="timeline-time">Dec 5 · $40,000 advanced</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot complete"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Supplier Paid</div>
+                                        <div class="timeline-time">Dec 5 · $50,000 wire</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot complete"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Goods Shipped</div>
+                                        <div class="timeline-time">Dec 10 · Shanghai → Charleston</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot complete"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Goods Received</div>
+                                        <div class="timeline-time">Dec 28 · 1,000 units</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot active"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Selling Through</div>
+                                        <div class="timeline-time">67% sold · 330 remaining</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Loan Repaid</div>
+                                        <div class="timeline-time">Est. ~12 days</div>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">Margin Released</div>
+                                        <div class="timeline-time">Full margin to borrower</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Risk Isolation Notice -->
+                    <div class="card" style="margin-top: 20px; border-color: var(--accent-cyan-dim);">
+                        <div class="card-body" style="padding: 14px;">
+                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke: var(--accent-cyan); stroke-width: 2; fill: none; flex-shrink: 0; margin-top: 2px;">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                <div>
+                                    <div style="font-size: 12px; font-weight: 600; color: var(--accent-cyan); margin-bottom: 4px;">Risk Isolated</div>
+                                    <div style="font-size: 11px; color: var(--text-secondary); line-height: 1.5;">
+                                        This PO is a self-contained financing unit. Performance issues here do not affect your other 4 active POs or their repayment terms.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Sales data
+        const sales = [
+            { order: '#SHP-4892', time: '2 min ago', units: 2, revenue: '$198.00', repayment: '$80.00' },
+            { order: '#SHP-4891', time: '18 min ago', units: 1, revenue: '$99.00', repayment: '$40.00' },
+            { order: '#SHP-4890', time: '34 min ago', units: 3, revenue: '$297.00', repayment: '$120.00' },
+            { order: '#SHP-4889', time: '1 hr ago', units: 1, revenue: '$99.00', repayment: '$40.00' },
+            { order: '#SHP-4888', time: '1 hr ago', units: 2, revenue: '$198.00', repayment: '$80.00' },
+            { order: '#SHP-4887', time: '2 hr ago', units: 1, revenue: '$99.00', repayment: '$40.00' },
+            { order: '#SHP-4886', time: '3 hr ago', units: 4, revenue: '$396.00', repayment: '$160.00' },
+            { order: '#SHP-4885', time: '4 hr ago', units: 2, revenue: '$198.00', repayment: '$80.00' },
+        ];
+
+        function renderSales() {
+            const container = document.getElementById('salesFeed');
+            container.innerHTML = sales.map(sale => `
+                <div class="sale-item">
+                    <div class="sale-icon">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <div class="sale-content">
+                        <div class="sale-header">
+                            <span class="sale-order">${sale.order}</span>
+                            <span class="sale-time">${sale.time}</span>
+                        </div>
+                        <div class="sale-details">
+                            <span class="sale-detail">Units: <span>${sale.units}</span></span>
+                            <span class="sale-detail">Revenue: <span>${sale.revenue}</span></span>
+                            <span class="sale-detail">→ Lender: <span style="color: var(--accent-green)">${sale.repayment}</span></span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Simulate new sale
+        function simulateSale() {
+            const units = Math.floor(Math.random() * 3) + 1;
+            const orderNum = parseInt(sales[0].order.replace('#SHP-', '')) + 1;
+            const newSale = {
+                order: `#SHP-${orderNum}`,
+                time: 'Just now',
+                units: units,
+                revenue: `$${(units * 99).toFixed(2)}`,
+                repayment: `$${(units * 40).toFixed(2)}`
+            };
+            
+            sales.unshift(newSale);
+            sales.pop();
+            renderSales();
+            
+            // Flash effect
+            const firstItem = document.querySelector('.sale-item');
+            if (firstItem) {
+                firstItem.style.background = 'var(--accent-green-dim)';
+                setTimeout(() => {
+                    firstItem.style.background = 'transparent';
+                }, 1000);
+            }
+        }
+
+        // Initialize
+        renderSales();
+
+        // Simulate sales every 45 seconds
+        setInterval(simulateSale, 45000);
+
+        // PO item click handlers
+        document.querySelectorAll('.po-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.po-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                // In a real app, this would load the selected PO's data
+                const poId = this.dataset.po;
+                console.log('Selected PO:', poId);
+            });
+        });
+
+        // Nav item handlers
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOA Payment System - AI Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+                <h1 class="text-2xl font-bold text-center mb-6">HOA Payment System</h1>
+                <p class="text-center text-gray-600 mb-8">AI-Powered • Cryptographically Secure</p>
+                
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="email" class="w-full px-4 py-2 border rounded-lg" value="treasurer@demo.com" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="password" class="w-full px-4 py-2 border rounded-lg" value="demo123" required>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                        Sign In
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center text-sm text-gray-600">
+                    <p>Demo Mode - Click Sign In to Continue</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                    <h1 class="text-xl font-semibold">Pine Ridge HOA</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="userName" class="text-sm text-gray-600">Sarah Johnson (Treasurer)</span>
+                        <button onclick="logout()" class="text-sm text-blue-600 hover:text-blue-800">Sign Out</button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content -->
+            <div class="max-w-7xl mx-auto px-4 py-8">
+                <!-- Tab Navigation -->
+                <div class="flex space-x-1 mb-8 bg-gray-100 p-1 rounded-lg w-fit">
+                    <button onclick="showTab('submit')" class="tab-btn px-4 py-2 rounded-md" data-tab="submit">Submit Payment</button>
+                    <button onclick="showTab('payments')" class="tab-btn px-4 py-2 rounded-md" data-tab="payments">View Payments</button>
+                    <button onclick="showTab('verify')" class="tab-btn px-4 py-2 rounded-md" data-tab="verify">Verify Chain</button>
+                </div>
+                
+                <!-- Submit Payment Tab -->
+                <div id="submitTab" class="tab-content">
+                    <div class="bg-white rounded-xl shadow-sm p-6 max-w-2xl">
+                        <h2 class="text-xl font-semibold mb-6">Submit Payment Request</h2>
+                        
+                        <form id="paymentForm" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+                                    <input type="text" id="vendor" class="w-full px-3 py-2 border rounded-lg" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                                    <input type="number" id="amount" step="0.01" class="w-full px-3 py-2 border rounded-lg" required>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea id="description" rows="3" class="w-full px-3 py-2 border rounded-lg" 
+                                    placeholder="Type a description to see AI categorization..." required></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select id="category" class="w-full px-3 py-2 border rounded-lg">
+                                    <option value="">Select category...</option>
+                                    <option value="Landscaping">Landscaping</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="Professional Services">Professional Services</option>
+                                </select>
+                                <div id="aiSuggestion" class="mt-2 text-sm text-blue-600 hidden">
+                                    🧠 AI suggests: <span id="suggestedCategory"></span> (<span id="confidence"></span>% confident)
+                                </div>
+                            </div>
+                            
+                            <div class="pt-4 flex justify-between items-center">
+                                <span class="text-sm text-gray-600">🔐 Payment will be cryptographically signed</span>
+                                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                    Submit Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Payments Tab -->
+                <div id="paymentsTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <h2 class="text-xl font-semibold mb-6">Recent Payments</h2>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">AI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentsTableBody" class="divide-y divide-gray-200">
+                                    <!-- Payments will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Verify Tab -->
+                <div id="verifyTab" class="tab-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm p-6 max-w-2xl mx-auto text-center">
+                        <h2 class="text-xl font-semibold mb-6">Cryptographic Verification</h2>
+                        
+                        <div class="mb-8">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <span class="text-2xl">🔐</span>
+                            </div>
+                            <p class="text-gray-600">Verify the integrity of all transactions using SHA-256 hash chain</p>
+                        </div>
+                        
+                        <button onclick="verifyChain()" class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700">
+                            Run Verification
+                        </button>
+                        
+                        <div id="verifyResult" class="mt-6 hidden">
+                            <div class="p-4 rounded-lg bg-green-50 text-green-800">
+                                <p class="font-semibold">✓ Cryptographic verification passed!</p>
+                                <p class="text-sm mt-1">All transactions are intact and tamper-free</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        // Update these with your Supabase credentials
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+        
+        // For demo mode (when Supabase is not configured)
+        const DEMO_MODE = SUPABASE_URL === 'YOUR_SUPABASE_URL';
+        
+        // Initialize Supabase (if configured)
+        let supabase = null;
+        if (!DEMO_MODE) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        
+        // Demo data
+        let demoPayments = [
+            {
+                id: '1',
+                transaction_id: 'HOA-2024-0001',
+                vendor_name: 'ABC Landscaping',
+                amount: 850.00,
+                category_name: 'Landscaping',
+                status: 'completed',
+                ai_confidence_score: 0.95
+            },
+            {
+                id: '2',
+                transaction_id: 'HOA-2024-0002',
+                vendor_name: 'City Utilities',
+                amount: 342.50,
+                category_name: 'Utilities',
+                status: 'pending',
+                ai_confidence_score: 0.92
+            }
+        ];
+        
+        // ============================================
+        // LOGIN FUNCTIONALITY
+        // ============================================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (DEMO_MODE) {
+                // Demo mode - just show dashboard
+                showDashboard();
+            } else {
+                // Real Supabase login
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    alert('Login failed: ' + error.message);
+                } else {
+                    showDashboard();
+                }
+            }
+        });
+        
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            showTab('submit');
+            loadPayments();
+        }
+        
+        function logout() {
+            if (!DEMO_MODE && supabase) {
+                supabase.auth.signOut();
+            }
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+        
+        // ============================================
+        // TAB NAVIGATION
+        // ============================================
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'shadow-sm');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            
+            // Add active class to button
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('bg-white', 'shadow-sm');
+        }
+        
+        // ============================================
+        // AI CATEGORIZATION
+        // ============================================
+        document.getElementById('description').addEventListener('input', (e) => {
+            const description = e.target.value.toLowerCase();
+            const aiDiv = document.getElementById('aiSuggestion');
+            const categorySelect = document.getElementById('category');
+            
+            let suggestion = null;
+            let confidence = 0;
+            
+            // Simple keyword matching for demo
+            if (description.includes('landscap') || description.includes('lawn') || description.includes('garden')) {
+                suggestion = 'Landscaping';
+                confidence = 92;
+            } else if (description.includes('electric') || description.includes('water') || description.includes('utility')) {
+                suggestion = 'Utilities';
+                confidence = 88;
+            } else if (description.includes('repair') || description.includes('maint') || description.includes('fix')) {
+                suggestion = 'Maintenance';
+                confidence = 85;
+            } else if (description.includes('legal') || description.includes('account') || description.includes('consult')) {
+                suggestion = 'Professional Services';
+                confidence = 87;
+            }
+            
+            if (suggestion) {
+                document.getElementById('suggestedCategory').textContent = suggestion;
+                document.getElementById('confidence').textContent = confidence;
+                aiDiv.classList.remove('hidden');
+                
+                // Auto-select if confidence is high
+                if (confidence > 85 && !categorySelect.value) {
+                    categorySelect.value = suggestion;
+                }
+            } else {
+                aiDiv.classList.add('hidden');
+            }
+        });
+        
+        // ============================================
+        // SUBMIT PAYMENT
+        // ============================================
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payment = {
+                vendor_name: document.getElementById('vendor').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                description: document.getElementById('description').value,
+                category_name: document.getElementById('category').value,
+                status: 'pending',
+                transaction_id: `HOA-2024-${String(demoPayments.length + 1).padStart(4, '0')}`,
+                ai_confidence_score: Math.random() * 0.2 + 0.8 // 0.8 to 1.0
+            };
+            
+            if (DEMO_MODE) {
+                // Add to demo data
+                demoPayments.unshift({
+                    id: String(demoPayments.length + 1),
+                    ...payment
+                });
+                
+                alert('✓ Payment request submitted successfully!\n\nTransaction ID: ' + payment.transaction_id);
+                document.getElementById('paymentForm').reset();
+                loadPayments();
+                showTab('payments');
+            } else {
+                // Submit to Supabase
+                try {
+                    const { data, error } = await supabase.rpc('submit_payment_request', {
+                        p_hoa_id: '550e8400-e29b-41d4-a716-446655440000',
+                        p_vendor_name: payment.vendor_name,
+                        p_amount: payment.amount,
+                        p_category_name: payment.category_name,
+                        p_description: payment.description,
+                        p_urgency: 'standard',
+                        p_submitted_by: 'current_user_id',
+                        p_digital_signature: 'demo_signature'
+                    });
+                    
+                    if (error) throw error;
+                    
+                    alert('✓ Payment submitted to Supabase!');
+                    document.getElementById('paymentForm').reset();
+                    loadPayments();
+                    showTab('payments');
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        });
+        
+        // ============================================
+        // LOAD PAYMENTS
+        // ============================================
+        async function loadPayments() {
+            const tbody = document.getElementById('paymentsTableBody');
+            tbody.innerHTML = '';
+            
+            let payments = demoPayments;
+            
+            if (!DEMO_MODE && supabase) {
+                try {
+                    const { data, error } = await supabase
+                        .from('payments')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    if (data) payments = data;
+                } catch (error) {
+                    console.error('Error loading payments:', error);
+                }
+            }
+            
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm">${payment.transaction_id}</td>
+                    <td class="px-4 py-3 text-sm">${payment.vendor_name}</td>
+                    <td class="px-4 py-3 text-sm font-medium">$${payment.amount.toLocaleString()}</td>
+                    <td class="px-4 py-3 text-sm">${payment.category_name || 'Uncategorized'}</td>
+                    <td class="px-4 py-3 text-sm">
+                        <span class="px-2 py-1 text-xs rounded-full ${
+                            payment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            payment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                        }">${payment.status}</span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        ${payment.ai_confidence_score ? Math.round(payment.ai_confidence_score * 100) + '%' : '-'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // ============================================
+        // VERIFY CHAIN
+        // ============================================
+        async function verifyChain() {
+            const resultDiv = document.getElementById('verifyResult');
+            
+            if (DEMO_MODE) {
+                // Simulate verification
+                setTimeout(() => {
+                    resultDiv.classList.remove('hidden');
+                }, 1000);
+            } else {
+                try {
+                    const { data, error } = await supabase.rpc('verify_hash_chain', {
+                        p_hoa_id: '550e8400-e29b-41d4-a716-446655440000',
+                        p_limit: 100
+                    });
+                    
+                    if (error) throw error;
+                    
+                    resultDiv.classList.remove('hidden');
+                    if (data[0].is_valid) {
+                        resultDiv.innerHTML = `
+                            <div class="p-4 rounded-lg bg-green-50 text-green-800">
+                                <p class="font-semibold">✓ ${data[0].error_message}</p>
+                                <p class="text-sm mt-1">Verified ${data[0].total_verified} events</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        // ============================================
+        // STARTUP MESSAGE
+        // ============================================
+        if (DEMO_MODE) {
+            console.log('🎉 HOA Demo running in DEMO MODE');
+            console.log('To connect to Supabase, update SUPABASE_URL and SUPABASE_ANON_KEY in the script');
+        } else {
+            console.log('🚀 HOA Demo connected to Supabase');
+        }
+    </script>
+</body>
+</html>

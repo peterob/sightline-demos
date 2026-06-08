@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline DVR Prototype</title>
+    <style>
+        :root {
+            --bg-color: #111111;
+            --panel-color: #1a1a1a;
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --accent-green: #00ff41; /* Terminal Green */
+            --accent-red: #ff3333;
+            --accent-yellow: #ffcc00;
+            --font-mono: 'Courier New', Courier, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* HEADER */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .meta-joke {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* MAIN LAYOUT */
+        .container {
+            display: grid;
+            grid-template-columns: 3fr 1fr; /* Chart area vs Sidebar */
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        /* DASHBOARD AREA */
+        .dashboard {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        /* METRICS ROW */
+        .metrics {
+            display: flex;
+            gap: 40px;
+            padding: 15px;
+            background: var(--panel-color);
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        .metric-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            cursor: help;
+            border-bottom: 1px dotted var(--text-muted);
+            width: fit-content;
+        }
+
+        /* Tooltip Logic */
+        .label:hover::after {
+            content: attr(data-real-name);
+            position: absolute;
+            background: #fff;
+            color: #000;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+            border-radius: 2px;
+            margin-top: 20px;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+        .value {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .value.known { color: var(--text-muted); text-decoration: line-through; font-size: 1.2rem; }
+        .value.actual { color: var(--accent-green); }
+
+        .confidence-badge {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 2px;
+            background: #333;
+            color: var(--accent-yellow);
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        /* VISUALIZER (The "Screen") */
+        .visualizer {
+            flex-grow: 1;
+            background: #000;
+            border: 1px solid #333;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Abstract Line Chart representation */
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .line-known { stroke: #444; stroke-width: 2; stroke-dasharray: 5,5; fill: none; }
+        .line-actual { stroke: var(--accent-green); stroke-width: 2; fill: none; }
+        .scrubber-line { stroke: var(--accent-red); stroke-width: 1; }
+
+        /* EASTER EGG OVERLAY */
+        .easter-egg {
+            position: absolute;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .easter-egg.visible { opacity: 1; }
+        .ee-title { font-size: 1.2rem; color: #fff; margin-bottom: 5px; }
+        .ee-sub { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* CONTROLS (DVR) */
+        .controls-area {
+            background: var(--panel-color);
+            padding: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .slider-container {
+            width: 100%;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--accent-green);
+        }
+
+        .scrub-caption {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        button:hover { background: #444; border-color: #666; }
+        button:active { transform: translateY(1px); }
+        button.play-btn { border-color: var(--accent-green); color: var(--accent-green); }
+
+        /* SIDEBAR */
+        aside {
+            background: #151515;
+            border-left: 1px solid #333;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        h2 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* TAPE MOMENTS */
+        .moment {
+            padding: 10px;
+            border: 1px solid #333;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .moment:hover { background: #222; }
+        
+        .tag { font-size: 0.7rem; font-weight: bold; margin-bottom: 4px; display: block; }
+        .tag.red { color: var(--accent-red); }
+        .tag.yellow { color: var(--accent-yellow); }
+        .tag.green { color: var(--accent-green); }
+        
+        .desc { font-size: 0.8rem; color: #ccc; }
+
+        /* EXPLAIN PANEL */
+        .explain-box {
+            margin-top: auto;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+
+        .explain-btn {
+            width: 100%;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .explanation-content {
+            display: none;
+            background: #222;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        .explanation-content.show { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* TOGGLE SWITCH STYLE */
+        .view-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Sightline <span style="color:var(--accent-green)">DVR</span></h1>
+        <div class="meta-joke">This is a toy. Unfortunately, it’s also correct.</div>
+    </header>
+
+    <div class="container">
+        
+        <div class="dashboard">
+            
+            <div class="metrics">
+                <div class="metric-group">
+                    <div class="label" data-real-name="Ledger Balance">What We Knew</div>
+                    <div class="value known" id="val-known">$0.00</div>
+                </div>
+                <div class="metric-group">
+                    <div class="label" data-real-name="Actual Bank Position">What Actually Happened</div>
+                    <div class="value actual" id="val-actual">$0.00</div>
+                </div>
+                <div class="metric-group">
+                    <div class="label" data-real-name="Confidence Score">How Much We Trust Ourselves</div>
+                    <div class="confidence-badge" id="val-conf">100% — We're Mostly Sure</div>
+                </div>
+            </div>
+
+            <div class="view-toggle">
+                <span>View:</span> 
+                <span style="color:white">Comparison Mode</span>
+                <span style="font-size:0.7rem; margin-left:10px;">(No spreadsheets were harmed in this comparison.)</span>
+            </div>
+
+            <div class="visualizer" id="vis-container">
+                <svg viewBox="0 0 800 400" preserveAspectRatio="none">
+                    <line x1="0" y1="350" x2="800" y2="350" stroke="#333" stroke-width="1" />
+                    <line x1="0" y1="200" x2="800" y2="200" stroke="#333" stroke-width="1" />
+                    
+                    <path d="M0,350 L200,350 L200,100 L400,100 L400,250 L800,250" class="line-known" />
+                    
+                    <path d="M0,350 L200,350 L250,380 L300,50 L400,20 L500,200 L600,250 L800,250" class="line-actual" />
+
+                    <line id="scrubber-bar" x1="0" y1="0" x2="0" y2="400" class="scrubber-line" />
+                </svg>
+
+                <div class="easter-egg" id="easter-egg">
+                    <div class="ee-title">No financial events occurred on this day.</div>
+                    <div class="ee-sub">This is rare. Enjoy it.</div>
+                </div>
+            </div>
+
+            <div class="controls-area">
+                <div class="scrub-caption">"Scrubbing does not change history. It only reveals it."</div>
+                
+                <div class="slider-container">
+                    <input type="range" id="timeline-slider" min="0" max="800" value="0">
+                </div>
+
+                <div class="buttons">
+                    <button onclick="jumpTo(0)">⏪ Rewind to What We Thought</button>
+                    <button onclick="togglePlay()" class="play-btn" id="play-btn">▶ Play Reality</button>
+                    <button onclick="jumpTo(800)">⏩ Fast-forward to When Accounting Caught Up</button>
+                </div>
+            </div>
+        </div>
+
+        <aside>
+            <div>
+                <h2>Tape Moments</h2>
+                
+                <div class="moment" onclick="jumpTo(205)">
+                    <span class="tag red">🟥 Red Flag Replay</span>
+                    <div class="desc">This is where the forecast quietly broke.</div>
+                </div>
+
+                <div class="moment" onclick="jumpTo(300)">
+                    <span class="tag yellow">🟡 Close Call</span>
+                    <div class="desc">Liquidity hit $4.00. Nobody noticed.</div>
+                </div>
+
+                <div class="moment" onclick="jumpTo(600)">
+                    <span class="tag green">🟢 Accounting Finally Notices</span>
+                    <div class="desc">Reconciliation complete. 12 days late.</div>
+                </div>
+            </div>
+
+            <div>
+                <h2>What a Calm System Would Have Done</h2>
+                <ul style="font-size:0.8rem; color:#ccc; padding-left:20px;">
+                    <li style="margin-bottom:8px">Waited for wire confirmation before assuming liquidity.</li>
+                    <li style="margin-bottom:8px">Reduced forecast confidence rather than guessing.</li>
+                </ul>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:10px;">
+                    These are suggestions, not orders. You’re still the CFO.
+                </div>
+            </div>
+
+            <div class="explain-box">
+                <button class="explain-btn" onclick="toggleExplain()">Why Is This Like This?</button>
+                <div class="explanation-content" id="explain-content">
+                    <strong style="color:var(--accent-green)">You asked. Here’s what actually happened.</strong><br><br>
+                    The API failed silently on Tuesday. The bank knew. We didn't. This gap represents the time spent pretending nothing happened.
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <script>
+        const slider = document.getElementById('timeline-slider');
+        const scrubberBar = document.getElementById('scrubber-bar');
+        const valKnown = document.getElementById('val-known');
+        const valActual = document.getElementById('val-actual');
+        const valConf = document.getElementById('val-conf');
+        const easterEgg = document.getElementById('easter-egg');
+        const playBtn = document.getElementById('play-btn');
+
+        let isPlaying = false;
+        let playInterval;
+
+        // Data Simulation logic
+        function updateDashboard(val) {
+            // Move SVG line
+            scrubberBar.setAttribute('x1', val);
+            scrubberBar.setAttribute('x2', val);
+
+            // Simulate Numbers based on X position (0-800)
+            let known = 10000;
+            let actual = 10000;
+            let confidence = 100;
+            let confText = "We're Mostly Sure";
+            let nothingHappened = false;
+
+            // Scenario Logic
+            if (val < 200) {
+                // Boring days
+                known = 10000 + (val * 2); 
+                actual = known;
+                confidence = 98;
+                
+                // Specific dead zone for easter egg
+                if(val > 50 && val < 100) nothingHappened = true;
+            } 
+            else if (val >= 200 && val < 600) {
+                // The Chaos Zone
+                known = 10000 + (val * 2); // Linear wrong assumption
+                // Erratic actuals
+                actual = 10000 + Math.sin(val/50) * 5000;
+                
+                confidence = Math.max(10, 100 - ((val - 200) / 4));
+                
+                if (confidence < 45) confText = "This Is Aspirational";
+                if (confidence < 20) confText = "Please Do Not Automate This";
+            } 
+            else {
+                // Resolution
+                known = 15000;
+                actual = 15000;
+                confidence = 100;
+                confText = "Reality checked in";
+            }
+
+            // Update DOM
+            valKnown.innerText = "$" + Math.floor(known).toLocaleString();
+            valActual.innerText = "$" + Math.floor(actual).toLocaleString();
+            
+            // Color logic for divergence
+            if(Math.abs(known - actual) > 100) {
+                valActual.style.color = "var(--accent-red)";
+            } else {
+                valActual.style.color = "var(--accent-green)";
+            }
+
+            valConf.innerText = Math.floor(confidence) + "% — " + confText;
+
+            // Easter Egg Trigger
+            if (nothingHappened) {
+                easterEgg.classList.add('visible');
+            } else {
+                easterEgg.classList.remove('visible');
+            }
+        }
+
+        // Slider Interaction
+        slider.addEventListener('input', (e) => {
+            updateDashboard(e.target.value);
+            if(isPlaying) stopPlay();
+        });
+
+        // Jump Function (Tape Moments)
+        function jumpTo(val) {
+            slider.value = val;
+            updateDashboard(val);
+            if(isPlaying) stopPlay();
+        }
+
+        // Play/Pause Logic
+        function togglePlay() {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        }
+
+        function startPlay() {
+            isPlaying = true;
+            playBtn.innerText = "⏸ Pause Belief";
+            playInterval = setInterval(() => {
+                let current = parseInt(slider.value);
+                if (current >= 800) {
+                    stopPlay();
+                } else {
+                    slider.value = current + 2;
+                    updateDashboard(current + 2);
+                }
+            }, 20);
+        }
+
+        function stopPlay() {
+            isPlaying = false;
+            playBtn.innerText = "▶ Play Reality";
+            clearInterval(playInterval);
+        }
+
+        // Explanation Toggle
+        function toggleExplain() {
+            const content = document.getElementById('explain-content');
+            content.classList.toggle('show');
+        }
+
+        // Initialize
+        updateDashboard(0);
+
+    </script>
+</body>
+</html>
