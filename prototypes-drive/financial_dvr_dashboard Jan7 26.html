@@ -1,0 +1,2282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Financial DVR Dashboard — Statement Tape</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --border: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --faint: rgba(255,255,255,0.55);
+      --accent: #7dd3fc;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    *{box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(1200px 800px at 10% 0%, rgba(125,211,252,0.20), transparent 60%),
+        radial-gradient(1200px 800px at 90% 0%, rgba(52,211,153,0.14), transparent 55%),
+        linear-gradient(180deg, #070a14 0%, var(--bg) 70%);
+      color: var(--text);
+    }
+    a{color: var(--accent); text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .app{height:100%; display:flex; flex-direction:column;}
+    header{
+      padding:14px 16px 10px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.18);
+      backdrop-filter: blur(10px);
+    }
+    .topRow{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .brand .title{
+      font-weight:700; letter-spacing:0.2px;
+    }
+    .brand .subtitle{
+      font-size:12px; color:var(--muted);
+    }
+    .controls{
+      display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end;
+    }
+    .chip{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      border-radius: 999px;
+      padding:6px 10px;
+      font-size:12px;
+      color: var(--muted);
+      display:flex; gap:8px; align-items:center;
+    }
+    select, button, input[type="text"]{
+      font-family:inherit;
+      color:var(--text);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    select{padding:8px 10px;}
+    button{
+      cursor:pointer;
+      transition: transform 80ms ease, background 120ms ease;
+    }
+    button:hover{background: rgba(255,255,255,0.07);}
+    button:active{transform: translateY(1px);}
+    button.primary{
+      border-color: rgba(125,211,252,0.35);
+      background: rgba(125,211,252,0.13);
+    }
+    button.ghost{
+      background: transparent;
+    }
+    input[type="range"]{accent-color: var(--accent);}
+    .kpis{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap:10px;
+    }
+    .kpi{
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      min-height: 62px;
+      display:flex; flex-direction:column; justify-content:space-between;
+    }
+    .kpi .label{font-size:12px; color: var(--muted);}
+    .kpi .value{
+      font-size:18px;
+      font-weight:700;
+      letter-spacing:0.2px;
+    }
+    .kpi .delta{font-size:12px; color: var(--faint); font-family:var(--mono);}
+    main{
+      flex:1;
+      display:grid;
+      grid-template-columns: 340px 1fr 380px;
+      gap:12px;
+      padding: 12px;
+      min-height:0;
+    }
+    .panel{
+      border:1px solid var(--border);
+      background: var(--panel);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+    .panelHeader{
+      padding: 10px 12px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .panelHeader h3{
+      margin:0;
+      font-size: 13px;
+      letter-spacing:0.2px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.92);
+    }
+    .panelBody{padding: 10px 12px; overflow:auto; min-height:0;}
+    .split2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      min-height:0;
+    }
+    .stack{display:flex; flex-direction:column; gap:12px; min-height:0;}
+    .muted{color: var(--muted);}
+    .small{font-size:12px;}
+    .mono{font-family: var(--mono);}
+    .pill{
+      font-size:11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      white-space:nowrap;
+    }
+    .pill.posting{border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.10); color: rgba(209,250,229,0.95);}
+    .pill.signal{border-color: rgba(251,191,36,0.40); background: rgba(251,191,36,0.10); color: rgba(255,237,213,0.95);}
+    .pill.bad{border-color: rgba(251,113,133,0.40); background: rgba(251,113,133,0.10); color: rgba(255,228,230,0.95);}
+    .eventFilters{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .eventFilters .row{
+      display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    }
+    .checkbox{
+      display:flex; align-items:center; gap:8px;
+      font-size: 12px;
+      color: var(--muted);
+      user-select:none;
+    }
+    .checkbox input{transform: translateY(1px);}
+    .eventList{
+      display:flex; flex-direction:column;
+      gap:8px;
+      padding-bottom: 10px;
+    }
+    .eventCard{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 10px 10px;
+      cursor:pointer;
+      transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+    }
+    .eventCard:hover{
+      background: rgba(255,255,255,0.05);
+    }
+    .eventCard:active{transform: translateY(1px);}
+    .eventCard.active{
+      border-color: rgba(125,211,252,0.55);
+      background: rgba(125,211,252,0.10);
+    }
+    .eventTop{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    }
+    .eventTitle{
+      font-weight:700; font-size: 13px; margin:0;
+      line-height:1.25;
+    }
+    .eventMeta{
+      margin-top:6px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      align-items:center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .badge{
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--faint);
+      background: rgba(255,255,255,0.02);
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th,td{
+      padding: 6px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      vertical-align: top;
+    }
+    th{
+      text-align:left;
+      font-size:11px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing:0.2px;
+    }
+    td.num, th.num{text-align:right; font-family: var(--mono);}
+    tr.changed td{
+      background: rgba(125,211,252,0.08);
+    }
+    tr.section td{
+      border-bottom: none;
+      padding-top: 10px;
+      color: rgba(255,255,255,0.88);
+      font-weight:700;
+    }
+    .note{
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+      color: var(--muted);
+      font-size:12px;
+    }
+    .scrubRow{
+      display:flex; align-items:center; gap:10px;
+      width: 560px;
+      max-width: min(56vw, 720px);
+    }
+    .scrubRow input[type="range"]{flex:1;}
+    .timeLabel{
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 150px;
+      text-align:right;
+    }
+    .fileRow{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+    .fileRow input[type="file"]{font-size:12px; padding: 7px 10px; border-radius: 10px; border:1px solid var(--border); background: rgba(255,255,255,0.03); color:var(--muted);}
+    canvas{width:100%; height:160px; display:block;}
+    .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color: var(--muted); margin-top:8px;}
+    .legendItem{display:flex; gap:6px; align-items:center;}
+    .dot{width:10px; height:10px; border-radius: 999px; background: var(--accent);}
+    .dot.b{background: var(--bad);}
+    .dot.g{background: var(--good);}
+    .warnBox{
+      border:1px solid rgba(251,191,36,0.35);
+      background: rgba(251,191,36,0.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: rgba(255,237,213,0.95);
+      font-size: 12px;
+    }
+    .okBox{
+      border:1px solid rgba(52,211,153,0.30);
+      background: rgba(52,211,153,0.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: rgba(209,250,229,0.95);
+      font-size: 12px;
+    }
+    .grid2mini{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    footer{
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      background: rgba(0,0,0,0.18);
+      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .kbd{
+      font-family: var(--mono);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      color: var(--faint);
+    }
+    @media (max-width: 1200px){
+      main{grid-template-columns: 320px 1fr;}
+      #rightCol{display:none;}
+      .kpis{grid-template-columns: repeat(3, minmax(0,1fr));}
+      .scrubRow{width: 520px;}
+    }
+    @media (max-width: 860px){
+      main{grid-template-columns: 1fr; }
+      .kpis{grid-template-columns: repeat(2, minmax(0,1fr));}
+      .scrubRow{width: 100%; max-width:100%;}
+    }
+  </style>
+</head>
+
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="topRow">
+      <div class="brand">
+        <div class="title">Financial DVR — Statement Tape</div>
+        <div class="subtitle">Scrub through events → see journal entries → watch financial statements evolve.</div>
+      </div>
+
+      <div class="controls">
+        <select id="companySelect" title="Company">
+          <option value="acme">Acme SaaS (sample)</option>
+        </select>
+
+        <div class="scrubRow">
+          <button class="primary" id="btnPlay" title="Play/Pause (Space)">Play</button>
+          <button class="ghost" id="btnBack" title="Step back (←)">◀</button>
+          <button class="ghost" id="btnFwd" title="Step forward (→)">▶</button>
+          <input id="scrubber" type="range" min="0" max="0" value="0" step="1" />
+          <div class="timeLabel" id="timeLabel">—</div>
+        </div>
+
+        <div class="chip" title="Playback speed">
+          <span>Speed</span>
+          <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1" />
+          <span class="mono" id="speedLabel">1×</span>
+        </div>
+
+        <button id="btnSnapshot" title="Download a JSON snapshot at the current time">Export snapshot</button>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpiBar">
+      <div class="kpi">
+        <div class="label">Cash</div>
+        <div class="value" id="kpiCash">—</div>
+        <div class="delta" id="kpiCashDelta">Δ —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Runway (months)</div>
+        <div class="value" id="kpiRunway">—</div>
+        <div class="delta" id="kpiBurn">Burn —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">ARR (run-rate)</div>
+        <div class="value" id="kpiARR">—</div>
+        <div class="delta" id="kpiMRR">MRR —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Gross margin</div>
+        <div class="value" id="kpiGM">—</div>
+        <div class="delta" id="kpiGMDelta">Δ —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Net income (YTD)</div>
+        <div class="value" id="kpiNI">—</div>
+        <div class="delta" id="kpiNIDelta">Δ —</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Operating CF (YTD)</div>
+        <div class="value" id="kpiOCF">—</div>
+        <div class="delta" id="kpiOCFDelta">Δ —</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT: Event tape -->
+    <section class="panel" id="leftCol">
+      <div class="panelHeader">
+        <h3>Event tape</h3>
+        <span class="pill" id="eventCountPill">0 events</span>
+      </div>
+      <div class="panelBody">
+        <div class="eventFilters">
+          <div class="row">
+            <label class="checkbox"><input type="checkbox" id="fPosting" checked /> Posting</label>
+            <label class="checkbox"><input type="checkbox" id="fSignal" checked /> Signal</label>
+            <label class="checkbox"><input type="checkbox" id="fOnlyImpacts" /> Only impacts statements</label>
+          </div>
+          <div class="row">
+            <input type="text" id="searchBox" placeholder="Search title, tags, memo…" style="flex:1;" />
+          </div>
+          <div class="fileRow">
+            <input type="file" id="fileInput" accept="application/json" />
+            <span class="small muted">Load your own event JSON (see “Data contract” in footer).</span>
+          </div>
+        </div>
+
+        <div style="height:12px;"></div>
+        <div class="eventList" id="eventList"></div>
+      </div>
+      <div class="note">
+        Tip: Space = play/pause · ←/→ = step · Click an event to jump.
+      </div>
+    </section>
+
+    <!-- CENTER: Statements -->
+    <section class="stack" id="centerCol">
+      <section class="panel" id="nowPanel">
+        <div class="panelHeader">
+          <h3>Now playing</h3>
+          <span class="pill" id="impactPill">—</span>
+        </div>
+        <div class="panelBody" id="nowBody">
+          <!-- populated by JS -->
+        </div>
+      </section>
+
+      <section class="split2" style="min-height:0;">
+        <section class="panel" id="isPanel">
+          <div class="panelHeader">
+            <h3>Income statement (YTD)</h3>
+            <span class="pill" id="isAsOf">—</span>
+          </div>
+          <div class="panelBody">
+            <table id="tblIS">
+              <thead><tr><th>Line</th><th class="num">Amount</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" id="bsPanel">
+          <div class="panelHeader">
+            <h3>Balance sheet (as of)</h3>
+            <span class="pill" id="bsBalanceCheck">—</span>
+          </div>
+          <div class="panelBody">
+            <table id="tblBS">
+              <thead><tr><th>Line</th><th class="num">Amount</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel" id="cfPanel">
+        <div class="panelHeader">
+          <h3>Cash flow (YTD)</h3>
+          <span class="pill" id="cfAsOf">—</span>
+        </div>
+        <div class="panelBody">
+          <table id="tblCF">
+            <thead><tr><th>Section</th><th class="num">Amount</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- RIGHT: Charts + Signals -->
+    <section class="stack" id="rightCol">
+      <section class="panel">
+        <div class="panelHeader">
+          <h3>Revenue vs expenses (YTD)</h3>
+          <span class="pill" id="chartAsOf">—</span>
+        </div>
+        <div class="panelBody">
+          <canvas id="chartRevExp"></canvas>
+          <div class="legend">
+            <div class="legendItem"><span class="dot"></span>Revenue</div>
+            <div class="legendItem"><span class="dot b"></span>Expenses</div>
+            <div class="legendItem"><span class="dot g"></span>Cash</div>
+          </div>
+          <div class="small muted" style="margin-top:8px;">Cursor follows the current event in the tape.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h3>Signals (inform-only)</h3>
+          <span class="pill signal" id="signalCountPill">—</span>
+        </div>
+        <div class="panelBody" id="signalBody">
+          <!-- populated -->
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h3>What changed?</h3>
+          <span class="pill" id="deltaPill">—</span>
+        </div>
+        <div class="panelBody" id="deltaBody">
+          <!-- populated -->
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <span class="mono">Data contract:</span>
+      events[] with fields: <span class="kbd">id</span>, <span class="kbd">ts</span>, <span class="kbd">kind</span> (<span class="kbd">posting</span>|<span class="kbd">signal</span>), <span class="kbd">title</span>, <span class="kbd">tags</span>,
+      and either <span class="kbd">entries[]</span> (journal lines with <span class="kbd">account</span>, <span class="kbd">debit</span>, <span class="kbd">credit</span>) or <span class="kbd">signals[]</span> (name/value/unit/probability).
+    </div>
+    <div>
+      <span class="muted">Shortcuts:</span> <span class="kbd">Space</span> play/pause · <span class="kbd">←</span>/<span class="kbd">→</span> step · <span class="kbd">/</span> focus search
+    </div>
+  </footer>
+</div>
+
+<!-- Seed dataset (sample). Replace by loading your own JSON. -->
+<script type="application/json" id="seedData">
+{
+  "chartOfAccounts": [
+    {"name":"Cash","type":"asset","normal":"debit"},
+    {"name":"Accounts Receivable","type":"asset","normal":"debit"},
+    {"name":"Prepaid Expenses","type":"asset","normal":"debit"},
+    {"name":"Equipment","type":"asset","normal":"debit"},
+    {"name":"Accounts Payable","type":"liability","normal":"credit"},
+    {"name":"Deferred Revenue","type":"liability","normal":"credit"},
+    {"name":"Debt","type":"liability","normal":"credit"},
+    {"name":"Paid-in Capital","type":"equity","normal":"credit"},
+
+    {"name":"Subscription Revenue","type":"revenue","normal":"credit"},
+    {"name":"Services Revenue","type":"revenue","normal":"credit"},
+
+    {"name":"Cost of Revenue - Hosting","type":"expense","normal":"debit","group":"cogs"},
+    {"name":"Cost of Revenue - Support","type":"expense","normal":"debit","group":"cogs"},
+
+    {"name":"Sales & Marketing Expense","type":"expense","normal":"debit","group":"opex"},
+    {"name":"R&D Expense","type":"expense","normal":"debit","group":"opex"},
+    {"name":"G&A Expense","type":"expense","normal":"debit","group":"opex"},
+    {"name":"Interest Expense","type":"expense","normal":"debit","group":"other"}
+  ],
+  "events": [
+    {
+      "id":"E-2025-01-03-01",
+      "ts":"2025-01-03T09:00:00Z",
+      "kind":"posting",
+      "title":"Seed funding received ($1.2M)",
+      "tags":["finance","funding"],
+      "memo":"Equity financing deposited to operating bank account.",
+      "classification":"financing",
+      "entries":[
+        {"account":"Cash","debit":1200000,"credit":0},
+        {"account":"Paid-in Capital","debit":0,"credit":1200000}
+      ]
+    },
+    {
+      "id":"S-2025-01-06-01",
+      "ts":"2025-01-06T15:30:00Z",
+      "kind":"signal",
+      "title":"Board approves FY budget + hiring plan",
+      "tags":["planning","governance"],
+      "memo":"Baseline plan: 8 hires over 2 quarters; marketing ramp from Feb.",
+      "signals":[
+        {"name":"Planned hires (next 6 months)","value":8,"unit":"heads"},
+        {"name":"Marketing ramp start","value":2,"unit":"month"}
+      ]
+    },
+    {
+      "id":"E-2025-01-09-01",
+      "ts":"2025-01-09T11:00:00Z",
+      "kind":"posting",
+      "title":"Equipment purchased (laptops + monitors)",
+      "tags":["ops","capex"],
+      "memo":"Initial build-out for engineering + sales.",
+      "classification":"investing",
+      "entries":[
+        {"account":"Equipment","debit":42000,"credit":0},
+        {"account":"Cash","debit":0,"credit":42000}
+      ]
+    },
+    {
+      "id":"E-2025-01-15-01",
+      "ts":"2025-01-15T10:00:00Z",
+      "kind":"posting",
+      "title":"Invoice issued — Customer A (annual subscription)",
+      "tags":["sales","billing","ar"],
+      "memo":"$120k prepaid annual; recognized monthly.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Accounts Receivable","debit":120000,"credit":0},
+        {"account":"Deferred Revenue","debit":0,"credit":120000}
+      ]
+    },
+    {
+      "id":"S-2025-01-18-01",
+      "ts":"2025-01-18T13:00:00Z",
+      "kind":"signal",
+      "title":"Website conversion rate drops (landing page change)",
+      "tags":["growth","risk"],
+      "memo":"Conversion -18% WoW; monitor CAC payback assumptions.",
+      "signals":[
+        {"name":"Conversion WoW","value":-18,"unit":"%"}
+      ]
+    },
+    {
+      "id":"E-2025-01-20-01",
+      "ts":"2025-01-20T16:05:00Z",
+      "kind":"posting",
+      "title":"Cash collected — Customer A invoice",
+      "tags":["finance","cash","ar"],
+      "memo":"Wire received; AR cleared.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Cash","debit":120000,"credit":0},
+        {"account":"Accounts Receivable","debit":0,"credit":120000}
+      ]
+    },
+    {
+      "id":"E-2025-01-31-01",
+      "ts":"2025-01-31T23:00:00Z",
+      "kind":"posting",
+      "title":"January revenue recognition (Customer A)",
+      "tags":["finance","revrec"],
+      "memo":"Recognize 1/12 of annual prepaid subscription.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":10000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":10000}
+      ]
+    },
+    {
+      "id":"E-2025-01-31-02",
+      "ts":"2025-01-31T23:10:00Z",
+      "kind":"posting",
+      "title":"January payroll",
+      "tags":["people","payroll"],
+      "memo":"Founding team + early hires.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":78000,"credit":0},
+        {"account":"G&A Expense","debit":24000,"credit":0},
+        {"account":"Cash","debit":0,"credit":102000}
+      ]
+    },
+    {
+      "id":"E-2025-02-05-01",
+      "ts":"2025-02-05T12:00:00Z",
+      "kind":"posting",
+      "title":"Cloud hosting invoice received",
+      "tags":["ops","vendor","ap"],
+      "memo":"AWS usage for January (payable).",
+      "classification":"operating",
+      "entries":[
+        {"account":"Cost of Revenue - Hosting","debit":12500,"credit":0},
+        {"account":"Accounts Payable","debit":0,"credit":12500}
+      ]
+    },
+    {
+      "id":"S-2025-02-10-01",
+      "ts":"2025-02-10T12:00:00Z",
+      "kind":"signal",
+      "title":"Pipeline created — Enterprise deal (30% prob)",
+      "tags":["sales","pipeline"],
+      "memo":"Expected ARR $240k; targeted close in ~90 days.",
+      "signals":[
+        {"name":"Expected ARR","value":240000,"unit":"USD","probability":0.3,"horizonDays":90}
+      ]
+    },
+    {
+      "id":"E-2025-02-12-01",
+      "ts":"2025-02-12T09:15:00Z",
+      "kind":"posting",
+      "title":"Pay cloud hosting invoice",
+      "tags":["finance","cash","ap"],
+      "memo":"Pay AWS invoice via ACH.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Accounts Payable","debit":12500,"credit":0},
+        {"account":"Cash","debit":0,"credit":12500}
+      ]
+    },
+    {
+      "id":"E-2025-02-14-01",
+      "ts":"2025-02-14T10:30:00Z",
+      "kind":"posting",
+      "title":"Prepay annual insurance",
+      "tags":["finance","prepaid"],
+      "memo":"12-month D&O + general liability.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Prepaid Expenses","debit":18000,"credit":0},
+        {"account":"Cash","debit":0,"credit":18000}
+      ]
+    },
+    {
+      "id":"E-2025-02-28-01",
+      "ts":"2025-02-28T23:00:00Z",
+      "kind":"posting",
+      "title":"February revenue recognition (Customer A)",
+      "tags":["finance","revrec"],
+      "memo":"Recognize 1/12 of annual prepaid subscription.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":10000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":10000}
+      ]
+    },
+    {
+      "id":"E-2025-02-28-02",
+      "ts":"2025-02-28T23:10:00Z",
+      "kind":"posting",
+      "title":"February payroll",
+      "tags":["people","payroll"],
+      "memo":"Hiring begins (2 new engineers).",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":92000,"credit":0},
+        {"account":"G&A Expense","debit":27000,"credit":0},
+        {"account":"Cash","debit":0,"credit":119000}
+      ]
+    },
+    {
+      "id":"S-2025-03-03-01",
+      "ts":"2025-03-03T16:00:00Z",
+      "kind":"signal",
+      "title":"Churn risk flagged — Customer C (usage down)",
+      "tags":["customer-success","risk"],
+      "memo":"Usage -35% MoM; engage exec sponsor.",
+      "signals":[
+        {"name":"Churn risk score","value":78,"unit":"/100"},
+        {"name":"ARR at risk","value":60000,"unit":"USD","probability":0.4}
+      ]
+    },
+    {
+      "id":"E-2025-03-05-01",
+      "ts":"2025-03-05T11:00:00Z",
+      "kind":"posting",
+      "title":"Invoice issued — Customer B (quarterly subscription)",
+      "tags":["sales","billing","ar"],
+      "memo":"$45k quarterly prepaid; recognized monthly.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Accounts Receivable","debit":45000,"credit":0},
+        {"account":"Deferred Revenue","debit":0,"credit":45000}
+      ]
+    },
+    {
+      "id":"E-2025-03-12-01",
+      "ts":"2025-03-12T17:20:00Z",
+      "kind":"posting",
+      "title":"Cash collected — Customer B invoice",
+      "tags":["finance","cash","ar"],
+      "memo":"Customer paid on net-7 terms.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Cash","debit":45000,"credit":0},
+        {"account":"Accounts Receivable","debit":0,"credit":45000}
+      ]
+    },
+    {
+      "id":"E-2025-03-31-01",
+      "ts":"2025-03-31T23:00:00Z",
+      "kind":"posting",
+      "title":"March revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Recognize monthly portion for active prepaid contracts.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-03-31-02",
+      "ts":"2025-03-31T23:10:00Z",
+      "kind":"posting",
+      "title":"March payroll",
+      "tags":["people","payroll"],
+      "memo":"Add 1 AE + 1 CS hire.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":98000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":41000,"credit":0},
+        {"account":"G&A Expense","debit":29000,"credit":0},
+        {"account":"Cash","debit":0,"credit":168000}
+      ]
+    },
+    {
+      "id":"S-2025-04-02-01",
+      "ts":"2025-04-02T14:00:00Z",
+      "kind":"signal",
+      "title":"Pricing test shows +6% willingness-to-pay",
+      "tags":["product","pricing"],
+      "memo":"Candidate 5–8% list increase for new logos.",
+      "signals":[
+        {"name":"Pricing uplift (new logos)","value":6,"unit":"%"}
+      ]
+    },
+    {
+      "id":"E-2025-04-10-01",
+      "ts":"2025-04-10T10:00:00Z",
+      "kind":"posting",
+      "title":"Professional services delivered (milestone 1)",
+      "tags":["services","delivery"],
+      "memo":"Time & materials billed; paid immediately.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Cash","debit":15000,"credit":0},
+        {"account":"Services Revenue","debit":0,"credit":15000}
+      ]
+    },
+    {
+      "id":"E-2025-04-30-01",
+      "ts":"2025-04-30T23:00:00Z",
+      "kind":"posting",
+      "title":"April revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-04-30-02",
+      "ts":"2025-04-30T23:10:00Z",
+      "kind":"posting",
+      "title":"April payroll",
+      "tags":["people","payroll"],
+      "memo":"Team growth continues.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":104000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":52000,"credit":0},
+        {"account":"G&A Expense","debit":31000,"credit":0},
+        {"account":"Cash","debit":0,"credit":187000}
+      ]
+    },
+    {
+      "id":"S-2025-05-05-01",
+      "ts":"2025-05-05T09:30:00Z",
+      "kind":"signal",
+      "title":"Supplier risk — support vendor price increase pending",
+      "tags":["ops","risk"],
+      "memo":"Vendor indicates 12–15% increase at renewal.",
+      "signals":[
+        {"name":"Vendor price increase (expected)","value":13,"unit":"%"}
+      ]
+    },
+    {
+      "id":"E-2025-05-31-01",
+      "ts":"2025-05-31T23:00:00Z",
+      "kind":"posting",
+      "title":"May revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-05-31-02",
+      "ts":"2025-05-31T23:10:00Z",
+      "kind":"posting",
+      "title":"May payroll",
+      "tags":["people","payroll"],
+      "memo":"Add 1 data engineer.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":112000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":54000,"credit":0},
+        {"account":"G&A Expense","debit":33000,"credit":0},
+        {"account":"Cash","debit":0,"credit":199000}
+      ]
+    },
+    {
+      "id":"E-2025-06-03-01",
+      "ts":"2025-06-03T11:30:00Z",
+      "kind":"posting",
+      "title":"Working capital facility drawn ($200k)",
+      "tags":["finance","debt"],
+      "memo":"Short-term liquidity buffer.",
+      "classification":"financing",
+      "entries":[
+        {"account":"Cash","debit":200000,"credit":0},
+        {"account":"Debt","debit":0,"credit":200000}
+      ]
+    },
+    {
+      "id":"E-2025-06-30-01",
+      "ts":"2025-06-30T23:00:00Z",
+      "kind":"posting",
+      "title":"June revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-06-30-02",
+      "ts":"2025-06-30T23:10:00Z",
+      "kind":"posting",
+      "title":"June payroll",
+      "tags":["people","payroll"],
+      "memo":"Steady burn increase.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":118000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":61000,"credit":0},
+        {"account":"G&A Expense","debit":35000,"credit":0},
+        {"account":"Cash","debit":0,"credit":214000}
+      ]
+    },
+    {
+      "id":"S-2025-07-02-01",
+      "ts":"2025-07-02T14:10:00Z",
+      "kind":"signal",
+      "title":"Enterprise deal moves to procurement (prob ↑)",
+      "tags":["sales","pipeline"],
+      "memo":"Champion confirmed; timeline tighter.",
+      "signals":[
+        {"name":"Expected ARR","value":240000,"unit":"USD","probability":0.55,"horizonDays":45}
+      ]
+    },
+    {
+      "id":"E-2025-07-31-01",
+      "ts":"2025-07-31T23:00:00Z",
+      "kind":"posting",
+      "title":"July revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-07-31-02",
+      "ts":"2025-07-31T23:10:00Z",
+      "kind":"posting",
+      "title":"July payroll",
+      "tags":["people","payroll"],
+      "memo":"Add 1 designer.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":121000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":64000,"credit":0},
+        {"account":"G&A Expense","debit":36000,"credit":0},
+        {"account":"Cash","debit":0,"credit":221000}
+      ]
+    },
+    {
+      "id":"E-2025-08-15-01",
+      "ts":"2025-08-15T12:15:00Z",
+      "kind":"posting",
+      "title":"Debt repayment (interest only)",
+      "tags":["finance","debt"],
+      "memo":"Monthly interest payment on facility.",
+      "classification":"financing",
+      "entries":[
+        {"account":"Interest Expense","debit":1800,"credit":0},
+        {"account":"Cash","debit":0,"credit":1800}
+      ]
+    },
+    {
+      "id":"E-2025-08-31-01",
+      "ts":"2025-08-31T23:00:00Z",
+      "kind":"posting",
+      "title":"August revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-08-31-02",
+      "ts":"2025-08-31T23:10:00Z",
+      "kind":"posting",
+      "title":"August payroll",
+      "tags":["people","payroll"],
+      "memo":"Summer hiring.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":126000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":69000,"credit":0},
+        {"account":"G&A Expense","debit":37000,"credit":0},
+        {"account":"Cash","debit":0,"credit":232000}
+      ]
+    },
+    {
+      "id":"S-2025-09-01-01",
+      "ts":"2025-09-01T09:00:00Z",
+      "kind":"signal",
+      "title":"Customer C churn risk downgraded after exec call",
+      "tags":["customer-success"],
+      "memo":"Improved usage; risk decreases.",
+      "signals":[
+        {"name":"Churn risk score","value":42,"unit":"/100"},
+        {"name":"ARR at risk","value":60000,"unit":"USD","probability":0.15}
+      ]
+    },
+    {
+      "id":"E-2025-09-30-01",
+      "ts":"2025-09-30T23:00:00Z",
+      "kind":"posting",
+      "title":"September revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-09-30-02",
+      "ts":"2025-09-30T23:10:00Z",
+      "kind":"posting",
+      "title":"September payroll",
+      "tags":["people","payroll"],
+      "memo":"Hiring slows; stabilize burn.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":127000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":70000,"credit":0},
+        {"account":"G&A Expense","debit":38000,"credit":0},
+        {"account":"Cash","debit":0,"credit":235000}
+      ]
+    },
+    {
+      "id":"E-2025-10-31-01",
+      "ts":"2025-10-31T23:00:00Z",
+      "kind":"posting",
+      "title":"October revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-10-31-02",
+      "ts":"2025-10-31T23:10:00Z",
+      "kind":"posting",
+      "title":"October payroll",
+      "tags":["people","payroll"],
+      "memo":"Stabilized burn.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":127000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":70000,"credit":0},
+        {"account":"G&A Expense","debit":38000,"credit":0},
+        {"account":"Cash","debit":0,"credit":235000}
+      ]
+    },
+    {
+      "id":"S-2025-11-04-01",
+      "ts":"2025-11-04T18:00:00Z",
+      "kind":"signal",
+      "title":"Macro: FX volatility increases (EU customer mix)",
+      "tags":["risk","finance"],
+      "memo":"Monitor EUR exposure; consider hedging thresholds.",
+      "signals":[
+        {"name":"FX volatility index","value":1.6,"unit":"x baseline"}
+      ]
+    },
+    {
+      "id":"E-2025-11-30-01",
+      "ts":"2025-11-30T23:00:00Z",
+      "kind":"posting",
+      "title":"November revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-11-30-02",
+      "ts":"2025-11-30T23:10:00Z",
+      "kind":"posting",
+      "title":"November payroll",
+      "tags":["people","payroll"],
+      "memo":"Stabilized burn.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":127000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":70000,"credit":0},
+        {"account":"G&A Expense","debit":38000,"credit":0},
+        {"account":"Cash","debit":0,"credit":235000}
+      ]
+    },
+    {
+      "id":"E-2025-12-31-01",
+      "ts":"2025-12-31T23:00:00Z",
+      "kind":"posting",
+      "title":"December revenue recognition (Customers A+B)",
+      "tags":["finance","revrec"],
+      "memo":"Monthly revenue recognition.",
+      "classification":"operating",
+      "entries":[
+        {"account":"Deferred Revenue","debit":25000,"credit":0},
+        {"account":"Subscription Revenue","debit":0,"credit":25000}
+      ]
+    },
+    {
+      "id":"E-2025-12-31-02",
+      "ts":"2025-12-31T23:10:00Z",
+      "kind":"posting",
+      "title":"December payroll",
+      "tags":["people","payroll"],
+      "memo":"Stabilized burn.",
+      "classification":"operating",
+      "entries":[
+        {"account":"R&D Expense","debit":127000,"credit":0},
+        {"account":"Sales & Marketing Expense","debit":70000,"credit":0},
+        {"account":"G&A Expense","debit":38000,"credit":0},
+        {"account":"Cash","debit":0,"credit":235000}
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+/* Financial DVR dashboard — no external libraries.
+   - "posting" events apply journal entries (double-entry).
+   - "signal" events do NOT post, but are preserved as context/leading indicators.
+*/
+(function(){
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  // UI handles
+  const el = {
+    scrubber: $("#scrubber"),
+    timeLabel: $("#timeLabel"),
+    btnPlay: $("#btnPlay"),
+    btnBack: $("#btnBack"),
+    btnFwd: $("#btnFwd"),
+    speed: $("#speed"),
+    speedLabel: $("#speedLabel"),
+    btnSnapshot: $("#btnSnapshot"),
+
+    fPosting: $("#fPosting"),
+    fSignal: $("#fSignal"),
+    fOnlyImpacts: $("#fOnlyImpacts"),
+    searchBox: $("#searchBox"),
+    eventList: $("#eventList"),
+    eventCountPill: $("#eventCountPill"),
+
+    nowBody: $("#nowBody"),
+    impactPill: $("#impactPill"),
+
+    tblIS: $("#tblIS tbody"),
+    tblBS: $("#tblBS tbody"),
+    tblCF: $("#tblCF tbody"),
+    isAsOf: $("#isAsOf"),
+    cfAsOf: $("#cfAsOf"),
+    chartAsOf: $("#chartAsOf"),
+    bsBalanceCheck: $("#bsBalanceCheck"),
+
+    signalBody: $("#signalBody"),
+    signalCountPill: $("#signalCountPill"),
+    deltaBody: $("#deltaBody"),
+    deltaPill: $("#deltaPill"),
+
+    chartRevExp: $("#chartRevExp"),
+
+    kpiCash: $("#kpiCash"),
+    kpiCashDelta: $("#kpiCashDelta"),
+    kpiRunway: $("#kpiRunway"),
+    kpiBurn: $("#kpiBurn"),
+    kpiARR: $("#kpiARR"),
+    kpiMRR: $("#kpiMRR"),
+    kpiGM: $("#kpiGM"),
+    kpiGMDelta: $("#kpiGMDelta"),
+    kpiNI: $("#kpiNI"),
+    kpiNIDelta: $("#kpiNIDelta"),
+    kpiOCF: $("#kpiOCF"),
+    kpiOCFDelta: $("#kpiOCFDelta"),
+
+    fileInput: $("#fileInput")
+  };
+
+  // State
+  let model = null;
+  let events = [];
+  let coa = [];
+  let snapshots = []; // per absolute event index
+  let filteredIdx = []; // mapping slider position -> absolute event index
+  let ptr = 0; // pointer within filteredIdx
+  let playing = false;
+  let timer = null;
+
+  // ---------- Utilities ----------
+  function parseSeed(){
+    const raw = $("#seedData").textContent.trim();
+    return JSON.parse(raw);
+  }
+
+  function parseDate(ts){
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) throw new Error("Bad timestamp: " + ts);
+    return d;
+  }
+
+  function fmtMoney(n){
+    const sign = n < 0 ? "-" : "";
+    const v = Math.abs(n);
+    if (v >= 1_000_000) return sign + "$" + (v/1_000_000).toFixed(2) + "M";
+    if (v >= 1_000) return sign + "$" + (v/1_000).toFixed(1) + "k";
+    return sign + "$" + v.toFixed(0);
+  }
+
+  function fmtMoneyFull(n){
+    const sign = n < 0 ? "-" : "";
+    const v = Math.abs(n);
+    return sign + "$" + v.toLocaleString(undefined, {maximumFractionDigits:0});
+  }
+
+  function fmtPct(n){
+    if (!Number.isFinite(n)) return "—";
+    return (n*100).toFixed(1) + "%";
+  }
+
+  function fmtNum(n){
+    if (!Number.isFinite(n)) return "—";
+    return n.toLocaleString(undefined, {maximumFractionDigits:2});
+  }
+
+  function shallowClone(obj){
+    return Object.assign({}, obj);
+  }
+
+  function sum(obj, keys){
+    let t = 0;
+    for (const k of keys) t += (obj[k] || 0);
+    return t;
+  }
+
+  function unique(arr){
+    return Array.from(new Set(arr));
+  }
+
+  function normalizeTagList(tags){
+    if (!Array.isArray(tags)) return [];
+    return tags.map(t => String(t).trim()).filter(Boolean);
+  }
+
+  function safeText(s){
+    return String(s ?? "").replace(/[<>&]/g, ch => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[ch]));
+  }
+
+  // ---------- Accounting core ----------
+  function initLedger(){
+    const led = {};
+    for (const a of coa) led[a.name] = 0;
+    return led;
+  }
+
+  function acctMeta(name){
+    return coa.find(a => a.name === name);
+  }
+
+  function applyJournalLine(ledger, line){
+    const acct = acctMeta(line.account);
+    if (!acct) throw new Error("Unknown account: " + line.account);
+
+    const debit = Number(line.debit || 0);
+    const credit = Number(line.credit || 0);
+    if (!Number.isFinite(debit) || !Number.isFinite(credit)) throw new Error("Non-numeric debit/credit");
+    if (debit < 0 || credit < 0) throw new Error("Negative debit/credit not allowed (use the appropriate side)");
+
+    // Maintain "natural sign" balances: positive in the account's normal balance direction.
+    // debit increases debit-normal accounts; credit increases credit-normal accounts.
+    if (debit !== 0){
+      ledger[acct.name] += (acct.normal === "debit") ? debit : -debit;
+    }
+    if (credit !== 0){
+      ledger[acct.name] += (acct.normal === "credit") ? credit : -credit;
+    }
+  }
+
+  function eventImpacts(event){
+    if (event.kind !== "posting") return {is:false, bs:false, cf:false};
+    const acctNames = (event.entries || []).map(l => l.account);
+    const types = acctNames.map(n => acctMeta(n)?.type).filter(Boolean);
+    const is = types.some(t => t === "revenue" || t === "expense");
+    const bs = types.some(t => t === "asset" || t === "liability" || t === "equity");
+    const cf = acctNames.includes("Cash");
+    return {is, bs, cf};
+  }
+
+  function calcIS(ledger){
+    const revAccts = coa.filter(a => a.type === "revenue").map(a => a.name);
+    const expAccts = coa.filter(a => a.type === "expense").map(a => a.name);
+    const cogsAccts = coa.filter(a => a.type === "expense" && a.group === "cogs").map(a => a.name);
+    const opexAccts = coa.filter(a => a.type === "expense" && a.group === "opex").map(a => a.name);
+    const otherAccts = coa.filter(a => a.type === "expense" && a.group === "other").map(a => a.name);
+
+    const revenue = sum(ledger, revAccts);
+    const cogs = sum(ledger, cogsAccts);
+    const grossProfit = revenue - cogs;
+    const opex = sum(ledger, opexAccts);
+    const operatingIncome = grossProfit - opex;
+    const other = sum(ledger, otherAccts);
+    const netIncome = operatingIncome - other;
+
+    return {
+      revenue,
+      revenueBy: revAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {}),
+      cogs,
+      cogsBy: cogsAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {}),
+      grossProfit,
+      opex,
+      opexBy: opexAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {}),
+      other,
+      otherBy: otherAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {}),
+      netIncome
+    };
+  }
+
+  function calcBS(ledger, netIncome){
+    const assetAccts = coa.filter(a => a.type === "asset").map(a => a.name);
+    const liabAccts = coa.filter(a => a.type === "liability").map(a => a.name);
+    const equityAccts = coa.filter(a => a.type === "equity").map(a => a.name);
+
+    const assets = assetAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {});
+    const liabilities = liabAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {});
+    const equity = equityAccts.reduce((o,k)=> (o[k]=ledger[k]||0,o), {});
+    equity["Retained Earnings (computed)"] = netIncome;
+
+    const assetsTotal = sum(assets, Object.keys(assets));
+    const liabTotal = sum(liabilities, Object.keys(liabilities));
+    const equityTotal = sum(equity, Object.keys(equity));
+    const balanceDelta = assetsTotal - (liabTotal + equityTotal);
+
+    return {assets, liabilities, equity, assetsTotal, liabTotal, equityTotal, balanceDelta};
+  }
+
+  function computeSnapshots(){
+    snapshots = [];
+    let ledger = initLedger();
+    let cf = {operating:0, investing:0, financing:0};
+    let signals = [];
+    let cash0 = null;
+
+    for (let i=0; i<events.length; i++){
+      const ev = events[i];
+      const prevLedger = ledger;
+
+      let cashDelta = 0;
+      let impacts = eventImpacts(ev);
+
+      if (ev.kind === "posting"){
+        const beforeCash = ledger["Cash"] || 0;
+        for (const line of (ev.entries || [])) applyJournalLine(ledger, line);
+        const afterCash = ledger["Cash"] || 0;
+        cashDelta = afterCash - beforeCash;
+        const cls = String(ev.classification || "operating");
+        if (Math.abs(cashDelta) > 1e-9 && (cls in cf)) cf[cls] += cashDelta;
+      } else if (ev.kind === "signal"){
+        signals = signals.concat([ev]);
+      }
+
+      const is = calcIS(ledger);
+      const bs = calcBS(ledger, is.netIncome);
+
+      if (cash0 === null){
+        // inferred opening cash: ending cash - net cash change to date
+        const netCashChange = cf.operating + cf.investing + cf.financing;
+        cash0 = (ledger["Cash"] || 0) - netCashChange;
+      }
+
+      const cfYTD = {
+        operating: cf.operating,
+        investing: cf.investing,
+        financing: cf.financing,
+        netChange: cf.operating + cf.investing + cf.financing,
+        beginningCash: cash0,
+        endingCash: ledger["Cash"] || 0
+      };
+
+      // trailing 30d run-rate (approx): compute change in revenue accounts over last 30 days by scanning events
+      const now = ev._d;
+      const start = new Date(now.getTime() - 30*24*3600*1000);
+
+      let rev30 = 0;
+      let exp30 = 0;
+      for (let j=0; j<=i; j++){
+        const e2 = events[j];
+        if (e2.kind !== "posting") continue;
+        if (e2._d < start) continue;
+        for (const line of (e2.entries || [])){
+          const meta = acctMeta(line.account);
+          if (!meta) continue;
+          // capture the "net increase in natural balance"
+          const debit = Number(line.debit || 0), credit = Number(line.credit || 0);
+          let delta = 0;
+          if (debit) delta += (meta.normal === "debit") ? debit : -debit;
+          if (credit) delta += (meta.normal === "credit") ? credit : -credit;
+          if (meta.type === "revenue") rev30 += delta;
+          if (meta.type === "expense") exp30 += delta;
+        }
+      }
+      const mrr = rev30 / 1; // 30-day recognized revenue proxy
+      const arr = mrr * 12;
+
+      // burn: average operating cash flow over last 3 calendar months (approx, based on event timestamps)
+      const monthKey = (d) => `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+      const months = {};
+      for (let j=0; j<=i; j++){
+        const e2 = events[j];
+        if (e2.kind !== "posting") continue;
+        const cls = String(e2.classification || "operating");
+        if (cls !== "operating") continue;
+        const k = monthKey(e2._d);
+        // compute cash delta per event
+        let cDelta = 0;
+        for (const line of (e2.entries || [])){
+          if (line.account !== "Cash") continue;
+          // cash is debit-normal
+          cDelta += Number(line.debit || 0);
+          cDelta -= Number(line.credit || 0);
+        }
+        months[k] = (months[k] || 0) + cDelta;
+      }
+      const monthList = Object.keys(months).sort();
+      const last3 = monthList.slice(-3);
+      const avgOCF = last3.length ? (last3.reduce((t,k)=>t+months[k],0) / last3.length) : 0;
+      const burn = (avgOCF < 0) ? -avgOCF : 0;
+      const runwayMonths = (burn > 0) ? ((ledger["Cash"] || 0) / burn) : Infinity;
+
+      const gm = (is.revenue > 0) ? ((is.grossProfit / is.revenue)) : NaN;
+
+      snapshots.push({
+        i,
+        event: ev,
+        ledger: shallowClone(ledger),
+        is,
+        bs,
+        cf: cfYTD,
+        cashDelta,
+        impacts,
+        signals: signals.slice(),
+        metrics: {arr, mrr, gm, burn, runwayMonths}
+      });
+    }
+  }
+
+  // ---------- Filtering & tape ----------
+  function eventMatchesFilters(ev){
+    const t = (ev.kind || "").toLowerCase();
+    if (t === "posting" && !el.fPosting.checked) return false;
+    if (t === "signal" && !el.fSignal.checked) return false;
+
+    if (el.fOnlyImpacts.checked){
+      const imp = eventImpacts(ev);
+      if (!(imp.is || imp.bs || imp.cf)) return false;
+    }
+
+    const q = el.searchBox.value.trim().toLowerCase();
+    if (q){
+      const hay = [
+        ev.id, ev.title, ev.memo,
+        ...(ev.tags || []),
+        ...(ev.entries || []).map(x => x.account),
+        ...(ev.signals || []).map(s => s.name)
+      ].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }
+
+  function rebuildFilteredIndex(){
+    filteredIdx = [];
+    for (let i=0;i<events.length;i++){
+      if (eventMatchesFilters(events[i])) filteredIdx.push(i);
+    }
+    el.eventCountPill.textContent = `${filteredIdx.length} events`;
+    el.scrubber.max = Math.max(0, filteredIdx.length - 1);
+    if (filteredIdx.length === 0){
+      ptr = 0;
+      el.scrubber.value = "0";
+      renderEmptyState();
+      return;
+    }
+    // clamp ptr to new range, preserving nearest absolute index when possible
+    const currentAbs = filteredIdx[Math.min(ptr, filteredIdx.length-1)];
+    ptr = Math.min(ptr, filteredIdx.length - 1);
+    el.scrubber.value = String(ptr);
+    renderTape(currentAbs);
+  }
+
+  function renderTape(activeAbsIdx){
+    // Build event list
+    el.eventList.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    for (let p=0; p<filteredIdx.length; p++){
+      const i = filteredIdx[p];
+      const ev = events[i];
+      const imp = eventImpacts(ev);
+
+      const card = document.createElement("div");
+      card.className = "eventCard" + (i === activeAbsIdx ? " active" : "");
+      card.dataset.ptr = String(p);
+
+      const ts = ev._d.toISOString().replace(".000Z","Z");
+      const tags = normalizeTagList(ev.tags);
+
+      const pill = (ev.kind === "posting")
+        ? `<span class="pill posting">Posting</span>`
+        : `<span class="pill signal">Signal</span>`;
+
+      const impactsBadges = [
+        imp.is ? '<span class="badge">IS</span>' : '',
+        imp.bs ? '<span class="badge">BS</span>' : '',
+        imp.cf ? '<span class="badge">CF</span>' : ''
+      ].join("");
+
+      card.innerHTML = `
+        <div class="eventTop">
+          <div>
+            <div class="eventTitle">${safeText(ev.title || ev.id)}</div>
+            <div class="eventMeta">
+              ${pill}
+              ${impactsBadges}
+              <span class="mono">${safeText(ts)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="eventMeta">
+          ${(tags.slice(0,4)).map(t=>`<span class="badge">${safeText(t)}</span>`).join("")}
+          ${tags.length>4 ? `<span class="badge">+${tags.length-4}</span>` : ""}
+        </div>
+      `;
+      card.addEventListener("click", () => {
+        ptr = p;
+        el.scrubber.value = String(ptr);
+        update();
+      });
+      frag.appendChild(card);
+    }
+    el.eventList.appendChild(frag);
+
+    // Update the "active" card (scroll into view)
+    const activeCard = el.eventList.querySelector('.eventCard.active');
+    if (activeCard) activeCard.scrollIntoView({block:"nearest"});
+  }
+
+  // ---------- Rendering: statements ----------
+  function renderNowPanel(snap, prevSnap){
+    const ev = snap.event;
+    const ts = ev._d.toISOString().replace(".000Z","Z");
+    const tags = normalizeTagList(ev.tags);
+    const pill = (ev.kind === "posting")
+      ? `<span class="pill posting">Posting event</span>`
+      : `<span class="pill signal">Signal event</span>`;
+
+    const imp = snap.impacts;
+    const impactText = [
+      imp.is ? "IS" : null,
+      imp.bs ? "BS" : null,
+      imp.cf ? "CF" : null
+    ].filter(Boolean).join(" · ");
+    el.impactPill.textContent = impactText ? `Impacts: ${impactText}` : "Impacts: —";
+
+    let detailHtml = "";
+    if (ev.kind === "posting"){
+      const cashDelta = snap.cashDelta;
+      const cashClass = Math.abs(cashDelta) < 1e-9 ? "pill" : (cashDelta > 0 ? "pill posting" : "pill bad");
+      const cls = safeText(ev.classification || "operating");
+
+      const entries = (ev.entries || []);
+      const entryRows = entries.map(l => `
+        <tr>
+          <td class="mono">${safeText(l.account)}</td>
+          <td class="num">${Number(l.debit||0) ? fmtMoneyFull(Number(l.debit||0)) : ""}</td>
+          <td class="num">${Number(l.credit||0) ? fmtMoneyFull(Number(l.credit||0)) : ""}</td>
+        </tr>
+      `).join("");
+
+      detailHtml = `
+        <div class="grid2mini" style="margin-top:10px;">
+          <div class="${Math.abs(cashDelta) < 1e-9 ? 'okBox' : 'warnBox'}">
+            <div><b>Cash impact</b>: <span class="mono">${fmtMoneyFull(cashDelta)}</span></div>
+            <div class="small muted">Note: postings can affect statements with <i>zero</i> cash movement (e.g., invoices, accruals, rev rec).</div>
+          </div>
+          <div class="okBox">
+            <div><b>Classification</b>: <span class="mono">${cls}</span></div>
+            <div class="small muted">Used to group cash flow as operating / investing / financing.</div>
+          </div>
+        </div>
+
+        <div style="height:10px;"></div>
+        <div class="small muted"><b>Journal entry</b> (double-entry)</div>
+        <table>
+          <thead><tr><th>Account</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+          <tbody>${entryRows || `<tr><td colspan="3" class="muted">No entries supplied.</td></tr>`}</tbody>
+        </table>
+      `;
+    } else {
+      const sigs = (ev.signals || []);
+      const sigRows = sigs.map(s => {
+        const prob = (s.probability != null) ? ` · p=${fmtNum(Number(s.probability))}` : "";
+        const horiz = (s.horizonDays != null) ? ` · horizon=${fmtNum(Number(s.horizonDays))}d` : "";
+        return `
+          <tr>
+            <td>${safeText(s.name)}</td>
+            <td class="num mono">${safeText(s.value)} ${safeText(s.unit || "")}${prob}${horiz}</td>
+          </tr>
+        `;
+      }).join("");
+
+      detailHtml = `
+        <div class="warnBox" style="margin-top:10px;">
+          <div><b>Inform-only signal</b></div>
+          <div class="small">This event does not post to the ledger, but it is preserved as context for forecasting, risk monitoring, and narrative auditability.</div>
+        </div>
+
+        <div style="height:10px;"></div>
+        <div class="small muted"><b>Signals</b></div>
+        <table>
+          <thead><tr><th>Signal</th><th class="num">Value</th></tr></thead>
+          <tbody>${sigRows || `<tr><td colspan="2" class="muted">No signals supplied.</td></tr>`}</tbody>
+        </table>
+      `;
+    }
+
+    el.nowBody.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+        <div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            ${pill}
+            <span class="badge mono">${safeText(ev.id)}</span>
+          </div>
+          <div style="margin-top:6px; font-size:16px; font-weight:800;">${safeText(ev.title || ev.id)}</div>
+          <div class="muted small mono" style="margin-top:4px;">${safeText(ts)}</div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+          ${(tags).map(t=>`<span class="badge">${safeText(t)}</span>`).join("")}
+        </div>
+      </div>
+      ${ev.memo ? `<div class="muted" style="margin-top:10px;">${safeText(ev.memo)}</div>` : ""}
+      ${detailHtml}
+    `;
+  }
+
+  function renderIS(snap, prevSnap){
+    const is = snap.is;
+    const prev = prevSnap ? prevSnap.is : null;
+
+    const rows = [];
+    function addSection(name){ rows.push({type:"section", label:name}); }
+    function addLine(label, value, key){
+      const prevVal = prev ? (key ? key(prev) : null) : null;
+      const changed = (prevVal != null) && (Math.abs(value - prevVal) > 1e-6);
+      rows.push({type:"line", label, value, changed});
+    }
+
+    addSection("Revenue");
+    addLine("Subscription revenue", is.revenueBy["Subscription Revenue"] || 0, p => p.revenueBy["Subscription Revenue"] || 0);
+    addLine("Services revenue", is.revenueBy["Services Revenue"] || 0, p => p.revenueBy["Services Revenue"] || 0);
+    addLine("Total revenue", is.revenue, p => p.revenue);
+
+    addSection("Cost of revenue");
+    addLine("Hosting", is.cogsBy["Cost of Revenue - Hosting"] || 0, p => p.cogsBy["Cost of Revenue - Hosting"] || 0);
+    addLine("Support", is.cogsBy["Cost of Revenue - Support"] || 0, p => p.cogsBy["Cost of Revenue - Support"] || 0);
+    addLine("Total COGS", is.cogs, p => p.cogs);
+
+    addSection("Gross profit");
+    addLine("Gross profit", is.grossProfit, p => p.grossProfit);
+
+    addSection("Operating expenses");
+    addLine("Sales & marketing", is.opexBy["Sales & Marketing Expense"] || 0, p => p.opexBy["Sales & Marketing Expense"] || 0);
+    addLine("R&D", is.opexBy["R&D Expense"] || 0, p => p.opexBy["R&D Expense"] || 0);
+    addLine("G&A", is.opexBy["G&A Expense"] || 0, p => p.opexBy["G&A Expense"] || 0);
+    addLine("Total OpEx", is.opex, p => p.opex);
+
+    addSection("Net");
+    addLine("Operating income", is.grossProfit - is.opex, p => (p.grossProfit - p.opex));
+    addLine("Interest expense", is.otherBy["Interest Expense"] || 0, p => p.otherBy["Interest Expense"] || 0);
+    addLine("Net income", is.netIncome, p => p.netIncome);
+
+    el.tblIS.innerHTML = rows.map(r => {
+      if (r.type === "section"){
+        return `<tr class="section"><td colspan="2">${safeText(r.label)}</td></tr>`;
+      }
+      const cls = r.changed ? "changed" : "";
+      return `<tr class="${cls}"><td>${safeText(r.label)}</td><td class="num">${fmtMoneyFull(r.value)}</td></tr>`;
+    }).join("");
+
+    el.isAsOf.textContent = snap.event._d.toISOString().slice(0,10);
+  }
+
+  function renderBS(snap, prevSnap){
+    const bs = snap.bs;
+    const prev = prevSnap ? prevSnap.bs : null;
+
+    const rows = [];
+    function addSection(name){ rows.push({type:"section", label:name}); }
+    function addLine(label, value, prevValue){
+      const changed = (prevValue != null) && (Math.abs(value - prevValue) > 1e-6);
+      rows.push({type:"line", label, value, changed});
+    }
+
+    const a = bs.assets, l = bs.liabilities, e = bs.equity;
+    const pA = prev ? prev.assets : null;
+    const pL = prev ? prev.liabilities : null;
+    const pE = prev ? prev.equity : null;
+
+    addSection("Assets");
+    addLine("Cash", a["Cash"] || 0, pA ? (pA["Cash"]||0) : null);
+    addLine("Accounts receivable", a["Accounts Receivable"] || 0, pA ? (pA["Accounts Receivable"]||0) : null);
+    addLine("Prepaid expenses", a["Prepaid Expenses"] || 0, pA ? (pA["Prepaid Expenses"]||0) : null);
+    addLine("Equipment", a["Equipment"] || 0, pA ? (pA["Equipment"]||0) : null);
+    addLine("Total assets", bs.assetsTotal, prev ? prev.assetsTotal : null);
+
+    addSection("Liabilities");
+    addLine("Accounts payable", l["Accounts Payable"] || 0, pL ? (pL["Accounts Payable"]||0) : null);
+    addLine("Deferred revenue", l["Deferred Revenue"] || 0, pL ? (pL["Deferred Revenue"]||0) : null);
+    addLine("Debt", l["Debt"] || 0, pL ? (pL["Debt"]||0) : null);
+    addLine("Total liabilities", bs.liabTotal, prev ? prev.liabTotal : null);
+
+    addSection("Equity");
+    addLine("Paid-in capital", e["Paid-in Capital"] || 0, pE ? (pE["Paid-in Capital"]||0) : null);
+    addLine("Retained earnings (computed)", e["Retained Earnings (computed)"] || 0, pE ? (pE["Retained Earnings (computed)"]||0) : null);
+    addLine("Total equity", bs.equityTotal, prev ? prev.equityTotal : null);
+
+    el.tblBS.innerHTML = rows.map(r => {
+      if (r.type === "section"){
+        return `<tr class="section"><td colspan="2">${safeText(r.label)}</td></tr>`;
+      }
+      const cls = r.changed ? "changed" : "";
+      return `<tr class="${cls}"><td>${safeText(r.label)}</td><td class="num">${fmtMoneyFull(r.value)}</td></tr>`;
+    }).join("");
+
+    const delta = bs.balanceDelta;
+    const ok = Math.abs(delta) < 1e-6;
+    if (ok){
+      el.bsBalanceCheck.textContent = "Balanced ✓";
+      el.bsBalanceCheck.className = "pill posting";
+    } else {
+      el.bsBalanceCheck.textContent = `Out of balance: ${fmtMoneyFull(delta)}`;
+      el.bsBalanceCheck.className = "pill signal";
+    }
+  }
+
+  function renderCF(snap, prevSnap){
+    const cf = snap.cf;
+    const prev = prevSnap ? prevSnap.cf : null;
+
+    const rows = [];
+    function addLine(label, value, prevValue){
+      const changed = (prevValue != null) && (Math.abs(value - prevValue) > 1e-6);
+      rows.push({label, value, changed});
+    }
+
+    addLine("Net cash from operating activities", cf.operating, prev ? prev.operating : null);
+    addLine("Net cash from investing activities", cf.investing, prev ? prev.investing : null);
+    addLine("Net cash from financing activities", cf.financing, prev ? prev.financing : null);
+    addLine("Net change in cash", cf.netChange, prev ? prev.netChange : null);
+    addLine("Beginning cash (inferred)", cf.beginningCash, prev ? prev.beginningCash : null);
+    addLine("Ending cash", cf.endingCash, prev ? prev.endingCash : null);
+
+    el.tblCF.innerHTML = rows.map(r => {
+      const cls = r.changed ? "changed" : "";
+      return `<tr class="${cls}"><td>${safeText(r.label)}</td><td class="num">${fmtMoneyFull(r.value)}</td></tr>`;
+    }).join("");
+
+    el.cfAsOf.textContent = snap.event._d.toISOString().slice(0,10);
+  }
+
+  // ---------- Rendering: KPIs ----------
+  function renderKPIs(snap, prevSnap){
+    const cash = snap.ledger["Cash"] || 0;
+    const prevCash = prevSnap ? (prevSnap.ledger["Cash"] || 0) : null;
+    const cashDelta = (prevCash != null) ? (cash - prevCash) : null;
+
+    el.kpiCash.textContent = fmtMoney(cash);
+    el.kpiCashDelta.textContent = (cashDelta != null) ? `Δ ${fmtMoneyFull(cashDelta)}` : "Δ —";
+
+    const burn = snap.metrics.burn || 0;
+    const runway = snap.metrics.runwayMonths;
+    el.kpiBurn.textContent = burn > 0 ? `Burn ${fmtMoney(burn)}/mo` : "Burn —";
+    el.kpiRunway.textContent = (runway === Infinity) ? "∞" : (Number.isFinite(runway) ? runway.toFixed(1) : "—");
+
+    el.kpiARR.textContent = fmtMoney(snap.metrics.arr || 0);
+    el.kpiMRR.textContent = `MRR ${fmtMoney(snap.metrics.mrr || 0)}`;
+
+    const gm = snap.metrics.gm;
+    const prevGm = prevSnap ? prevSnap.metrics.gm : null;
+    el.kpiGM.textContent = fmtPct(gm);
+    el.kpiGMDelta.textContent = (prevGm != null && Number.isFinite(gm) && Number.isFinite(prevGm))
+      ? `Δ ${( (gm-prevGm)*100 ).toFixed(1)}pp`
+      : "Δ —";
+
+    const ni = snap.is.netIncome;
+    const prevNi = prevSnap ? prevSnap.is.netIncome : null;
+    el.kpiNI.textContent = fmtMoney(ni);
+    el.kpiNIDelta.textContent = (prevNi != null) ? `Δ ${fmtMoneyFull(ni-prevNi)}` : "Δ —";
+
+    const ocf = snap.cf.operating;
+    const prevOcf = prevSnap ? prevSnap.cf.operating : null;
+    el.kpiOCF.textContent = fmtMoney(ocf);
+    el.kpiOCFDelta.textContent = (prevOcf != null) ? `Δ ${fmtMoneyFull(ocf-prevOcf)}` : "Δ —";
+  }
+
+  // ---------- Signals ----------
+  function renderSignals(snap){
+    const sigs = snap.signals || [];
+    el.signalCountPill.textContent = `${sigs.length} signals to date`;
+
+    if (!sigs.length){
+      el.signalBody.innerHTML = `<div class="muted small">No signals yet.</div>`;
+      return;
+    }
+
+    // show last 6 signals
+    const last = sigs.slice(-6).reverse();
+    const blocks = last.map(ev => {
+      const ts = ev._d.toISOString().slice(0,10);
+      const tags = normalizeTagList(ev.tags);
+      const sigList = (ev.signals || []).map(s => {
+        const prob = (s.probability != null) ? ` · p=${fmtNum(Number(s.probability))}` : "";
+        const horiz = (s.horizonDays != null) ? ` · horizon=${fmtNum(Number(s.horizonDays))}d` : "";
+        return `<div class="small"><span class="mono">${safeText(s.name)}</span>: <b>${safeText(s.value)} ${safeText(s.unit || "")}</b><span class="muted">${prob}${horiz}</span></div>`;
+      }).join("");
+      return `
+        <div style="border:1px solid rgba(255,255,255,0.10); border-radius: 12px; padding: 10px 10px; background: rgba(255,255,255,0.03); margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+            <div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <span class="pill signal">Signal</span>
+                <span class="badge mono">${safeText(ts)}</span>
+              </div>
+              <div style="margin-top:6px; font-weight:800;">${safeText(ev.title)}</div>
+              ${ev.memo ? `<div class="muted small" style="margin-top:4px;">${safeText(ev.memo)}</div>` : ""}
+            </div>
+          </div>
+          <div style="margin-top:8px;">${sigList || `<div class="muted small">No signal payload.</div>`}</div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            ${tags.map(t=>`<span class="badge">${safeText(t)}</span>`).join("")}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    el.signalBody.innerHTML = blocks;
+  }
+
+  // ---------- Deltas ("What changed?") ----------
+  function renderDeltas(snap, prevSnap){
+    if (!prevSnap){
+      el.deltaPill.textContent = "—";
+      el.deltaBody.innerHTML = `<div class="muted small">Start of tape.</div>`;
+      return;
+    }
+    const deltas = [];
+
+    function pushDelta(label, now, prev){
+      const d = now - prev;
+      if (Math.abs(d) < 1e-6) return;
+      deltas.push({label, d, now, prev});
+    }
+
+    // Core deltas
+    pushDelta("Cash", snap.ledger["Cash"]||0, prevSnap.ledger["Cash"]||0);
+    pushDelta("Accounts receivable", snap.ledger["Accounts Receivable"]||0, prevSnap.ledger["Accounts Receivable"]||0);
+    pushDelta("Accounts payable", snap.ledger["Accounts Payable"]||0, prevSnap.ledger["Accounts Payable"]||0);
+    pushDelta("Deferred revenue", snap.ledger["Deferred Revenue"]||0, prevSnap.ledger["Deferred Revenue"]||0);
+    pushDelta("Revenue (YTD)", snap.is.revenue, prevSnap.is.revenue);
+    pushDelta("Net income (YTD)", snap.is.netIncome, prevSnap.is.netIncome);
+
+    // If posting event, show cash delta explicitly
+    if (snap.event.kind === "posting"){
+      deltas.unshift({label:"Event cash impact", d: snap.cashDelta, now: snap.cashDelta, prev: 0, special:true});
+    }
+
+    el.deltaPill.textContent = `${deltas.length} deltas`;
+
+    if (!deltas.length){
+      el.deltaBody.innerHTML = `<div class="okBox"><b>No changes</b><div class="small">This event does not move tracked lines (e.g., a signal-only event or a non-impact posting).</div></div>`;
+      return;
+    }
+
+    const items = deltas.slice(0,10).map(x => {
+      const cls = x.d > 0 ? "posting" : "bad";
+      const sign = x.d > 0 ? "+" : "−";
+      return `
+        <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; padding:8px 8px; border:1px solid rgba(255,255,255,0.10); border-radius:12px; background: rgba(255,255,255,0.03); margin-bottom:8px;">
+          <div>
+            <div style="font-weight:800;">${safeText(x.label)}</div>
+            <div class="small muted mono">prev ${fmtMoneyFull(x.prev)} → now ${fmtMoneyFull(x.now)}</div>
+          </div>
+          <div class="pill ${cls} mono">${sign} ${fmtMoneyFull(Math.abs(x.d))}</div>
+        </div>
+      `;
+    }).join("");
+
+    el.deltaBody.innerHTML = items;
+  }
+
+  // ---------- Charting (Canvas) ----------
+  function setupCanvas(canvas){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(300, Math.floor(rect.width));
+    const h = Math.max(160, Math.floor(rect.height));
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx, w, h};
+  }
+
+  function drawLineChart(canvas, seriesList, cursorIndex, labels){
+    const {ctx, w, h} = setupCanvas(canvas);
+    ctx.clearRect(0,0,w,h);
+
+    const padL = 42, padR = 14, padT = 12, padB = 24;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+
+    const n = labels.length;
+    if (n < 2){
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText("Not enough data to chart.", 12, 24);
+      return;
+    }
+
+    // compute min/max
+    let minY = Infinity, maxY = -Infinity;
+    for (const s of seriesList){
+      for (const v of s.values){
+        if (!Number.isFinite(v)) continue;
+        minY = Math.min(minY, v);
+        maxY = Math.max(maxY, v);
+      }
+    }
+    if (!Number.isFinite(minY) || !Number.isFinite(maxY)){
+      minY = 0; maxY = 1;
+    }
+    // include zero baseline
+    minY = Math.min(minY, 0);
+    maxY = Math.max(maxY, 0);
+    const range = (maxY - minY) || 1;
+    const y = (v) => padT + plotH - ((v - minY) / range) * plotH;
+    const x = (i) => padL + (i/(n-1)) * plotW;
+
+    // grid + axes
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.lineWidth = 1;
+
+    // horizontal gridlines
+    const gridN = 4;
+    for (let g=0; g<=gridN; g++){
+      const yy = padT + (g/gridN)*plotH;
+      ctx.beginPath();
+      ctx.moveTo(padL, yy);
+      ctx.lineTo(w - padR, yy);
+      ctx.stroke();
+    }
+
+    // baseline (y=0)
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.beginPath();
+    ctx.moveTo(padL, y(0));
+    ctx.lineTo(w - padR, y(0));
+    ctx.stroke();
+
+    // y-axis labels (min, 0, max)
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = "11px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(fmtMoney(minY), padL - 8, y(minY));
+    ctx.fillText(fmtMoney(0), padL - 8, y(0));
+    ctx.fillText(fmtMoney(maxY), padL - 8, y(maxY));
+
+    // series lines
+    for (const s of seriesList){
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i=0;i<n;i++){
+        const yy = y(s.values[i]);
+        const xx = x(i);
+        if (i===0) ctx.moveTo(xx, yy);
+        else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+
+    // cursor line
+    const c = Math.max(0, Math.min(n-1, cursorIndex));
+    ctx.strokeStyle = "rgba(125,211,252,0.65)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x(c), padT);
+    ctx.lineTo(x(c), padT + plotH);
+    ctx.stroke();
+
+    // x labels (first, mid, last)
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.font = "11px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(labels[0], x(0), padT + plotH + 6);
+    ctx.fillText(labels[Math.floor((n-1)/2)], x(Math.floor((n-1)/2)), padT + plotH + 6);
+    ctx.fillText(labels[n-1], x(n-1), padT + plotH + 6);
+  }
+
+  function renderCharts(){
+    if (!filteredIdx.length) return;
+
+    const labels = filteredIdx.map(i => events[i]._d.toISOString().slice(5,10)); // MM-DD
+    const rev = filteredIdx.map(i => snapshots[i].is.revenue);
+    const exp = filteredIdx.map(i => snapshots[i].is.cogs + snapshots[i].is.opex + snapshots[i].is.other);
+    const cash = filteredIdx.map(i => snapshots[i].ledger["Cash"] || 0);
+
+    drawLineChart(el.chartRevExp, [
+      {name:"Revenue", values: rev, color:"rgba(125,211,252,0.90)"},
+      {name:"Expenses", values: exp, color:"rgba(251,113,133,0.85)"},
+      {name:"Cash", values: cash, color:"rgba(52,211,153,0.85)"}
+    ], ptr, labels);
+  }
+
+  // ---------- Orchestration ----------
+  function setTimeLabel(absIdx){
+    const ev = events[absIdx];
+    const d = ev._d;
+    const ts = d.toISOString().replace(".000Z","Z");
+    el.timeLabel.textContent = ts;
+    el.chartAsOf.textContent = d.toISOString().slice(0,10);
+  }
+
+  function update(){
+    if (!filteredIdx.length){
+      renderEmptyState();
+      return;
+    }
+    ptr = Math.max(0, Math.min(filteredIdx.length - 1, Number(el.scrubber.value || 0)));
+    const absIdx = filteredIdx[ptr];
+    const snap = snapshots[absIdx];
+    const prevSnap = absIdx > 0 ? snapshots[absIdx - 1] : null;
+
+    // update tape highlighting
+    $$(".eventCard").forEach((c) => {
+      const p = Number(c.dataset.ptr);
+      c.classList.toggle("active", p === ptr);
+    });
+    const activeCard = el.eventList.querySelector('.eventCard.active');
+    if (activeCard) activeCard.scrollIntoView({block:"nearest"});
+
+    setTimeLabel(absIdx);
+    renderKPIs(snap, prevSnap);
+    renderNowPanel(snap, prevSnap);
+    renderIS(snap, prevSnap);
+    renderBS(snap, prevSnap);
+    renderCF(snap, prevSnap);
+    renderSignals(snap);
+    renderDeltas(snap, prevSnap);
+    renderCharts();
+  }
+
+  function renderEmptyState(){
+    el.nowBody.innerHTML = `<div class="warnBox"><b>No events match your filters.</b><div class="small">Adjust filters or search query to restore the tape.</div></div>`;
+    el.tblIS.innerHTML = "";
+    el.tblBS.innerHTML = "";
+    el.tblCF.innerHTML = "";
+    el.signalBody.innerHTML = `<div class="muted small">—</div>`;
+    el.deltaBody.innerHTML = `<div class="muted small">—</div>`;
+    el.eventCountPill.textContent = "0 events";
+    el.signalCountPill.textContent = "—";
+    el.bsBalanceCheck.textContent = "—";
+    el.bsBalanceCheck.className = "pill";
+    el.timeLabel.textContent = "—";
+    el.chartAsOf.textContent = "—";
+  }
+
+  function togglePlay(){
+    playing = !playing;
+    el.btnPlay.textContent = playing ? "Pause" : "Play";
+    if (playing) startTimer(); else stopTimer();
+  }
+
+  function startTimer(){
+    stopTimer();
+    const tick = () => {
+      if (!playing) return;
+      const speed = Number(el.speed.value || 1);
+      const stepEveryMs = 700 / speed; // base pacing
+      timer = setTimeout(() => {
+        if (ptr < filteredIdx.length - 1){
+          ptr += 1;
+          el.scrubber.value = String(ptr);
+          update();
+          tick();
+        } else {
+          playing = false;
+          el.btnPlay.textContent = "Play";
+          stopTimer();
+        }
+      }, stepEveryMs);
+    };
+    tick();
+  }
+
+  function stopTimer(){
+    if (timer) clearTimeout(timer);
+    timer = null;
+  }
+
+  function step(delta){
+    if (!filteredIdx.length) return;
+    playing = false; el.btnPlay.textContent = "Play"; stopTimer();
+    ptr = Math.max(0, Math.min(filteredIdx.length - 1, ptr + delta));
+    el.scrubber.value = String(ptr);
+    update();
+  }
+
+  function exportSnapshot(){
+    if (!filteredIdx.length) return;
+    const absIdx = filteredIdx[ptr];
+    const snap = snapshots[absIdx];
+
+    const payload = {
+      asOf: snap.event.ts,
+      event: snap.event,
+      statements: {
+        incomeStatementYTD: snap.is,
+        balanceSheet: snap.bs,
+        cashFlowYTD: snap.cf
+      },
+      ledger: snap.ledger,
+      signalsToDate: snap.signals
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `financial-dvr-snapshot_${snap.event.ts.replace(/[:]/g,'-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---------- Data loading ----------
+  function loadModel(newModel){
+    model = newModel;
+    coa = (model.chartOfAccounts || []).map(a => ({
+      name: String(a.name),
+      type: String(a.type),
+      normal: String(a.normal || (a.type === "asset" || a.type === "expense" ? "debit" : "credit")),
+      group: a.group ? String(a.group) : undefined
+    }));
+
+    events = (model.events || []).map(e => ({
+      ...e,
+      id: String(e.id),
+      ts: String(e.ts),
+      kind: String(e.kind || "signal").toLowerCase(),
+      title: e.title ?? e.id,
+      memo: e.memo ?? "",
+      tags: normalizeTagList(e.tags),
+      entries: Array.isArray(e.entries) ? e.entries : [],
+      signals: Array.isArray(e.signals) ? e.signals : [],
+      classification: e.classification ?? "operating",
+      _d: parseDate(e.ts)
+    })).sort((a,b)=>a._d - b._d);
+
+    computeSnapshots();
+
+    // Reset pointer
+    ptr = 0;
+    el.searchBox.value = "";
+    el.fPosting.checked = true;
+    el.fSignal.checked = true;
+    el.fOnlyImpacts.checked = false;
+    el.speed.value = "1";
+    el.speedLabel.textContent = "1×";
+
+    rebuildFilteredIndex();
+    update();
+  }
+
+  // ---------- Wiring ----------
+  el.scrubber.addEventListener("input", () => { ptr = Number(el.scrubber.value||0); update(); });
+  el.btnPlay.addEventListener("click", togglePlay);
+  el.btnBack.addEventListener("click", () => step(-1));
+  el.btnFwd.addEventListener("click", () => step(1));
+  el.speed.addEventListener("input", () => { el.speedLabel.textContent = `${Number(el.speed.value).toFixed(2).replace(/\.00$/,'')}×`; if (playing){ startTimer(); } });
+
+  [el.fPosting, el.fSignal, el.fOnlyImpacts].forEach(x => x.addEventListener("change", () => { rebuildFilteredIndex(); update(); }));
+  el.searchBox.addEventListener("input", () => { rebuildFilteredIndex(); update(); });
+
+  el.btnSnapshot.addEventListener("click", exportSnapshot);
+
+  el.fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try{
+      const txt = await f.text();
+      const j = JSON.parse(txt);
+      loadModel(j);
+    }catch(err){
+      alert("Failed to load JSON: " + (err?.message || err));
+    } finally{
+      // allow re-uploading the same file
+      e.target.value = "";
+    }
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== el.searchBox){
+      e.preventDefault(); el.searchBox.focus(); return;
+    }
+    if (document.activeElement === el.searchBox) return;
+    if (e.key === " "){
+      e.preventDefault();
+      togglePlay();
+    } else if (e.key === "ArrowLeft"){
+      e.preventDefault();
+      step(-1);
+    } else if (e.key === "ArrowRight"){
+      e.preventDefault();
+      step(1);
+    }
+  });
+
+  // Initial load
+  loadModel(parseSeed());
+
+  // Resize charts on window resize
+  window.addEventListener("resize", () => { renderCharts(); });
+
+})();
+</script>
+</body>
+</html>

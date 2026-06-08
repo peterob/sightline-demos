@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+            --accent-cyan: #22d3ee;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg-primary); 
+            color: var(--text-primary); 
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app { display: flex; height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 200px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .logo {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo-icon {
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .nav-section { padding: 12px 8px; }
+        .nav-title {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0 8px;
+            margin-bottom: 6px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .nav-item .badge {
+            margin-left: auto;
+            background: var(--accent-orange);
+            color: white;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+        }
+        .nav-item .badge-green {
+            margin-left: auto;
+            background: var(--accent-green);
+            color: white;
+            font-size: 9px;
+            padding: 2px 5px;
+            border-radius: 8px;
+        }
+        .nav-icon { font-size: 11px; width: 16px; text-align: center; }
+        
+        /* Main */
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-secondary);
+        }
+        .page-title { font-size: 16px; font-weight: 600; }
+        .header-metrics { display: flex; gap: 24px; }
+        .header-metric { text-align: right; }
+        .header-metric-value { font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .header-metric-label { font-size: 10px; color: var(--text-muted); }
+        
+        .content { flex: 1; padding: 20px; overflow-y: auto; }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .card:last-child { margin-bottom: 0; }
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+        .card-body { padding: 16px; }
+
+        /* Story Banner */
+        .story-banner {
+            background: linear-gradient(135deg, rgba(77, 166, 255, 0.08), rgba(0, 212, 170, 0.08));
+            border: 1px solid rgba(77, 166, 255, 0.2);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+        .story-text { font-size: 14px; line-height: 1.5; }
+        .story-highlight { color: var(--accent-blue); font-weight: 600; }
+        .story-warning { color: var(--accent-orange); font-weight: 600; }
+        .story-good { color: var(--accent-green); font-weight: 600; }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 16px;
+        }
+        .dashboard-grid .card { margin-bottom: 0; }
+        .forecast-card { grid-row: span 2; }
+        
+        /* Forecast */
+        .forecast-chart { height: 180px; }
+        .chart-svg { width: 100%; height: 100%; }
+        .chart-grid-line { stroke: var(--border-color); stroke-width: 1; }
+        .chart-line { fill: none; stroke: var(--accent-blue); stroke-width: 2; }
+        .chart-area { fill: url(#areaGradient); }
+        .chart-reserve { stroke: var(--accent-red); stroke-width: 1; stroke-dasharray: 4, 3; }
+        .chart-point { fill: var(--accent-blue); }
+        .chart-point.low { fill: var(--accent-orange); }
+        .chart-label { font-size: 9px; fill: var(--text-muted); }
+        .chart-value-label { font-size: 9px; fill: var(--text-muted); font-family: 'SF Mono', Monaco, monospace; }
+        .reserve-label { font-size: 9px; fill: var(--accent-red); }
+        .low-point-marker { font-size: 9px; fill: var(--accent-orange); font-weight: 600; }
+
+        /* Decisions */
+        .decision-item {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent-orange);
+        }
+        .decision-item:last-child { margin-bottom: 0; }
+        .decision-item.opportunity { border-left-color: var(--accent-green); }
+        .decision-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+        .decision-detail { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+        .decision-actions { display: flex; gap: 6px; }
+        .btn {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary { background: var(--accent-green); color: white; }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+        /* Mechanism */
+        .mechanism-section {
+            grid-column: span 2;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+        .mechanism-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mechanism-step { text-align: center; padding: 12px 24px; }
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .step-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+        .step-desc { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+        .step-data { font-size: 12px; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-blue); }
+        .mechanism-arrow { color: var(--accent-green); font-size: 18px; padding: 0 8px; }
+        .mechanism-result {
+            text-align: center;
+            padding: 10px 16px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--accent-green);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            grid-column: span 2;
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+            margin-bottom: 4px;
+        }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .stat-sub { font-size: 10px; color: var(--accent-green); }
+
+        /* Footer Status */
+        .footer-status {
+            grid-column: span 2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+        }
+
+        /* === INTEGRITY PAGE === */
+        .integrity-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .integrity-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .integrity-card.verified { border-color: rgba(0, 212, 170, 0.3); }
+        .integrity-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .integrity-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+        .integrity-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--accent-green);
+        }
+        .integrity-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+        .integrity-value { font-size: 20px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .integrity-detail { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+        .preauth-flow-simple {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .preauth-step-simple {
+            flex: 1;
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .preauth-step-simple.active { border-color: var(--accent-green); }
+        .preauth-step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .preauth-step-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+        .preauth-step-desc { font-size: 10px; color: var(--text-muted); }
+        .preauth-arrow-simple { color: var(--accent-green); font-size: 20px; padding: 0 12px; }
+
+        .comparison-simple {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .comparison-col { background: var(--bg-tertiary); padding: 16px; }
+        .comparison-col.highlight { background: rgba(0, 212, 170, 0.05); }
+        .comparison-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+        .comparison-col.highlight .comparison-header { color: var(--accent-green); }
+        .comparison-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .comparison-row:last-child { border-bottom: none; }
+        .comparison-label { color: var(--text-secondary); }
+        .comparison-value { color: var(--text-muted); }
+        .comparison-col.highlight .comparison-value { color: var(--accent-green); }
+
+        /* === AGENTS PAGE === */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .agent-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .agent-card.inactive { opacity: 0.5; }
+        .agent-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .agent-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        .agent-icon.ap { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .agent-icon.ar { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .agent-icon.discount { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
+        .agent-icon.anomaly { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+        }
+        .agent-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .agent-status-dot.active { background: var(--accent-green); }
+        .agent-status-dot.inactive { background: var(--text-muted); }
+        .agent-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .agent-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; }
+        .agent-stats {
+            display: flex;
+            gap: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+        .agent-stat { text-align: center; flex: 1; }
+        .agent-stat-value { font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .agent-stat-label { font-size: 9px; color: var(--text-muted); }
+
+        .escalation-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--accent-orange);
+        }
+        .escalation-item:last-child { margin-bottom: 0; }
+        .escalation-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: rgba(255, 159, 67, 0.15);
+            color: var(--accent-orange);
+            flex-shrink: 0;
+        }
+        .escalation-content { flex: 1; }
+        .escalation-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+        .escalation-from { font-size: 10px; color: var(--accent-blue); margin-bottom: 4px; }
+        .escalation-detail { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; }
+        .escalation-actions { display: flex; gap: 6px; }
+
+        /* === POLICIES PAGE === */
+        .policies-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .policy-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .policy-card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .policy-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .policy-icon.approval { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+        .policy-icon.payment { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .policy-icon.discount { background: rgba(34, 211, 238, 0.15); color: var(--accent-cyan); }
+        .policy-icon.alert { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .policy-card-title { font-size: 12px; font-weight: 600; }
+        .policy-card-body { padding: 12px 16px; }
+        .policy-rule {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 11px;
+        }
+        .policy-rule:last-child { border-bottom: none; }
+        .policy-rule-label { color: var(--text-secondary); }
+        .policy-rule-value { font-family: 'SF Mono', Monaco, monospace; color: var(--text-primary); }
+        .policy-rule-value.disabled { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <nav class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item active" data-page="dashboard"><span class="nav-icon">◉</span> Dashboard</div>
+                <div class="nav-item" data-page="cash"><span class="nav-icon">◈</span> Cash Position</div>
+                <div class="nav-item" data-page="forecast"><span class="nav-icon">▤</span> 13-Week Forecast</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item" data-page="ar"><span class="nav-icon">↓</span> Collections (AR)</div>
+                <div class="nav-item" data-page="ap"><span class="nav-icon">↑</span> Payables (AP)</div>
+                <div class="nav-item" data-page="po"><span class="nav-icon">◧</span> Purchase Orders</div>
+                <div class="nav-item" data-page="approvals"><span class="nav-icon">✓</span> Approvals <span class="badge">3</span></div>
+                <div class="nav-item" data-page="payments"><span class="nav-icon">⟳</span> Payment Runs</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <div class="nav-item" data-page="integrity"><span class="nav-icon">◈</span> Integrity</div>
+                <div class="nav-item" data-page="policies"><span class="nav-icon">⚡</span> Policies <span class="badge-green">8</span></div>
+                <div class="nav-item" data-page="agents"><span class="nav-icon">⬡</span> AI Agents <span class="badge-green">4</span></div>
+                <div class="nav-item" data-page="events"><span class="nav-icon">≋</span> Event Log</div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="header-metrics">
+                    <div class="header-metric">
+                        <div class="header-metric-value">$2,847,392</div>
+                        <div class="header-metric-label">Cash Position</div>
+                    </div>
+                    <div class="header-metric">
+                        <div class="header-metric-value" style="color: var(--accent-green);">94%</div>
+                        <div class="header-metric-label">Forecast Confidence</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content">
+                <!-- ==================== DASHBOARD ==================== -->
+                <div class="page-content active" id="page-dashboard">
+                    <div class="story-banner">
+                        <div class="story-text">
+                            You'll pay <span class="story-highlight">$487,250 this week</span>. 
+                            <span class="story-highlight">$152,047</span> due Friday to Pacific Steel. 
+                            <span class="story-warning">Low point: Week 3 at $2.31M</span>—still 
+                            <span class="story-good">$1.81M above reserve</span>. 
+                            <span class="story-warning">3 items</span> need your decision.
+                        </div>
+                    </div>
+
+                    <div class="dashboard-grid">
+                        <div class="card forecast-card">
+                            <div class="card-header">
+                                <span class="card-title">13-Week Cash Forecast</span>
+                                <span style="font-size: 10px; color: var(--text-muted);">from Trial Balance</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="forecast-chart">
+                                    <svg class="chart-svg" viewBox="0 0 450 160">
+                                        <defs>
+                                            <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                <stop offset="0%" style="stop-color: #4da6ff; stop-opacity: 0.12"/>
+                                                <stop offset="100%" style="stop-color: #4da6ff; stop-opacity: 0"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <line x1="35" y1="20" x2="440" y2="20" class="chart-grid-line"/>
+                                        <line x1="35" y1="55" x2="440" y2="55" class="chart-grid-line"/>
+                                        <line x1="35" y1="90" x2="440" y2="90" class="chart-grid-line"/>
+                                        <line x1="35" y1="125" x2="440" y2="125" class="chart-grid-line"/>
+                                        <text x="30" y="23" class="chart-value-label" text-anchor="end">$4M</text>
+                                        <text x="30" y="58" class="chart-value-label" text-anchor="end">$3M</text>
+                                        <text x="30" y="93" class="chart-value-label" text-anchor="end">$2M</text>
+                                        <text x="30" y="128" class="chart-value-label" text-anchor="end">$1M</text>
+                                        <line x1="35" y1="112" x2="440" y2="112" class="chart-reserve"/>
+                                        <text x="442" y="115" class="reserve-label" text-anchor="start">$500K</text>
+                                        <path class="chart-area" d="M 35,58 L 66,54 L 97,60 L 128,70 L 159,64 L 190,56 L 221,62 L 252,50 L 283,44 L 314,40 L 345,34 L 376,30 L 407,26 L 440,22 L 440,125 L 35,125 Z"/>
+                                        <path class="chart-line" d="M 35,58 L 66,54 L 97,60 L 128,70 L 159,64 L 190,56 L 221,62 L 252,50 L 283,44 L 314,40 L 345,34 L 376,30 L 407,26 L 440,22"/>
+                                        <circle cx="35" cy="58" r="3" class="chart-point"/>
+                                        <circle cx="66" cy="54" r="3" class="chart-point"/>
+                                        <circle cx="97" cy="60" r="3" class="chart-point"/>
+                                        <circle cx="128" cy="70" r="4" class="chart-point low"/>
+                                        <circle cx="159" cy="64" r="3" class="chart-point"/>
+                                        <circle cx="190" cy="56" r="3" class="chart-point"/>
+                                        <circle cx="221" cy="62" r="3" class="chart-point"/>
+                                        <circle cx="252" cy="50" r="3" class="chart-point"/>
+                                        <circle cx="283" cy="44" r="3" class="chart-point"/>
+                                        <circle cx="314" cy="40" r="3" class="chart-point"/>
+                                        <circle cx="345" cy="34" r="3" class="chart-point"/>
+                                        <circle cx="376" cy="30" r="3" class="chart-point"/>
+                                        <circle cx="407" cy="26" r="3" class="chart-point"/>
+                                        <circle cx="440" cy="22" r="3" class="chart-point"/>
+                                        <text x="128" y="85" class="low-point-marker" text-anchor="middle">↓ $2.31M</text>
+                                        <text x="35" y="142" class="chart-label" text-anchor="middle">Now</text>
+                                        <text x="128" y="142" class="chart-label" text-anchor="middle">W3</text>
+                                        <text x="221" y="142" class="chart-label" text-anchor="middle">W6</text>
+                                        <text x="314" y="142" class="chart-label" text-anchor="middle">W9</text>
+                                        <text x="407" y="142" class="chart-label" text-anchor="middle">W12</text>
+                                    </svg>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$2.85M</div>
+                                        <div style="font-size: 9px; color: var(--text-muted);">Current</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">$2.31M</div>
+                                        <div style="font-size: 9px; color: var(--text-muted);">Low (Wk 3)</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">$3.80M</div>
+                                        <div style="font-size: 9px; color: var(--text-muted);">Wk 13</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">$1.81M</div>
+                                        <div style="font-size: 9px; color: var(--text-muted);">Above Reserve</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <span class="card-title">Awaiting Decision</span>
+                                <span style="background: var(--accent-orange); color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px;">3</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="decision-item">
+                                    <div class="decision-title">Invoice Variance +2.6%</div>
+                                    <div class="decision-detail">Shenzhen Logistics $172K vs PO $168K</div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-primary">Approve</button>
+                                        <button class="btn btn-secondary">Dispute</button>
+                                    </div>
+                                </div>
+                                <div class="decision-item">
+                                    <div class="decision-title">AWS Spend +26%</div>
+                                    <div class="decision-detail">$17,200 vs $13,650 expected</div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-primary">Expected</button>
+                                        <button class="btn btn-secondary">Investigate</button>
+                                    </div>
+                                </div>
+                                <div class="decision-item opportunity">
+                                    <div class="decision-title">Discount: Save $3,103</div>
+                                    <div class="decision-detail">Henderson Mfg 2% (36% APR)</div>
+                                    <div class="decision-actions">
+                                        <button class="btn btn-primary">Take</button>
+                                        <button class="btn btn-secondary">Skip</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mechanism-section">
+                            <div class="mechanism-flow">
+                                <div class="mechanism-step">
+                                    <div class="step-badge">1</div>
+                                    <div class="step-title">Expectation Created</div>
+                                    <div class="step-desc">PO approved</div>
+                                    <div class="step-data">$152,047</div>
+                                </div>
+                                <div class="mechanism-arrow">→</div>
+                                <div class="mechanism-step">
+                                    <div class="step-badge">2</div>
+                                    <div class="step-title">Payment Authorized</div>
+                                    <div class="step-desc">Friday payment run</div>
+                                    <div class="step-data">ACH • Pacific Steel</div>
+                                </div>
+                                <div class="mechanism-arrow">→</div>
+                                <div class="mechanism-step">
+                                    <div class="step-badge">3</div>
+                                    <div class="step-title">Bank Confirms</div>
+                                    <div class="step-desc">Matches expectation</div>
+                                    <div class="step-data">$152,047 ✓</div>
+                                </div>
+                            </div>
+                            <div class="mechanism-result">
+                                The bank confirmed what we already knew would happen. No reconciliation required.
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">186</div>
+                                <div class="stat-label">Native Transactions</div>
+                                <div class="stat-sub">→ 0 reconciliation</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">847</div>
+                                <div class="stat-label">Journal Entries</div>
+                                <div class="stat-sub">→ 0 manual</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">$8,420</div>
+                                <div class="stat-label">Discounts Captured</div>
+                                <div class="stat-sub">→ 12 opportunities</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">$2.4M</div>
+                                <div class="stat-label">Value Processed</div>
+                                <div class="stat-sub">→ 4 agents active</div>
+                            </div>
+                        </div>
+
+                        <div class="footer-status">
+                            <span class="status-dot"></span>
+                            <span>GL balanced • Trial balance $0.00 • Books current as of 2 min ago</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== INTEGRITY ==================== -->
+                <div class="page-content" id="page-integrity">
+                    <div class="integrity-grid">
+                        <div class="integrity-card verified">
+                            <div class="integrity-header">
+                                <span class="integrity-label">GL Status</span>
+                                <span class="integrity-status"><span class="integrity-status-dot"></span> Current</span>
+                            </div>
+                            <div class="integrity-value" style="color: var(--accent-green);">Balanced</div>
+                            <div class="integrity-detail">Debits = Credits</div>
+                        </div>
+                        <div class="integrity-card verified">
+                            <div class="integrity-header">
+                                <span class="integrity-label">Trial Balance</span>
+                                <span class="integrity-status"><span class="integrity-status-dot"></span> Current</span>
+                            </div>
+                            <div class="integrity-value">$0.00</div>
+                            <div class="integrity-detail">Net difference</div>
+                        </div>
+                        <div class="integrity-card verified">
+                            <div class="integrity-header">
+                                <span class="integrity-label">Native Unreconciled</span>
+                                <span class="integrity-status"><span class="integrity-status-dot"></span> None</span>
+                            </div>
+                            <div class="integrity-value" style="color: var(--accent-green);">0</div>
+                            <div class="integrity-detail">186 of 186 confirmed</div>
+                        </div>
+                        <div class="integrity-card">
+                            <div class="integrity-header">
+                                <span class="integrity-label">Ingested Pending</span>
+                                <span class="integrity-status" style="color: var(--accent-orange);"><span class="integrity-status-dot" style="background: var(--accent-orange);"></span> Low</span>
+                            </div>
+                            <div class="integrity-value" style="color: var(--accent-orange);">3</div>
+                            <div class="integrity-detail">31 of 34 matched</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Pre-Authorization Flow</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="preauth-flow-simple">
+                                <div class="preauth-step-simple active">
+                                    <div class="preauth-step-num">1</div>
+                                    <div class="preauth-step-title">Expectation Created</div>
+                                    <div class="preauth-step-desc">PO approved or bill entered</div>
+                                </div>
+                                <div class="preauth-arrow-simple">→</div>
+                                <div class="preauth-step-simple active">
+                                    <div class="preauth-step-num">2</div>
+                                    <div class="preauth-step-title">Payment Authorized</div>
+                                    <div class="preauth-step-desc">Included in payment run</div>
+                                </div>
+                                <div class="preauth-arrow-simple">→</div>
+                                <div class="preauth-step-simple active">
+                                    <div class="preauth-step-num">3</div>
+                                    <div class="preauth-step-title">Bank Confirms</div>
+                                    <div class="preauth-step-desc">Matches expectation exactly</div>
+                                </div>
+                            </div>
+                            <div class="mechanism-result">
+                                Confirmation, not reconciliation. The bank confirmed what we already knew would happen.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Traditional vs. Sightline Native</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="comparison-simple">
+                                <div class="comparison-col">
+                                    <div class="comparison-header">Traditional (Reconciliation)</div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Starting Point</span>
+                                        <span class="comparison-value">Bank statement arrives</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Process</span>
+                                        <span class="comparison-value">Match after the fact</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Unknown Txns</span>
+                                        <span class="comparison-value">Common</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Manual Effort</span>
+                                        <span class="comparison-value">High</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Month-End Close</span>
+                                        <span class="comparison-value">Required</span>
+                                    </div>
+                                </div>
+                                <div class="comparison-col highlight">
+                                    <div class="comparison-header">Sightline Native (Confirmation)</div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Starting Point</span>
+                                        <span class="comparison-value">Expectation exists first</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Process</span>
+                                        <span class="comparison-value">Verify expected = actual</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Unknown Txns</span>
+                                        <span class="comparison-value">Impossible</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Manual Effort</span>
+                                        <span class="comparison-value">Zero</span>
+                                    </div>
+                                    <div class="comparison-row">
+                                        <span class="comparison-label">Month-End Close</span>
+                                        <span class="comparison-value">Continuous</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== AGENTS ==================== -->
+                <div class="page-content" id="page-agents">
+                    <div class="agents-grid">
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon ap">⚡</div>
+                                <div class="agent-status">
+                                    <span class="agent-status-dot active"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                            <div class="agent-name">AP Matching Agent</div>
+                            <div class="agent-desc">Matches invoices to POs, verifies quantities and pricing</div>
+                            <div class="agent-stats">
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">52</div>
+                                    <div class="agent-stat-label">Matched</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">98%</div>
+                                    <div class="agent-stat-label">Accuracy</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value" style="color: var(--accent-orange);">2</div>
+                                    <div class="agent-stat-label">Escalated</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon ar">📧</div>
+                                <div class="agent-status">
+                                    <span class="agent-status-dot active"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                            <div class="agent-name">Collections Agent</div>
+                            <div class="agent-desc">Sends reminders, escalates overdue, predicts timing</div>
+                            <div class="agent-stats">
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">18</div>
+                                    <div class="agent-stat-label">Sent</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">$124K</div>
+                                    <div class="agent-stat-label">Collected</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">3.2d</div>
+                                    <div class="agent-stat-label">DSO Impact</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon discount">%</div>
+                                <div class="agent-status">
+                                    <span class="agent-status-dot active"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                            <div class="agent-name">Discount Optimizer</div>
+                            <div class="agent-desc">Identifies early-pay opportunities, calculates APR</div>
+                            <div class="agent-stats">
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">$3.1K</div>
+                                    <div class="agent-stat-label">Captured</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">24%</div>
+                                    <div class="agent-stat-label">Avg APR</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">7</div>
+                                    <div class="agent-stat-label">Found</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="agent-card">
+                            <div class="agent-header">
+                                <div class="agent-icon anomaly">⚠</div>
+                                <div class="agent-status">
+                                    <span class="agent-status-dot active"></span>
+                                    <span>Active</span>
+                                </div>
+                            </div>
+                            <div class="agent-name">Anomaly Detector</div>
+                            <div class="agent-desc">Monitors patterns, flags deviations for review</div>
+                            <div class="agent-stats">
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">847</div>
+                                    <div class="agent-stat-label">Analyzed</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value" style="color: var(--accent-orange);">1</div>
+                                    <div class="agent-stat-label">Flagged</div>
+                                </div>
+                                <div class="agent-stat">
+                                    <div class="agent-stat-value">0</div>
+                                    <div class="agent-stat-label">False +</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Escalation Queue — Human Decision Required</span>
+                            <span style="background: var(--accent-orange); color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px;">3</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="escalation-item">
+                                <div class="escalation-icon">⚡</div>
+                                <div class="escalation-content">
+                                    <div class="escalation-title">Invoice Variance Exceeds 2% Threshold</div>
+                                    <div class="escalation-from">from AP Matching Agent</div>
+                                    <div class="escalation-detail">Shenzhen Logistics $172,400 vs PO $168,000 (+2.6%). Vendor note: "Expedite fee"</div>
+                                    <div class="escalation-actions">
+                                        <button class="btn btn-primary">Approve Variance</button>
+                                        <button class="btn btn-secondary">Reject</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="escalation-item">
+                                <div class="escalation-icon">⚠</div>
+                                <div class="escalation-content">
+                                    <div class="escalation-title">Spending 26% Above Pattern</div>
+                                    <div class="escalation-from">from Anomaly Detector</div>
+                                    <div class="escalation-detail">AWS $17,200 vs $13,650 expected. Pattern confidence: 92%</div>
+                                    <div class="escalation-actions">
+                                        <button class="btn btn-primary">Mark Expected</button>
+                                        <button class="btn btn-secondary">Investigate</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="escalation-item">
+                                <div class="escalation-icon">⚡</div>
+                                <div class="escalation-content">
+                                    <div class="escalation-title">Duplicate Invoice Suspected</div>
+                                    <div class="escalation-from">from AP Matching Agent</div>
+                                    <div class="escalation-detail">Office Supplies Plus INV-45892 ($2,340) similar to INV-45810 paid Jan 8. Similarity: 94%</div>
+                                    <div class="escalation-actions">
+                                        <button class="btn btn-primary">Not Duplicate</button>
+                                        <button class="btn btn-secondary">Reject</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== POLICIES ==================== -->
+                <div class="page-content" id="page-policies">
+                    <div class="policies-grid">
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon approval">✓</div>
+                                <div class="policy-card-title">PO Approval Chain</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Auto-approve under</span>
+                                    <span class="policy-rule-value">$1,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Manager required</span>
+                                    <span class="policy-rule-value">Always</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Finance Manager if over</span>
+                                    <span class="policy-rule-value">$25,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">VP Finance if over</span>
+                                    <span class="policy-rule-value">$100,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">CEO if over</span>
+                                    <span class="policy-rule-value">$500,000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon discount">%</div>
+                                <div class="policy-card-title">Discount Capture</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Auto-capture if APR above</span>
+                                    <span class="policy-rule-value">10%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Max auto-pay amount</span>
+                                    <span class="policy-rule-value">$50,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Min cash reserve after</span>
+                                    <span class="policy-rule-value">$500,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Check forecast first</span>
+                                    <span class="policy-rule-value">Always</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon payment">$</div>
+                                <div class="policy-card-title">Payment Scheduling</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Default payment day</span>
+                                    <span class="policy-rule-value">Friday</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Frequency</span>
+                                    <span class="policy-rule-value">Weekly</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Minimum reserve</span>
+                                    <span class="policy-rule-value">$500,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">CFO approval if over</span>
+                                    <span class="policy-rule-value">$100,000</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon alert">⚠</div>
+                                <div class="policy-card-title">Anomaly Detection</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Flag if deviation exceeds</span>
+                                    <span class="policy-rule-value">20%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Min pattern confidence</span>
+                                    <span class="policy-rule-value">85%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Can block transactions</span>
+                                    <span class="policy-rule-value disabled">No</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Auto-adjust patterns</span>
+                                    <span class="policy-rule-value disabled">No</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon ap" style="background: rgba(0, 212, 170, 0.15); color: var(--accent-green);">⚡</div>
+                                <div class="policy-card-title">AP Matching Agent</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Auto-match if confidence above</span>
+                                    <span class="policy-rule-value">95%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Max variance without escalation</span>
+                                    <span class="policy-rule-value">2%</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Max invoice amount</span>
+                                    <span class="policy-rule-value">$100,000</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Require 3-way match</span>
+                                    <span class="policy-rule-value">Always</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card">
+                            <div class="policy-card-header">
+                                <div class="policy-icon ar" style="background: rgba(77, 166, 255, 0.15); color: var(--accent-blue);">📧</div>
+                                <div class="policy-card-title">Collections Agent</div>
+                            </div>
+                            <div class="policy-card-body">
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">First reminder after</span>
+                                    <span class="policy-rule-value">3 days</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Max reminders</span>
+                                    <span class="policy-rule-value">3</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Can modify terms</span>
+                                    <span class="policy-rule-value disabled">No</span>
+                                </div>
+                                <div class="policy-rule">
+                                    <span class="policy-rule-label">Can write off</span>
+                                    <span class="policy-rule-value disabled">No</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== PLACEHOLDER PAGES ==================== -->
+                <div class="page-content" id="page-cash">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Cash Position Detail View</div></div>
+                </div>
+                <div class="page-content" id="page-forecast">
+                    <div class="story-banner">
+                        <div class="story-text">
+                            13-week projection based on <span class="story-highlight">$2.85M current cash</span>, 
+                            <span class="story-highlight">$892K AR</span> at 8% weekly collection, 
+                            and <span class="story-warning">3 large scheduled payments</span> totaling $479K. 
+                            <span class="story-good">Low point Week 3</span> still $1.81M above reserve.
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 16px;">
+                        <div class="stat-card">
+                            <div class="stat-value">$2.85M</div>
+                            <div class="stat-label">Current Cash</div>
+                            <div class="stat-sub">From Trial Balance</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--accent-orange);">$2.31M</div>
+                            <div class="stat-label">Low Point (Wk 3)</div>
+                            <div class="stat-sub">Henderson + Shenzhen due</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--accent-green);">$3.80M</div>
+                            <div class="stat-label">Week 13 Ending</div>
+                            <div class="stat-sub">+$950K net change</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" style="color: var(--accent-green);">$1.81M</div>
+                            <div class="stat-label">Above Reserve @ Low</div>
+                            <div class="stat-sub">$500K minimum</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">94%</div>
+                            <div class="stat-label">Avg Confidence</div>
+                            <div class="stat-sub">Declines over time</div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Forecast Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Weekly Cash Flow Detail</span>
+                            <span style="font-size: 10px; color: var(--text-muted);">Amounts in $000s</span>
+                        </div>
+                        <div class="card-body" style="padding: 0; overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead>
+                                    <tr style="background: var(--bg-tertiary);">
+                                        <th style="padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-tertiary); min-width: 140px;"></th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Current</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 1</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 2</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px; background: rgba(255,159,67,0.1);">Wk 3</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 4</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 5</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 6</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 7</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 8</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 9</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 10</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 11</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px;">Wk 12</th>
+                                        <th style="padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--border-color); min-width: 70px; background: rgba(0,212,170,0.1);">Wk 13</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary);">Beginning Cash</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,847</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,779</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,714</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; background: rgba(255,159,67,0.1);">2,498</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,310</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,437</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,568</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,702</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,839</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">2,979</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">3,122</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">3,268</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">3,417</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace;">3,569</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; background: rgba(0,212,170,0.1);">3,724</td>
+                                    </tr>
+                                    <tr><td colspan="16" style="padding: 4px;"></td></tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--accent-green); font-weight: 600;">INFLOWS</td>
+                                        <td colspan="15" style="border-bottom: 1px solid var(--border-color);"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-secondary);">AR Collections</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">71</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">66</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">61</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(255,159,67,0.1);">56</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">52</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">48</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">44</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">41</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">38</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">35</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">32</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">30</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">28</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(0,212,170,0.1);">26</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-secondary);">Other Revenue</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(255,159,67,0.1);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">5</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(0,212,170,0.1);">5</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); font-weight: 600;">Total Inflows</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">76</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">71</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">66</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green); background: rgba(255,159,67,0.1);">61</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">57</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">53</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">49</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">46</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">43</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">40</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">37</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">35</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">33</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green); background: rgba(0,212,170,0.1);">31</td>
+                                    </tr>
+                                    <tr><td colspan="16" style="padding: 4px;"></td></tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--accent-red); font-weight: 600;">OUTFLOWS</td>
+                                        <td colspan="15" style="border-bottom: 1px solid var(--border-color);"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-secondary);">Payroll</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(255,159,67,0.1);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">72</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(0,212,170,0.1);">72</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-secondary);">AP (Regular)</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">85</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(255,159,67,0.1);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">81</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">94</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(0,212,170,0.1);">81</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--accent-orange);">AP (Scheduled)</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">152</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange); background: rgba(255,159,67,0.1);">155</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">172</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">-</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted); background: rgba(0,212,170,0.1);">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 6px 12px 6px 24px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-secondary);">Operating Exp</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(255,159,67,0.1);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary);">12</td>
+                                        <td style="padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); background: rgba(0,212,170,0.1);">12</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); font-weight: 600;">Total Outflows</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(169)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(165)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(330)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red); background: rgba(255,159,67,0.1);">(320)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(350)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(165)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(178)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(165)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(178)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(165)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(178)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(165)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red);">(178)</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-red); background: rgba(0,212,170,0.1);">(165)</td>
+                                    </tr>
+                                    <tr><td colspan="16" style="padding: 4px;"></td></tr>
+                                    <tr style="background: var(--bg-tertiary);">
+                                        <td style="padding: 10px 12px; position: sticky; left: 0; background: var(--bg-tertiary); font-weight: 600;">Net Cash Flow</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(93)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(94)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(264)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600; background: rgba(255,159,67,0.15);">(259)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(293)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(112)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(129)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(119)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(135)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(125)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(141)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(130)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600;">(145)</td>
+                                        <td style="padding: 10px 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; font-weight: 600; background: rgba(0,212,170,0.15);">(134)</td>
+                                    </tr>
+                                    <tr style="background: var(--bg-tertiary);">
+                                        <td style="padding: 10px 12px; border-bottom: 2px solid var(--accent-blue); position: sticky; left: 0; background: var(--bg-tertiary); font-weight: 600; font-size: 12px;">Ending Cash</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,779</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,714</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,498</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-orange); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px; color: var(--accent-orange); background: rgba(255,159,67,0.15);">2,310</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,437</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,568</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,702</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,839</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">2,979</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">3,122</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">3,268</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">3,417</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-blue); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px;">3,569</td>
+                                        <td style="padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--accent-green); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; font-size: 12px; color: var(--accent-green); background: rgba(0,212,170,0.15);">3,724</td>
+                                    </tr>
+                                    <tr><td colspan="16" style="padding: 4px;"></td></tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; position: sticky; left: 0; background: var(--bg-secondary);">Reserve</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted); background: rgba(255,159,67,0.1);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted);">500</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted); background: rgba(0,212,170,0.1);">500</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); position: sticky; left: 0; background: var(--bg-secondary); font-weight: 600;">Above Reserve</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,279</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,214</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">1,998</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-orange); background: rgba(255,159,67,0.1);">1,810</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">1,937</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,068</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,202</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,339</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,479</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,622</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,768</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">2,917</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green);">3,069</td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; font-weight: 600; color: var(--accent-green); background: rgba(0,212,170,0.1);">3,224</td>
+                                    </tr>
+                                    <tr><td colspan="16" style="padding: 4px;"></td></tr>
+                                    <tr>
+                                        <td style="padding: 8px 12px; position: sticky; left: 0; background: var(--bg-secondary); color: var(--text-muted);">Confidence</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">99%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">95%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">91%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-yellow); background: rgba(255,159,67,0.1);">87%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-yellow);">83%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-yellow);">79%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-yellow);">75%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-yellow);">71%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">67%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">63%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">59%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">55%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange);">51%</td>
+                                        <td style="padding: 8px; text-align: right; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-orange); background: rgba(0,212,170,0.1);">50%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Scheduled Payments -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Scheduled Large Payments</span>
+                        </div>
+                        <div class="card-body" style="padding: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                                <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; border-left: 3px solid var(--accent-blue);">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Week 2 • Pacific Steel</div>
+                                    <div style="font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$152,047</div>
+                                    <div style="font-size: 10px; color: var(--accent-green); margin-top: 4px;">✓ Pre-authorized</div>
+                                </div>
+                                <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; border-left: 3px solid var(--accent-cyan);">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Week 3 • Henderson Mfg</div>
+                                    <div style="font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$155,150</div>
+                                    <div style="font-size: 10px; color: var(--accent-cyan); margin-top: 4px;">⟳ Discount pending</div>
+                                </div>
+                                <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; border-left: 3px solid var(--accent-orange);">
+                                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Week 4 • Shenzhen Logistics</div>
+                                    <div style="font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$172,400</div>
+                                    <div style="font-size: 10px; color: var(--accent-orange); margin-top: 4px;">⚠ Variance pending</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="page-content" id="page-ar">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Collections (AR) View</div></div>
+                </div>
+                <div class="page-content" id="page-ap">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Payables (AP) View</div></div>
+                </div>
+                <div class="page-content" id="page-po">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Purchase Orders View</div></div>
+                </div>
+                <div class="page-content" id="page-approvals">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Approvals Queue View</div></div>
+                </div>
+                <div class="page-content" id="page-payments">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Payment Runs View</div></div>
+                </div>
+                <div class="page-content" id="page-events">
+                    <div class="card"><div class="card-body" style="text-align: center; padding: 60px; color: var(--text-muted);">Event Log View</div></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const navItems = document.querySelectorAll('.nav-item[data-page]');
+        const pages = document.querySelectorAll('.page-content');
+        const pageTitle = document.getElementById('pageTitle');
+        
+        const titles = {
+            dashboard: 'Dashboard',
+            cash: 'Cash Position',
+            forecast: '13-Week Forecast',
+            ar: 'Collections (AR)',
+            ap: 'Payables (AP)',
+            po: 'Purchase Orders',
+            approvals: 'Approvals',
+            payments: 'Payment Runs',
+            integrity: 'Financial Integrity',
+            policies: 'Policies',
+            agents: 'AI Agents',
+            events: 'Event Log'
+        };
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                
+                pages.forEach(p => p.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+                
+                pageTitle.textContent = titles[page] || page;
+            });
+        });
+    </script>
+</body>
+</html>

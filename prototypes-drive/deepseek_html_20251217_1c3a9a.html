@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Event-to-Journal Traceability</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Main Styles */
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --event-color: #8b5cf6;
+            --policy-color: #10b981;
+            --finance-color: #3b82f6;
+            --gl-color: #f59e0b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-900);
+            color: var(--gray-100);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 2rem 0 3rem;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--gray-400);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .system-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: var(--gray-800);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--gray-700);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            color: var(--gray-300);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Flow Container */
+        .flow-container {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            min-height: 600px;
+            position: relative;
+            display: none;
+        }
+
+        .flow-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .flow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .flow-title {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .flow-subtitle {
+            color: var(--gray-400);
+            margin-top: 0.5rem;
+        }
+
+        .flow-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .flow-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .flow-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            height: 300px;
+            margin: 2rem 0;
+        }
+
+        .flow-line {
+            position: absolute;
+            top: 40px;
+            left: 100px;
+            right: 100px;
+            height: 4px;
+            background: var(--gray-700);
+            z-index: 1;
+        }
+
+        .flow-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--event-color), var(--secondary));
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .flow-dot {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            top: -6px;
+            display: none;
+        }
+
+        .flow-stage {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stage-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            background: var(--gray-700);
+            border: 3px solid;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .stage-icon.event { border-color: var(--event-color); }
+        .stage-icon.policy { border-color: var(--policy-color); }
+        .stage-icon.finance { border-color: var(--finance-color); }
+        .stage-icon.gl { border-color: var(--gl-color); }
+
+        .stage-icon.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px;
+        }
+
+        .stage-icon.event.active { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+        .stage-icon.policy.active { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        .stage-icon.finance.active { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .stage-icon.gl.active { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
+
+        .stage-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .stage-description {
+            font-size: 0.9rem;
+            color: var(--gray-400);
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        /* Data Panels */
+        .data-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .data-panel {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: var(--gray-700);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-600);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            background: var(--gray-600);
+            color: var(--gray-200);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Event List */
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .event-item {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 6px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-item:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .event-item.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-type {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            background: var(--event-color);
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .event-description {
+            color: white;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .event-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .event-amount {
+            float: right;
+            font-weight: 700;
+            margin-top: -1.5rem;
+        }
+
+        .event-amount.positive {
+            color: var(--success);
+        }
+
+        .event-amount.negative {
+            color: var(--danger);
+        }
+
+        /* Journal Entry Display */
+        .journal-entry {
+            background: var(--gray-700);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .journal-header {
+            background: var(--gray-600);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .journal-number {
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .journal-date {
+            color: var(--gray-300);
+        }
+
+        .journal-lines {
+            padding: 1rem;
+        }
+
+        .journal-line {
+            display: grid;
+            grid-template-columns: 100px 2fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .journal-line:last-child {
+            border-bottom: none;
+        }
+
+        .journal-line.header {
+            font-weight: 600;
+            color: var(--gray-300);
+            background: var(--gray-800);
+        }
+
+        .account-code {
+            font-family: monospace;
+            color: var(--primary);
+        }
+
+        .debit-amount {
+            color: var(--danger);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .credit-amount {
+            color: var(--success);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .journal-footer {
+            padding: 1rem;
+            background: var(--gray-600);
+            border-top: 1px solid var(--gray-700);
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* Traceability Matrix */
+        .trace-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .trace-matrix th {
+            background: var(--gray-700);
+            color: var(--gray-300);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--gray-600);
+        }
+
+        .trace-matrix td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-700);
+            color: var(--gray-200);
+        }
+
+        .trace-matrix tr:hover {
+            background: var(--gray-750);
+        }
+
+        .trace-link {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--gray-600);
+            border-radius: 4px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+        }
+
+        .trace-link:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Policy Library */
+        .policy-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .policy-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .policy-btn:hover {
+            border-color: var(--policy-color);
+            color: var(--policy-color);
+        }
+
+        .policy-library {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .policy-card {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .policy-card:hover {
+            border-color: var(--policy-color);
+            transform: translateY(-2px);
+        }
+
+        .policy-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .policy-id {
+            font-family: monospace;
+            color: var(--policy-color);
+            font-weight: 600;
+        }
+
+        .policy-version {
+            background: var(--gray-600);
+            color: var(--gray-200);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .policy-name {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .policy-description {
+            color: var(--gray-400);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Audit Dashboard */
+        .audit-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .audit-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .audit-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .audit-dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .audit-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stat-icon.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .stat-icon.primary {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--primary);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-value {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--gray-400);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .audit-timeline {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--gray-700);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-700);
+            color: var(--danger);
+        }
+
+        .modal-content {
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-700);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .modal-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            color: white;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .footer-section p {
+            color: var(--gray-400);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .footer-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            padding-top: 1rem;
+            border-top: 1px solid var(--gray-700);
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        /* Export Controls */
+        .export-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .export-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .export-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--gray-700);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Detail Grid */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-section {
+            background: var(--gray-700);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--gray-600);
+        }
+
+        .detail-section h4 {
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-item {
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .detail-value {
+            color: white;
+            font-weight: 500;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        .evidence-hash {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: var(--gray-800);
+            padding: 0.5rem;
+            border-radius: 4px;
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--primary);
+            word-break: break-all;
+        }
+
+        /* Policy Details */
+        .policy-details {
+            background: var(--gray-700);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--policy-color);
+        }
+
+        .policy-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-600);
+        }
+
+        .policy-details-id {
+            font-family: monospace;
+            color: var(--policy-color);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .policy-details-version {
+            background: var(--policy-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .policy-details-name {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .policy-details-description {
+            color: var(--gray-300);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Audit Timeline */
+        .audit-timeline-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .audit-timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .audit-timeline-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: var(--gray-800);
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+
+        .audit-timeline-icon.event {
+            border-color: var(--event-color);
+            color: var(--event-color);
+        }
+
+        .audit-timeline-icon.policy {
+            border-color: var(--policy-color);
+            color: var(--policy-color);
+        }
+
+        .audit-timeline-icon.journal {
+            border-color: var(--gl-color);
+            color: var(--gl-color);
+        }
+
+        .audit-timeline-content {
+            flex: 1;
+        }
+
+        .audit-timeline-title {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .audit-timeline-description {
+            color: var(--gray-300);
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .audit-timeline-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--gray-400);
+            font-size: 0.8rem;
+        }
+
+        .audit-timeline-meta span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--gray-400);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--gray-600);
+        }
+
+        .empty-state-title {
+            font-size: 1.2rem;
+            color: var(--gray-300);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .empty-state-description {
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.posted {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .data-panels {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-diagram {
+                flex-wrap: wrap;
+                height: auto;
+                gap: 2rem;
+            }
+            
+            .flow-stage {
+                flex: none;
+                width: 50%;
+            }
+            
+            .flow-line {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab-btn {
+                flex: 1;
+                min-width: 150px;
+            }
+            
+            .flow-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .journal-line {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .policy-library {
+                grid-template-columns: 1fr;
+            }
+            
+            .audit-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .header {
+                padding: 1.5rem 0;
+            }
+            
+            .flow-stage {
+                width: 100%;
+            }
+            
+            .data-panel {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-project-diagram"></i> Event-to-Journal Traceability</h1>
+            <p class="subtitle">Track business events through policy engine to auditable journal entries</p>
+            <div class="system-status">
+                <span class="status-indicator active"></span>
+                <span class="status-text">System Online | Updated: <span id="lastUpdated">Just now</span></span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="flow">
+                <i class="fas fa-stream"></i> Flow Visualization
+            </button>
+            <button class="tab-btn" data-tab="matrix">
+                <i class="fas fa-table"></i> Traceability Matrix
+            </button>
+            <button class="tab-btn" data-tab="policies">
+                <i class="fas fa-book"></i> Policy Library
+            </button>
+            <button class="tab-btn" data-tab="audit">
+                <i class="fas fa-clipboard-check"></i> Audit Trail
+            </button>
+        </div>
+
+        <!-- Flow Visualization -->
+        <div id="flow" class="flow-container active">
+            <div class="flow-header">
+                <div>
+                    <h2 class="flow-title">Event-to-Journal Flow</h2>
+                    <p class="flow-subtitle">Select an event to trace its transformation through the system</p>
+                </div>
+                <div class="flow-controls">
+                    <button class="flow-btn" id="playFlow">
+                        <i class="fas fa-play"></i> Play Flow
+                    </button>
+                    <button class="flow-btn" id="stepFlow">
+                        <i class="fas fa-step-forward"></i> Step
+                    </button>
+                    <button class="flow-btn" id="resetFlow">
+                        <i class="fas fa-redo"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flow Diagram -->
+            <div class="flow-diagram">
+                <div class="flow-line">
+                    <div class="flow-progress" id="flowProgress"></div>
+                    <div class="flow-dot" id="flowDot"></div>
+                </div>
+
+                <!-- Stage 1: Event -->
+                <div class="flow-stage" data-stage="event">
+                    <div class="stage-icon event active" id="stageEvent">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="stage-title">Business Event</div>
+                    <div class="stage-description">Purchase, sale, payment events</div>
+                </div>
+
+                <!-- Stage 2: Policy -->
+                <div class="flow-stage" data-stage="policy">
+                    <div class="stage-icon policy" id="stagePolicy">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="stage-title">Policy Engine</div>
+                    <div class="stage-description">Accounting rules applied</div>
+                </div>
+
+                <!-- Stage 3: Finance -->
+                <div class="flow-stage" data-stage="finance">
+                    <div class="stage-icon finance" id="stageFinance">
+                        <i class="fas fa-money-check-alt"></i>
+                    </div>
+                    <div class="stage-title">Finance Ledger</div>
+                    <div class="stage-description">Double-entry accounting</div>
+                </div>
+
+                <!-- Stage 4: GL -->
+                <div class="flow-stage" data-stage="gl">
+                    <div class="stage-icon gl" id="stageGL">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <div class="stage-title">GL Entry</div>
+                    <div class="stage-description">Traditional journal format</div>
+                </div>
+            </div>
+
+            <!-- Data Panels -->
+            <div class="data-panels">
+                <!-- Events Panel -->
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-bolt"></i> Business Events
+                        </div>
+                        <span class="badge" id="eventCount">5 events</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="event-list" id="eventList">
+                            <!-- Events loaded via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journal Entries Panel -->
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-file-alt"></i> Generated Journal Entries
+                        </div>
+                        <span class="badge" id="journalCount">0 entries</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="journalEntries">
+                            <!-- Journal entries loaded via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Traceability Matrix -->
+        <div id="matrix" class="flow-container">
+            <div class="flow-header">
+                <h2 class="flow-title">Complete Traceability Matrix</h2>
+                <div class="export-controls">
+                    <button class="export-btn" onclick="exportTraceMatrix('csv')">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <table class="trace-matrix" id="traceMatrix">
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Event Type</th>
+                            <th>Timestamp</th>
+                            <th>Journal #</th>
+                            <th>GL Accounts</th>
+                            <th>Amount</th>
+                            <th>Policy Applied</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixBody">
+                        <!-- Matrix rows loaded via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Policy Library -->
+        <div id="policies" class="flow-container">
+            <div class="flow-header">
+                <h2 class="flow-title">Policy Library</h2>
+                <div class="policy-controls">
+                    <button class="policy-btn" onclick="showPolicyDetails('CAPEX-APPROVAL-3.0')">
+                        <i class="fas fa-eye"></i> View All Policies
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div class="policy-library" id="policyLibrary">
+                    <!-- Policies loaded via JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Trail -->
+        <div id="audit" class="flow-container">
+            <div class="flow-header">
+                <h2 class="flow-title">Complete Audit Trail</h2>
+                <div class="audit-controls">
+                    <button class="audit-btn" onclick="generateAuditReport()">
+                        <i class="fas fa-file-contract"></i> Generate Audit Report
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <div class="audit-dashboard">
+                    <div class="audit-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="verifiedCount">5</div>
+                                <div class="stat-label">Verified Events</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="traceabilityRate">100%</div>
+                                <div class="stat-label">Traceability Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="audit-timeline" id="auditTimeline">
+                        <!-- Audit timeline loaded via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detail Modal -->
+        <div class="modal-overlay" id="detailModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalTitle">Event Details</h2>
+                    <button class="modal-close" onclick="closeModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-content" id="modalContent">
+                    <!-- Modal content loaded via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn" onclick="closeModal()">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4><i class="fas fa-info-circle"></i> System Info</h4>
+                    <p>Event-to-Journal Traceability Prototype v1.0</p>
+                    <p>Total Events: <span id="totalEvents">5</span></p>
+                </div>
+                <div class="footer-section">
+                    <h4><i class="fas fa-cog"></i> Actions</h4>
+                    <button class="footer-btn" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Sightline Traceability System © 2024 | Prototype Demonstration</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // DATA SERVICE - Sample data and utilities
+        // ============================================================================
+        const traceabilityData = {
+            events: [
+                {
+                    id: "EVT-2024-11-01-001",
+                    timestamp: "2024-11-01T09:00:00Z",
+                    type: "purchase_order.create",
+                    description: "GPU Cluster Purchase Order",
+                    actor: "procurement_bot",
+                    amount: 2400000,
+                    metadata: {
+                        vendor: "NVIDIA Corporation",
+                        purchaseOrder: "PO-4567",
+                        project: "GPU Expansion"
+                    },
+                    evidence: {
+                        hash: "0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3",
+                        type: "signed_purchase_order",
+                        location: "s3://evidence/po-4567-signed.pdf"
+                    },
+                    policy: {
+                        id: "CAPEX-APPROVAL-3.0",
+                        name: "Capital Expenditure Approval",
+                        version: "3.0",
+                        appliedAt: "2024-11-01T09:00:00Z"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-01-002",
+                    timestamp: "2024-11-01T14:30:00Z",
+                    type: "contract.signed",
+                    description: "Enterprise Contract - TechCorp",
+                    actor: "sales_team.alice",
+                    amount: 1200000,
+                    metadata: {
+                        customer: "TechCorp Inc.",
+                        contractId: "TC-2024-001",
+                        salesRep: "Alice Johnson"
+                    },
+                    evidence: {
+                        hash: "0x4a7d8b3c9f2a6d5e8c1b3a7d9f2c5e8a1b4d7f9",
+                        type: "signed_contract",
+                        location: "s3://evidence/contract-tc-2024-001.pdf"
+                    },
+                    policy: {
+                        id: "ENT-SALES-2.1",
+                        name: "Enterprise Sales Recognition",
+                        version: "2.1",
+                        appliedAt: "2024-11-01T14:30:00Z"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-02-001",
+                    timestamp: "2024-11-02T11:15:00Z",
+                    type: "vendor_payment.process",
+                    description: "Cloud Services - Monthly",
+                    actor: "ap_automation",
+                    amount: -85000,
+                    metadata: {
+                        vendor: "CloudProvider Inc.",
+                        invoice: "INV-7845",
+                        servicePeriod: "November 2024"
+                    },
+                    evidence: {
+                        hash: "0x9b2c4d6f8a1d3f5b7a9c2e4f6a8d1b3c5e7f9a2",
+                        type: "invoice_payment",
+                        location: "s3://evidence/inv-7845-bundle.zip"
+                    },
+                    policy: {
+                        id: "VENDOR-PAY-1.3",
+                        name: "Vendor Payment Processing",
+                        version: "1.3",
+                        appliedAt: "2024-11-02T11:15:00Z"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-05-001",
+                    timestamp: "2024-11-05T10:30:00Z",
+                    type: "correction.apply",
+                    description: "Vendor Correction - Overbilling",
+                    actor: "audit_bot",
+                    amount: 125000,
+                    metadata: {
+                        originalEvent: "EVT-2024-11-02-001",
+                        correctionReason: "Duplicate billing",
+                        savings: 125000
+                    },
+                    evidence: {
+                        hash: "0x6d9f2a4c7b8e1d3f5a7c9e2b4d6f8a1c3e5f7a9",
+                        type: "correction_evidence",
+                        location: "s3://evidence/corr-vendorx-001.zip"
+                    },
+                    policy: {
+                        id: "CORRECTION-PROTOCOL-1.1",
+                        name: "Accounting Correction Protocol",
+                        version: "1.1",
+                        appliedAt: "2024-11-05T10:30:00Z"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-15-001",
+                    timestamp: "2024-11-15T00:00:00Z",
+                    type: "depreciation.calculate",
+                    description: "Monthly Depreciation - GPU Cluster",
+                    actor: "depreciation_bot",
+                    amount: -40000,
+                    metadata: {
+                        asset: "GPU-CLUSTER-001",
+                        period: "November 2024",
+                        method: "straight_line"
+                    },
+                    evidence: {
+                        hash: "0x3c5a7d9f2b4e6a8c1d3f5b7a9c2e4f6a8d1b3c5",
+                        type: "depreciation_schedule",
+                        location: "s3://evidence/dep-gpu-cluster-001.pdf"
+                    },
+                    policy: {
+                        id: "DEPRECIATION-2.0",
+                        name: "Fixed Asset Depreciation",
+                        version: "2.0",
+                        appliedAt: "2024-11-15T00:00:00Z"
+                    }
+                }
+            ],
+
+            journalEntries: [
+                {
+                    journalNo: "JRN-2024-11-001",
+                    date: "2024-11-01",
+                    description: "GPU Cluster Purchase - NVIDIA",
+                    sourceEvent: "EVT-2024-11-01-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "1500",
+                            accountName: "Fixed Assets - Hardware",
+                            description: "GPU Cluster Purchase",
+                            debit: 2400000,
+                            credit: 0
+                        },
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "GPU Cluster Purchase",
+                            debit: 0,
+                            credit: 2400000
+                        }
+                    ]
+                },
+                {
+                    journalNo: "JRN-2024-11-002",
+                    date: "2024-11-01",
+                    description: "Enterprise Contract - TechCorp",
+                    sourceEvent: "EVT-2024-11-01-002",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "1100",
+                            accountName: "Accounts Receivable",
+                            description: "Enterprise Contract - TechCorp",
+                            debit: 1200000,
+                            credit: 0
+                        },
+                        {
+                            account: "4000",
+                            accountName: "Services Revenue",
+                            description: "Enterprise Contract - TechCorp",
+                            debit: 0,
+                            credit: 1200000
+                        }
+                    ]
+                },
+                {
+                    journalNo: "JRN-2024-11-003",
+                    date: "2024-11-02",
+                    description: "Cloud Services Payment",
+                    sourceEvent: "EVT-2024-11-02-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "5000",
+                            accountName: "Cloud Services",
+                            description: "Cloud Services - November 2024",
+                            debit: 85000,
+                            credit: 0
+                        },
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "Cloud Services Payment",
+                            debit: 0,
+                            credit: 85000
+                        }
+                    ]
+                },
+                {
+                    journalNo: "JRN-2024-11-004",
+                    date: "2024-11-05",
+                    description: "Vendor Correction - Duplicate Billing",
+                    sourceEvent: "EVT-2024-11-05-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "Vendor Correction",
+                            debit: 125000,
+                            credit: 0
+                        },
+                        {
+                            account: "5000",
+                            accountName: "Cloud Services",
+                            description: "Vendor Correction",
+                            debit: 0,
+                            credit: 125000
+                        }
+                    ]
+                },
+                {
+                    journalNo: "JRN-2024-11-005",
+                    date: "2024-11-15",
+                    description: "Monthly Depreciation - GPU Cluster",
+                    sourceEvent: "EVT-2024-11-15-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "6000",
+                            accountName: "Depreciation Expense",
+                            description: "Monthly Depreciation",
+                            debit: 40000,
+                            credit: 0
+                        },
+                        {
+                            account: "1510",
+                            accountName: "Accumulated Depreciation",
+                            description: "Monthly Depreciation",
+                            debit: 0,
+                            credit: 40000
+                        }
+                    ]
+                }
+            ],
+
+            policies: [
+                {
+                    id: "CAPEX-APPROVAL-3.0",
+                    name: "Capital Expenditure Approval Policy",
+                    version: "3.0",
+                    description: "Policy for capital expenditure approval and accounting treatment",
+                    rules: [
+                        "Capitalize assets over $100,000",
+                        "5-year straight-line depreciation",
+                        "Require 3 levels of approval"
+                    ]
+                },
+                {
+                    id: "ENT-SALES-2.1",
+                    name: "Enterprise Sales Recognition Policy",
+                    version: "2.1",
+                    description: "Policy for recognizing revenue from enterprise sales",
+                    rules: [
+                        "Recognize revenue upon delivery",
+                        "10% commission on enterprise sales",
+                        "Net 60 payment terms"
+                    ]
+                },
+                {
+                    id: "VENDOR-PAY-1.3",
+                    name: "Vendor Payment Processing Policy",
+                    version: "1.3",
+                    description: "Policy for processing vendor payments",
+                    rules: [
+                        "Net 30 payment terms",
+                        "Require invoice and PO match",
+                        "Dual approval over $10,000"
+                    ]
+                },
+                {
+                    id: "CORRECTION-PROTOCOL-1.1",
+                    name: "Accounting Correction Protocol",
+                    version: "1.1",
+                    description: "Protocol for identifying and correcting accounting errors",
+                    rules: [
+                        "4-eyes approval for corrections",
+                        "Document all correction reasons",
+                        "Maintain audit trail of changes"
+                    ]
+                },
+                {
+                    id: "DEPRECIATION-2.0",
+                    name: "Fixed Asset Depreciation Policy",
+                    version: "2.0",
+                    description: "Policy for depreciating fixed assets",
+                    rules: [
+                        "Straight-line method for hardware",
+                        "5-year useful life for IT equipment",
+                        "10% salvage value"
+                    ]
+                }
+            ]
+        };
+
+        const DataService = {
+            getEvents: function() {
+                return traceabilityData.events;
+            },
+
+            getEventById: function(eventId) {
+                return traceabilityData.events.find(event => event.id === eventId);
+            },
+
+            getJournalsForEvent: function(eventId) {
+                return traceabilityData.journalEntries.filter(journal => journal.sourceEvent === eventId);
+            },
+
+            getJournals: function() {
+                return traceabilityData.journalEntries;
+            },
+
+            getPolicies: function() {
+                return traceabilityData.policies;
+            },
+
+            getPolicyById: function(policyId) {
+                return traceabilityData.policies.find(policy => policy.id === policyId);
+            },
+
+            formatCurrency: function(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(Math.abs(amount));
+            },
+
+            formatDate: function(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            },
+
+            formatTimeAgo: function(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 30) return `${diffDays}d ago`;
+                
+                return this.formatDate(dateString);
+            }
+        };
+
+        // ============================================================================
+        // UI COMPONENTS - Reusable UI components
+        // ============================================================================
+        const UIComponents = {
+            createEventCard: function(event) {
+                const isPositive = event.amount >= 0;
+                const amountClass = isPositive ? 'positive' : 'negative';
+                const formattedAmount = DataService.formatCurrency(event.amount);
+                const timeAgo = DataService.formatTimeAgo(event.timestamp);
+                
+                return `
+                    <div class="event-item" data-event-id="${event.id}">
+                        <div class="event-header">
+                            <span class="event-type">${event.type.split('.')[1] || event.type}</span>
+                            <span class="event-time">
+                                <i class="far fa-clock"></i> ${timeAgo}
+                            </span>
+                        </div>
+                        <div class="event-description">${event.description}</div>
+                        <div class="event-meta">
+                            <span><i class="fas fa-user"></i> ${event.actor}</span>
+                            <span><i class="fas fa-shield-alt"></i> ${event.policy.id}</span>
+                        </div>
+                        <div class="event-amount ${amountClass}">
+                            ${isPositive ? '+' : ''}${formattedAmount}
+                        </div>
+                    </div>
+                `;
+            },
+
+            createJournalEntry: function(journal) {
+                let linesHtml = `
+                    <div class="journal-line header">
+                        <div>Account</div>
+                        <div>Description</div>
+                        <div>Debit</div>
+                        <div>Credit</div>
+                    </div>
+                `;
+                
+                let totalDebit = 0;
+                let totalCredit = 0;
+                
+                journal.lines.forEach(line => {
+                    linesHtml += `
+                        <div class="journal-line">
+                            <div class="account-code">${line.account}</div>
+                            <div>${line.accountName}</div>
+                            <div class="debit-amount">${line.debit > 0 ? DataService.formatCurrency(line.debit) : ''}</div>
+                            <div class="credit-amount">${line.credit > 0 ? DataService.formatCurrency(line.credit) : ''}</div>
+                        </div>
+                    `;
+                    
+                    totalDebit += line.debit;
+                    totalCredit += line.credit;
+                });
+                
+                return `
+                    <div class="journal-entry">
+                        <div class="journal-header">
+                            <span class="journal-number">
+                                <i class="fas fa-file-invoice-dollar"></i> ${journal.journalNo}
+                            </span>
+                            <span class="journal-date">
+                                <i class="far fa-calendar"></i> ${journal.date}
+                                <span class="status-badge posted">${journal.status}</span>
+                            </span>
+                        </div>
+                        <div class="journal-description" style="padding: 1rem; color: white; font-weight: 500;">${journal.description}</div>
+                        <div class="journal-lines">
+                            ${linesHtml}
+                        </div>
+                        <div class="journal-footer">
+                            <span>Total</span>
+                            <span>${DataService.formatCurrency(totalDebit)}</span>
+                        </div>
+                    </div>
+                `;
+            },
+
+            createPolicyCard: function(policy) {
+                const rulesHtml = policy.rules.map(rule => `
+                    <div style="display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <i class="fas fa-check" style="color: var(--policy-color); margin-top: 0.25rem;"></i>
+                        <span style="color: var(--gray-300); font-size: 0.9rem;">${rule}</span>
+                    </div>
+                `).join('');
+                
+                return `
+                    <div class="policy-card" data-policy-id="${policy.id}">
+                        <div class="policy-card-header">
+                            <div class="policy-id">${policy.id}</div>
+                            <div class="policy-version">v${policy.version}</div>
+                        </div>
+                        <div class="policy-name">${policy.name}</div>
+                        <div class="policy-description">${policy.description}</div>
+                        <div style="margin-top: 1rem;">
+                            ${rulesHtml}
+                        </div>
+                    </div>
+                `;
+            },
+
+            createMatrixRow: function(event, journal) {
+                const glAccounts = journal.lines.map(line => line.account).join(', ');
+                const totalAmount = journal.lines.reduce((sum, line) => sum + line.debit, 0);
+                
+                return `
+                    <tr>
+                        <td>${event.id}</td>
+                        <td>${event.type.split('.')[1] || event.type}</td>
+                        <td>${DataService.formatDate(event.timestamp)}</td>
+                        <td>${journal.journalNo}</td>
+                        <td>${glAccounts}</td>
+                        <td>${DataService.formatCurrency(totalAmount)}</td>
+                        <td>${event.policy.id}</td>
+                        <td>
+                            <button class="trace-link" onclick="showEventDetail('${event.id}')">
+                                <i class="fas fa-search"></i> View Details
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            },
+
+            createAuditTimelineItem: function(item) {
+                return `
+                    <div class="audit-timeline-item">
+                        <div class="audit-timeline-icon ${item.type}">
+                            <i class="${item.icon}"></i>
+                        </div>
+                        <div class="audit-timeline-content">
+                            <div class="audit-timeline-title">${item.title}</div>
+                            <div class="audit-timeline-description">${item.description}</div>
+                            <div class="audit-timeline-meta">
+                                <span><i class="far fa-clock"></i> ${DataService.formatDate(item.timestamp)}</span>
+                                <span><i class="fas fa-user"></i> ${item.actor}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            createDetailContent: function(event) {
+                const journals = DataService.getJournalsForEvent(event.id);
+                const policy = DataService.getPolicyById(event.policy.id);
+                
+                return `
+                    <div class="detail-grid">
+                        <div class="detail-section">
+                            <h4><i class="fas fa-info-circle"></i> Event Details</h4>
+                            <div class="detail-item">
+                                <div class="detail-label">Event ID</div>
+                                <div class="detail-value">${event.id}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Type</div>
+                                <div class="detail-value">${event.type}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Description</div>
+                                <div class="detail-value">${event.description}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Timestamp</div>
+                                <div class="detail-value">${DataService.formatDate(event.timestamp)}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Actor</div>
+                                <div class="detail-value">${event.actor}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Amount</div>
+                                <div class="detail-value">${DataService.formatCurrency(event.amount)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4><i class="fas fa-balance-scale"></i> Policy Applied</h4>
+                            <div class="detail-item">
+                                <div class="detail-label">Policy ID</div>
+                                <div class="detail-value">${event.policy.id}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Policy Name</div>
+                                <div class="detail-value">${event.policy.name}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Version</div>
+                                <div class="detail-value">${event.policy.version}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Applied At</div>
+                                <div class="detail-value">${DataService.formatDate(event.policy.appliedAt)}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <h4><i class="fas fa-file-contract"></i> Evidence</h4>
+                            <div class="detail-item">
+                                <div class="detail-label">Evidence Type</div>
+                                <div class="detail-value">${event.evidence.type}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Location</div>
+                                <div class="detail-value">${event.evidence.location}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">Hash</div>
+                                <span class="evidence-hash">${event.evidence.hash}</span>
+                            </div>
+                        </div>
+                        
+                        ${journals.length > 0 ? `
+                            <div class="detail-section" style="grid-column: span 2;">
+                                <h4><i class="fas fa-file-alt"></i> Generated Journal Entries</h4>
+                                ${journals.map(journal => `
+                                    <div class="detail-item">
+                                        <div class="detail-label">${journal.journalNo}</div>
+                                        <div class="detail-value">
+                                            <strong>${journal.description}</strong><br>
+                                            Date: ${journal.date} | Status: ${journal.status}<br>
+                                            Total: ${DataService.formatCurrency(journal.lines.reduce((sum, line) => sum + line.debit, 0))}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        ${event.metadata ? `
+                            <div class="detail-section" style="grid-column: span 2;">
+                                <h4><i class="fas fa-database"></i> Metadata</h4>
+                                ${Object.entries(event.metadata).map(([key, value]) => `
+                                    <div class="detail-item">
+                                        <div class="detail-label">${key.replace(/_/g, ' ')}</div>
+                                        <div class="detail-value">${value}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            },
+
+            showNotification: function(type, title, message, duration = 3000) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}" 
+                           style="color: ${type === 'success' ? 'var(--success)' : 'var(--primary)'}; font-size: 1.2rem;"></i>
+                        <div>
+                            <div style="font-weight: 600; color: white;">${title}</div>
+                            <div style="color: var(--gray-300); font-size: 0.9rem;">${message}</div>
+                        </div>
+                    </div>
+                `;
+                
+                notification.style.position = 'fixed';
+                notification.style.bottom = '20px';
+                notification.style.right = '20px';
+                notification.style.background = 'var(--gray-800)';
+                notification.style.border = '1px solid var(--gray-700)';
+                notification.style.borderRadius = '8px';
+                notification.style.padding = '1rem';
+                notification.style.zIndex = '1000';
+                notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                notification.style.transform = 'translateY(100px)';
+                notification.style.opacity = '0';
+                notification.style.transition = 'all 0.3s ease';
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateY(0)';
+                    notification.style.opacity = '1';
+                }, 10);
+                
+                setTimeout(() => {
+                    notification.style.transform = 'translateY(100px)';
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, duration);
+            },
+
+            updateBadge: function(elementId, value) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = value;
+                }
+            }
+        };
+
+        // ============================================================================
+        // FLOW VISUALIZATION - Flow animation controller
+        // ============================================================================
+        const FlowVisualization = {
+            currentEvent: null,
+            currentJournals: [],
+            isAnimating: false,
+            animationSpeed: 1000,
+            
+            init: function() {
+                this.setupEventListeners();
+                this.resetFlow();
+            },
+            
+            setupEventListeners: function() {
+                document.getElementById('playFlow').addEventListener('click', () => this.playFlow());
+                document.getElementById('stepFlow').addEventListener('click', () => this.stepFlow());
+                document.getElementById('resetFlow').addEventListener('click', () => this.resetFlow());
+            },
+            
+            selectEvent: function(eventId) {
+                this.currentEvent = DataService.getEventById(eventId);
+                this.currentJournals = DataService.getJournalsForEvent(eventId);
+                
+                if (!this.currentEvent) return;
+                
+                this.resetFlow();
+                this.updateJournalEntries();
+                
+                UIComponents.showNotification('info', 'Event Selected', 
+                    `Now tracing: ${this.currentEvent.description}`, 2000);
+            },
+            
+            updateJournalEntries: function() {
+                const container = document.getElementById('journalEntries');
+                
+                if (!this.currentJournals || this.currentJournals.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="empty-state-title">No Journal Entries</div>
+                            <div class="empty-state-description">
+                                No journal entries were generated from this event.
+                            </div>
+                        </div>
+                    `;
+                    UIComponents.updateBadge('journalCount', '0 entries');
+                    return;
+                }
+                
+                container.innerHTML = this.currentJournals
+                    .map(journal => UIComponents.createJournalEntry(journal))
+                    .join('');
+                
+                UIComponents.updateBadge('journalCount', `${this.currentJournals.length} entries`);
+            },
+            
+            playFlow: function() {
+                if (this.isAnimating || !this.currentEvent) return;
+                
+                this.isAnimating = true;
+                this.resetFlowVisuals();
+                
+                this.animateStage(0);
+                setTimeout(() => this.animateStage(1), 500);
+                setTimeout(() => this.animateStage(2), 1000);
+                setTimeout(() => this.animateStage(3), 1500);
+                
+                this.animateProgressBar(100);
+                this.animateFlowDot();
+                
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 2000);
+            },
+            
+            stepFlow: function() {
+                if (this.isAnimating || !this.currentEvent) return;
+                
+                this.isAnimating = true;
+                
+                const stages = document.querySelectorAll('.stage-icon');
+                const activeStages = document.querySelectorAll('.stage-icon.active');
+                
+                if (activeStages.length >= stages.length) {
+                    this.resetFlowVisuals();
+                } else {
+                    this.animateStage(activeStages.length);
+                    this.animateProgressBar((activeStages.length + 1) * 25);
+                }
+                
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, 500);
+            },
+            
+            resetFlow: function() {
+                this.resetFlowVisuals();
+                this.isAnimating = false;
+            },
+            
+            resetFlowVisuals: function() {
+                document.querySelectorAll('.stage-icon').forEach(icon => {
+                    icon.classList.remove('active');
+                });
+                
+                if (this.currentEvent) {
+                    document.getElementById('stageEvent').classList.add('active');
+                }
+                
+                this.animateProgressBar(0);
+                document.getElementById('flowDot').style.display = 'none';
+            },
+            
+            animateStage: function(stageIndex) {
+                const stages = ['stageEvent', 'stagePolicy', 'stageFinance', 'stageGL'];
+                if (stageIndex < 0 || stageIndex >= stages.length) return;
+                
+                const stageElement = document.getElementById(stages[stageIndex]);
+                if (stageElement) {
+                    stageElement.classList.add('active');
+                    stageElement.style.transform = 'scale(1.15)';
+                    setTimeout(() => {
+                        stageElement.style.transform = '';
+                    }, 300);
+                }
+            },
+            
+            animateProgressBar: function(percentage) {
+                const progressBar = document.getElementById('flowProgress');
+                progressBar.style.width = `${percentage}%`;
+            },
+            
+            animateFlowDot: function() {
+                const flowDot = document.getElementById('flowDot');
+                flowDot.style.display = 'block';
+                flowDot.style.left = '0%';
+                
+                setTimeout(() => {
+                    flowDot.style.transition = 'left 2s linear';
+                    flowDot.style.left = '100%';
+                }, 100);
+                
+                setTimeout(() => {
+                    flowDot.style.display = 'none';
+                }, 2100);
+            }
+        };
+
+        // ============================================================================
+        // MAIN APPLICATION CONTROLLER
+        // ============================================================================
+        const AppController = {
+            currentTab: 'flow',
+            
+            init: function() {
+                this.setupEventListeners();
+                this.loadData();
+                this.updateSystemStatus();
+                
+                this.switchTab('flow');
+                
+                const events = DataService.getEvents();
+                if (events.length > 0) {
+                    FlowVisualization.selectEvent(events[0].id);
+                }
+            },
+            
+            setupEventListeners: function() {
+                document.querySelectorAll('.tab-btn').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const tabId = e.target.dataset.tab;
+                        this.switchTab(tabId);
+                    });
+                });
+                
+                document.addEventListener('click', (e) => {
+                    const eventItem = e.target.closest('.event-item');
+                    if (eventItem) {
+                        const eventId = eventItem.dataset.eventId;
+                        this.selectEvent(eventId);
+                    }
+                });
+                
+                window.refreshData = () => this.refreshData();
+                window.closeModal = () => this.closeModal();
+                window.showEventDetail = (eventId) => this.showEventDetail(eventId);
+                window.exportTraceMatrix = (format) => this.exportTraceMatrix(format);
+                window.generateAuditReport = () => this.generateAuditReport();
+                window.showPolicyDetails = (policyId) => this.showPolicyDetails(policyId);
+            },
+            
+            loadData: function() {
+                this.renderEvents();
+                this.renderTraceMatrix();
+                this.renderPolicyLibrary();
+                this.renderAuditDashboard();
+                this.updateCounters();
+            },
+            
+            renderEvents: function() {
+                const events = DataService.getEvents();
+                const eventList = document.getElementById('eventList');
+                
+                eventList.innerHTML = events
+                    .map(event => UIComponents.createEventCard(event))
+                    .join('');
+                
+                document.getElementById('eventCount').textContent = `${events.length} events`;
+                document.getElementById('totalEvents').textContent = events.length;
+            },
+            
+            selectEvent: function(eventId) {
+                FlowVisualization.selectEvent(eventId);
+                
+                document.querySelectorAll('.event-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.eventId === eventId) {
+                        item.classList.add('active');
+                    }
+                });
+            },
+            
+            renderTraceMatrix: function() {
+                const events = DataService.getEvents();
+                const matrixBody = document.getElementById('matrixBody');
+                
+                let matrixHtml = '';
+                
+                events.forEach(event => {
+                    const journals = DataService.getJournalsForEvent(event.id);
+                    
+                    if (journals.length === 0) {
+                        matrixHtml += `
+                            <tr>
+                                <td>${event.id}</td>
+                                <td>${event.type.split('.')[1] || event.type}</td>
+                                <td>${DataService.formatDate(event.timestamp)}</td>
+                                <td colspan="3" style="text-align: center; color: var(--gray-500);">
+                                    <i class="fas fa-exclamation-triangle"></i> No journal entries
+                                </td>
+                                <td>${event.policy.id}</td>
+                                <td>
+                                    <button class="trace-link" onclick="showEventDetail('${event.id}')">
+                                        <i class="fas fa-search"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        journals.forEach(journal => {
+                            matrixHtml += UIComponents.createMatrixRow(event, journal);
+                        });
+                    }
+                });
+                
+                matrixBody.innerHTML = matrixHtml;
+            },
+            
+            renderPolicyLibrary: function() {
+                const policies = DataService.getPolicies();
+                const library = document.getElementById('policyLibrary');
+                
+                library.innerHTML = policies
+                    .map(policy => UIComponents.createPolicyCard(policy))
+                    .join('');
+            },
+            
+            renderAuditDashboard: function() {
+                const events = DataService.getEvents();
+                const timeline = document.getElementById('auditTimeline');
+                
+                document.getElementById('verifiedCount').textContent = events.length;
+                document.getElementById('traceabilityRate').textContent = '100%';
+                
+                const auditItems = [];
+                
+                events.forEach(event => {
+                    auditItems.push({
+                        type: 'event',
+                        icon: 'fas fa-calendar-alt',
+                        title: `Event: ${event.id}`,
+                        description: event.description,
+                        timestamp: event.timestamp,
+                        actor: event.actor
+                    });
+                    
+                    auditItems.push({
+                        type: 'policy',
+                        icon: 'fas fa-balance-scale',
+                        title: `Policy Applied: ${event.policy.id}`,
+                        description: event.policy.name,
+                        timestamp: event.policy.appliedAt,
+                        actor: 'Policy Engine'
+                    });
+                });
+                
+                auditItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                const recentItems = auditItems.slice(0, 3);
+                
+                timeline.innerHTML = recentItems
+                    .map(item => UIComponents.createAuditTimelineItem(item))
+                    .join('');
+            },
+            
+            showEventDetail: function(eventId) {
+                const event = DataService.getEventById(eventId);
+                if (!event) return;
+                
+                const modal = document.getElementById('detailModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalContent = document.getElementById('modalContent');
+                
+                modalTitle.textContent = `Event Details: ${event.id}`;
+                modalContent.innerHTML = UIComponents.createDetailContent(event);
+                modal.classList.add('active');
+            },
+            
+            showPolicyDetails: function(policyId) {
+                const policy = DataService.getPolicyById(policyId);
+                if (!policy) return;
+                
+                const modal = document.getElementById('detailModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalContent = document.getElementById('modalContent');
+                
+                modalTitle.textContent = `Policy Details: ${policy.id}`;
+                modalContent.innerHTML = `
+                    <div class="policy-details">
+                        <div class="policy-details-header">
+                            <div class="policy-details-id">${policy.id}</div>
+                            <div class="policy-details-version">v${policy.version}</div>
+                        </div>
+                        <div class="policy-details-name">${policy.name}</div>
+                        <div class="policy-details-description">${policy.description}</div>
+                        
+                        <div class="policy-rules-list">
+                            <div class="policy-rule-item">
+                                <div class="policy-rule-icon">
+                                    <i class="fas fa-cogs"></i>
+                                </div>
+                                <div class="policy-rule-content">
+                                    <div class="policy-rule-title">Policy Rules</div>
+                                    <div class="policy-rule-description">
+                                        ${policy.rules.map(rule => `
+                                            <div style="margin-bottom: 0.5rem;">
+                                                <i class="fas fa-check" style="color: var(--policy-color); margin-right: 0.5rem;"></i>
+                                                ${rule}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section" style="margin-top: 1.5rem;">
+                            <h4><i class="fas fa-chart-line"></i> Usage</h4>
+                            <div class="detail-item">
+                                <div class="detail-label">Applied to Events</div>
+                                <div class="detail-value">
+                                    ${DataService.getEvents().filter(e => e.policy.id === policyId).length} events
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                modal.classList.add('active');
+            },
+            
+            closeModal: function() {
+                const modal = document.getElementById('detailModal');
+                modal.classList.remove('active');
+            },
+            
+            switchTab: function(tabId) {
+                document.querySelectorAll('.tab-btn').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.tab === tabId) {
+                        tab.classList.add('active');
+                    }
+                });
+                
+                document.querySelectorAll('.flow-container').forEach(container => {
+                    container.classList.remove('active');
+                    if (container.id === tabId) {
+                        container.classList.add('active');
+                    }
+                });
+                
+                this.currentTab = tabId;
+            },
+            
+            updateCounters: function() {
+                const events = DataService.getEvents();
+                document.getElementById('totalEvents').textContent = events.length;
+            },
+            
+            updateSystemStatus: function() {
+                const now = new Date();
+                const lastUpdated = document.getElementById('lastUpdated');
+                lastUpdated.textContent = DataService.formatTimeAgo(now.toISOString());
+            },
+            
+            refreshData: function() {
+                this.loadData();
+                this.updateSystemStatus();
+                
+                UIComponents.showNotification('success', 'Data Refreshed', 
+                    'All data has been refreshed successfully.', 2000);
+            },
+            
+            exportTraceMatrix: function(format) {
+                UIComponents.showNotification('info', 'Export Started', 
+                    `Exporting trace matrix as ${format.toUpperCase()}...`, 2000);
+                
+                setTimeout(() => {
+                    UIComponents.showNotification('success', 'Export Complete', 
+                        'Traceability matrix has been exported.', 2000);
+                }, 1500);
+            },
+            
+            generateAuditReport: function() {
+                UIComponents.showNotification('info', 'Generating Report', 
+                    'Audit report is being generated...', 2000);
+                
+                setTimeout(() => {
+                    UIComponents.showNotification('success', 'Report Ready', 
+                        'Audit report has been generated and is ready for download.', 2000);
+                }, 2000);
+            }
+        };
+
+        // ============================================================================
+        // INITIALIZE EVERYTHING
+        // ============================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            FlowVisualization.init();
+            AppController.init();
+        });
+    </script>
+</body>
+</html>

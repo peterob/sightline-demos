@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sightline MVP — Event-Gated Settlement Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:#101a33; --panel2:#0f1730; --text:#e9eefc; --muted:#a9b4d6;
+      --line:#21305a; --good:#2ee59d; --warn:#ffd166; --bad:#ff5c7a; --info:#5aa7ff;
+      --chip:#14224a; --chip2:#162a5a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#070b18,#0b1020 30%,#070b18);color:var(--text);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    a{color:var(--info);text-decoration:none}
+    .wrap{max-width:1180px;margin:0 auto;padding:18px}
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .title{display:flex;flex-direction:column;gap:4px}
+    .title h1{margin:0;font-size:16px;font-weight:650;letter-spacing:.2px}
+    .title .sub{color:var(--muted);font-size:12px}
+    .row{display:grid;grid-template-columns: 1.2fr .8fr; gap:12px}
+    @media (max-width: 980px){ .row{grid-template-columns:1fr} }
+    .card{background:rgba(16,26,51,.92);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+    .card .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .card .hd .h{font-weight:650}
+    .card .bd{padding:12px 14px}
+    .banner{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(15,23,48,.9)}
+    .banner .left{display:flex;flex-direction:column;gap:4px}
+    .banner .status{display:flex;align-items:center;gap:10px}
+    .pill{padding:4px 10px;border-radius:999px;font-weight:650;font-size:12px;letter-spacing:.2px;border:1px solid transparent}
+    .pill.good{background:rgba(46,229,157,.12);border-color:rgba(46,229,157,.25);color:var(--good)}
+    .pill.bad{background:rgba(255,92,122,.12);border-color:rgba(255,92,122,.25);color:var(--bad)}
+    .pill.warn{background:rgba(255,209,102,.12);border-color:rgba(255,209,102,.25);color:var(--warn)}
+    .meta{color:var(--muted);font-size:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    button{cursor:pointer;border:1px solid var(--line);background:rgba(20,34,74,.65);color:var(--text);padding:8px 10px;border-radius:10px;font-weight:600}
+    button:hover{background:rgba(22,42,90,.75)}
+    button.primary{border-color:rgba(90,167,255,.35);background:rgba(90,167,255,.14)}
+    button.danger{border-color:rgba(255,92,122,.35);background:rgba(255,92,122,.12)}
+    button.good{border-color:rgba(46,229,157,.35);background:rgba(46,229,157,.10)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .strip{display:grid;grid-template-columns: repeat(4, 1fr); gap:10px}
+    @media (max-width: 820px){ .strip{grid-template-columns:1fr 1fr} }
+    .kpi{background:rgba(15,23,48,.75);border:1px solid var(--line);border-radius:12px;padding:10px}
+    .kpi .k{color:var(--muted);font-size:12px}
+    .kpi .v{font-size:16px;font-weight:700;margin-top:4px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(15,23,48,.65);color:var(--muted);font-weight:650}
+    .tab.active{color:var(--text);background:rgba(20,34,74,.75)}
+    .grid2{display:grid;grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 980px){ .grid2{grid-template-columns:1fr} }
+    .tbl{width:100%;border-collapse:collapse}
+    .tbl th,.tbl td{padding:9px 8px;border-bottom:1px solid rgba(33,48,90,.65);text-align:left;vertical-align:top}
+    .tbl th{color:var(--muted);font-size:12px;font-weight:650}
+    .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    .chip{display:inline-flex;gap:8px;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(20,34,74,.6);border:1px solid rgba(33,48,90,.8);color:var(--muted);font-size:12px}
+    .small{font-size:12px;color:var(--muted)}
+    .rightcol{display:flex;flex-direction:column;gap:12px}
+    .callout{padding:10px;border-radius:12px;border:1px dashed rgba(90,167,255,.35);background:rgba(90,167,255,.08);color:var(--muted)}
+    .json{white-space:pre-wrap;background:rgba(7,11,24,.7);border:1px solid rgba(33,48,90,.75);border-radius:12px;padding:10px}
+    .drawer{position:fixed;right:16px;top:16px;bottom:16px;width:min(520px,calc(100vw - 32px));background:rgba(16,26,51,.98);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);display:none;flex-direction:column}
+    .drawer.open{display:flex}
+    .drawer .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .drawer .bd{padding:12px 14px;overflow:auto}
+    .drawer .ft{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    input,select,textarea{
+      background:rgba(7,11,24,.65);border:1px solid rgba(33,48,90,.85);border-radius:10px;
+      padding:8px 10px;color:var(--text);outline:none
+    }
+    textarea{min-height:84px;resize:vertical}
+    .mutedline{border-top:1px solid rgba(33,48,90,.65);margin:12px 0}
+    .badge{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid rgba(33,48,90,.85);background:rgba(20,34,74,.6);color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h1>Sightline MVP — Event-Gated Settlement</h1>
+        <div class="sub">Append-only events → deterministic projection → invariants gate settlement → structured block reasons</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+        <span class="chip"><span class="badge">policy</span>
+          <select id="policySelect">
+            <option value="P1">P1 (strict evidence)</option>
+            <option value="P2">P2 (lighter evidence)</option>
+          </select>
+        </span>
+        <span class="chip"><span class="badge">projection</span>
+          <select id="projSelect">
+            <option value="V1">V1</option>
+            <option value="V2">V2 (adds bank-confirm step)</option>
+          </select>
+        </span>
+        <span class="chip"><span class="badge">replay</span>
+          <select id="replaySelect"></select>
+        </span>
+      </div>
+    </div>
+
+    <!-- STATUS BANNER + STRIP -->
+    <div class="banner" id="statusBanner">
+      <div class="left">
+        <div class="status">
+          <span class="pill" id="statusPill">—</span>
+          <span class="meta" id="statusMeta">—</span>
+        </div>
+        <div class="small" id="statusReason">—</div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="btnOpenEvidence">Attach evidence</button>
+        <button class="good" id="btnApprove">Add approval</button>
+        <button class="primary" id="btnAttemptPay">Attempt payout</button>
+        <button class="danger" id="btnReset">Reset demo</button>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="strip">
+      <div class="kpi">
+        <div class="k">Total</div>
+        <div class="v" id="kpiTotal">$—</div>
+        <div class="small" id="kpiTotalSub">invoice amount</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Paid</div>
+        <div class="v" id="kpiPaid">$—</div>
+        <div class="small" id="kpiPaidSub">confirmed</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Remaining</div>
+        <div class="v" id="kpiRemaining">$—</div>
+        <div class="small" id="kpiRemainingSub">eligible after gates</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Blocked</div>
+        <div class="v" id="kpiBlocked">$—</div>
+        <div class="small" id="kpiBlockedSub">by invariant/policy</div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="row">
+      <!-- LEFT: TABS + CONTENT -->
+      <div class="card">
+        <div class="hd">
+          <div class="h">Workflow</div>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="overview">Overview</button>
+            <button class="tab" data-tab="events">Event stream</button>
+            <button class="tab" data-tab="invariants">Invariants</button>
+            <button class="tab" data-tab="disputes">Disputes</button>
+            <button class="tab" data-tab="explain">Explain</button>
+          </div>
+        </div>
+        <div class="bd">
+          <!-- Overview -->
+          <div id="tab-overview">
+            <div class="grid2">
+              <div class="card" style="background:rgba(15,23,48,.65)">
+                <div class="hd"><div class="h">Subject</div><span class="chip"><span class="badge">workflow_id</span> <span class="mono" id="wfId">—</span></span></div>
+                <div class="bd" id="subjectSummary"></div>
+              </div>
+              <div class="card" style="background:rgba(15,23,48,.65)">
+                <div class="hd"><div class="h">Next actions</div><span class="chip"><span class="badge">machine</span> readable</span></div>
+                <div class="bd">
+                  <div id="nextActions"></div>
+                  <div class="mutedline"></div>
+                  <div class="callout">
+                    <div><b>Principle mapping (live)</b></div>
+                    <div class="small" id="principleMap"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="height:10px"></div>
+
+            <div class="card" style="background:rgba(15,23,48,.65)">
+              <div class="hd"><div class="h">Quick event controls</div><span class="chip"><span class="badge">append-only</span> demo</span></div>
+              <div class="bd">
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button id="btnAddShip">Add: SHIPPED (500 units)</button>
+                  <button id="btnAddReceive480">Add: RECEIVED (480 units)</button>
+                  <button id="btnAddReceive500">Add: RECEIVED (500 units)</button>
+                  <button id="btnAddInvoice">Add: INVOICED ($25,000)</button>
+                  <button id="btnAddVarianceClaim">Add: VARIANCE_CLAIM (20 units)</button>
+                  <button id="btnResolveVariance">Add: VARIANCE_RESOLVED</button>
+                  <button id="btnAddBankPost">Add: BANK_POST (confirm)</button>
+                </div>
+                <div class="small" style="margin-top:10px;color:var(--muted)">
+                  All buttons append events. State updates by replaying the event stream. “Replay” selector at top lets you time-travel.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Events -->
+          <div id="tab-events" style="display:none">
+            <div class="small" style="margin-bottom:8px;color:var(--muted)">
+              Event stream is the source of truth. <b>occurred_at</b> (reality-time) is distinct from <b>recorded_at</b> (system-time).
+            </div>
+            <table class="tbl" id="eventsTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>event_type</th>
+                  <th>occurred_at</th>
+                  <th>recorded_at</th>
+                  <th>actor</th>
+                  <th>payload</th>
+                  <th>evidence</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Invariants -->
+          <div id="tab-invariants" style="display:none">
+            <div class="card" style="background:rgba(15,23,48,.65)">
+              <div class="hd"><div class="h">Invariant set</div><span class="chip"><span class="badge">gates</span> settlement</span></div>
+              <div class="bd" id="invariantList"></div>
+            </div>
+          </div>
+
+          <!-- Disputes -->
+          <div id="tab-disputes" style="display:none">
+            <div class="grid2">
+              <div class="card" style="background:rgba(15,23,48,.65)">
+                <div class="hd"><div class="h">Dispute state</div><span class="chip"><span class="badge">first-class</span> object</span></div>
+                <div class="bd" id="disputeBox"></div>
+              </div>
+              <div class="card" style="background:rgba(15,23,48,.65)">
+                <div class="hd"><div class="h">Evidence</div><span class="chip"><span class="badge">attached</span> signals</span></div>
+                <div class="bd" id="evidenceBox"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explain -->
+          <div id="tab-explain" style="display:none">
+            <div class="small" style="margin-bottom:8px;color:var(--muted)">
+              “Explain” is machine-readable: block reason codes, failed invariants, missing events/evidence, and next actions.
+            </div>
+            <div class="json mono" id="explainJson"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: CURRENT PROJECTION -->
+      <div class="rightcol">
+        <div class="card">
+          <div class="hd">
+            <div class="h">Current projection</div>
+            <span class="chip"><span class="badge">fold</span> events → state</span>
+          </div>
+          <div class="bd">
+            <div class="json mono" id="stateJson"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <div class="h">Notes (what this MVP proves)</div>
+            <span class="chip"><span class="badge">MVP</span> scope</span>
+          </div>
+          <div class="bd">
+            <ul style="margin:0;padding-left:18px;color:var(--muted)">
+              <li>Payment is a <b>state transition</b> gated by invariants + policy.</li>
+              <li>Disagreement is a workflow state (not a data bug).</li>
+              <li>Evidence reduces uncertainty; it doesn’t rewrite past events.</li>
+              <li>Replays reproduce the same state (deterministic projection).</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Evidence Drawer -->
+  <div class="drawer" id="drawer">
+    <div class="hd">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="font-weight:650">Attach evidence</div>
+        <div class="small">Evidence attaches to a claim/event; it upgrades confidence under policy.</div>
+      </div>
+      <button id="btnCloseDrawer">Close</button>
+    </div>
+    <div class="bd">
+      <div class="field">
+        <label class="small">Attach to (event index)</label>
+        <select id="evidenceEventIndex"></select>
+      </div>
+      <div class="field">
+        <label class="small">Evidence type</label>
+        <select id="evidenceType">
+          <option value="PHOTO_PACKING_SLIP">PHOTO_PACKING_SLIP</option>
+          <option value="3PL_RECEIPT_LOG">3PL_RECEIPT_LOG</option>
+          <option value="CARRIER_SCAN">CARRIER_SCAN</option>
+          <option value="BANK_FEED_MATCH">BANK_FEED_MATCH</option>
+          <option value="APPROVAL_RECORD">APPROVAL_RECORD</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="small">Source</label>
+        <input id="evidenceSource" placeholder="e.g., 3PL WMS, UPS, Plaid, user upload" />
+      </div>
+      <div class="field">
+        <label class="small">Confidence (0.0–1.0)</label>
+        <input id="evidenceConfidence" type="number" step="0.05" min="0" max="1" value="0.8" />
+      </div>
+      <div class="field">
+        <label class="small">Notes</label>
+        <textarea id="evidenceNotes" placeholder="Short note, reference id, checksum, or what it supports"></textarea>
+      </div>
+      <div class="mutedline"></div>
+      <div class="small">
+        Policy P1 requires evidence for receiving variance and approvals before payout. P2 is lighter.
+      </div>
+    </div>
+    <div class="ft">
+      <button class="primary" id="btnSaveEvidence">Save evidence</button>
+    </div>
+  </div>
+
+<script>
+/**
+ * Sightline MVP: append-only events + deterministic projection + invariant-gated transitions.
+ * This is a demo—no persistence. It is written to be readable and directly mappable to Postgres/Supabase tables + RPC.
+ */
+
+// ---------- Utilities ----------
+const fmtMoney = (n) => "$" + (n || 0).toLocaleString(undefined, {minimumFractionDigits:0, maximumFractionDigits:0});
+const nowIso = () => new Date().toISOString();
+const addMinutes = (iso, mins) => new Date(new Date(iso).getTime() + mins*60000).toISOString();
+const uid = () => Math.random().toString(16).slice(2) + "-" + Math.random().toString(16).slice(2);
+
+// ---------- Demo data model ----------
+const DEMO = {
+  workflow_id: "wf_" + Math.random().toString(16).slice(2,10),
+  subject: {
+    po_id: "PO-10492",
+    vendor: "Acme Lighting Co.",
+    buyer: "Schoolhouse (Demo Org)",
+    item: "Pendant Fixture",
+    unit_price: 50,
+    currency: "USD"
+  }
+};
+
+let events = [];       // append-only stream
+let evidence = [];     // evidence objects (attach to events)
+let approvals = [];    // approvals are events too, but tracked for UX
+let replayIndex = null; // if set, fold only up to that event index
+
+// ---------- Event constructors ----------
+function appendEvent(event_type, payload, actor="system") {
+  const occurred_at = payload?.occurred_at || nowIso(); // reality-time
+  const recorded_at = nowIso();                         // system-time
+  const ev = {
+    event_id: "ev_" + uid(),
+    event_type,
+    occurred_at,
+    recorded_at,
+    actor,
+    subject: { workflow_id: DEMO.workflow_id, po_id: DEMO.subject.po_id },
+    org_scope: { buyer: DEMO.subject.buyer, vendor: DEMO.subject.vendor },
+    payload: payload || {},
+    evidence_refs: [],
+    hash_prev: events.length ? events[events.length-1].event_id : null
+  };
+  events.push(ev);
+  syncReplayOptions();
+  render();
+}
+
+// Evidence attaches to an event index (demo). In real system: evidence_refs by id.
+function attachEvidence(eventIndex, evd) {
+  const e = {
+    evidence_id: "evi_" + uid(),
+    event_id: events[eventIndex]?.event_id,
+    event_index: eventIndex,
+    evidence_type: evd.evidence_type,
+    source: evd.source,
+    captured_at: nowIso(),
+    confidence: Number(evd.confidence ?? 0.8),
+    notes: evd.notes || "",
+    digest: "sha256:" + Math.random().toString(16).slice(2,10) // placeholder
+  };
+  evidence.push(e);
+  // link reference
+  events[eventIndex].evidence_refs.push(e.evidence_id);
+  render();
+}
+
+// ---------- Projection logic (deterministic fold) ----------
+function foldProjection(policyVersion, projectionVersion, upToIndexInclusive=null) {
+  const stream = (upToIndexInclusive === null)
+    ? events
+    : events.slice(0, upToIndexInclusive + 1);
+
+  // base state
+  const state = {
+    workflow_id: DEMO.workflow_id,
+    policy_version: policyVersion,
+    projection_version: projectionVersion,
+    po_id: DEMO.subject.po_id,
+    vendor: DEMO.subject.vendor,
+    buyer: DEMO.subject.buyer,
+    item: DEMO.subject.item,
+    unit_price: DEMO.subject.unit_price,
+    currency: DEMO.subject.currency,
+    shipped_qty: 0,
+    received_qty: 0,
+    invoiced_amount: 0,
+    approvals_count: 0,
+    variance_claimed_qty: 0,
+    variance_resolved: false,
+    payout_attempted: false,
+    payout_state: "NOT_SENT", // NOT_SENT | SENT | CONFIRMED
+    status: "DRAFT",          // DRAFT | CONTENDED | ELIGIBLE | BLOCKED | PAID
+    disputes: [],
+    evidence_summary: { count: 0, avg_confidence: 0 },
+    last_event: null
+  };
+
+  // fold
+  for (const ev of stream) {
+    state.last_event = { event_type: ev.event_type, occurred_at: ev.occurred_at, recorded_at: ev.recorded_at };
+    switch (ev.event_type) {
+      case "SHIPPED":
+        state.shipped_qty += (ev.payload.qty || 0);
+        break;
+      case "RECEIVED":
+        state.received_qty += (ev.payload.qty || 0);
+        break;
+      case "INVOICED":
+        state.invoiced_amount = ev.payload.amount || state.invoiced_amount;
+        break;
+      case "APPROVAL_ADDED":
+        state.approvals_count += 1;
+        break;
+      case "VARIANCE_CLAIM":
+        state.variance_claimed_qty += (ev.payload.qty || 0);
+        state.variance_resolved = false;
+        break;
+      case "VARIANCE_RESOLVED":
+        state.variance_resolved = true;
+        break;
+      case "PAYOUT_ATTEMPTED":
+        state.payout_attempted = true;
+        break;
+      case "PAYOUT_SENT":
+        state.payout_state = "SENT";
+        break;
+      case "BANK_POST":
+        // projection V2 requires this to move from SENT->CONFIRMED
+        state.payout_state = (projectionVersion === "V2") ? "CONFIRMED" : state.payout_state;
+        break;
+      default:
+        break;
+    }
+  }
+
+  // evidence summary
+  const evIds = new Set(stream.map(e => e.event_id));
+  const evd = evidence.filter(x => evIds.has(x.event_id));
+  state.evidence_summary.count = evd.length;
+  state.evidence_summary.avg_confidence = evd.length ? +(evd.reduce((a,b)=>a+b.confidence,0)/evd.length).toFixed(2) : 0;
+
+  // derive dispute
+  const delta = state.shipped_qty - state.received_qty;
+  const hasMismatch = state.shipped_qty > 0 && state.received_qty > 0 && delta !== 0;
+  if (hasMismatch) {
+    state.disputes.push({
+      dispute_id: "disp_" + DEMO.workflow_id,
+      type: "QUANTITY_VARIANCE",
+      shipped_qty: state.shipped_qty,
+      received_qty: state.received_qty,
+      delta_qty: delta,
+      status: state.variance_resolved ? "RESOLVED" : "OPEN"
+    });
+  }
+
+  // classify coarse status prior to gate evaluation
+  if (!state.shipped_qty && !state.invoiced_amount) state.status = "DRAFT";
+  else if (state.disputes.some(d => d.status === "OPEN")) state.status = "CONTENDED";
+
+  return state;
+}
+
+// ---------- Invariants + gating (returns structured explanation) ----------
+function evaluateGates(state) {
+  const policyVersion = state.policy_version;
+  const projectionVersion = state.projection_version;
+
+  const result = {
+    blocked_reason_code: null,
+    failed_invariants: [],
+    missing_events: [],
+    missing_evidence: [],
+    required_approvals: [],
+    next_actions: []
+  };
+
+  // Invariant A: conservation-ish (shipped = received + claimed_variance when dispute open)
+  // (you can refine to include damaged/in_transit; this is MVP.)
+  const delta = state.shipped_qty - state.received_qty;
+  const hasVariance = delta !== 0 && state.shipped_qty > 0 && state.received_qty > 0;
+
+  const invA_ok = (!hasVariance) || (state.variance_claimed_qty === Math.abs(delta) && (state.variance_resolved || true));
+  // Note: we require a claim equal to the delta; resolution may be required by policy
+  if (hasVariance && state.variance_claimed_qty !== Math.abs(delta)) {
+    result.failed_invariants.push({
+      code: "INV_CONSERVATION_QTY",
+      message: "Quantity variance must be explicitly claimed to match shipped-received delta.",
+      details: { shipped: state.shipped_qty, received: state.received_qty, delta, claimed: state.variance_claimed_qty }
+    });
+    result.next_actions.push({ action: "ADD_EVENT", event_type: "VARIANCE_CLAIM", hint: `Claim ${Math.abs(delta)} units variance.` });
+  }
+
+  // Policy P1: requires variance resolution before pay if there is a mismatch
+  if (policyVersion === "P1" && hasVariance && !state.variance_resolved) {
+    result.failed_invariants.push({
+      code: "POLICY_VARIANCE_MUST_RESOLVE",
+      message: "Policy P1 requires variance resolution before payout.",
+      details: { variance_status: "OPEN" }
+    });
+    result.next_actions.push({ action: "ADD_EVENT", event_type: "VARIANCE_RESOLVED", hint: "Resolve variance with attribution + evidence." });
+  }
+
+  // Invariant B: invoice must exist to pay
+  if (!state.invoiced_amount || state.invoiced_amount <= 0) {
+    result.failed_invariants.push({
+      code: "INV_INVOICE_REQUIRED",
+      message: "Invoice amount must be present before payout.",
+      details: {}
+    });
+    result.missing_events.push("INVOICED");
+    result.next_actions.push({ action: "ADD_EVENT", event_type: "INVOICED", hint: "Record invoice with amount." });
+  }
+
+  // Invariant C: approvals (2 approvals for >$10k)
+  const approvalsNeeded = (state.invoiced_amount > 10000) ? 2 : 1;
+  if (state.approvals_count < approvalsNeeded) {
+    result.failed_invariants.push({
+      code: "INV_APPROVALS_REQUIRED",
+      message: "Insufficient approvals for payout.",
+      details: { approvals_required: approvalsNeeded, approvals_present: state.approvals_count }
+    });
+    result.required_approvals.push({ count: approvalsNeeded, present: state.approvals_count });
+    result.next_actions.push({ action: "ADD_EVENT", event_type: "APPROVAL_ADDED", hint: `Add approval (${state.approvals_count}/${approvalsNeeded}).` });
+  }
+
+  // Policy evidence requirements (simple):
+  // P1 requires at least 1 evidence item if there is any variance OR invoice > 10k
+  const needEvidence = (policyVersion === "P1") && (hasVariance || state.invoiced_amount > 10000);
+  if (needEvidence && state.evidence_summary.count < 1) {
+    result.failed_invariants.push({
+      code: "POLICY_EVIDENCE_REQUIRED",
+      message: "Policy P1 requires at least one evidence artifact for this payout.",
+      details: { evidence_count: state.evidence_summary.count }
+    });
+    result.missing_evidence.push("ANY");
+    result.next_actions.push({ action: "ATTACH_EVIDENCE", hint: "Attach supporting evidence (3PL log, photo, carrier scan, approval record)." });
+  }
+
+  // Projection V2: must have bank post confirmation to reach PAID (post-send)
+  if (projectionVersion === "V2" && state.payout_state === "SENT") {
+    // Not a block to sending, but to calling it "PAID"
+    // We'll reflect this in status derivation below.
+  }
+
+  // Determine blocked_reason_code
+  if (result.failed_invariants.length) {
+    result.blocked_reason_code = result.failed_invariants[0].code;
+  }
+
+  return result;
+}
+
+// Derive user-facing status (still backed by structured info)
+function deriveStatus(state, gates) {
+  // If we have confirmed payout => PAID
+  if (state.payout_state === "CONFIRMED") return "PAID";
+
+  // If payout sent but not confirmed in V2 => WARN state
+  if (state.projection_version === "V2" && state.payout_state === "SENT") return "ELIGIBLE"; // eligible but not confirmed; banner will show nuance
+
+  // If any invariant fails => BLOCKED (unless still just drafting)
+  if (gates.failed_invariants.length) return (state.shipped_qty || state.invoiced_amount) ? "BLOCKED" : "DRAFT";
+
+  // If disputes open => CONTENDED
+  if (state.disputes.some(d => d.status === "OPEN")) return "CONTENDED";
+
+  // Else eligible if invoice exists
+  if (state.invoiced_amount > 0) return "ELIGIBLE";
+
+  return "DRAFT";
+}
+
+// ---------- Rendering ----------
+function render() {
+  const policyVersion = document.getElementById("policySelect").value;
+  const projectionVersion = document.getElementById("projSelect").value;
+
+  const upTo = (replayIndex === null) ? null : replayIndex;
+  const state = foldProjection(policyVersion, projectionVersion, upTo);
+  const gates = evaluateGates(state);
+  state.status = deriveStatus(state, gates);
+
+  // Banner
+  const pill = document.getElementById("statusPill");
+  const meta = document.getElementById("statusMeta");
+  const reason = document.getElementById("statusReason");
+
+  const pillClass = (s) => {
+    pill.className = "pill " + (
+      s === "PAID" ? "good" :
+      s === "ELIGIBLE" ? "good" :
+      s === "CONTENDED" ? "warn" :
+      s === "BLOCKED" ? "bad" :
+      "warn"
+    );
+  };
+
+  pillClass(state.status);
+  pill.textContent = state.status;
+
+  const last = state.last_event ? `${state.last_event.event_type} (occurred ${shortTime(state.last_event.occurred_at)}, recorded ${shortTime(state.last_event.recorded_at)})` : "No events yet";
+  meta.textContent = `${DEMO.subject.po_id} • ${DEMO.subject.vendor} → ${DEMO.subject.buyer} • ${last}`;
+
+  if (state.status === "BLOCKED") {
+    reason.innerHTML = `Blocked: <span class="mono">${gates.blocked_reason_code}</span> — ${gates.failed_invariants[0]?.message || ""}`;
+  } else if (state.status === "CONTENDED") {
+    const d = state.disputes[0];
+    reason.innerHTML = `Contended: quantity mismatch (<span class="mono">${d.shipped_qty}</span> shipped vs <span class="mono">${d.received_qty}</span> received). Settlement gated until policy conditions satisfied.`;
+  } else if (state.status === "ELIGIBLE") {
+    if (state.projection_version === "V2" && state.payout_state === "SENT") {
+      reason.textContent = "Payout sent; awaiting bank confirmation to mark PAID (projection V2).";
+    } else {
+      reason.textContent = "Eligible: invariants satisfied for payout attempt.";
+    }
+  } else if (state.status === "PAID") {
+    reason.textContent = "Paid: payout confirmed (bank post).";
+  } else {
+    reason.textContent = "Draft: add events to model reality.";
+  }
+
+  // KPIs
+  const total = state.invoiced_amount || 0;
+  const paid = (state.payout_state === "CONFIRMED") ? total : 0;
+  const remaining = Math.max(0, total - paid);
+  const blocked = (state.status === "BLOCKED" || state.status === "CONTENDED") ? remaining : 0;
+
+  document.getElementById("kpiTotal").textContent = fmtMoney(total);
+  document.getElementById("kpiPaid").textContent = fmtMoney(paid);
+  document.getElementById("kpiRemaining").textContent = fmtMoney(remaining);
+  document.getElementById("kpiBlocked").textContent = fmtMoney(blocked);
+
+  // Subject summary
+  document.getElementById("wfId").textContent = state.workflow_id;
+  document.getElementById("subjectSummary").innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div><span class="chip"><span class="badge">po</span> <span class="mono">${state.po_id}</span></span></div>
+      <div><span class="chip"><span class="badge">item</span> ${state.item}</span></div>
+      <div><span class="chip"><span class="badge">unit_price</span> <span class="mono">${fmtMoney(state.unit_price)}</span></span></div>
+      <div><span class="chip"><span class="badge">shipped</span> <span class="mono">${state.shipped_qty}</span></span>
+           <span class="chip"><span class="badge">received</span> <span class="mono">${state.received_qty}</span></span></div>
+      <div><span class="chip"><span class="badge">approvals</span> <span class="mono">${state.approvals_count}</span></span>
+           <span class="chip"><span class="badge">evidence</span> <span class="mono">${state.evidence_summary.count}</span> (avg ${state.evidence_summary.avg_confidence})</span></div>
+      <div><span class="chip"><span class="badge">payout</span> <span class="mono">${state.payout_state}</span></span></div>
+    </div>
+  `;
+
+  // Next actions
+  document.getElementById("nextActions").innerHTML = renderNextActions(gates);
+
+  // Principle map
+  document.getElementById("principleMap").innerHTML = `
+    <div>• Events have occurred_at vs recorded_at (Principle 2)</div>
+    <div>• Evidence attaches to events (Principle 3)</div>
+    <div>• State is fold(events) (Principle 4)</div>
+    <div>• Invariants gate payout (Principle 5)</div>
+    <div>• Dispute is a state (Principle 8)</div>
+    <div>• Block reasons are structured (Principle 11)</div>
+  `;
+
+  // Events table
+  renderEventsTable();
+
+  // Invariant list
+  renderInvariantList(policyVersion, projectionVersion);
+
+  // Disputes + evidence box
+  renderDisputesAndEvidence(state);
+
+  // JSON panels
+  document.getElementById("stateJson").textContent = JSON.stringify(state, null, 2);
+
+  const explain = {
+    status: state.status,
+    blocked_reason_code: gates.blocked_reason_code,
+    failed_invariants: gates.failed_invariants,
+    missing_events: gates.missing_events,
+    missing_evidence: gates.missing_evidence,
+    required_approvals: gates.required_approvals,
+    next_actions: gates.next_actions
+  };
+  document.getElementById("explainJson").textContent = JSON.stringify(explain, null, 2);
+
+  // Buttons enable/disable
+  document.getElementById("btnAttemptPay").disabled = (state.status !== "ELIGIBLE");
+  document.getElementById("btnAddBankPost").disabled = !(state.payout_state === "SENT" && projectionVersion === "V2");
+}
+
+// helpers
+function shortTime(iso) {
+  const d = new Date(iso);
+  const pad = (x)=>String(x).padStart(2,"0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function renderNextActions(gates) {
+  if (!gates.next_actions.length) {
+    return `<div class="small" style="color:var(--muted)">No required actions. If eligible, attempt payout.</div>`;
+  }
+  return `
+    <ol style="margin:0;padding-left:18px;color:var(--muted)">
+      ${gates.next_actions.map(a => `<li><span class="mono">${a.action}</span> — ${escapeHtml(a.hint || "")}</li>`).join("")}
+    </ol>
+  `;
+}
+
+function renderEventsTable() {
+  const tbody = document.querySelector("#eventsTable tbody");
+  tbody.innerHTML = "";
+  const upTo = (replayIndex === null) ? events.length-1 : replayIndex;
+
+  events.forEach((ev, i) => {
+    const inReplay = (i <= upTo);
+    const tr = document.createElement("tr");
+    tr.style.opacity = inReplay ? "1" : ".35";
+
+    const payload = JSON.stringify(ev.payload);
+    const evdCount = ev.evidence_refs.length;
+    tr.innerHTML = `
+      <td class="mono">${i}</td>
+      <td><span class="chip"><span class="badge">type</span> <span class="mono">${ev.event_type}</span></span></td>
+      <td class="mono">${shortTime(ev.occurred_at)}</td>
+      <td class="mono">${shortTime(ev.recorded_at)}</td>
+      <td class="mono">${ev.actor}</td>
+      <td class="mono">${escapeHtml(payload)}</td>
+      <td>${evdCount ? `<span class="chip"><span class="badge">evidence</span> <span class="mono">${evdCount}</span></span>` : `<span class="small" style="color:var(--muted)">—</span>`}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // populate evidence attach selector
+  const sel = document.getElementById("evidenceEventIndex");
+  sel.innerHTML = "";
+  events.forEach((ev, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = `${i}: ${ev.event_type}`;
+    sel.appendChild(opt);
+  });
+}
+
+function renderInvariantList(policyVersion, projectionVersion) {
+  const el = document.getElementById("invariantList");
+  const inv = [
+    {
+      code: "INV_CONSERVATION_QTY",
+      statement: "If shipped_qty ≠ received_qty, a matching VARIANCE_CLAIM must exist.",
+      scope: "Quantity",
+      policy: "P1/P2",
+      blocks: "Payout"
+    },
+    {
+      code: "INV_INVOICE_REQUIRED",
+      statement: "INVOICED(amount) must exist before payout is eligible.",
+      scope: "Settlement",
+      policy: "P1/P2",
+      blocks: "Payout"
+    },
+    {
+      code: "INV_APPROVALS_REQUIRED",
+      statement: "Approvals required: 2 if invoice > $10k, else 1.",
+      scope: "Governance",
+      policy: "P1/P2",
+      blocks: "Payout"
+    },
+    {
+      code: "POLICY_EVIDENCE_REQUIRED",
+      statement: "Policy P1 requires ≥1 evidence artifact when variance exists or invoice > $10k.",
+      scope: "Assurance",
+      policy: "P1 only",
+      blocks: "Payout"
+    },
+    {
+      code: "V2_BANK_CONFIRM",
+      statement: "Projection V2 marks PAID only after BANK_POST confirms payout.",
+      scope: "Confirmation",
+      policy: "any",
+      blocks: "Paid status (not send)"
+    }
+  ];
+
+  el.innerHTML = `
+    <table class="tbl">
+      <thead><tr><th>code</th><th>statement</th><th>scope</th><th>applies</th><th>effect</th></tr></thead>
+      <tbody>
+        ${inv.map(x => `
+          <tr>
+            <td class="mono">${x.code}</td>
+            <td>${escapeHtml(x.statement)}</td>
+            <td>${x.scope}</td>
+            <td><span class="chip"><span class="badge">policy</span> ${x.policy}</span>
+                <span class="chip"><span class="badge">proj</span> ${x.code === "V2_BANK_CONFIRM" ? "V2" : "V1/V2"}</span></td>
+            <td>${x.blocks}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderDisputesAndEvidence(state) {
+  const dbox = document.getElementById("disputeBox");
+  if (!state.disputes.length) {
+    dbox.innerHTML = `<div class="small" style="color:var(--muted)">No active disputes.</div>`;
+  } else {
+    const d = state.disputes[0];
+    dbox.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div><span class="chip"><span class="badge">type</span> <span class="mono">${d.type}</span></span></div>
+        <div><span class="chip"><span class="badge">delta</span> <span class="mono">${d.delta_qty}</span> units</span></div>
+        <div><span class="chip"><span class="badge">status</span> <span class="mono">${d.status}</span></span></div>
+        <div class="small">This is a workflow state, not a data anomaly. Settlement gates until policy conditions satisfied.</div>
+      </div>
+    `;
+  }
+
+  const ebox = document.getElementById("evidenceBox");
+  const upTo = (replayIndex === null) ? events.length-1 : replayIndex;
+  const evIds = new Set(events.slice(0, upTo+1).map(e => e.event_id));
+  const evd = evidence.filter(x => evIds.has(x.event_id));
+
+  if (!evd.length) {
+    ebox.innerHTML = `<div class="small" style="color:var(--muted)">No evidence attached.</div>`;
+  } else {
+    ebox.innerHTML = `
+      <table class="tbl">
+        <thead><tr><th>type</th><th>source</th><th>conf</th><th>digest</th></tr></thead>
+        <tbody>
+          ${evd.map(x => `
+            <tr>
+              <td class="mono">${x.evidence_type}</td>
+              <td>${escapeHtml(x.source || "")}</td>
+              <td class="mono">${x.confidence}</td>
+              <td class="mono">${x.digest}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+// ---------- Replay options ----------
+function syncReplayOptions() {
+  const rs = document.getElementById("replaySelect");
+  rs.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "ALL";
+  optAll.textContent = "ALL (latest)";
+  rs.appendChild(optAll);
+
+  events.forEach((ev, i) => {
+    const o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = `${i}: ${ev.event_type}`;
+    rs.appendChild(o);
+  });
+
+  // keep selection stable if possible
+  if (replayIndex === null) rs.value = "ALL";
+}
+
+// ---------- UI events ----------
+document.querySelectorAll(".tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const t = btn.getAttribute("data-tab");
+    ["overview","events","invariants","disputes","explain"].forEach(x => {
+      document.getElementById("tab-"+x).style.display = (x === t) ? "" : "none";
+    });
+  });
+});
+
+document.getElementById("policySelect").addEventListener("change", render);
+document.getElementById("projSelect").addEventListener("change", render);
+
+document.getElementById("replaySelect").addEventListener("change", (e) => {
+  const v = e.target.value;
+  replayIndex = (v === "ALL") ? null : Number(v);
+  render();
+});
+
+// Drawer
+const drawer = document.getElementById("drawer");
+document.getElementById("btnOpenEvidence").addEventListener("click", () => {
+  drawer.classList.add("open");
+});
+document.getElementById("btnCloseDrawer").addEventListener("click", () => drawer.classList.remove("open"));
+document.getElementById("btnSaveEvidence").addEventListener("click", () => {
+  const idx = Number(document.getElementById("evidenceEventIndex").value);
+  attachEvidence(idx, {
+    evidence_type: document.getElementById("evidenceType").value,
+    source: document.getElementById("evidenceSource").value,
+    confidence: document.getElementById("evidenceConfidence").value,
+    notes: document.getElementById("evidenceNotes").value
+  });
+  drawer.classList.remove("open");
+});
+
+// Add approvals
+document.getElementById("btnApprove").addEventListener("click", () => {
+  appendEvent("APPROVAL_ADDED", { role: "approver", occurred_at: nowIso() }, "user:approver");
+});
+
+// Attempt payout
+document.getElementById("btnAttemptPay").addEventListener("click", () => {
+  // in real system: call can_transition RPC; if ok, emit PAYOUT_SENT
+  appendEvent("PAYOUT_ATTEMPTED", { occurred_at: nowIso() }, "user:treasury");
+  appendEvent("PAYOUT_SENT", { method: "ACH", occurred_at: nowIso() }, "system:payments");
+  render();
+});
+
+// Reset
+document.getElementById("btnReset").addEventListener("click", () => {
+  events = [];
+  evidence = [];
+  approvals = [];
+  replayIndex = null;
+  seedScenario();
+  render();
+});
+
+// Quick event controls
+document.getElementById("btnAddShip").addEventListener("click", () => {
+  const t = nowIso();
+  appendEvent("SHIPPED", { qty: 500, occurred_at: t }, "vendor:acme");
+});
+document.getElementById("btnAddReceive480").addEventListener("click", () => {
+  // record occurred earlier than recorded (simulate late ingestion)
+  const occurred = addMinutes(nowIso(), -30);
+  appendEvent("RECEIVED", { qty: 480, occurred_at: occurred }, "buyer:warehouse");
+});
+document.getElementById("btnAddReceive500").addEventListener("click", () => {
+  const occurred = addMinutes(nowIso(), -25);
+  appendEvent("RECEIVED", { qty: 500, occurred_at: occurred }, "buyer:warehouse");
+});
+document.getElementById("btnAddInvoice").addEventListener("click", () => {
+  appendEvent("INVOICED", { amount: 25000, occurred_at: nowIso() }, "vendor:acme");
+});
+document.getElementById("btnAddVarianceClaim").addEventListener("click", () => {
+  appendEvent("VARIANCE_CLAIM", { qty: 20, reason: "short shipment", occurred_at: nowIso() }, "buyer:ap");
+});
+document.getElementById("btnResolveVariance").addEventListener("click", () => {
+  appendEvent("VARIANCE_RESOLVED", { attribution: "carrier_loss", occurred_at: nowIso() }, "buyer:ops");
+});
+document.getElementById("btnAddBankPost").addEventListener("click", () => {
+  appendEvent("BANK_POST", { match: true, occurred_at: nowIso() }, "system:bankfeed");
+});
+
+// Seed scenario for immediate demo
+function seedScenario() {
+  const base = addMinutes(nowIso(), -90);
+  appendEvent("SHIPPED",  { qty: 500, occurred_at: addMinutes(base, 0) }, "vendor:acme");
+  appendEvent("RECEIVED", { qty: 480, occurred_at: addMinutes(base, 30) }, "buyer:warehouse");
+  appendEvent("INVOICED", { amount: 25000, occurred_at: addMinutes(base, 40) }, "vendor:acme");
+  // approvals start at 0 to show gating; evidence none to show policy gating in P1
+}
+seedScenario();
+render();
+</script>
+</body>
+</html>

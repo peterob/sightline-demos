@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sightline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ink:#0d0d0d;--paper:#f7f5f0;--cream:#ede9e0;--rule:#d5d0c5;
+  --accent:#1a3a2a;--accent2:#c8401a;--accent3:#1a2a5a;
+  --gold:#b8860b;--sage:#4a6741;--rust:#8b3a20;
+  --mono:'DM Mono',monospace;--serif:'Instrument Serif',serif;--sans:'DM Sans',sans-serif;
+  --g:rgba(0,0,0,0.06);
+}
+html,body{height:100%;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.5;}
+
+/* ── ROLE SWITCHER ── */
+.role-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--ink);display:flex;align-items:center;gap:0;height:36px;border-bottom:1px solid rgba(255,255,255,0.1);}
+.role-label{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:.1em;padding:0 16px;text-transform:uppercase;border-right:1px solid rgba(255,255,255,0.1);}
+.role-btn{height:36px;padding:0 16px;background:transparent;border:none;color:rgba(255,255,255,0.45);font-family:var(--mono);font-size:10px;cursor:pointer;border-right:1px solid rgba(255,255,255,0.08);transition:all .15s;letter-spacing:.05em;}
+.role-btn:hover{color:#fff;background:rgba(255,255,255,0.06);}
+.role-btn.active{color:#fff;background:rgba(255,255,255,0.1);}
+.role-dot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:6px;vertical-align:middle;}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:100vh;padding-top:36px;}
+.sidebar{width:200px;flex-shrink:0;background:var(--cream);border-right:1px solid var(--rule);display:flex;flex-direction:column;overflow-y:auto;}
+.main{flex:1;overflow-y:auto;}
+
+/* ── SIDEBAR ── */
+.brand{padding:24px 20px 16px;border-bottom:1px solid var(--rule);}
+.brand-name{font-family:var(--serif);font-size:20px;color:var(--ink);font-style:italic;display:block;}
+.brand-sub{font-family:var(--mono);font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin-top:2px;}
+.nav-section{padding:16px 0 4px;}
+.nav-section-label{font-family:var(--mono);font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase;padding:0 20px 6px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 20px;cursor:pointer;color:#666;font-size:12px;border-left:2px solid transparent;transition:all .15s;font-family:var(--sans);}
+.nav-item:hover{color:var(--ink);background:rgba(0,0,0,0.04);}
+.nav-item.active{color:var(--ink);border-left-color:var(--accent);background:rgba(0,0,0,0.06);font-weight:500;}
+.nav-badge{margin-left:auto;font-family:var(--mono);font-size:9px;background:var(--accent2);color:#fff;padding:1px 5px;border-radius:2px;}
+.nav-badge.warn{background:#b8860b;}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--rule);}
+.user-chip{display:flex;align-items:center;gap:8px;}
+.user-av{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff;font-weight:500;flex-shrink:0;}
+.user-name{font-size:11px;font-weight:500;color:var(--ink);}
+.user-role{font-family:var(--mono);font-size:9px;color:#888;margin-top:1px;}
+
+/* ── CONTENT ── */
+.view{display:none;padding:32px;}
+.view.active{display:block;}
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--rule);}
+.page-title{font-family:var(--serif);font-size:28px;font-style:italic;color:var(--ink);}
+.page-sub{font-family:var(--mono);font-size:10px;color:#888;margin-top:4px;letter-spacing:.04em;}
+
+/* ── METRICS ── */
+.metrics{display:grid;gap:12px;margin-bottom:24px;}
+.metrics-4{grid-template-columns:repeat(4,1fr);}
+.metrics-3{grid-template-columns:repeat(3,1fr);}
+.metrics-2{grid-template-columns:repeat(2,1fr);}
+.metric{background:#fff;border:1px solid var(--rule);padding:16px 18px;}
+.metric-label{font-family:var(--mono);font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;}
+.metric-val{font-size:26px;font-weight:300;color:var(--ink);letter-spacing:-.5px;}
+.metric-val.ok{color:var(--sage);}
+.metric-val.warn{color:var(--gold);}
+.metric-val.bad{color:var(--accent2);}
+.metric-sub{font-family:var(--mono);font-size:9px;color:#aaa;margin-top:4px;}
+
+/* ── ALERT BAR ── */
+.alert{background:#fff8e6;border:1px solid #d4aa00;border-left:3px solid #d4aa00;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:12px;color:#7a5f00;}
+.alert.bad{background:#fff0ee;border-color:var(--accent2);border-left-color:var(--accent2);color:#7a1500;}
+.alert.ok{background:#eef6ee;border-color:var(--sage);border-left-color:var(--sage);color:#1a4a1a;}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid var(--rule);margin-bottom:16px;}
+.card-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--rule);}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#666;}
+.card-body{padding:0;}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{font-family:var(--mono);font-size:9px;color:#aaa;letter-spacing:.08em;text-transform:uppercase;text-align:left;padding:9px 16px;border-bottom:1px solid var(--rule);font-weight:400;}
+td{padding:10px 16px;border-bottom:1px solid var(--g);vertical-align:middle;color:var(--ink);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.mono-cell{font-family:var(--mono);font-size:10px;color:#888;}
+
+/* ── ROWS ── */
+.row{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid var(--g);cursor:pointer;}
+.row:last-child{border-bottom:none;}
+.row:hover{background:#fafaf8;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.dot-ok{background:var(--sage);}
+.dot-warn{background:var(--gold);}
+.dot-bad{background:var(--accent2);}
+.dot-blue{background:var(--accent3);}
+.dot-grey{background:#ccc;}
+.row-body{flex:1;min-width:0;}
+.row-title{font-size:12px;font-weight:500;color:var(--ink);}
+.row-meta{font-family:var(--mono);font-size:10px;color:#aaa;margin-top:2px;}
+.row-time{font-family:var(--mono);font-size:10px;color:#ccc;flex-shrink:0;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:9px;padding:2px 7px;letter-spacing:.04em;font-weight:500;border:1px solid;}
+.badge-ok{background:#eef6ee;color:#1a4a1a;border-color:#a0c8a0;}
+.badge-warn{background:#fff8e6;color:#7a5f00;border-color:#d4c060;}
+.badge-bad{background:#fff0ee;color:#7a1500;border-color:#e0a090;}
+.badge-blue{background:#eef0f8;color:#1a2a5a;border-color:#a0a8d8;}
+.badge-grey{background:#f5f5f2;color:#666;border-color:#ccc;}
+.badge-ink{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;border:1px solid;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#0d2218;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--rule);}
+.btn-ghost:hover{background:var(--g);}
+.btn-danger{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px;}
+.form-label{font-family:var(--mono);font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:6px;}
+.form-input{width:100%;padding:9px 12px;border:1px solid var(--rule);background:#fff;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;}
+.form-input:focus{border-color:var(--accent);}
+.form-select{width:100%;padding:9px 12px;border:1px solid var(--rule);background:#fff;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;appearance:none;}
+.form-textarea{width:100%;padding:9px 12px;border:1px solid var(--rule);background:#fff;font-family:var(--sans);font-size:13px;color:var(--ink);outline:none;resize:vertical;min-height:80px;}
+.form-row{display:grid;gap:14px;margin-bottom:16px;}
+.form-row-2{grid-template-columns:1fr 1fr;}
+.form-row-3{grid-template-columns:1fr 1fr 1fr;}
+
+/* ── CHAIN ── */
+.chain{display:flex;gap:0;margin-bottom:20px;}
+.chain-step{flex:1;border:1px solid var(--rule);padding:12px;text-align:center;position:relative;background:#fff;}
+.chain-step:not(:last-child)::after{content:'→';position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:#ccc;font-size:13px;z-index:1;background:var(--paper);padding:0 2px;}
+.chain-step.verified{border-color:var(--sage);background:#eef6ee;}
+.chain-step.active-step{border-color:var(--accent3);background:#eef0f8;}
+.chain-step.pending{border-color:#d4aa00;background:#fff8e6;}
+.chain-label{font-family:var(--mono);font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.chain-val{font-size:11px;font-weight:500;color:var(--ink);}
+.chain-sub{font-family:var(--mono);font-size:9px;color:#aaa;margin-top:2px;}
+
+/* ── DETAIL BLOCK ── */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.detail-item{background:#fafaf8;border:1px solid var(--rule);padding:12px;}
+.detail-label{font-family:var(--mono);font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.detail-val{font-size:12px;color:var(--ink);font-weight:500;}
+.detail-val.mono{font-family:var(--mono);font-size:10px;font-weight:400;word-break:break-all;}
+
+/* ── PROOF BOX ── */
+.proof-box{background:var(--ink);color:#a0c8a0;font-family:var(--mono);font-size:10px;padding:14px 16px;margin-top:12px;line-height:1.7;}
+.proof-label{color:rgba(255,255,255,0.4);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+
+/* ── CONTEXT SNAPSHOT ── */
+.snapshot{background:#fafaf8;border:1px solid var(--rule);padding:0;}
+.snapshot-row{display:flex;align-items:flex-start;gap:0;border-bottom:1px solid var(--g);}
+.snapshot-row:last-child{border-bottom:none;}
+.snapshot-system{font-family:var(--mono);font-size:9px;color:#fff;background:var(--accent3);padding:6px 10px;width:80px;flex-shrink:0;align-self:stretch;display:flex;align-items:center;}
+.snapshot-field{font-family:var(--mono);font-size:10px;color:#666;padding:6px 10px;width:180px;flex-shrink:0;border-right:1px solid var(--g);}
+.snapshot-value{font-family:var(--mono);font-size:10px;color:var(--ink);padding:6px 10px;font-weight:500;}
+.snapshot-time{font-family:var(--mono);font-size:9px;color:#ccc;padding:6px 10px;margin-left:auto;flex-shrink:0;}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--rule);margin:20px 0;}
+
+/* ── STATUS PILL (bar chart style) ── */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.bar-label{font-size:11px;color:#666;width:140px;flex-shrink:0;}
+.bar-track{flex:1;height:4px;background:var(--rule);}
+.bar-fill{height:4px;}
+.bar-fill-ok{background:var(--sage);}
+.bar-fill-warn{background:var(--gold);}
+.bar-fill-bad{background:var(--accent2);}
+.bar-val{font-family:var(--mono);font-size:10px;color:#888;width:60px;text-align:right;flex-shrink:0;}
+
+/* ── TABS ── */
+.tab-bar{display:flex;border-bottom:1px solid var(--rule);margin-bottom:20px;}
+.tab{padding:8px 16px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;color:#aaa;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--ink);border-bottom-color:var(--accent);}
+
+/* ── SECTIONS ── */
+.section-title{font-family:var(--mono);font-size:10px;color:#aaa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+/* ── MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--paper);border:1px solid var(--rule);width:560px;max-height:80vh;overflow-y:auto;position:relative;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--rule);}
+.modal-title{font-family:var(--serif);font-size:18px;font-style:italic;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#888;line-height:1;}
+.modal-body{padding:20px;}
+.modal-foot{padding:16px 20px;border-top:1px solid var(--rule);display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── PROGRESS STEPS ── */
+.steps{display:flex;gap:0;margin-bottom:24px;}
+.step{flex:1;text-align:center;position:relative;}
+.step:not(:last-child)::after{content:'';position:absolute;top:12px;left:60%;right:-40%;height:1px;background:var(--rule);}
+.step.done::after{background:var(--sage);}
+.step-circle{width:24px;height:24px;border-radius:50%;border:1px solid var(--rule);background:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;margin:0 auto 4px;color:#aaa;}
+.step.done .step-circle{background:var(--sage);border-color:var(--sage);color:#fff;}
+.step.current .step-circle{background:var(--ink);border-color:var(--ink);color:#fff;}
+.step-label{font-family:var(--mono);font-size:9px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;}
+.step.done .step-label,.step.current .step-label{color:var(--ink);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.view.active{animation:fadeIn .2s ease}
+</style>
+</head>
+<body>
+
+<!-- ROLE SWITCHER -->
+<div class="role-bar">
+  <div class="role-label">View as</div>
+  <button class="role-btn" data-role="borrower" onclick="setRole('borrower')">
+    <span class="role-dot" style="background:#4a9a6a"></span>Borrower
+  </button>
+  <button class="role-btn active" data-role="lender" onclick="setRole('lender')">
+    <span class="role-dot" style="background:#1a3a8a"></span>Lender
+  </button>
+  <button class="role-btn" data-role="underwriter" onclick="setRole('underwriter')">
+    <span class="role-dot" style="background:#8a6a1a"></span>Underwriter
+  </button>
+  <button class="role-btn" data-role="cco" onclick="setRole('cco')">
+    <span class="role-dot" style="background:#8a1a1a"></span>CCO
+  </button>
+  <button class="role-btn" data-role="auditor" onclick="setRole('auditor')">
+    <span class="role-dot" style="background:#5a3a8a"></span>Auditor
+  </button>
+</div>
+
+<div class="shell">
+
+<!-- ═══════════════════════════════════════════════════════════
+     BORROWER SIDEBAR
+═══════════════════════════════════════════════════════════ -->
+<div class="sidebar" id="sidebar-borrower" style="display:none;">
+  <div class="brand">
+    <span class="brand-name">Sightline</span>
+    <span class="brand-sub">Borrower Portal</span>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">My Facility</div>
+    <div class="nav-item active" onclick="showView('b-overview')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" onclick="showView('b-draw')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      Request draw
+    </div>
+    <div class="nav-item" onclick="showView('b-payments')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Payments
+    </div>
+    <div class="nav-item" onclick="showView('b-documents')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Documents
+    </div>
+    <div class="nav-item" onclick="showView('b-notices')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notices
+      <span class="nav-badge">1</span>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-av">AC</div>
+      <div>
+        <div class="user-name">Apex Contracting</div>
+        <div class="user-role">borrower</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LENDER SIDEBAR
+═══════════════════════════════════════════════════════════ -->
+<div class="sidebar" id="sidebar-lender">
+  <div class="brand">
+    <span class="brand-name">Sightline</span>
+    <span class="brand-sub">Lending Operations</span>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">Portfolio</div>
+    <div class="nav-item active" onclick="showView('l-dashboard')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showView('l-borrowers')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+      Borrowers
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-label">The Spine</div>
+    <div class="nav-item" onclick="showView('l-events')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Event stream
+    </div>
+    <div class="nav-item" onclick="showView('l-tasks')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6"/><rect x="3" y="13" width="6" height="6"/><line x1="13" y1="8" x2="21" y2="8"/><line x1="13" y1="16" x2="21" y2="16"/></svg>
+      Tasks
+      <span class="nav-badge">3</span>
+    </div>
+    <div class="nav-item" onclick="showView('l-covenants')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Covenants
+      <span class="nav-badge warn">2</span>
+    </div>
+    <div class="nav-item" onclick="showView('l-payments')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Payments
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-av" style="background:#1a3a8a;">JT</div>
+      <div>
+        <div class="user-name">James T.</div>
+        <div class="user-role">lending officer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     UNDERWRITER / CCO / AUDITOR SIDEBARS
+═══════════════════════════════════════════════════════════ -->
+<div class="sidebar" id="sidebar-underwriter" style="display:none;">
+  <div class="brand"><span class="brand-name">Sightline</span><span class="brand-sub">Underwriting</span></div>
+  <div class="nav-section">
+    <div class="nav-section-label">Queue</div>
+    <div class="nav-item active" onclick="showView('u-queue')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6"/><line x1="13" y1="8" x2="21" y2="8"/><rect x="3" y="13" width="6" height="6"/><line x1="13" y1="16" x2="21" y2="16"/></svg>Draw queue <span class="nav-badge">2</span></div>
+    <div class="nav-item" onclick="showView('u-review')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Policy review</div>
+    <div class="nav-item" onclick="showView('u-history')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</div>
+  </div>
+  <div class="sidebar-footer"><div class="user-chip"><div class="user-av" style="background:#8a6a1a;">MR</div><div><div class="user-name">Michael R.</div><div class="user-role">underwriter</div></div></div></div>
+</div>
+
+<div class="sidebar" id="sidebar-cco" style="display:none;">
+  <div class="brand"><span class="brand-name">Sightline</span><span class="brand-sub">CCO Console</span></div>
+  <div class="nav-section">
+    <div class="nav-section-label">Decisions</div>
+    <div class="nav-item active" onclick="showView('c-exceptions')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Exception queue <span class="nav-badge bad">2</span></div>
+    <div class="nav-item" onclick="showView('c-precedents')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Precedents</div>
+    <div class="nav-item" onclick="showView('c-override')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Override decision</div>
+  </div>
+  <div class="sidebar-footer"><div class="user-chip"><div class="user-av" style="background:#8a1a1a;">SK</div><div><div class="user-name">Sarah K.</div><div class="user-role">chief credit officer</div></div></div></div>
+</div>
+
+<div class="sidebar" id="sidebar-auditor" style="display:none;">
+  <div class="brand"><span class="brand-name">Sightline</span><span class="brand-sub">Audit Trail</span></div>
+  <div class="nav-section">
+    <div class="nav-section-label">Audit</div>
+    <div class="nav-item active" onclick="showView('a-replay')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Decision replay</div>
+    <div class="nav-item" onclick="showView('a-chain')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Proof chain</div>
+    <div class="nav-item" onclick="showView('a-projector')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Projector status</div>
+  </div>
+  <div class="sidebar-footer"><div class="user-chip"><div class="user-av" style="background:#5a3a8a;">GT</div><div><div class="user-name">Grant Thornton</div><div class="user-role">auditor</div></div></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════ -->
+<div class="main">
+
+<!-- ── BORROWER: OVERVIEW ── -->
+<div class="view active" id="view-b-overview">
+  <div class="page-header">
+    <div><div class="page-title">My facility</div><div class="page-sub">Apex Contracting · ABL · as of today</div></div>
+    <button class="btn btn-primary btn-sm" onclick="showView('b-draw')">Request draw →</button>
+  </div>
+  <div class="alert warn"><strong>Cure notice received.</strong> Your AR concentration has exceeded the 60% limit. Please contact your lending officer by Friday.</div>
+  <div class="metrics metrics-4">
+    <div class="metric"><div class="metric-label">Facility limit</div><div class="metric-val">$5.0M</div><div class="metric-sub">ABL · Apex Capital</div></div>
+    <div class="metric"><div class="metric-label">Drawn balance</div><div class="metric-val">$4.2M</div><div class="metric-sub">84% of limit</div></div>
+    <div class="metric"><div class="metric-label">Available to draw</div><div class="metric-val ok">$600K</div><div class="metric-sub">borrowing base</div></div>
+    <div class="metric"><div class="metric-label">Next payment</div><div class="metric-val">$18,400</div><div class="metric-sub">May 1 · interest</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Recent activity</div></div>
+      <div class="card-body">
+        <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">Draw $420,000 funded</div><div class="row-meta">Auto-approved · ref ACH-3F9A1B · INV-8821</div></div><div class="row-time">3h ago</div></div>
+        <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">Invoice #INV-8821 verified</div><div class="row-meta">QuickBooks · Northgate Construction $494,100</div></div><div class="row-time">3h ago</div></div>
+        <div class="row"><div class="dot dot-warn"></div><div class="row-body"><div class="row-title">AR concentration alert</div><div class="row-meta">TransCo Inc 67% · cure notice issued</div></div><div class="row-time">14m ago</div></div>
+        <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">Monthly interest posted</div><div class="row-meta">$18,400 · April 1</div></div><div class="row-time">3d ago</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Borrowing base</div></div>
+      <div class="card-body" style="padding:16px;">
+        <div class="bar-row"><div class="bar-label">Eligible AR</div><div class="bar-track"><div class="bar-fill bar-fill-ok" style="width:100%"></div></div><div class="bar-val">$1,200,000</div></div>
+        <div class="bar-row"><div class="bar-label">Advance rate (85%)</div><div class="bar-track"><div class="bar-fill bar-fill-ok" style="width:100%"></div></div><div class="bar-val">$1,020,000</div></div>
+        <div class="bar-row"><div class="bar-label">Current drawn</div><div class="bar-track"><div class="bar-fill bar-fill-warn" style="width:80%"></div></div><div class="bar-val">$4,200,000</div></div>
+        <div class="bar-row"><div class="bar-label">Availability</div><div class="bar-track"><div class="bar-fill bar-fill-ok" style="width:40%"></div></div><div class="bar-val">$600,000</div></div>
+        <div class="divider" style="margin:12px 0;"></div>
+        <div class="detail-label">Last certificate</div>
+        <div class="detail-val" style="font-size:11px;margin-top:2px;">April 1, 2026 · auto-generated · CCO confirmed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BORROWER: DRAW REQUEST ── -->
+<div class="view" id="view-b-draw">
+  <div class="page-header">
+    <div><div class="page-title">Request a draw</div><div class="page-sub">Funds typically arrive within 1–2 business days</div></div>
+  </div>
+  <div class="steps">
+    <div class="step current"><div class="step-circle">1</div><div class="step-label">Invoice</div></div>
+    <div class="step"><div class="step-circle">2</div><div class="step-label">Amount</div></div>
+    <div class="step"><div class="step-circle">3</div><div class="step-label">Lien waiver</div></div>
+    <div class="step"><div class="step-circle">4</div><div class="step-label">Submit</div></div>
+  </div>
+  <div class="card" style="max-width:560px;">
+    <div class="card-head"><div class="card-title">Step 1 — Invoice details</div></div>
+    <div class="card-body" style="padding:20px;">
+      <div class="form-row form-row-2">
+        <div class="form-group"><label class="form-label">Invoice number</label><input class="form-input" value="INV-8821" /></div>
+        <div class="form-group"><label class="form-label">Invoice amount</label><input class="form-input" value="$494,100" /></div>
+      </div>
+      <div class="form-group"><label class="form-label">Obligor (customer name)</label><input class="form-input" value="Northgate Construction Ltd" /></div>
+      <div class="form-row form-row-2">
+        <div class="form-group"><label class="form-label">Invoice date</label><input class="form-input" value="March 28, 2026" /></div>
+        <div class="form-group"><label class="form-label">Due date</label><input class="form-input" value="April 28, 2026" /></div>
+      </div>
+      <div class="form-group"><label class="form-label">Source system</label>
+        <select class="form-select"><option>QuickBooks (connected)</option><option>Upload PDF</option></select>
+      </div>
+      <div class="alert ok" style="margin-bottom:16px;"><strong>Invoice verified.</strong> INV-8821 confirmed in QuickBooks. Northgate Construction — no ineligibles flagged.</div>
+      <div class="form-group"><label class="form-label">Draw amount requested</label><input class="form-input" value="$420,000" /></div>
+      <div style="font-family:var(--mono);font-size:9px;color:#aaa;margin-bottom:16px;">85% advance rate applied to $494,100 eligible · borrowing base availability $600,000 · draw eligible ✓</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm">Back</button>
+        <button class="btn btn-primary btn-sm" onclick="showDrawModal()">Continue to lien waiver →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── BORROWER: PAYMENTS ── -->
+<div class="view" id="view-b-payments">
+  <div class="page-header"><div><div class="page-title">Payments</div><div class="page-sub">All draws and repayments on your facility</div></div></div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">Payment history</div></div>
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Reference</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Apr 3, 2026</td><td>Draw</td><td style="font-weight:500;color:var(--sage);">+$420,000</td><td class="mono-cell">ACH-3F9A1B · INV-8821</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+        <tr><td>Apr 1, 2026</td><td>Interest</td><td style="font-weight:500;color:var(--accent2);">−$18,400</td><td class="mono-cell">INT-001234</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+        <tr><td>Mar 3, 2026</td><td>Draw</td><td style="font-weight:500;color:var(--sage);">+$280,000</td><td class="mono-cell">ACH-9C2D3E · INV-8819</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+        <tr><td>Mar 1, 2026</td><td>Interest</td><td style="font-weight:500;color:var(--accent2);">−$17,200</td><td class="mono-cell">INT-001198</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── BORROWER: DOCUMENTS ── -->
+<div class="view" id="view-b-documents">
+  <div class="page-header"><div><div class="page-title">Documents</div><div class="page-sub">Loan agreement, certificates, and notices</div></div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Document</th><th>Type</th><th>Date</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>Loan Agreement — Apex Contracting ABL</td><td class="mono-cell">Agreement</td><td>Jan 15, 2026</td><td><span class="badge badge-ok">Executed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+        <tr><td>Borrowing Base Certificate — April 2026</td><td class="mono-cell">BBC</td><td>Apr 1, 2026</td><td><span class="badge badge-ok">Confirmed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+        <tr><td>Conditional Lien Waiver — INV-8821</td><td class="mono-cell">Lien waiver</td><td>Apr 3, 2026</td><td><span class="badge badge-ok">Signed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+        <tr><td>AR Concentration Cure Notice</td><td class="mono-cell">Notice</td><td>Apr 3, 2026</td><td><span class="badge badge-warn">Action required</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── BORROWER: NOTICES ── -->
+<div class="view" id="view-b-notices">
+  <div class="page-header"><div><div class="page-title">Notices</div><div class="page-sub">Formal communications from Apex Capital</div></div></div>
+  <div class="alert bad"><strong>Action required by Friday April 7.</strong> AR concentration cure notice — respond to your lending officer.</div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">Cure notice — AR concentration</div><span class="badge badge-warn">Open · 4 days remaining</span></div>
+    <div class="card-body" style="padding:20px;">
+      <p style="font-size:13px;line-height:1.7;color:#444;margin-bottom:16px;">Your receivables from TransCo Inc currently represent 67.1% of your eligible AR, exceeding the 60% concentration limit in your loan agreement (§6.3). You have 30 business days to cure this concentration.</p>
+      <p style="font-size:13px;line-height:1.7;color:#444;margin-bottom:16px;"><strong>Required action:</strong> Reduce the concentration below 60% by collecting from TransCo or adding new eligible receivables. Contact your lending officer James T. to discuss your cure plan.</p>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Policy limit</div><div class="detail-val">60% single obligor</div></div>
+        <div class="detail-item"><div class="detail-label">Current concentration</div><div class="detail-val bad" style="color:var(--accent2);">67.1% — TransCo Inc</div></div>
+        <div class="detail-item"><div class="detail-label">Cure deadline</div><div class="detail-val">May 4, 2026</div></div>
+        <div class="detail-item"><div class="detail-label">Draw status during cure</div><div class="detail-val ok" style="color:var(--sage);">Active (no freeze yet)</div></div>
+      </div>
+      <button class="btn btn-primary btn-sm">Contact lending officer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LENDER: DASHBOARD ── -->
+<div class="view" id="view-l-dashboard">
+  <div class="page-header"><div><div class="page-title">Portfolio</div><div class="page-sub">Apex Capital · 23 active borrowers · live</div></div><div style="font-family:var(--mono);font-size:10px;color:#aaa;text-align:right;">Projector lag: 0 events<br>Updated 2 min ago</div></div>
+  <div class="alert warn"><strong>Meridian Logistics</strong> — AR concentration 67.1% exceeds 60% limit. Task TSK-0019 open. Assigned to CCO Sarah K.</div>
+  <div class="metrics metrics-4" style="margin-bottom:20px;">
+    <div class="metric"><div class="metric-label">Deployed capital</div><div class="metric-val">$48.3M</div><div class="metric-sub">+$2.1M this month</div></div>
+    <div class="metric"><div class="metric-label">Open tasks</div><div class="metric-val warn">3</div><div class="metric-sub">2 human · 1 AI</div></div>
+    <div class="metric"><div class="metric-label">Covenant breaches</div><div class="metric-val bad">2</div><div class="metric-sub">Meridian · Redbrook</div></div>
+    <div class="metric"><div class="metric-label">AI auto-resolved</div><div class="metric-val ok">84%</div><div class="metric-sub">tasks in last 90d</div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-head"><div class="card-title">Open tasks</div><span class="badge badge-bad">3 open</span></div>
+      <div class="row" onclick="showView('l-tasks')"><div class="dot dot-bad"></div><div class="row-body"><div class="row-title">TSK-0019 — Meridian AR concentration</div><div class="row-meta">CCO · Sarah K. · due today 5pm</div></div><span class="badge badge-bad" style="flex-shrink:0">Urgent</span></div>
+      <div class="row" onclick="showView('l-tasks')"><div class="dot dot-bad"></div><div class="row-body"><div class="row-title">TSK-0018 — Redbrook cash cure notice</div><div class="row-meta">Lending Officer · James T. · due +3 days</div></div><span class="badge badge-grey" style="flex-shrink:0">Normal</span></div>
+      <div class="row" onclick="showView('l-tasks')"><div class="dot dot-blue"></div><div class="row-body"><div class="row-title">TSK-0020 — Hartwell BBC generation</div><div class="row-meta">AI agent · executing</div></div><span class="badge badge-blue" style="flex-shrink:0">AI</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">Recent events</div></div>
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">Sunfield Foods — $312K payment</div><div class="row-meta">Stripe · matched INV SF-2291</div></div><div class="row-time">2m</div></div>
+      <div class="row"><div class="dot dot-warn"></div><div class="row-body"><div class="row-title">Meridian — AR concentration alert</div><div class="row-meta">NetSuite · 67.1% single obligor</div></div><div class="row-time">14m</div></div>
+      <div class="row"><div class="dot dot-bad"></div><div class="row-body"><div class="row-title">Redbrook — cash covenant breach</div><div class="row-meta">Plaid · $84K vs $150K floor</div></div><div class="row-time">1h</div></div>
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">Apex — draw $420K funded</div><div class="row-meta">AI · 3s · 0 touches</div></div><div class="row-time">3h</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LENDER: BORROWERS ── -->
+<div class="view" id="view-l-borrowers">
+  <div class="page-header"><div><div class="page-title">Borrowers</div><div class="page-sub">23 active facilities</div></div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Borrower</th><th>Type</th><th>Facility</th><th>Drawn</th><th>Availability</th><th>Data source</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Apex Contracting</strong></td><td class="mono-cell">ABL</td><td>$5.0M</td><td>$4.2M</td><td style="color:var(--sage);">$600K</td><td class="mono-cell">QuickBooks · Plaid</td><td><span class="badge badge-ok">Verified</span></td></tr>
+        <tr><td><strong>Meridian Logistics</strong></td><td class="mono-cell">RBF</td><td>$3.5M</td><td>$2.8M</td><td>$700K</td><td class="mono-cell">NetSuite · Stripe</td><td><span class="badge badge-warn">Review</span></td></tr>
+        <tr><td><strong>Sunfield Foods</strong></td><td class="mono-cell">WCL</td><td>$7.0M</td><td>$6.1M</td><td style="color:var(--sage);">$900K</td><td class="mono-cell">QuickBooks · Stripe</td><td><span class="badge badge-ok">Verified</span></td></tr>
+        <tr><td><strong>Redbrook Equipment</strong></td><td class="mono-cell">Equipment</td><td>$2.5M</td><td>$1.9M</td><td>$600K</td><td class="mono-cell">Xero · Plaid</td><td><span class="badge badge-bad">Breach</span></td></tr>
+        <tr><td><strong>Hartwell Tech</strong></td><td class="mono-cell">RBF</td><td>$4.0M</td><td>$3.4M</td><td>$600K</td><td class="mono-cell">Stripe · Recurly</td><td><span class="badge badge-grey">Watch</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── LENDER: EVENTS ── -->
+<div class="view" id="view-l-events">
+  <div class="page-header"><div><div class="page-title">Event stream</div><div class="page-sub">Append-only · last 200 events</div></div></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">PAYMENT_RECEIVED · Sunfield Foods · $312,400</div><div class="row-meta">Stripe · matched INV SF-2291 · policy: payment waterfall → TSK-0021</div></div><div class="row-time">2m</div></div>
+      <div class="row"><div class="dot dot-warn"></div><div class="row-body"><div class="row-title">AR_AGING_IMPORTED · Meridian Logistics</div><div class="row-meta">NetSuite · 42 receivables · concentration 67.1% → COVENANT_BREACH → TSK-0019</div></div><div class="row-time">14m</div></div>
+      <div class="row"><div class="dot dot-bad"></div><div class="row-body"><div class="row-title">BANK_BALANCE_IMPORTED · Redbrook · $84,220</div><div class="row-meta">Plaid · floor $150K → COVENANT_BREACH → TSK-0018</div></div><div class="row-time">1h</div></div>
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">DRAW_APPROVED · Apex Contracting · $420,000</div><div class="row-meta">AI agent · DEC-0001 · 3s · proof: sha256:7f83b1…</div></div><div class="row-time">3h</div></div>
+      <div class="row"><div class="dot dot-blue"></div><div class="row-body"><div class="row-title">POLICY_EVALUATED · DRAW-AUTO-001 v1.0.0 · pass</div><div class="row-meta">4/4 conditions met · confidence 0.99</div></div><div class="row-time">3h</div></div>
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">LIEN_WAIVER_VERIFIED · Apex Contracting</div><div class="row-meta">DocuSign · conditional · signed 09:14:03</div></div><div class="row-time">3h</div></div>
+      <div class="row"><div class="dot dot-ok"></div><div class="row-body"><div class="row-title">INVOICE_IMPORTED · Apex Contracting · $494,100</div><div class="row-meta">QuickBooks · INV-8821 · Northgate Construction · verified</div></div><div class="row-time">3h</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LENDER: TASKS ── -->
+<div class="view" id="view-l-tasks">
+  <div class="page-header"><div><div class="page-title">Task queue</div><div class="page-sub">Work orders between policy and outcome</div></div></div>
+  <div style="background:#fff;border:1px solid var(--rule);padding:16px 20px;margin-bottom:12px;border-left:3px solid var(--accent2);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div style="font-weight:500;margin-bottom:4px;">TSK-0019 — AR concentration review · Meridian Logistics</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;"><span class="badge badge-bad">Open</span><span class="badge badge-warn">Human required</span><span class="badge badge-grey" style="font-family:var(--mono);font-size:9px;">Due: today 5pm</span></div></div>
+      <button class="btn btn-primary btn-sm">Resolve →</button>
+    </div>
+    <p style="font-size:12px;color:#555;line-height:1.6;margin-bottom:10px;">TransCo Inc represents 67.1% of eligible AR vs 60% policy limit. CCO must review, contact borrower, and document cure plan or waiver.</p>
+    <div style="display:flex;gap:6px;font-family:var(--mono);font-size:10px;color:var(--accent3);">
+      <span>EVT-0047 ↗</span><span>Policy: AR-CONC-001 ↗</span><span>Loan §6.3 ↗</span><span>AR aging ↗</span>
+    </div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--rule);padding:16px 20px;margin-bottom:12px;border-left:3px solid var(--accent2);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div style="font-weight:500;margin-bottom:4px;">TSK-0018 — Cash cure notice · Redbrook Equipment</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;"><span class="badge badge-bad">Open</span><span class="badge badge-warn">Human required</span><span class="badge badge-grey" style="font-family:var(--mono);font-size:9px;">Due: +3 days</span></div></div>
+      <button class="btn btn-ghost btn-sm">Resolve →</button>
+    </div>
+    <p style="font-size:12px;color:#555;line-height:1.6;margin-bottom:10px;">Cash $84,220 vs $150,000 floor. 10-day cure window. Issue formal cure notice and track borrower response.</p>
+  </div>
+  <div style="background:#fff;border:1px solid var(--rule);padding:16px 20px;margin-bottom:12px;border-left:3px solid var(--accent3);opacity:.8;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="font-weight:500;margin-bottom:4px;">TSK-0020 — BBC generation · Hartwell Tech</div>
+      <div style="display:flex;gap:6px;"><span class="badge badge-blue">AI executing</span><span style="font-family:var(--mono);font-size:10px;color:#aaa;">Est. 2 min remaining</span></div></div>
+      <button class="btn btn-ghost btn-sm">Watch →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LENDER: COVENANTS ── -->
+<div class="view" id="view-l-covenants">
+  <div class="page-header"><div><div class="page-title">Covenants</div><div class="page-sub">Live · checked continuously from source events</div></div></div>
+  <div class="alert bad"><strong>2 breaches.</strong> Tasks created automatically. Human resolution required for both.</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Borrower</th><th>Covenant</th><th>Threshold</th><th>Live value</th><th>Last checked</th><th>Task</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Apex Contracting</td><td>Min monthly revenue</td><td>$800K</td><td style="color:var(--sage);">$1.24M</td><td class="mono-cell">2m ago</td><td class="mono-cell">—</td><td><span class="badge badge-ok">Clear</span></td></tr>
+        <tr style="background:#fff8f8;"><td>Meridian Logistics</td><td>AR concentration</td><td>&lt; 60%</td><td style="color:var(--accent2);font-weight:500;">67.1%</td><td class="mono-cell">14m ago</td><td class="mono-cell" style="color:var(--accent3);">TSK-0019</td><td><span class="badge badge-bad">Breach</span></td></tr>
+        <tr><td>Sunfield Foods</td><td>Min cash balance</td><td>$200K</td><td style="color:var(--sage);">$618K</td><td class="mono-cell">6m ago</td><td class="mono-cell">—</td><td><span class="badge badge-ok">Clear</span></td></tr>
+        <tr style="background:#fff8f8;"><td>Redbrook Equipment</td><td>Min cash balance</td><td>$150K</td><td style="color:var(--accent2);font-weight:500;">$84K</td><td class="mono-cell">1h ago</td><td class="mono-cell" style="color:var(--accent3);">TSK-0018</td><td><span class="badge badge-bad">Breach</span></td></tr>
+        <tr><td>Hartwell Tech</td><td>MRR growth floor</td><td>+3% MoM</td><td style="color:var(--gold);">+3.8%</td><td class="mono-cell">6h ago</td><td class="mono-cell">—</td><td><span class="badge badge-warn">Watch</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── LENDER: PAYMENTS ── -->
+<div class="view" id="view-l-payments">
+  <div class="page-header"><div><div class="page-title">Payments</div><div class="page-sub">All payment intents · AI and human initiated</div></div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Ref</th><th>Borrower</th><th>Amount</th><th>Rail</th><th>Authorized by</th><th>Rail ref</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono-cell">PAY-0001</td><td>Apex Contracting</td><td style="color:var(--sage);font-weight:500;">$420,000</td><td class="mono-cell">ACH</td><td class="mono-cell">POLICY:DRAW-AUTO-001</td><td class="mono-cell">ACH-3F9A1B</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+        <tr><td class="mono-cell">PAY-0002</td><td>Hartwell Tech</td><td style="color:var(--accent2);">$14,200</td><td class="mono-cell">ACH</td><td class="mono-cell">POLICY:DRAW-AUTO-001</td><td class="mono-cell">ACH-7C4E2D</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── UNDERWRITER: QUEUE ── -->
+<div class="view" id="view-u-queue">
+  <div class="page-header"><div><div class="page-title">Draw queue</div><div class="page-sub">Requests requiring underwriter review</div></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><div class="card-title">Sunfield Foods · Draw request $180,000</div><span class="badge badge-warn">Escalated — condition failed</span></div>
+    <div class="card-body" style="padding:16px 20px;">
+      <p style="font-size:12px;color:#555;margin-bottom:14px;">AI policy evaluation failed on condition 3: lien waiver not on file. Manual review required. Context pre-loaded below.</p>
+      <div class="section-title">Policy evaluation result — DRAW-AUTO-001 v1.0.0</div>
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g);font-size:12px;"><span style="color:var(--sage);">✓</span> Invoice #SF-2312 verified in QuickBooks ($211,764)</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g);font-size:12px;"><span style="color:var(--sage);">✓</span> Borrowing base availability $900,000 post-draw</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--g);font-size:12px;color:var(--accent2);"><span>✗</span> Lien waiver not on file — DocuSign returned no record</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12px;"><span style="color:var(--sage);">✓</span> No open covenant breaches</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm">Approve with exception</button>
+        <button class="btn btn-ghost btn-sm">Request lien waiver</button>
+        <button class="btn btn-danger btn-sm">Reject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── UNDERWRITER: POLICY REVIEW ── -->
+<div class="view" id="view-u-review">
+  <div class="page-header"><div><div class="page-title">Policy evaluation</div><div class="page-sub">Run any policy against live borrower state</div></div></div>
+  <div class="card" style="max-width:600px;">
+    <div class="card-head"><div class="card-title">Evaluate policy</div></div>
+    <div class="card-body" style="padding:20px;">
+      <div class="form-row form-row-2">
+        <div class="form-group"><label class="form-label">Policy</label><select class="form-select"><option>DRAW-AUTO-001 v1.0.0</option><option>AR-CONC-001 v1.0.0</option><option>MIN-CASH-001 v1.0.0</option></select></div>
+        <div class="form-group"><label class="form-label">Borrower</label><select class="form-select"><option>Apex Contracting</option><option>Meridian Logistics</option><option>Sunfield Foods</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Override context (JSON)</label><textarea class="form-textarea" style="font-family:var(--mono);font-size:11px;">{"invoice.verified": true, "borrowing_base.availability_post_draw": 600000, "lien_waiver.verified": true}</textarea></div>
+      <button class="btn btn-primary btn-sm">Run evaluation →</button>
+    </div>
+  </div>
+  <div class="alert ok" style="max-width:600px;margin-top:16px;"><strong>Last result: PASS</strong> · DRAW-AUTO-001 · Apex Contracting · 4/4 conditions · confidence 0.99</div>
+</div>
+
+<!-- ── UNDERWRITER: HISTORY ── -->
+<div class="view" id="view-u-history">
+  <div class="page-header"><div><div class="page-title">Decision history</div><div class="page-sub">Your resolved tasks and decisions</div></div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Decision</th><th>Borrower</th><th>Policy</th><th>Type</th><th>Outcome</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td class="mono-cell">DEC-0001</td><td>Apex Contracting</td><td class="mono-cell">DRAW-AUTO-001</td><td><span class="badge badge-ok">Compliant</span></td><td style="color:var(--sage);">Approved $420K</td><td class="mono-cell">Apr 3</td></tr>
+        <tr><td class="mono-cell">DEC-0003</td><td>Sunfield Foods</td><td class="mono-cell">DRAW-AUTO-001</td><td><span class="badge badge-warn">Exception</span></td><td style="color:var(--gold);">Approved with note</td><td class="mono-cell">Mar 28</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── CCO: EXCEPTION QUEUE ── -->
+<div class="view" id="view-c-exceptions">
+  <div class="page-header"><div><div class="page-title">Exception queue</div><div class="page-sub">Tasks requiring CCO judgment</div></div></div>
+  <div class="alert bad"><strong>2 open exceptions.</strong> Both require same-day action.</div>
+  <div style="background:#fff;border:1px solid var(--rule);padding:20px;margin-bottom:16px;border-left:4px solid var(--accent2);">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;"><div style="font-weight:500;">TSK-0019 — Meridian AR concentration</div><span class="badge badge-bad">Due today 5pm</span></div>
+    <p style="font-size:12px;color:#555;line-height:1.6;margin-bottom:14px;">AI recommended draw freeze (policy default at 60%). TransCo Inc 67.1% concentration. 18 months clean payment history. CCO judgment: freeze or cure notice?</p>
+    <div class="section-title" style="margin-bottom:8px;">Pre-loaded context</div>
+    <div class="snapshot" style="margin-bottom:14px;">
+      <div class="snapshot-row"><div class="snapshot-system">netsuite</div><div class="snapshot-field">ar_aging.max_concentration_pct</div><div class="snapshot-value">67.1%</div><div class="snapshot-time">14m ago</div></div>
+      <div class="snapshot-row"><div class="snapshot-system">internal</div><div class="snapshot-field">transco.payment_history_months</div><div class="snapshot-value">18 months on-time</div><div class="snapshot-time">14m ago</div></div>
+      <div class="snapshot-row"><div class="snapshot-system">internal</div><div class="snapshot-field">borrower.prior_waivers</div><div class="snapshot-value">0</div><div class="snapshot-time">14m ago</div></div>
+      <div class="snapshot-row"><div class="snapshot-system">internal</div><div class="snapshot-field">policy.alert_pct</div><div class="snapshot-value">60.0%</div><div class="snapshot-time">pinned</div></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary btn-sm" onclick="showOverrideModal()">Issue cure notice (override AI) →</button>
+      <button class="btn btn-ghost btn-sm">Freeze draws (follow AI)</button>
+      <button class="btn btn-ghost btn-sm">Grant waiver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CCO: PRECEDENTS ── -->
+<div class="view" id="view-c-precedents">
+  <div class="page-header"><div><div class="page-title">Precedents</div><div class="page-sub">Why we made exceptions · the learning context graph</div></div></div>
+  <div class="tab-bar">
+    <div class="tab active">All exceptions (90d)</div>
+    <div class="tab">Overrides</div>
+    <div class="tab">Policy breaks</div>
+    <div class="tab">By policy</div>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Decision</th><th>Borrower</th><th>Policy</th><th>AI proposed</th><th>Human chose</th><th>Reason</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td class="mono-cell">DEC-0002</td><td>Meridian Logistics</td><td class="mono-cell">AR-CONC-001</td><td style="color:var(--accent2);font-size:11px;">freeze_draws</td><td style="color:var(--sage);font-size:11px;">issue_cure_notice</td><td><span class="badge badge-warn">relationship</span></td><td class="mono-cell">Apr 3</td></tr>
+        <tr><td class="mono-cell">DEC-0005</td><td>Hartwell Tech</td><td class="mono-cell">MRR-GROWTH-001</td><td style="color:var(--gold);font-size:11px;">watch_and_notify</td><td style="color:var(--sage);font-size:11px;">no_action</td><td><span class="badge badge-blue">data_error</span></td><td class="mono-cell">Mar 15</td></tr>
+        <tr><td class="mono-cell">DEC-0003</td><td>Sunfield Foods</td><td class="mono-cell">DRAW-AUTO-001</td><td style="color:var(--accent2);font-size:11px;">escalate</td><td style="color:var(--sage);font-size:11px;">approve_draw</td><td><span class="badge badge-grey">policy_gap</span></td><td class="mono-cell">Mar 28</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="alert" style="margin-top:16px;background:#f0f0f8;border-color:#a0a8d8;color:#1a2a5a;"><strong>Pattern detected:</strong> 2 of 3 recent exceptions on AR-CONC-001 cite <strong>relationship</strong> as the reason. Consider whether the 60% threshold should be raised to 65% for tenured borrowers.</div>
+</div>
+
+<!-- ── CCO: OVERRIDE FORM ── -->
+<div class="view" id="view-c-override">
+  <div class="page-header"><div><div class="page-title">Override decision</div><div class="page-sub">Your reasoning is tethered to the exact agent inputs it overrides</div></div></div>
+  <div class="card" style="max-width:600px;">
+    <div class="card-head"><div class="card-title">TSK-0019 · Meridian Logistics · AR concentration</div></div>
+    <div class="card-body" style="padding:20px;">
+      <div class="section-title" style="margin-bottom:8px;">Agent recommendation</div>
+      <div style="background:#fff8f8;border:1px solid #e0a090;padding:10px 14px;font-size:12px;color:#7a1500;margin-bottom:16px;">freeze_draws — AR concentration 67.1% exceeds 60% limit. Policy: AR-CONC-001 default action.</div>
+      <div class="form-group"><label class="form-label">Your decision</label>
+        <select class="form-select"><option>Issue cure notice</option><option>Grant waiver</option><option>Freeze draws</option><option>Escalate to workout</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Reason code</label>
+        <select class="form-select"><option>relationship</option><option>competitive</option><option>data_error</option><option>policy_gap</option><option>risk_appetite</option><option>regulatory</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Reasoning (searchable, feeds next agent run)</label>
+        <textarea class="form-textarea">TransCo Inc has 18 months of on-time payment history. Concentration driven by Q1 seasonal revenue spike. Cure expected within 30 days as Q2 invoices are collected. Freeze would damage relationship without reducing actual credit risk.</textarea>
+      </div>
+      <div class="form-group"><label class="form-label">Flag policy gap?</label>
+        <select class="form-select"><option>No</option><option>Yes — threshold should be higher for tenured obligors</option></select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm">Submit override →</button>
+        <button class="btn btn-ghost btn-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUDITOR: REPLAY ── -->
+<div class="view" id="view-a-replay">
+  <div class="page-header"><div><div class="page-title">Decision replay</div><div class="page-sub">Exact state at decision time · Replay Test</div></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><div class="card-title">DEC-0001 · Apex draw $420K · AI · Apr 3 09:14:05</div><span class="badge badge-ok">Compliant</span></div>
+    <div class="card-body" style="padding:16px 20px;">
+      <div class="section-title" style="margin-bottom:10px;">Point-in-time context snapshot — 09:14:04.831</div>
+      <div class="snapshot" style="margin-bottom:16px;">
+        <div class="snapshot-row"><div class="snapshot-system">quickbooks</div><div class="snapshot-field">invoice.verified</div><div class="snapshot-value">true</div><div class="snapshot-time">09:14:02</div></div>
+        <div class="snapshot-row"><div class="snapshot-system">quickbooks</div><div class="snapshot-field">invoice.amount</div><div class="snapshot-value">$494,100</div><div class="snapshot-time">09:14:02</div></div>
+        <div class="snapshot-row"><div class="snapshot-system">internal</div><div class="snapshot-field">borrowing_base.availability</div><div class="snapshot-value">$1,020,000</div><div class="snapshot-time">09:14:03</div></div>
+        <div class="snapshot-row"><div class="snapshot-system">docusign</div><div class="snapshot-field">lien_waiver.status</div><div class="snapshot-value">signed · conditional</div><div class="snapshot-time">09:14:04</div></div>
+        <div class="snapshot-row"><div class="snapshot-system">internal</div><div class="snapshot-field">covenants.breached_count</div><div class="snapshot-value">0</div><div class="snapshot-time">09:14:04</div></div>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Policy version</div><div class="detail-val">DRAW-AUTO-001 v1.0.0</div></div>
+        <div class="detail-item"><div class="detail-label">Confidence</div><div class="detail-val">0.990</div></div>
+        <div class="detail-item"><div class="detail-label">Recommendation</div><div class="detail-val">approve_draw</div></div>
+        <div class="detail-item"><div class="detail-label">Outcome</div><div class="detail-val ok" style="color:var(--sage);">$420,000 funded · ACH-3F9A1B</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">DEC-0002 · Meridian override · CCO · Apr 3 11:03:17</div><span class="badge badge-warn">Override</span></div>
+    <div class="card-body" style="padding:16px 20px;">
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Agent proposed</div><div class="detail-val bad" style="color:var(--accent2);">freeze_draws</div></div>
+        <div class="detail-item"><div class="detail-label">Human selected</div><div class="detail-val ok" style="color:var(--sage);">issue_cure_notice</div></div>
+        <div class="detail-item"><div class="detail-label">Reason code</div><div class="detail-val">relationship</div></div>
+        <div class="detail-item"><div class="detail-label">Actor</div><div class="detail-val">sarah.k@apexcapital.com</div></div>
+      </div>
+      <div style="background:#fafaf8;border:1px solid var(--rule);padding:10px 14px;font-size:12px;color:#555;line-height:1.6;">TransCo Inc 18 months clean history. Q1 seasonal concentration. Cure expected 30 days. Freeze not warranted.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUDITOR: PROOF CHAIN ── -->
+<div class="view" id="view-a-chain">
+  <div class="page-header"><div><div class="page-title">Proof chain</div><div class="page-sub">Tamper-evident · sha256 linked · Apex draw $420K</div></div></div>
+  <div class="chain">
+    <div class="chain-step verified"><div class="chain-label">1 · Event</div><div class="chain-val">Invoice imported</div><div class="chain-sub">QuickBooks · EVT-41</div></div>
+    <div class="chain-step verified"><div class="chain-label">2 · Policy</div><div class="chain-val">DRAW-AUTO-001</div><div class="chain-sub">4/4 pass · v1.0.0</div></div>
+    <div class="chain-step active-step"><div class="chain-label">3 · Task</div><div class="chain-val">TSK-0017</div><div class="chain-sub">AI assigned</div></div>
+    <div class="chain-step verified"><div class="chain-label">4 · Decision</div><div class="chain-val">DEC-0001</div><div class="chain-sub">compliant · 0.99</div></div>
+    <div class="chain-step verified"><div class="chain-label">5 · Payment</div><div class="chain-val">PAY-0001</div><div class="chain-sub">ACH · confirmed</div></div>
+    <div class="chain-step verified"><div class="chain-label">6 · Ledger</div><div class="chain-val">EVT-45</div><div class="chain-sub">Immutable</div></div>
+  </div>
+  <div class="proof-box">
+    <div class="proof-label">Event chain hashes</div>
+    EVT-041  sha256: 3a9f1c7d2e4b8a6c0f5d9e2b7a4c1e8d3f6a9c2e5b8d1f4a7c0e3b6d9f2a5c8<br>
+    EVT-042  sha256: 7f2b9e4c1a6d3f8b5e0c7a4d9f2b6e1c8a5d0f3b8e5c2a7d4f1b6e3c0a7d4f1<br>
+    EVT-043  sha256: 1e8b5c2a9f6d3e0b7c4a1f8e5b2d9c6a3f0e7b4c1a8f5d2e9b6c3a0f7e4b1d8<br>
+    EVT-044  sha256: 9c6a3f0e7b4d1c8a5f2e9b6d3c0a7f4e1b8c5a2f9e6b3d0c7a4f1e8b5c2a9f6<br>
+    EVT-045  sha256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069<br>
+    <br>
+    <span style="color:rgba(255,255,255,0.5);">Chain intact · no tampering detected · verified at 11:42:07 UTC</span>
+  </div>
+</div>
+
+<!-- ── AUDITOR: PROJECTOR ── -->
+<div class="view" id="view-a-projector">
+  <div class="page-header"><div><div class="page-title">Projector status</div><div class="page-sub">GET /projector/status</div></div></div>
+  <div class="metrics metrics-4" style="margin-bottom:20px;">
+    <div class="metric"><div class="metric-label">Checkpoint</div><div class="metric-val ok">EVT-52</div><div class="metric-sub">latest: EVT-52</div></div>
+    <div class="metric"><div class="metric-label">Lag</div><div class="metric-val ok">0</div><div class="metric-sub">events behind</div></div>
+    <div class="metric"><div class="metric-label">Projections / hr</div><div class="metric-val">142</div><div class="metric-sub">last 60 min</div></div>
+    <div class="metric"><div class="metric-label">Avg duration</div><div class="metric-val">18ms</div><div class="metric-sub">per event</div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">Recent projection log</div></div>
+    <table>
+      <thead><tr><th>Event</th><th>Type</th><th>MVs updated</th><th>Duration</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="mono-cell">EVT-52</td><td class="mono-cell">PAYMENT_CONFIRMED</td><td class="mono-cell">dashboard, event_log, payments, verification</td><td class="mono-cell">22ms</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td class="mono-cell">EVT-51</td><td class="mono-cell">PAYMENT_SUBMITTED</td><td class="mono-cell">event_log, payments</td><td class="mono-cell">11ms</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td class="mono-cell">EVT-50</td><td class="mono-cell">TASK_RESOLVED</td><td class="mono-cell">dashboard, tasks, decisions, verification</td><td class="mono-cell">34ms</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td class="mono-cell">EVT-49</td><td class="mono-cell">HUMAN_OVERRIDE_RECORDED</td><td class="mono-cell">decisions, dashboard</td><td class="mono-cell">18ms</td><td><span class="badge badge-ok">OK</span></td></tr>
+        <tr><td class="mono-cell">EVT-48</td><td class="mono-cell">PAYMENT_RECEIVED</td><td class="mono-cell">dashboard, event_log, verification</td><td class="mono-cell">14ms</td><td><span class="badge badge-ok">OK</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- DRAW MODAL -->
+<div class="modal-backdrop" id="modal-draw">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Draw submitted</div><button class="modal-close" onclick="closeModal('modal-draw')">×</button></div>
+    <div class="modal-body">
+      <div class="alert ok" style="margin-bottom:16px;"><strong>Auto-approved in 3 seconds.</strong> All 4 policy conditions met. No human review required.</div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Draw amount</div><div class="detail-val">$420,000</div></div>
+        <div class="detail-item"><div class="detail-label">Rail</div><div class="detail-val">ACH · 1-2 business days</div></div>
+        <div class="detail-item"><div class="detail-label">Payment ref</div><div class="detail-val mono">PAY-0003</div></div>
+        <div class="detail-item"><div class="detail-label">Rail ref</div><div class="detail-val mono">ACH-3F9A1B</div></div>
+      </div>
+      <div class="proof-box" style="margin-top:12px;">
+        <div class="proof-label">Proof chain</div>
+        EVT-041 INVOICE_IMPORTED → EVT-043 POLICY_EVALUATED → EVT-045 DRAW_APPROVED<br>
+        sha256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-primary btn-sm" onclick="closeModal('modal-draw')">Done</button></div>
+  </div>
+</div>
+
+<!-- OVERRIDE MODAL -->
+<div class="modal-backdrop" id="modal-override">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Override submitted</div><button class="modal-close" onclick="closeModal('modal-override')">×</button></div>
+    <div class="modal-body">
+      <div class="alert ok" style="margin-bottom:16px;"><strong>DEC-0002 recorded.</strong> Override tethered to agent inputs. Rationale searchable.</div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="detail-label">Decision ref</div><div class="detail-val mono">DEC-0002</div></div>
+        <div class="detail-item"><div class="detail-label">Type</div><div class="detail-val">Override</div></div>
+        <div class="detail-item"><div class="detail-label">Reason code</div><div class="detail-val">relationship</div></div>
+        <div class="detail-item"><div class="detail-label">Policy gap flagged</div><div class="detail-val">No</div></div>
+      </div>
+      <p style="font-size:12px;color:#666;margin-top:12px;">Your reasoning has been stored as a structured rationale record, linked to the exact context the AI evaluated. The next agent run on similar situations will have access to this precedent.</p>
+    </div>
+    <div class="modal-foot"><button class="btn btn-primary btn-sm" onclick="closeModal('modal-override')">Done</button></div>
+  </div>
+</div>
+
+<script>
+// ── ROLE SWITCHING ──────────────────────────────────────────
+const ROLE_DEFAULTS = {
+  borrower:    'b-overview',
+  lender:      'l-dashboard',
+  underwriter: 'u-queue',
+  cco:         'c-exceptions',
+  auditor:     'a-replay',
+};
+
+function setRole(role) {
+  // Update buttons
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-role="${role}"]`).classList.add('active');
+
+  // Show correct sidebar
+  document.querySelectorAll('[id^="sidebar-"]').forEach(s => s.style.display = 'none');
+  const sb = document.getElementById('sidebar-' + role);
+  if (sb) sb.style.display = 'flex';
+
+  // Show default view for role
+  showView(ROLE_DEFAULTS[role]);
+}
+
+// ── VIEW SWITCHING ──────────────────────────────────────────
+function showView(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const v = document.getElementById('view-' + viewId);
+  if (v) v.classList.add('active');
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes(viewId)) {
+      n.classList.add('active');
+    }
+  });
+}
+
+// ── MODALS ──────────────────────────────────────────────────
+function showDrawModal() {
+  document.getElementById('modal-draw').classList.add('open');
+}
+function showOverrideModal() {
+  document.getElementById('modal-override').classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+  b.addEventListener('click', e => {
+    if (e.target === b) b.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

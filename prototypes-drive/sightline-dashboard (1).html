@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline and Cast Prototype - Chart of Accounts Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e8e8e8;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #94a3b8;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h3::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #00d4ff, #7c3aed);
+            border-radius: 2px;
+        }
+
+        /* Chart of Accounts Table */
+        .coa-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .coa-table thead th {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #00d4ff;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .coa-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .coa-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .coa-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.95rem;
+        }
+
+        .variance-positive {
+            color: #4ade80;
+            font-weight: 600;
+        }
+
+        .variance-negative {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        .variance-neutral {
+            color: #94a3b8;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e8e8e8;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+
+        /* Events Log */
+        .events-log-wrapper {
+            margin-top: 24px;
+        }
+
+        .events-table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        .events-table thead th {
+            background: rgba(124, 58, 237, 0.15);
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #a78bfa;
+            border-bottom: 2px solid rgba(124, 58, 237, 0.3);
+            position: sticky;
+            top: 0;
+        }
+
+        .events-table tbody tr {
+            transition: background 0.2s ease;
+        }
+
+        .events-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .events-table tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            vertical-align: top;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-planned {
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+        }
+
+        .status-approved {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .status-committed {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .status-settled {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .action-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .action-po {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .action-invoice {
+            background: rgba(244, 114, 182, 0.2);
+            color: #f472b6;
+        }
+
+        .action-approval {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .action-payment {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        /* Summary Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .stat-budgeted .stat-value { color: #94a3b8; }
+        .stat-committed .stat-value { color: #00d4ff; }
+        .stat-actual .stat-value { color: #a78bfa; }
+        .stat-variance .stat-value { color: #4ade80; }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .empty-state p {
+            font-size: 0.95rem;
+        }
+
+        /* Policy Section Styles */
+        .policies-section {
+            margin-top: 24px;
+        }
+
+        .policies-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 1200px) {
+            .policies-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .policies-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .policy-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .policy-card:hover {
+            border-color: rgba(124, 58, 237, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.15);
+        }
+
+        .policy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .policy-id {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .policy-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .policy-active {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .policy-draft {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .policy-card h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+        }
+
+        .policy-rules {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .rule {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .rule:last-child {
+            margin-bottom: 0;
+        }
+
+        .rule-condition,
+        .rule-then {
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .rule-condition {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        .rule-then {
+            background: rgba(74, 222, 128, 0.2);
+            color: #4ade80;
+        }
+
+        .rule-text {
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .policy-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #64748b;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Sightline & CAST Prototype</h1>
+            <h2>Chart of Accounts Dashboard</h2>
+        </header>
+
+        <!-- Summary Statistics -->
+        <div class="stats-row">
+            <div class="stat-card stat-budgeted">
+                <div class="stat-label">Total Budgeted</div>
+                <div class="stat-value" id="totalBudgeted">$0</div>
+            </div>
+            <div class="stat-card stat-committed">
+                <div class="stat-label">Total Committed</div>
+                <div class="stat-value" id="totalCommitted">$0</div>
+            </div>
+            <div class="stat-card stat-actual">
+                <div class="stat-label">Total Actual</div>
+                <div class="stat-value" id="totalActual">$0</div>
+            </div>
+            <div class="stat-card stat-variance">
+                <div class="stat-label">Net Variance</div>
+                <div class="stat-value" id="totalVariance">$0</div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Chart of Accounts Table -->
+            <div class="card">
+                <h3>Chart of Accounts</h3>
+                <table class="coa-table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Line Item</th>
+                            <th>Budgeted ($)</th>
+                            <th>Committed ($)</th>
+                            <th>Actual ($)</th>
+                            <th>Variance ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coaTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add/Update Transaction Form -->
+            <div class="card">
+                <h3>Add/Update Transaction</h3>
+                <form id="transactionForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="department">Department</label>
+                            <select id="department" required>
+                                <option value="">Select Department</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="Operations">Operations</option>
+                                <option value="Sales">Sales</option>
+                                <option value="Finance">Finance</option>
+                                <option value="HR">HR</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="lineItem">Line Item</label>
+                            <input type="text" id="lineItem" placeholder="e.g., Software Licenses" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="transactionType">Type</label>
+                            <select id="transactionType" required>
+                                <option value="Purchase Order">Purchase Order (Committed)</option>
+                                <option value="Invoice">Invoice (Actual)</option>
+                                <option value="Approval">Approval</option>
+                                <option value="Payment">Payment (Settled)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount ($)</label>
+                            <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" required>
+                            <option value="Planned">Planned</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Committed">Committed</option>
+                            <option value="Settled">Settled</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reason">Reason</label>
+                        <input type="text" id="reason" placeholder="Business justification...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="policyRef">Policy Reference</label>
+                        <input type="text" id="policyRef" placeholder="e.g., PROC-2024-001">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expectedOutcome">Expected Outcome</label>
+                        <input type="text" id="expectedOutcome" placeholder="Expected business impact...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="vendorNotes">Vendor/Notes</label>
+                        <textarea id="vendorNotes" placeholder="Additional details..."></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Submit Transaction</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Events Log -->
+        <div class="card events-log-wrapper">
+            <h3>Events Log</h3>
+            <div class="events-table-container">
+                <table class="events-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action Type</th>
+                            <th>Department</th>
+                            <th>Line Item</th>
+                            <th>Amount ($)</th>
+                            <th>Status Change</th>
+                            <th>Reason</th>
+                            <th>Policy Reference</th>
+                            <th>Expected Outcome</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsLogBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Policy Examples -->
+        <div class="card policies-section">
+            <h3>Active Policies</h3>
+            <div class="policies-grid">
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-001</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Spending Authorization Limits</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">amount ≤ $5,000</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Department Manager approval required</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">$5,000 &lt; amount ≤ $25,000</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">VP + Finance Director approval required</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">amount &gt; $25,000</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">CFO approval required + Board notification</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: Finance</span>
+                    </div>
+                </div>
+
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-002</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Budget Variance Alerts</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">committed &gt; 80% of budgeted</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Alert Department Manager + Finance</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">committed &gt; 95% of budgeted</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Freeze new POs pending CFO review</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">actual &gt; budgeted (overage)</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Require variance explanation + reforecast</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: Finance</span>
+                    </div>
+                </div>
+
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-003</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Vendor Payment Terms</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">vendor.tier = "Strategic"</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Net 30 terms, auto-pay enabled</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">vendor.tier = "Standard"</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Net 45 terms, manual approval batch</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">invoice.early_pay_discount ≥ 2%</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Flag for early payment consideration</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: AP/Treasury</span>
+                    </div>
+                </div>
+
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-004</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Three-Way Match Validation</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">invoice.amount = PO.amount ± 2%</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Auto-match, proceed to payment queue</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">variance &gt; 2% AND ≤ 10%</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Route to Dept Manager for approval</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">variance &gt; 10% OR missing receipt</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Hold payment, create exception ticket</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: AP/Procurement</span>
+                    </div>
+                </div>
+
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-005</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Capital Expenditure Classification</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">asset.useful_life &gt; 1 year AND amount &gt; $5,000</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Classify as CapEx, add to fixed asset register</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">category = "Software" AND term &gt; 12 months</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Evaluate ASC 842 lease treatment</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">IF</span>
+                            <span class="rule-text">CapEx.total_ytd &gt; board_approved_budget</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">THEN</span>
+                            <span class="rule-text">Require board approval for incremental spend</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: Controller</span>
+                    </div>
+                </div>
+
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <span class="policy-id">POL-006</span>
+                        <span class="policy-status policy-active">Active</span>
+                    </div>
+                    <h4>Commitment Lifecycle State Machine</h4>
+                    <div class="policy-rules">
+                        <div class="rule">
+                            <span class="rule-condition">STATE</span>
+                            <span class="rule-text">Planned → Approved</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">REQUIRES</span>
+                            <span class="rule-text">budget_available = true, approver.sign_off</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">STATE</span>
+                            <span class="rule-text">Approved → Committed</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">REQUIRES</span>
+                            <span class="rule-text">PO.issued = true, vendor.confirmed</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-condition">STATE</span>
+                            <span class="rule-text">Committed → Settled</span>
+                        </div>
+                        <div class="rule">
+                            <span class="rule-then">REQUIRES</span>
+                            <span class="rule-text">three_way_match = pass, payment.confirmed</span>
+                        </div>
+                    </div>
+                    <div class="policy-meta">
+                        <span>Effective: Jan 1, 2025</span>
+                        <span>Owner: Finance Ops</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data stores
+        let chartOfAccounts = {};
+        let eventsLog = [];
+
+        // Sample initial data
+        const initialData = [
+            { department: 'Engineering', lineItem: 'Cloud Infrastructure', budgeted: 50000, committed: 35000, actual: 28000 },
+            { department: 'Engineering', lineItem: 'Software Licenses', budgeted: 25000, committed: 20000, actual: 18500 },
+            { department: 'Marketing', lineItem: 'Digital Advertising', budgeted: 40000, committed: 32000, actual: 29000 },
+            { department: 'Marketing', lineItem: 'Events & Conferences', budgeted: 30000, committed: 15000, actual: 12000 },
+            { department: 'Operations', lineItem: 'Equipment Maintenance', budgeted: 20000, committed: 18000, actual: 16500 },
+            { department: 'Sales', lineItem: 'Travel & Entertainment', budgeted: 35000, committed: 25000, actual: 22000 },
+        ];
+
+        // Initialize chart of accounts
+        function initializeData() {
+            initialData.forEach(item => {
+                const key = `${item.department}-${item.lineItem}`;
+                chartOfAccounts[key] = {
+                    department: item.department,
+                    lineItem: item.lineItem,
+                    budgeted: item.budgeted,
+                    committed: item.committed,
+                    actual: item.actual
+                };
+            });
+            renderCoaTable();
+            updateSummaryStats();
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Render Chart of Accounts table
+        function renderCoaTable() {
+            const tbody = document.getElementById('coaTableBody');
+            tbody.innerHTML = '';
+
+            const entries = Object.values(chartOfAccounts).sort((a, b) => {
+                if (a.department !== b.department) return a.department.localeCompare(b.department);
+                return a.lineItem.localeCompare(b.lineItem);
+            });
+
+            if (entries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>No data available. Add a transaction to get started.</p></td></tr>';
+                return;
+            }
+
+            entries.forEach(item => {
+                const variance = item.budgeted - item.actual;
+                const varianceClass = variance > 0 ? 'variance-positive' : variance < 0 ? 'variance-negative' : 'variance-neutral';
+                const variancePrefix = variance > 0 ? '+' : '';
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.department}</td>
+                    <td>${item.lineItem}</td>
+                    <td>${formatCurrency(item.budgeted)}</td>
+                    <td>${formatCurrency(item.committed)}</td>
+                    <td>${formatCurrency(item.actual)}</td>
+                    <td class="${varianceClass}">${variancePrefix}${formatCurrency(variance)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Update summary statistics
+        function updateSummaryStats() {
+            const entries = Object.values(chartOfAccounts);
+            
+            const totalBudgeted = entries.reduce((sum, item) => sum + item.budgeted, 0);
+            const totalCommitted = entries.reduce((sum, item) => sum + item.committed, 0);
+            const totalActual = entries.reduce((sum, item) => sum + item.actual, 0);
+            const totalVariance = totalBudgeted - totalActual;
+
+            document.getElementById('totalBudgeted').textContent = formatCurrency(totalBudgeted);
+            document.getElementById('totalCommitted').textContent = formatCurrency(totalCommitted);
+            document.getElementById('totalActual').textContent = formatCurrency(totalActual);
+            
+            const varianceEl = document.getElementById('totalVariance');
+            varianceEl.textContent = (totalVariance >= 0 ? '+' : '') + formatCurrency(totalVariance);
+            varianceEl.style.color = totalVariance >= 0 ? '#4ade80' : '#f87171';
+        }
+
+        // Get action type class
+        function getActionTypeClass(type) {
+            const classes = {
+                'Purchase Order': 'action-po',
+                'Invoice': 'action-invoice',
+                'Approval': 'action-approval',
+                'Payment': 'action-payment'
+            };
+            return classes[type] || '';
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            const classes = {
+                'Planned': 'status-planned',
+                'Approved': 'status-approved',
+                'Committed': 'status-committed',
+                'Settled': 'status-settled'
+            };
+            return classes[status] || '';
+        }
+
+        // Render events log
+        function renderEventsLog() {
+            const tbody = document.getElementById('eventsLogBody');
+            tbody.innerHTML = '';
+
+            if (eventsLog.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-state"><p>No events recorded yet.</p></td></tr>';
+                return;
+            }
+
+            eventsLog.slice().reverse().forEach(event => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${event.timestamp}</td>
+                    <td>${event.user}</td>
+                    <td><span class="action-type ${getActionTypeClass(event.actionType)}">${event.actionType}</span></td>
+                    <td>${event.department}</td>
+                    <td>${event.lineItem}</td>
+                    <td>${formatCurrency(event.amount)}</td>
+                    <td><span class="status-badge ${getStatusClass(event.status)}">${event.status}</span></td>
+                    <td>${event.reason || '—'}</td>
+                    <td>${event.policyRef || '—'}</td>
+                    <td>${event.expectedOutcome || '—'}</td>
+                    <td>${event.notes || '—'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('transactionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const department = document.getElementById('department').value;
+            const lineItem = document.getElementById('lineItem').value;
+            const transactionType = document.getElementById('transactionType').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const status = document.getElementById('status').value;
+            const reason = document.getElementById('reason').value;
+            const policyRef = document.getElementById('policyRef').value;
+            const expectedOutcome = document.getElementById('expectedOutcome').value;
+            const notes = document.getElementById('vendorNotes').value;
+
+            // Update chart of accounts
+            const key = `${department}-${lineItem}`;
+            if (!chartOfAccounts[key]) {
+                chartOfAccounts[key] = {
+                    department,
+                    lineItem,
+                    budgeted: 0,
+                    committed: 0,
+                    actual: 0
+                };
+            }
+
+            // Update amounts based on transaction type
+            if (transactionType === 'Purchase Order') {
+                chartOfAccounts[key].committed += amount;
+            } else if (transactionType === 'Invoice' || transactionType === 'Payment') {
+                chartOfAccounts[key].actual += amount;
+            }
+
+            // Add to events log
+            const event = {
+                timestamp: new Date().toLocaleString(),
+                user: 'Peter W.',
+                actionType: transactionType,
+                department,
+                lineItem,
+                amount,
+                status,
+                reason,
+                policyRef,
+                expectedOutcome,
+                notes
+            };
+            eventsLog.push(event);
+
+            // Update UI
+            renderCoaTable();
+            renderEventsLog();
+            updateSummaryStats();
+
+            // Reset form
+            this.reset();
+        });
+
+        // Sample events data
+        const initialEvents = [
+            {
+                timestamp: '2025-01-03 09:15:22',
+                user: 'Peter W.',
+                actionType: 'Purchase Order',
+                department: 'Engineering',
+                lineItem: 'Cloud Infrastructure',
+                amount: 15000,
+                status: 'Committed',
+                reason: 'Q1 capacity expansion for GPU compute cluster',
+                policyRef: 'PROC-2025-001',
+                expectedOutcome: 'Support 40% increase in model training throughput',
+                notes: 'AWS Reserved Instances - 1 year term'
+            },
+            {
+                timestamp: '2025-01-03 10:42:18',
+                user: 'Sarah M.',
+                actionType: 'Approval',
+                department: 'Engineering',
+                lineItem: 'Cloud Infrastructure',
+                amount: 15000,
+                status: 'Approved',
+                reason: 'Budget approved per Q1 infrastructure plan',
+                policyRef: 'APPR-2025-012',
+                expectedOutcome: 'Proceed with AWS commitment',
+                notes: 'CFO approval obtained'
+            },
+            {
+                timestamp: '2025-01-03 14:30:45',
+                user: 'Peter W.',
+                actionType: 'Purchase Order',
+                department: 'Engineering',
+                lineItem: 'Software Licenses',
+                amount: 8500,
+                status: 'Committed',
+                reason: 'Annual renewal - development tools suite',
+                policyRef: 'PROC-2025-002',
+                expectedOutcome: 'Maintain developer productivity tooling',
+                notes: 'JetBrains, GitHub Enterprise, Datadog'
+            },
+            {
+                timestamp: '2025-01-04 08:22:11',
+                user: 'Mike R.',
+                actionType: 'Invoice',
+                department: 'Marketing',
+                lineItem: 'Digital Advertising',
+                amount: 12000,
+                status: 'Committed',
+                reason: 'December campaign final billing',
+                policyRef: 'INV-2025-0034',
+                expectedOutcome: 'Close out Q4 marketing spend',
+                notes: 'Google Ads + LinkedIn Campaign Manager'
+            },
+            {
+                timestamp: '2025-01-04 11:05:33',
+                user: 'Lisa T.',
+                actionType: 'Payment',
+                department: 'Marketing',
+                lineItem: 'Digital Advertising',
+                amount: 12000,
+                status: 'Settled',
+                reason: 'Invoice payment processed',
+                policyRef: 'PAY-2025-0089',
+                expectedOutcome: 'Vendor account current',
+                notes: 'ACH transfer completed - Ref #ACH847291'
+            },
+            {
+                timestamp: '2025-01-04 13:18:29',
+                user: 'Peter W.',
+                actionType: 'Purchase Order',
+                department: 'Operations',
+                lineItem: 'Equipment Maintenance',
+                amount: 6500,
+                status: 'Planned',
+                reason: 'Scheduled HVAC system maintenance',
+                policyRef: 'PROC-2025-003',
+                expectedOutcome: 'Ensure facility uptime through Q1',
+                notes: 'Trane Commercial Services - quarterly contract'
+            },
+            {
+                timestamp: '2025-01-04 15:44:02',
+                user: 'James K.',
+                actionType: 'Approval',
+                department: 'Operations',
+                lineItem: 'Equipment Maintenance',
+                amount: 6500,
+                status: 'Approved',
+                reason: 'Approved under facilities budget',
+                policyRef: 'APPR-2025-015',
+                expectedOutcome: 'Maintenance scheduled for Jan 15',
+                notes: 'Ops Director sign-off'
+            },
+            {
+                timestamp: '2025-01-04 16:30:00',
+                user: 'Sarah M.',
+                actionType: 'Invoice',
+                department: 'Engineering',
+                lineItem: 'Cloud Infrastructure',
+                amount: 13000,
+                status: 'Committed',
+                reason: 'December AWS usage - actual consumption',
+                policyRef: 'INV-2025-0041',
+                expectedOutcome: 'Reconcile against reserved capacity',
+                notes: 'Includes $2k overage on data transfer'
+            },
+            {
+                timestamp: '2025-01-05 09:00:15',
+                user: 'Peter W.',
+                actionType: 'Purchase Order',
+                department: 'Sales',
+                lineItem: 'Travel & Entertainment',
+                amount: 4500,
+                status: 'Planned',
+                reason: 'Q1 client meetings - East Coast roadshow',
+                policyRef: 'PROC-2025-004',
+                expectedOutcome: 'Support pipeline development for 3 enterprise deals',
+                notes: 'NYC, Boston, DC - Jan 20-24'
+            },
+            {
+                timestamp: '2025-01-05 09:45:33',
+                user: 'Mike R.',
+                actionType: 'Purchase Order',
+                department: 'Marketing',
+                lineItem: 'Events & Conferences',
+                amount: 8000,
+                status: 'Committed',
+                reason: 'FinTech Summit 2025 sponsorship deposit',
+                policyRef: 'PROC-2025-005',
+                expectedOutcome: 'Booth presence + 2 speaking slots',
+                notes: 'Event date: March 15-17, Las Vegas'
+            },
+            {
+                timestamp: '2025-01-05 10:12:44',
+                user: 'Lisa T.',
+                actionType: 'Payment',
+                department: 'Engineering',
+                lineItem: 'Software Licenses',
+                amount: 8500,
+                status: 'Settled',
+                reason: 'Annual license payment processed',
+                policyRef: 'PAY-2025-0092',
+                expectedOutcome: 'Licenses active through Jan 2026',
+                notes: 'Wire transfer - Ref #WIR293847'
+            },
+            {
+                timestamp: '2025-01-05 11:30:00',
+                user: 'Peter W.',
+                actionType: 'Invoice',
+                department: 'Sales',
+                lineItem: 'Travel & Entertainment',
+                amount: 3200,
+                status: 'Committed',
+                reason: 'December travel expense reconciliation',
+                policyRef: 'INV-2025-0048',
+                expectedOutcome: 'Close Q4 T&E accruals',
+                notes: 'Amex statement - 4 trips'
+            }
+        ];
+
+        // Initialize events log with sample data
+        function initializeEvents() {
+            eventsLog = [...initialEvents];
+            renderEventsLog();
+        }
+
+        // Initialize on load
+        initializeData();
+        initializeEvents();
+    </script>
+</body>
+</html>

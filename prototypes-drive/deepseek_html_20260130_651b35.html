@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Event-to-Journal Traceability</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --event-color: #8b5cf6;
+            --policy-color: #10b981;
+            --finance-color: #3b82f6;
+            --gl-color: #f59e0b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-900);
+            color: var(--gray-100);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 2rem 0 3rem;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--gray-400);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--gray-700);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            color: var(--gray-300);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Flow Visualization */
+        .flow-container {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flow-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .flow-title {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .flow-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .flow-btn {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            color: var(--gray-300);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flow-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            height: 400px;
+        }
+
+        .flow-stage {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .stage-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
+            background: var(--gray-700);
+            border: 3px solid;
+            transition: all 0.3s;
+        }
+
+        .stage-icon.event { border-color: var(--event-color); }
+        .stage-icon.policy { border-color: var(--policy-color); }
+        .stage-icon.finance { border-color: var(--finance-color); }
+        .stage-icon.gl { border-color: var(--gl-color); }
+
+        .stage-icon.active {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .stage-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .stage-description {
+            font-size: 0.9rem;
+            color: var(--gray-400);
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        /* Flow Lines */
+        .flow-line {
+            position: absolute;
+            top: 40px;
+            left: 140px;
+            right: 140px;
+            height: 4px;
+            background: var(--gray-700);
+            z-index: 1;
+        }
+
+        .flow-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--event-color), var(--secondary));
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        .flow-dot {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            top: -6px;
+            animation: moveDot 2s linear infinite;
+        }
+
+        @keyframes moveDot {
+            0% { left: 0%; }
+            100% { left: 100%; }
+        }
+
+        /* Connection Lines */
+        .connection-line {
+            position: absolute;
+            height: 2px;
+            background: var(--gray-600);
+            transform-origin: left center;
+            z-index: 1;
+        }
+
+        .connection-line.active {
+            background: var(--primary);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Data Panels */
+        .data-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .data-panel {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--gray-700);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-600);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Event List */
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .event-item {
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 6px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event-item:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .event-item.active {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-type {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            background: var(--event-color);
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .event-time {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        .event-description {
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: var(--gray-400);
+        }
+
+        /* Journal Entry Display */
+        .journal-entry {
+            background: var(--gray-700);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .journal-header {
+            background: var(--gray-600);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .journal-number {
+            font-weight: 600;
+            color: white;
+        }
+
+        .journal-date {
+            color: var(--gray-300);
+        }
+
+        .journal-lines {
+            padding: 1rem;
+        }
+
+        .journal-line {
+            display: grid;
+            grid-template-columns: 100px 2fr 1fr 1fr;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .journal-line:last-child {
+            border-bottom: none;
+        }
+
+        .journal-line.header {
+            font-weight: 600;
+            color: var(--gray-300);
+            background: var(--gray-800);
+        }
+
+        .account-code {
+            font-family: monospace;
+            color: var(--primary);
+        }
+
+        .debit-amount {
+            color: var(--danger);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .credit-amount {
+            color: var(--success);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        /* Traceability Matrix */
+        .trace-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .trace-matrix th {
+            background: var(--gray-700);
+            color: var(--gray-300);
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--gray-600);
+        }
+
+        .trace-matrix td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .trace-cell {
+            position: relative;
+        }
+
+        .trace-link {
+            display: inline-block;
+            padding: 4px 8px;
+            background: var(--gray-600);
+            border-radius: 4px;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .trace-link:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Detail View */
+        .detail-view {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .detail-view.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .detail-title {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .close-detail {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .detail-section {
+            background: var(--gray-700);
+            border-radius: 6px;
+            padding: 1.5rem;
+        }
+
+        .detail-section h4 {
+            color: var(--gray-300);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .detail-item {
+            margin-bottom: 0.75rem;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--gray-400);
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            color: white;
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .evidence-hash {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: var(--gray-800);
+            padding: 0.5rem;
+            border-radius: 4px;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        /* Export Controls */
+        .export-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .export-btn {
+            background: var(--gray-800);
+            border: 1px solid var(--gray-700);
+            color: var(--gray-300);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--gray-700);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .data-panels {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-diagram {
+                flex-wrap: wrap;
+                height: auto;
+                gap: 2rem;
+            }
+            
+            .flow-stage {
+                flex: none;
+                width: 100%;
+            }
+            
+            .flow-line {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .journal-line {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Event-to-Journal Entry Traceability</h1>
+            <p class="subtitle">See exactly how business events flow through the system to create auditable journal entries</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="flow">Flow Visualization</button>
+            <button class="tab-btn" data-tab="matrix">Traceability Matrix</button>
+            <button class="tab-btn" data-tab="audit">Complete Audit Trail</button>
+        </div>
+
+        <!-- Flow Visualization -->
+        <div id="flow" class="flow-container" style="display: block;">
+            <div class="flow-header">
+                <div>
+                    <h2 class="flow-title">Event-to-Journal Flow</h2>
+                    <p style="color: var(--gray-400); margin-top: 0.5rem;">Select an event to see its complete transformation through the system</p>
+                </div>
+                <div class="flow-controls">
+                    <button class="flow-btn" id="playFlow">
+                        ▶ Play Flow
+                    </button>
+                    <button class="flow-btn" id="resetFlow">
+                        ↺ Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flow Diagram -->
+            <div class="flow-diagram">
+                <div class="flow-line">
+                    <div class="flow-progress" id="flowProgress"></div>
+                    <div class="flow-dot" id="flowDot"></div>
+                </div>
+
+                <!-- Stage 1: Event -->
+                <div class="flow-stage">
+                    <div class="stage-icon event active" id="stageEvent">
+                        📝
+                    </div>
+                    <div class="stage-title">Business Event</div>
+                    <div class="stage-description">Purchase, sale, payment, or system event</div>
+                </div>
+
+                <!-- Stage 2: Policy -->
+                <div class="flow-stage">
+                    <div class="stage-icon policy" id="stagePolicy">
+                        ⚖️
+                    </div>
+                    <div class="stage-title">Policy Engine</div>
+                    <div class="stage-description">Rules applied for accounting treatment</div>
+                </div>
+
+                <!-- Stage 3: Finance -->
+                <div class="flow-stage">
+                    <div class="stage-icon finance" id="stageFinance">
+                        💰
+                    </div>
+                    <div class="stage-title">Finance Ledger</div>
+                    <div class="stage-description">Double-entry accounting records</div>
+                </div>
+
+                <!-- Stage 4: GL -->
+                <div class="flow-stage">
+                    <div class="stage-icon gl" id="stageGL">
+                        📊
+                    </div>
+                    <div class="stage-title">GL Entry</div>
+                    <div class="stage-description">Traditional journal entry format</div>
+                </div>
+            </div>
+
+            <!-- Data Panels -->
+            <div class="data-panels">
+                <!-- Events Panel -->
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Business Events</div>
+                        <span style="color: var(--gray-400); font-size: 0.9rem;">Click to trace</span>
+                    </div>
+                    <div class="panel-content">
+                        <div class="event-list" id="eventList">
+                            <!-- Events will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journal Entries Panel -->
+                <div class="data-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Generated Journal Entries</div>
+                        <span style="color: var(--gray-400); font-size: 0.9rem;">From selected event</span>
+                    </div>
+                    <div class="panel-content">
+                        <div id="journalEntries">
+                            <!-- Journal entries will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Traceability Matrix -->
+        <div id="matrix" class="flow-container" style="display: none;">
+            <div class="flow-header">
+                <h2 class="flow-title">Complete Traceability Matrix</h2>
+                <div class="export-controls">
+                    <button class="export-btn" onclick="exportTraceMatrix()">
+                        📊 Export Matrix
+                    </button>
+                </div>
+            </div>
+            <div class="panel-content">
+                <table class="trace-matrix" id="traceMatrix">
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Event Type</th>
+                            <th>Journal #</th>
+                            <th>GL Accounts</th>
+                            <th>Amount</th>
+                            <th>Evidence Hash</th>
+                            <th>Policy Version</th>
+                            <th>Trace</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixBody">
+                        <!-- Matrix rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div class="detail-view" id="detailView">
+            <div class="detail-header">
+                <h2 class="detail-title" id="detailTitle">Event Detail</h2>
+                <button class="close-detail" onclick="closeDetail()">×</button>
+            </div>
+            <div class="detail-grid" id="detailContent">
+                <!-- Detail content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Comprehensive Event-to-Journal Data
+        const traceabilityData = {
+            // Business Events with full metadata
+            events: [
+                {
+                    id: "EVT-2024-11-01-001",
+                    timestamp: "2024-11-01 09:00:00",
+                    type: "purchase_order.create",
+                    description: "GPU Cluster Purchase Order",
+                    actor: "procurement_bot",
+                    entity: "hardware.gpu_cluster",
+                    entityId: "GPU-CLUSTER-001",
+                    amount: 2400000,
+                    metadata: {
+                        vendor: "NVIDIA Corporation",
+                        project: "GPU Expansion",
+                        purchaseOrder: "PO-4567",
+                        deliveryDate: "2024-11-15",
+                        terms: "Net 30"
+                    },
+                    evidence: {
+                        hash: "0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3",
+                        type: "signed_purchase_order",
+                        location: "s3://evidence/po-4567-signed.pdf"
+                    },
+                    policy: {
+                        id: "CAPEX-APPROVAL-3.0",
+                        name: "Capital Expenditure Approval",
+                        version: "3.0",
+                        appliedAt: "2024-11-01 09:00:00"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-01-002",
+                    timestamp: "2024-11-01 14:30:00",
+                    type: "contract.signed",
+                    description: "Enterprise Contract - TechCorp",
+                    actor: "sales_team.alice",
+                    entity: "customer.contract",
+                    entityId: "CONTRACT-TECHCORP-2024",
+                    amount: 1200000,
+                    metadata: {
+                        customer: "TechCorp Inc.",
+                        contractId: "TC-2024-001",
+                        term: "Net 60",
+                        salesRep: "Alice",
+                        commissionRate: 0.1
+                    },
+                    evidence: {
+                        hash: "0x4a7d8b3c9f2a6d5e8c1b3a7d9f2c5e8a1b4d7f9",
+                        type: "signed_contract",
+                        location: "s3://evidence/contract-tc-2024-001.pdf"
+                    },
+                    policy: {
+                        id: "ENT-SALES-2.1",
+                        name: "Enterprise Sales",
+                        version: "2.1",
+                        appliedAt: "2024-11-01 14:30:00"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-02-001",
+                    timestamp: "2024-11-02 11:15:00",
+                    type: "vendor_payment.process",
+                    description: "Cloud Services - Monthly",
+                    actor: "ap_automation",
+                    entity: "vendor.payment",
+                    entityId: "PAY-CLOUDPROVIDER-7845",
+                    amount: -85000,
+                    metadata: {
+                        vendor: "CloudProvider Inc.",
+                        invoice: "INV-7845",
+                        servicePeriod: "November 2024",
+                        costCenter: "OPS-INFRA",
+                        paymentMethod: "ACH"
+                    },
+                    evidence: {
+                        hash: "0x9b2c4d6f8a1d3f5b7a9c2e4f6a8d1b3c5e7f9a2",
+                        type: "invoice",
+                        location: "s3://evidence/inv-7845.pdf"
+                    },
+                    policy: {
+                        id: "VENDOR-PAY-1.3",
+                        name: "Vendor Payment Processing",
+                        version: "1.3",
+                        appliedAt: "2024-11-02 11:15:00"
+                    }
+                },
+                {
+                    id: "EVT-2024-11-05-001",
+                    timestamp: "2024-11-05 10:30:00",
+                    type: "correction.apply",
+                    description: "Vendor Correction - Overbilling",
+                    actor: "audit_bot",
+                    entity: "finance.adjustment",
+                    entityId: "CORR-VENDORX-001",
+                    amount: 125000,
+                    metadata: {
+                        originalEvent: "EVT-2024-11-02-001",
+                        originalInvoice: "INV-7845",
+                        correctionReason: "Duplicate billing detected",
+                        savings: 125000,
+                        approvers: ["finance_manager", "internal_audit"]
+                    },
+                    evidence: {
+                        hash: "0x6d9f2a4c7b8e1d3f5a7c9e2b4d6f8a1c3e5f7a9",
+                        type: "correction_evidence",
+                        location: "s3://evidence/corr-vendorx-001-bundle.zip"
+                    },
+                    policy: {
+                        id: "CORRECTION-PROTOCOL-1.1",
+                        name: "Correction Protocol",
+                        version: "1.1",
+                        appliedAt: "2024-11-05 10:30:00"
+                    }
+                }
+            ],
+
+            // Journal Entries generated from events
+            journalEntries: [
+                {
+                    journalNo: "JRN-2024-11-001",
+                    date: "2024-11-01",
+                    description: "GPU Cluster Purchase - NVIDIA",
+                    sourceEvent: "EVT-2024-11-01-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "1500",
+                            accountName: "Fixed Assets - Hardware",
+                            description: "GPU Cluster Purchase",
+                            debit: 2400000,
+                            credit: 0
+                        },
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "GPU Cluster Purchase",
+                            debit: 0,
+                            credit: 2400000
+                        }
+                    ],
+                    metadata: {
+                        vendor: "NVIDIA Corporation",
+                        purchaseOrder: "PO-4567",
+                        projectCode: "GPU-EXP-2024",
+                        capitalizationSchedule: "5 years",
+                        depreciationMethod: "straight-line"
+                    }
+                },
+                {
+                    journalNo: "JRN-2024-11-002",
+                    date: "2024-11-01",
+                    description: "Enterprise Contract - TechCorp",
+                    sourceEvent: "EVT-2024-11-01-002",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "1100",
+                            accountName: "Accounts Receivable",
+                            description: "Enterprise Contract - TechCorp",
+                            debit: 1200000,
+                            credit: 0
+                        },
+                        {
+                            account: "4000",
+                            accountName: "Services Revenue",
+                            description: "Enterprise Contract - TechCorp",
+                            debit: 0,
+                            credit: 1200000
+                        }
+                    ],
+                    metadata: {
+                        customer: "TechCorp Inc.",
+                        contractId: "TC-2024-001",
+                        revenueRecognition: "upon_delivery",
+                        commissionPayable: 120000,
+                        salesRegion: "North America"
+                    }
+                },
+                {
+                    journalNo: "JRN-2024-11-003",
+                    date: "2024-11-02",
+                    description: "Cloud Services - Monthly",
+                    sourceEvent: "EVT-2024-11-02-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "5000",
+                            accountName: "Cloud Services",
+                            description: "Cloud Services - November 2024",
+                            debit: 85000,
+                            credit: 0
+                        },
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "Cloud Services - November 2024",
+                            debit: 0,
+                            credit: 85000
+                        }
+                    ],
+                    metadata: {
+                        vendor: "CloudProvider Inc.",
+                        invoice: "INV-7845",
+                        servicePeriod: "November 2024",
+                        costCenter: "OPS-INFRA",
+                        taxDeductible: true
+                    }
+                },
+                {
+                    journalNo: "JRN-2024-11-004",
+                    date: "2024-11-05",
+                    description: "Vendor Correction - Overbilling",
+                    sourceEvent: "EVT-2024-11-05-001",
+                    status: "posted",
+                    lines: [
+                        {
+                            account: "2000",
+                            accountName: "Accounts Payable",
+                            description: "Vendor Correction - Overbilling",
+                            debit: 125000,
+                            credit: 0
+                        },
+                        {
+                            account: "5000",
+                            accountName: "Cloud Services",
+                            description: "Vendor Correction - Overbilling",
+                            debit: 0,
+                            credit: 125000
+                        }
+                    ],
+                    metadata: {
+                        originalJournal: "JRN-2024-11-003",
+                        correctionReason: "Duplicate billing",
+                        savings: 125000,
+                        detectedBy: "audit_bot",
+                        approvalWorkflow: "4-eyes_approval"
+                    }
+                }
+            ],
+
+            // Chart of Accounts reference
+            chartOfAccounts: {
+                "1100": "Accounts Receivable",
+                "1500": "Fixed Assets - Hardware",
+                "2000": "Accounts Payable",
+                "4000": "Services Revenue",
+                "5000": "Cloud Services"
+            }
+        };
+
+        // Initialize the traceability system
+        function initializeTraceability() {
+            renderEvents();
+            renderTraceMatrix();
+            setupEventListeners();
+            
+            // Select first event by default
+            selectEvent(traceabilityData.events[0].id);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Tab navigation
+            document.querySelectorAll('.tab-btn').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabId = e.target.dataset.tab;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    // Show selected content
+                    document.querySelectorAll('.flow-container').forEach(container => {
+                        container.style.display = 'none';
+                    });
+                    document.getElementById(tabId).style.display = 'block';
+                });
+            });
+
+            // Flow controls
+            document.getElementById('playFlow').addEventListener('click', playFlowAnimation);
+            document.getElementById('resetFlow').addEventListener('click', resetFlowAnimation);
+        }
+
+        // Render events list
+        function renderEvents() {
+            const eventList = document.getElementById('eventList');
+            eventList.innerHTML = '';
+            
+            traceabilityData.events.forEach(event => {
+                const eventItem = document.createElement('div');
+                eventItem.className = 'event-item';
+                eventItem.dataset.eventId = event.id;
+                
+                eventItem.innerHTML = `
+                    <div class="event-header">
+                        <span class="event-type">${event.type.split('.')[0]}</span>
+                        <span class="event-time">${formatTime(event.timestamp)}</span>
+                    </div>
+                    <div class="event-description">${event.description}</div>
+                    <div class="event-meta">
+                        <span>👤 ${event.actor}</span>
+                        <span>💰 $${formatCurrency(Math.abs(event.amount))}</span>
+                        <span>📋 ${event.entity}</span>
+                    </div>
+                `;
+                
+                eventItem.addEventListener('click', () => {
+                    selectEvent(event.id);
+                });
+                
+                eventList.appendChild(eventItem);
+            });
+        }
+
+        // Select and trace an event
+        function selectEvent(eventId) {
+            const event = traceabilityData.events.find(e => e.id === eventId);
+            if (!event) return;
+            
+            // Update active event in list
+            document.querySelectorAll('.event-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.eventId === eventId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Find related journal entries
+            const journalEntries = traceabilityData.journalEntries.filter(
+                je => je.sourceEvent === eventId
+            );
+            
+            // Update flow visualization
+            updateFlowVisualization(event, journalEntries);
+            
+            // Render journal entries
+            renderJournalEntries(journalEntries);
+            
+            // Start flow animation
+            playFlowAnimation();
+        }
+
+        // Update flow visualization
+        function updateFlowVisualization(event, journalEntries) {
+            // Reset flow stages
+            document.querySelectorAll('.stage-icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            
+            // Activate first stage (event)
+            document.getElementById('stageEvent').classList.add('active');
+            
+            // Show connections for this event
+            showEventConnections(event, journalEntries);
+        }
+
+        // Show event connections
+        function showEventConnections(event, journalEntries) {
+            // Remove existing connection lines
+            document.querySelectorAll('.connection-line').forEach(line => line.remove());
+            
+            if (journalEntries.length > 0) {
+                // Create connection lines from event to journals
+                journalEntries.forEach((journal, index) => {
+                    // This would be more sophisticated in a real visualization
+                    // For now, we'll just animate the flow
+                    setTimeout(() => {
+                        document.getElementById('stagePolicy').classList.add('active');
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        document.getElementById('stageFinance').classList.add('active');
+                    }, 1000);
+                    
+                    setTimeout(() => {
+                        document.getElementById('stageGL').classList.add('active');
+                    }, 1500);
+                });
+            }
+        }
+
+        // Play flow animation
+        function playFlowAnimation() {
+            const flowProgress = document.getElementById('flowProgress');
+            const flowDot = document.getElementById('flowDot');
+            
+            // Reset animation
+            flowProgress.style.width = '0%';
+            flowDot.style.display = 'block';
+            
+            // Animate progress
+            setTimeout(() => {
+                flowProgress.style.width = '25%';
+            }, 100);
+            
+            setTimeout(() => {
+                flowProgress.style.width = '50%';
+            }, 1000);
+            
+            setTimeout(() => {
+                flowProgress.style.width = '75%';
+            }, 2000);
+            
+            setTimeout(() => {
+                flowProgress.style.width = '100%';
+            }, 3000);
+            
+            setTimeout(() => {
+                flowDot.style.display = 'none';
+            }, 3100);
+        }
+
+        // Reset flow animation
+        function resetFlowAnimation() {
+            const flowProgress = document.getElementById('flowProgress');
+            const flowDot = document.getElementById('flowDot');
+            
+            flowProgress.style.width = '0%';
+            flowDot.style.display = 'block';
+            
+            document.querySelectorAll('.stage-icon

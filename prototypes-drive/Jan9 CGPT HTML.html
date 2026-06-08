@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Proof-Based HOA Governance — Minimal UI</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2d;
+      --panel2:#0c1628;
+      --text:#e8eefc;
+      --muted:#aab7d6;
+      --line:rgba(255,255,255,.10);
+      --chip:rgba(255,255,255,.08);
+      --ok:#2bd4a4;
+      --warn:#ffcc66;
+      --fail:#ff6b6b;
+      --info:#7aa7ff;
+      --btn:#1b2c4f;
+      --btn2:#152445;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans);
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(122,167,255,.10), transparent 60%),
+                  radial-gradient(900px 600px at 80% 10%, rgba(43,212,164,.08), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    a{color:inherit}
+    .wrap{max-width:1200px;margin:0 auto;padding:18px}
+    header{
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between;
+      margin:8px 0 14px;
+    }
+    .title h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .title p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.35}
+    .pillrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .pill{
+      padding:7px 10px;border:1px solid var(--line);border-radius:999px;
+      background:rgba(255,255,255,.03);
+      font-size:12px;color:var(--muted)
+    }
+    .grid{
+      display:grid; gap:12px;
+      grid-template-columns: 1.05fr .95fr;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .pillrow{justify-content:flex-start}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .card .hd h2{margin:0;font-size:13px;letter-spacing:.25px}
+    .card .hd .sub{color:var(--muted);font-size:12px}
+    .card .bd{padding:12px 14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .grow{flex:1}
+    .btn{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      color:var(--text);
+      padding:8px 10px;border-radius:12px;
+      font-size:12px;cursor:pointer;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:linear-gradient(180deg, rgba(122,167,255,.25), rgba(122,167,255,.10));}
+    .btn.danger{background:linear-gradient(180deg, rgba(255,107,107,.22), rgba(255,107,107,.08));}
+    .btn.ghost{background:transparent}
+    .input, select, textarea{
+      width:100%; padding:9px 10px;border-radius:12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.20);
+      color:var(--text);
+      font-size:13px;
+      outline:none;
+    }
+    textarea{min-height:84px; resize:vertical; font-family:var(--mono); font-size:12px}
+    .help{color:var(--muted);font-size:12px;line-height:1.35;margin-top:6px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{
+      padding:8px 10px;border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      font-size:12px;color:var(--muted);
+      cursor:pointer;
+    }
+    .tab.active{
+      color:var(--text);
+      border-color:rgba(122,167,255,.35);
+      background: rgba(122,167,255,.14);
+    }
+
+    /* Tape list */
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+      border-radius:14px;
+      padding:10px;
+      cursor:pointer;
+      display:flex;gap:10px;align-items:flex-start;
+    }
+    .item:hover{background: rgba(255,255,255,.03)}
+    .badge{
+      padding:4px 8px;border-radius:999px;
+      background: var(--chip);
+      border:1px solid var(--line);
+      font-size:11px;color:var(--muted);
+      white-space:nowrap;
+    }
+    .badge.ok{color:var(--ok);border-color:rgba(43,212,164,.35);background:rgba(43,212,164,.10)}
+    .badge.warn{color:var(--warn);border-color:rgba(255,204,102,.35);background:rgba(255,204,102,.10)}
+    .badge.fail{color:var(--fail);border-color:rgba(255,107,107,.35);background:rgba(255,107,107,.10)}
+    .badge.info{color:var(--info);border-color:rgba(122,167,255,.35);background:rgba(122,167,255,.10)}
+    .meta{color:var(--muted);font-size:12px}
+    .line{height:1px;background:var(--line);margin:10px 0}
+    .kvs{display:grid;grid-template-columns: 160px 1fr;gap:8px 10px}
+    @media (max-width:560px){.kvs{grid-template-columns: 1fr}}
+    .k{color:var(--muted);font-size:12px}
+    .v{font-size:13px}
+    .mono{font-family:var(--mono);font-size:12px}
+    .small{font-size:12px;color:var(--muted)}
+    .two{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    }
+    @media (max-width:720px){.two{grid-template-columns:1fr}}
+    .table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background: rgba(255,255,255,.02);
+    }
+    .table th, .table td{
+      padding:10px;
+      font-size:12px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+    }
+    .table th{color:var(--muted);font-weight:600;background:rgba(255,255,255,.02)}
+    .table tr:last-child td{border-bottom:none}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+    .footerNote{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+    .toast{
+      position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+      background: rgba(15,26,45,.92);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      padding:10px 12px; border-radius:14px;
+      color:var(--text); font-size:12px;
+      display:none;
+      max-width:min(560px, calc(100% - 20px));
+    }
+    .toast.show{display:block}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>HOA Proof Ledger — Minimal UI</h1>
+        <p>
+          This UI visualizes the components: <b>Event Tape</b> → <b>Policy Evaluation</b> → <b>Exceptions</b> →
+          <b>Disclosure/Proof Claims</b> → <b>Homeowner Report</b>.
+          It uses local demo data only.
+        </p>
+      </div>
+      <div class="pillrow">
+        <div class="pill"><span class="muted">Org:</span> Cypress Ridge HOA</div>
+        <div class="pill"><span class="muted">Period:</span> FY2026</div>
+        <div class="pill"><span class="muted">Mode:</span> Demo (no integrations)</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- LEFT: Tape + Filters -->
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2>Event Tape</h2>
+            <div class="sub">Append-only events. Click one to see details + policy results.</div>
+          </div>
+          <div class="row">
+            <button class="btn" id="btnSeed">Reseed Demo</button>
+            <button class="btn primary" id="btnNewIntent">+ Payment Intent</button>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="two">
+            <div>
+              <label class="small">Search</label>
+              <input class="input" id="q" placeholder="vendor, category, memo, rail ref..." />
+            </div>
+            <div>
+              <label class="small">Filter</label>
+              <select id="filter">
+                <option value="ALL">All events</option>
+                <option value="PAYMENT_INTENT">Payment intents</option>
+                <option value="PAYMENT_APPROVED">Payment approved</option>
+                <option value="PAYMENT_SUBMITTED">Payment submitted</option>
+                <option value="PAYMENT_SETTLED">Payment settled</option>
+                <option value="RESERVE_TRANSFER">Reserve transfers</option>
+              </select>
+            </div>
+          </div>
+          <div class="line"></div>
+          <div class="list" id="tape"></div>
+          <div class="footerNote">
+            <b>Note:</b> In a real system, every insert triggers policy evaluation and produces immutable evaluation rows.
+            Zcash integration would populate <span class="mono">rail=ZCASH</span> and <span class="mono">rail_ref=txid</span>,
+            and attach a proof reference to a claim.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Tabs (Event Detail / Exceptions / Report / Policies) -->
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2 id="rightTitle">Event Detail</h2>
+            <div class="sub" id="rightSub">Select an event to view its structured facts and evaluations.</div>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Right panel">
+            <div class="tab active" data-tab="detail">Detail</div>
+            <div class="tab" data-tab="exceptions">Exceptions</div>
+            <div class="tab" data-tab="report">Homeowner Report</div>
+            <div class="tab" data-tab="policies">Policies</div>
+          </div>
+        </div>
+
+        <div class="bd" id="panel-detail"></div>
+        <div class="bd" id="panel-exceptions" style="display:none"></div>
+        <div class="bd" id="panel-report" style="display:none"></div>
+        <div class="bd" id="panel-policies" style="display:none"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ----------------------------
+   Demo Data (in-memory)
+---------------------------- */
+const demo = {
+  org: { name: "Cypress Ridge HOA", period: "FY2026" },
+  categories: [
+    { id:"c1", code:"MAINT", name:"Maintenance", type:"OPERATING" },
+    { id:"c2", code:"UTIL", name:"Utilities", type:"OPERATING" },
+    { id:"c3", code:"LEGAL", name:"Legal", type:"OPERATING" },
+    { id:"c4", code:"RES_ROOF", name:"Reserves: Roof", type:"RESERVE" },
+    { id:"c5", code:"RES_POOL", name:"Reserves: Pool", type:"RESERVE" }
+  ],
+  vendors: [
+    { id:"v1", name:"GreenScape Landscaping" },
+    { id:"v2", name:"Metro Water & Sewer" },
+    { id:"v3", name:"Dawson Roofing Co." },
+    { id:"v4", name:"Harris Legal Group" }
+  ],
+  budget: [
+    { categoryId:"c1", annual: 120000 },
+    { categoryId:"c2", annual: 48000 },
+    { categoryId:"c3", annual: 30000 },
+    { categoryId:"c4", annual: 250000 },
+    { categoryId:"c5", annual: 90000 }
+  ],
+  policies: [
+    {
+      id:"p1", key:"PAYMENT_APPROVAL_TIERS", version:1, status:"ACTIVE",
+      json: {
+        tiers: [
+          { max: 2000, required_approvals: ["MANAGER_APPROVAL"] },
+          { max: 10000, required_approvals: ["TREASURER_APPROVAL"] },
+          { max: 99999999, required_approvals: ["BOARD_VOTE"] }
+        ],
+        applies_to: ["PAYMENT_INTENT", "PAYMENT_SUBMITTED"]
+      }
+    },
+    {
+      id:"p2", key:"RESERVE_RESTRICTION", version:1, status:"ACTIVE",
+      json: {
+        applies_to: ["PAYMENT_INTENT", "RESERVE_TRANSFER"],
+        rules: [
+          { if: { category_type: "RESERVE" }, then: { required_approvals: ["BOARD_VOTE"], max_pct_over_budget: 0 } }
+        ]
+      }
+    },
+    {
+      id:"p3", key:"AUTHORIZED_VENDOR_ONLY", version:1, status:"ACTIVE",
+      json: {
+        applies_to: ["PAYMENT_INTENT","PAYMENT_SUBMITTED","PAYMENT_SETTLED"],
+        allowlist_vendor_ids: ["v1","v2","v3","v4"]
+      }
+    }
+  ],
+  events: [],
+  approvals: [],
+  evals: [],      // policy evaluation rows
+  claims: []      // proof_claim rows (placeholders in demo)
+};
+
+const now = new Date();
+function iso(d){ return new Date(d).toISOString(); }
+function fmtTs(isoStr){
+  const d = new Date(isoStr);
+  return d.toLocaleString(undefined, { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+}
+function money(n){
+  if (n == null || isNaN(n)) return "—";
+  return n.toLocaleString(undefined,{style:"currency",currency:"USD"});
+}
+function getCategory(id){ return demo.categories.find(c=>c.id===id); }
+function getVendor(id){ return demo.vendors.find(v=>v.id===id); }
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(window.__toastT);
+  window.__toastT = setTimeout(()=>el.classList.remove("show"), 2200);
+}
+
+/* ----------------------------
+   Seed demo dataset
+---------------------------- */
+function reseed(){
+  demo.events = [];
+  demo.approvals = [];
+  demo.evals = [];
+  demo.claims = [];
+
+  // Approvals
+  const a1 = { id:"a1", type:"MANAGER_APPROVAL", by:"Manager", at: iso(now.getTime()-1000*60*60*24*4), ref:"Ticket #1842" };
+  const a2 = { id:"a2", type:"TREASURER_APPROVAL", by:"Treasurer", at: iso(now.getTime()-1000*60*60*24*3), ref:"Email confirmation" };
+  const a3 = { id:"a3", type:"BOARD_VOTE", by:"Board", at: iso(now.getTime()-1000*60*60*24*2), ref:"Minutes 2026-01-07" };
+  demo.approvals.push(a1,a2,a3);
+
+  // Events (intents, submissions, settlements, reserve transfer)
+  const e = [
+    mkEvent("e1","PAYMENT_INTENT",  iso(now.getTime()-1000*60*60*24*5), "c1","v1", 1450, "BANK", null, "January landscaping"),
+    mkEvent("e2","PAYMENT_APPROVED",iso(now.getTime()-1000*60*60*24*4.8), "c1","v1", 1450, null, null, "Approved", "a1"),
+    mkEvent("e3","PAYMENT_SUBMITTED",iso(now.getTime()-1000*60*60*24*4.6), "c1","v1",1450,"BANK","ACH-88341","Submitted to bank", "a1"),
+    mkEvent("e4","PAYMENT_SETTLED", iso(now.getTime()-1000*60*60*24*4.2), "c1","v1",1450,"BANK","ACH-88341","Settled"),
+
+    mkEvent("e5","PAYMENT_INTENT", iso(now.getTime()-1000*60*60*24*3.6), "c4","v3", 18500,"BANK",null,"Roof deposit (reserve)"),
+    mkEvent("e6","PAYMENT_APPROVED",iso(now.getTime()-1000*60*60*24*3.5), "c4","v3",18500,null,null,"Approved by treasurer only", "a2"),
+    mkEvent("e7","PAYMENT_SUBMITTED",iso(now.getTime()-1000*60*60*24*3.3), "c4","v3",18500,"BANK","WIRE-1149","Submitted to bank", "a2"),
+
+    mkEvent("e8","PAYMENT_INTENT", iso(now.getTime()-1000*60*60*24*2.4), "c3","v4", 12500,"BANK",null,"Legal retainer increase"),
+    mkEvent("e9","PAYMENT_APPROVED",iso(now.getTime()-1000*60*60*24*2.2), "c3","v4",12500,null,null,"Approved (board vote)", "a3"),
+    mkEvent("e10","PAYMENT_SUBMITTED",iso(now.getTime()-1000*60*60*24*2.0), "c3","v4",12500,"ZCASH","txid_demo_9f1c...","Submitted via Zcash rail", "a3"),
+    mkEvent("e11","PAYMENT_SETTLED", iso(now.getTime()-1000*60*60*24*1.9), "c3","v4",12500,"ZCASH","txid_demo_9f1c...","Settled (confirmed)"),
+
+    mkEvent("e12","RESERVE_TRANSFER",iso(now.getTime()-1000*60*60*24*1.2), "c5",null, 20000,"BANK","JRN-221","Reserve transfer to pool project", "a3"),
+  ];
+
+  demo.events.push(...e);
+
+  // Evaluate policies for relevant events
+  demo.events.forEach(ev => evaluateEvent(ev.id));
+
+  // Create a placeholder proof claim for homeowner monthly summary
+  demo.claims.push({
+    id:"cl1",
+    claim_type:"AGGREGATE_SPEND_SUMMARY",
+    period:"2026-01",
+    proof_system:"HASH_ATTEST",
+    proof_ref:"claimhash_demo_3a2d...",
+    scopes:["HOMEOWNER_MONTHLY","BOARD_MONTHLY"],
+    created_at: iso(now)
+  });
+
+  renderAll();
+  selectEvent("e11"); // default selection
+  toast("Demo data loaded.");
+}
+
+function mkEvent(id, type, occurred_at, categoryId, vendorId, amount, rail, rail_ref, memo, approvalId){
+  return {
+    id, type, occurred_at,
+    categoryId, vendorId,
+    amount, currency:"USD",
+    rail: rail || null,
+    rail_ref: rail_ref || null,
+    memo: memo || "",
+    approvalId: approvalId || null,
+    event_hash: "evhash_" + id + "_demo"
+  };
+}
+
+/* ----------------------------
+   Policy evaluation (minimal)
+---------------------------- */
+function activePoliciesFor(eventType){
+  return demo.policies.filter(p => p.status==="ACTIVE" && (p.json.applies_to||[]).includes(eventType));
+}
+
+function addEval(eventId, policyId, outcome, reason_code, reason_text, evidence){
+  demo.evals.push({
+    id: "pe_" + Math.random().toString(16).slice(2),
+    eventId, policyId,
+    evaluated_at: iso(new Date()),
+    outcome, reason_code, reason_text,
+    evidence: evidence || {}
+  });
+}
+
+function evaluateEvent(eventId){
+  // remove prior evals for this event (demo convenience; in real system evals are append-only)
+  demo.evals = demo.evals.filter(x => x.eventId !== eventId);
+
+  const ev = demo.events.find(e=>e.id===eventId);
+  if (!ev) return;
+
+  const cat = ev.categoryId ? getCategory(ev.categoryId) : null;
+  const policies = activePoliciesFor(ev.type);
+
+  policies.forEach(p => {
+    if (p.key === "PAYMENT_APPROVAL_TIERS"){
+      // determine required approval types by amount tier
+      const tiers = p.json.tiers || [];
+      const amt = ev.amount || 0;
+      const tier = tiers.find(t => amt <= t.max) || tiers[tiers.length-1];
+      const required = tier?.required_approvals || [];
+
+      // find attached approval
+      const ap = ev.approvalId ? demo.approvals.find(a=>a.id===ev.approvalId) : null;
+      if (required.length === 0){
+        addEval(ev.id, p.id, "NOT_APPLICABLE", "NO_REQUIREMENT", "No approvals required.", { required });
+      } else if (!ap){
+        addEval(ev.id, p.id, "FAIL", "APPROVAL_MISSING", `Missing required approval: ${required.join(", ")}`, { required });
+      } else if (!required.includes(ap.type)){
+        addEval(ev.id, p.id, "FAIL", "APPROVAL_INSUFFICIENT", `Approval type is ${ap.type}, but required: ${required.join(", ")}`, { required, got: ap.type, approvalId: ap.id });
+      } else {
+        addEval(ev.id, p.id, "PASS", "APPROVAL_OK", `Required approval satisfied (${ap.type}).`, { required, approvalId: ap.id });
+      }
+    }
+
+    if (p.key === "RESERVE_RESTRICTION"){
+      if (!cat || cat.type !== "RESERVE"){
+        addEval(ev.id, p.id, "NOT_APPLICABLE", "NOT_RESERVE", "Not a reserve category.", {});
+        return;
+      }
+      const ap = ev.approvalId ? demo.approvals.find(a=>a.id===ev.approvalId) : null;
+      const required = ["BOARD_VOTE"];
+      if (!ap){
+        addEval(ev.id, p.id, "FAIL", "RESERVE_APPROVAL_MISSING", "Reserve use requires board vote approval.", { required });
+      } else if (ap.type !== "BOARD_VOTE"){
+        addEval(ev.id, p.id, "FAIL", "RESERVE_APPROVAL_INSUFFICIENT", `Reserve use requires BOARD_VOTE; got ${ap.type}.`, { required, got: ap.type, approvalId: ap.id });
+      } else {
+        addEval(ev.id, p.id, "PASS", "RESERVE_OK", "Reserve use has required board vote approval.", { approvalId: ap.id });
+      }
+    }
+
+    if (p.key === "AUTHORIZED_VENDOR_ONLY"){
+      if (ev.vendorId == null){
+        addEval(ev.id, p.id, "NOT_APPLICABLE", "NO_VENDOR", "No vendor on this event.", {});
+        return;
+      }
+      const allow = p.json.allowlist_vendor_ids || [];
+      if (!allow.includes(ev.vendorId)){
+        addEval(ev.id, p.id, "FAIL", "VENDOR_NOT_AUTHORIZED", "Vendor is not in authorized list.", { vendorId: ev.vendorId });
+      } else {
+        addEval(ev.id, p.id, "PASS", "VENDOR_OK", "Vendor is authorized.", { vendorId: ev.vendorId });
+      }
+    }
+  });
+
+  // Budget compliance example (WARN only, minimal)
+  // Compute month-to-date spend for category for settled payments
+  if (ev.type === "PAYMENT_SETTLED" && ev.categoryId){
+    const monthKey = monthOf(ev.occurred_at);
+    const settled = demo.events.filter(x =>
+      x.type === "PAYMENT_SETTLED" &&
+      x.categoryId === ev.categoryId &&
+      monthOf(x.occurred_at) === monthKey
+    );
+    const mtd = settled.reduce((s,x)=>s+(x.amount||0),0);
+
+    const bud = demo.budget.find(b=>b.categoryId===ev.categoryId);
+    const monthlyBudget = bud ? bud.annual/12 : null;
+
+    if (monthlyBudget != null && mtd > monthlyBudget * 1.10){
+      // attach as a pseudo-policy eval (not in policy list to keep demo small)
+      addEval(ev.id, "BUDGET_COMPLIANCE_V1", "WARN", "BUDGET_PRESSURE",
+        `Month-to-date spend exceeds 110% of monthly budget estimate.`,
+        { month: monthKey, mtd, monthlyBudget }
+      );
+    }
+  }
+}
+
+function monthOf(isoStr){
+  const d = new Date(isoStr);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  return `${y}-${m}`;
+}
+
+/* ----------------------------
+   Rendering
+---------------------------- */
+let state = {
+  selectedEventId: null,
+  tab: "detail"
+};
+
+function renderAll(){
+  renderTape();
+  renderRightPanel();
+}
+
+function renderTape(){
+  const q = (document.getElementById("q").value || "").toLowerCase().trim();
+  const f = document.getElementById("filter").value;
+
+  const tape = document.getElementById("tape");
+  tape.innerHTML = "";
+
+  const filtered = demo.events
+    .slice()
+    .sort((a,b)=> new Date(b.occurred_at)-new Date(a.occurred_at))
+    .filter(ev => f==="ALL" ? true : ev.type === f)
+    .filter(ev => {
+      if (!q) return true;
+      const cat = ev.categoryId ? getCategory(ev.categoryId) : null;
+      const ven = ev.vendorId ? getVendor(ev.vendorId) : null;
+      const hay = [
+        ev.id, ev.type, ev.memo, ev.rail, ev.rail_ref, ev.event_hash,
+        cat?.code, cat?.name, cat?.type,
+        ven?.name
+      ].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+
+  if (!filtered.length){
+    tape.innerHTML = `<div class="muted">No events match your filter.</div>`;
+    return;
+  }
+
+  filtered.forEach(ev=>{
+    const cat = ev.categoryId ? getCategory(ev.categoryId) : null;
+    const ven = ev.vendorId ? getVendor(ev.vendorId) : null;
+
+    const status = eventStatus(ev.id);
+    const statusBadge = statusBadgeHtml(status);
+
+    const el = document.createElement("div");
+    el.className = "item";
+    el.onclick = ()=> selectEvent(ev.id);
+
+    el.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:110px">
+        ${statusBadge}
+        <div class="badge info">${ev.type.replaceAll("_"," ")}</div>
+      </div>
+      <div class="grow">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <div style="font-size:13px">
+              <b>${cat ? cat.code : "—"}</b>
+              <span class="muted">·</span>
+              <span>${ven ? ven.name : (ev.type==="RESERVE_TRANSFER" ? "Internal transfer" : "—")}</span>
+            </div>
+            <div class="meta">${fmtTs(ev.occurred_at)} · ${ev.rail ? ev.rail : "—"} ${ev.rail_ref ? "· " + ev.rail_ref : ""}</div>
+          </div>
+          <div style="font-weight:700">${money(ev.amount)}</div>
+        </div>
+        ${ev.memo ? `<div class="meta" style="margin-top:6px">${escapeHtml(ev.memo)}</div>` : ""}
+      </div>
+    `;
+
+    if (ev.id === state.selectedEventId){
+      el.style.borderColor = "rgba(122,167,255,.45)";
+      el.style.background = "rgba(122,167,255,.10)";
+    }
+    tape.appendChild(el);
+  });
+}
+
+function eventStatus(eventId){
+  const evals = demo.evals.filter(x=>x.eventId===eventId);
+  if (!evals.length) return "NONE";
+  if (evals.some(e=>e.outcome==="FAIL")) return "FAIL";
+  if (evals.some(e=>e.outcome==="WARN")) return "WARN";
+  if (evals.some(e=>e.outcome==="PASS")) return "PASS";
+  return "NONE";
+}
+
+function statusBadgeHtml(s){
+  if (s==="FAIL") return `<div class="badge fail">FAIL</div>`;
+  if (s==="WARN") return `<div class="badge warn">WARN</div>`;
+  if (s==="PASS") return `<div class="badge ok">PASS</div>`;
+  return `<div class="badge">NO EVAL</div>`;
+}
+
+function selectEvent(id){
+  state.selectedEventId = id;
+  renderTape();
+  renderRightPanel();
+}
+
+function setTab(tab){
+  state.tab = tab;
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.tab===tab);
+  });
+  ["detail","exceptions","report","policies"].forEach(k=>{
+    document.getElementById("panel-"+k).style.display = (k===tab) ? "block" : "none";
+  });
+  renderRightPanel();
+}
+
+function renderRightPanel(){
+  const title = document.getElementById("rightTitle");
+  const sub = document.getElementById("rightSub");
+
+  if (state.tab === "detail"){
+    title.textContent = "Event Detail";
+    sub.textContent = state.selectedEventId ? "Structured facts + policy evaluation results." : "Select an event to view details.";
+    renderDetail();
+  } else if (state.tab === "exceptions"){
+    title.textContent = "Exceptions";
+    sub.textContent = "Events with FAIL/WARN evaluations. This is the operational queue.";
+    renderExceptions();
+  } else if (state.tab === "report"){
+    title.textContent = "Homeowner Proof Report";
+    sub.textContent = "Aggregate-only view: budget vs actual + exception counts. No vendor details.";
+    renderReport();
+  } else if (state.tab === "policies"){
+    title.textContent = "Policies";
+    sub.textContent = "Versioned policy JSON (V1). Edit locally to visualize impacts.";
+    renderPolicies();
+  }
+}
+
+function renderDetail(){
+  const panel = document.getElementById("panel-detail");
+  if (!state.selectedEventId){
+    panel.innerHTML = `<div class="muted">No event selected.</div>`;
+    return;
+  }
+  const ev = demo.events.find(e=>e.id===state.selectedEventId);
+  const cat = ev.categoryId ? getCategory(ev.categoryId) : null;
+  const ven = ev.vendorId ? getVendor(ev.vendorId) : null;
+  const ap = ev.approvalId ? demo.approvals.find(a=>a.id===ev.approvalId) : null;
+  const evals = demo.evals.filter(x=>x.eventId===ev.id).sort((a,b)=>a.outcome.localeCompare(b.outcome));
+
+  panel.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          ${statusBadgeHtml(eventStatus(ev.id))}
+          <span class="badge info">${ev.type.replaceAll("_"," ")}</span>
+          ${cat ? `<span class="badge">${cat.type}</span>` : ""}
+          ${ev.rail ? `<span class="badge">${ev.rail}</span>` : ""}
+        </div>
+        <div class="meta" style="margin-top:6px">${fmtTs(ev.occurred_at)} · Event ID <span class="mono">${ev.id}</span></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800">${money(ev.amount)}</div>
+        <div class="meta">${ev.currency}</div>
+      </div>
+    </div>
+
+    <div class="line"></div>
+
+    <div class="kvs">
+      <div class="k">Category</div><div class="v">${cat ? `${cat.code} — ${cat.name}` : "—"}</div>
+      <div class="k">Vendor</div><div class="v">${ven ? ven.name : (ev.type==="RESERVE_TRANSFER" ? "Internal transfer" : "—")}</div>
+      <div class="k">Memo</div><div class="v">${ev.memo ? escapeHtml(ev.memo) : "—"}</div>
+      <div class="k">Rail Ref</div><div class="v">${ev.rail_ref ? `<span class="mono">${escapeHtml(ev.rail_ref)}</span>` : "—"}</div>
+      <div class="k">Event Hash</div><div class="v"><span class="mono">${escapeHtml(ev.event_hash)}</span></div>
+    </div>
+
+    <div class="line"></div>
+
+    <div class="two">
+      <div>
+        <h3 style="margin:0 0 8px;font-size:13px">Attached Approval</h3>
+        ${ap ? `
+          <div class="kvs">
+            <div class="k">Type</div><div class="v"><span class="badge">${ap.type}</span></div>
+            <div class="k">Approved By</div><div class="v">${escapeHtml(ap.by)}</div>
+            <div class="k">Approved At</div><div class="v">${fmtTs(ap.at)}</div>
+            <div class="k">Reference</div><div class="v">${escapeHtml(ap.ref || "—")}</div>
+          </div>
+        ` : `<div class="muted">No approval linked to this event.</div>`}
+        <div style="margin-top:10px" class="row">
+          <button class="btn" onclick="attachApprovalPrompt('${ev.id}')">Attach / Change Approval</button>
+          <button class="btn ghost" onclick="clearApproval('${ev.id}')">Clear</button>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin:0 0 8px;font-size:13px">Policy Evaluations</h3>
+        ${evals.length ? evals.map(pe => `
+          <div class="item" style="cursor:default">
+            <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:96px">
+              ${pe.outcome==="FAIL" ? `<div class="badge fail">FAIL</div>` :
+                pe.outcome==="WARN" ? `<div class="badge warn">WARN</div>` :
+                pe.outcome==="PASS" ? `<div class="badge ok">PASS</div>` :
+                `<div class="badge">N/A</div>`
+              }
+              <div class="badge">${policyLabel(pe.policyId)}</div>
+            </div>
+            <div class="grow">
+              <div style="font-size:13px"><b>${escapeHtml(pe.reason_code)}</b></div>
+              <div class="meta">${escapeHtml(pe.reason_text)}</div>
+              ${pe.evidence && Object.keys(pe.evidence).length
+                ? `<div class="meta" style="margin-top:6px">Evidence: <span class="mono">${escapeHtml(JSON.stringify(pe.evidence))}</span></div>`
+                : ``}
+            </div>
+          </div>
+        `).join("") : `<div class="muted">No evaluations for this event.</div>`}
+      </div>
+    </div>
+
+    <div class="line"></div>
+
+    <div class="row">
+      <button class="btn primary" onclick="reEvaluate('${ev.id}')">Re-evaluate Policies</button>
+      <button class="btn" onclick="createClaimFromEvent('${ev.id}')">Create Proof Claim (placeholder)</button>
+    </div>
+
+    <div class="help">
+      <b>What this demonstrates:</b> events are recorded, policies evaluate against them, and the system surfaces outcomes.
+      In production, evaluations would be append-only rows and claims would reference real cryptographic artifacts (e.g., Zcash view key scope or tx proof).
+    </div>
+  `;
+}
+
+function policyLabel(policyId){
+  const p = demo.policies.find(x=>x.id===policyId);
+  if (p) return `${p.key}@v${p.version}`;
+  if (policyId==="BUDGET_COMPLIANCE_V1") return "BUDGET_COMPLIANCE_V1";
+  return "UNKNOWN_POLICY";
+}
+
+function renderExceptions(){
+  const panel = document.getElementById("panel-exceptions");
+
+  // build a simplified queue: show latest eval per policy per event, filter FAIL/WARN
+  const rows = [];
+  const eventIds = [...new Set(demo.evals.map(e=>e.eventId))];
+  eventIds.forEach(eid=>{
+    const ev = demo.events.find(x=>x.id===eid);
+    if (!ev) return;
+
+    const byPolicy = {};
+    demo.evals.filter(x=>x.eventId===eid).forEach(pe=>{
+      // last one wins (demo)
+      byPolicy[pe.policyId] = pe;
+    });
+    Object.values(byPolicy).forEach(pe=>{
+      if (pe.outcome==="FAIL" || pe.outcome==="WARN"){
+        rows.push({ ev, pe });
+      }
+    });
+  });
+
+  rows.sort((a,b)=> new Date(b.ev.occurred_at) - new Date(a.ev.occurred_at));
+
+  if (!rows.length){
+    panel.innerHTML = `<div class="muted">No exceptions.</div>`;
+    return;
+  }
+
+  const htmlRows = rows.map(r=>{
+    const ev = r.ev, pe = r.pe;
+    const cat = ev.categoryId ? getCategory(ev.categoryId) : null;
+    const ven = ev.vendorId ? getVendor(ev.vendorId) : null;
+    const outBadge = pe.outcome==="FAIL" ? `<span class="badge fail">FAIL</span>` : `<span class="badge warn">WARN</span>`;
+    return `
+      <tr>
+        <td>${outBadge}</td>
+        <td><span class="mono">${escapeHtml(ev.id)}</span></td>
+        <td>${fmtTs(ev.occurred_at)}</td>
+        <td>${cat ? cat.code : "—"}</td>
+        <td class="muted">${ven ? escapeHtml(ven.name) : "—"}</td>
+        <td class="right">${money(ev.amount)}</td>
+        <td><span class="mono">${escapeHtml(pe.reason_code)}</span></td>
+        <td class="muted">${escapeHtml(pe.reason_text)}</td>
+        <td><button class="btn" onclick="selectEventFromExceptions('${ev.id}')">View</button></td>
+      </tr>
+    `;
+  }).join("");
+
+  panel.innerHTML = `
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Event</th>
+          <th>Time</th>
+          <th>Category</th>
+          <th>Vendor</th>
+          <th class="right">Amount</th>
+          <th>Reason Code</th>
+          <th>Reason</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${htmlRows}</tbody>
+    </table>
+
+    <div class="help" style="margin-top:10px">
+      <b>Operational meaning:</b> this is the queue a treasurer/manager works daily.
+      It is generated directly from policy evaluations (not manual judgment).
+    </div>
+  `;
+}
+
+function selectEventFromExceptions(id){
+  selectEvent(id);
+  setTab("detail");
+}
+
+function renderReport(){
+  const panel = document.getElementById("panel-report");
+
+  // Choose the month of "now" for demo
+  const monthKey = monthOf(iso(now));
+  const monthStart = new Date(monthKey+"-01T00:00:00");
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth()+1, 1);
+
+  // Aggregate settled spend by category
+  const spendByCat = {};
+  demo.categories.forEach(c=> spendByCat[c.id]=0);
+
+  demo.events
+    .filter(e=>e.type==="PAYMENT_SETTLED" && e.categoryId)
+    .filter(e=>{
+      const d = new Date(e.occurred_at);
+      return d >= monthStart && d < monthEnd;
+    })
+    .forEach(e=> spendByCat[e.categoryId] += (e.amount||0));
+
+  // Budget monthly estimate
+  const rows = demo.budget.map(b=>{
+    const cat = getCategory(b.categoryId);
+    const monthly = b.annual/12;
+    const actual = spendByCat[b.categoryId] || 0;
+    const pct = monthly ? (actual/monthly) : null;
+    return { cat, annual:b.annual, monthly, actual, pct };
+  });
+
+  // Exceptions count in month
+  const exceptionEvals = demo.evals.filter(pe=>{
+    if (!(pe.outcome==="FAIL" || pe.outcome==="WARN")) return false;
+    const ev = demo.events.find(e=>e.id===pe.eventId);
+    if (!ev) return false;
+    const d = new Date(ev.occurred_at);
+    return d >= monthStart && d < monthEnd;
+  });
+  const failCount = exceptionEvals.filter(x=>x.outcome==="FAIL").length;
+  const warnCount = exceptionEvals.filter(x=>x.outcome==="WARN").length;
+
+  const claim = demo.claims.find(c=>c.period===monthKey);
+  const claimHtml = claim ? `
+    <div class="item" style="cursor:default">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:140px">
+        <div class="badge ok">CLAIM</div>
+        <div class="badge">${escapeHtml(claim.claim_type)}</div>
+      </div>
+      <div class="grow">
+        <div class="meta">Proof system: <span class="mono">${escapeHtml(claim.proof_system)}</span></div>
+        <div class="meta">Proof ref: <span class="mono">${escapeHtml(claim.proof_ref)}</span></div>
+        <div class="meta">Scopes: <span class="mono">${escapeHtml(JSON.stringify(claim.scopes))}</span></div>
+      </div>
+    </div>
+  ` : `<div class="muted">No proof claim attached for this period (demo placeholder only).</div>`;
+
+  panel.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span class="badge info">MONTH</span>
+          <span class="badge">${monthKey}</span>
+          <span class="badge">Aggregate-only</span>
+        </div>
+        <div class="meta" style="margin-top:6px">
+          Homeowners see totals and exception counts. Vendor/invoice details are not shown.
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="badge fail" style="display:inline-flex;gap:6px;align-items:center">FAIL: ${failCount}</div>
+        <div style="height:6px"></div>
+        <div class="badge warn" style="display:inline-flex;gap:6px;align-items:center">WARN: ${warnCount}</div>
+      </div>
+    </div>
+
+    <div class="line"></div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th class="right">Monthly Budget (est.)</th>
+          <th class="right">Actual Settled</th>
+          <th class="right">Variance</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(r=>{
+          const variance = r.actual - r.monthly;
+          const status =
+            r.actual > r.monthly*1.10 ? `<span class="badge warn">Over 110%</span>` :
+            r.actual > r.monthly ? `<span class="badge">Over</span>` :
+            `<span class="badge ok">Within</span>`;
+          return `
+            <tr>
+              <td><b>${r.cat.code}</b> <span class="muted">·</span> <span class="muted">${escapeHtml(r.cat.name)}</span></td>
+              <td class="right">${money(r.monthly)}</td>
+              <td class="right">${money(r.actual)}</td>
+              <td class="right">${money(variance)}</td>
+              <td>${status}</td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+
+    <div class="line"></div>
+
+    <h3 style="margin:0 0 8px;font-size:13px">Attached Proof Claim (placeholder)</h3>
+    ${claimHtml}
+
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" onclick="attachMonthlyClaim('${monthKey}')">Attach / Refresh Claim</button>
+      <button class="btn" onclick="exportReport()">Export (demo)</button>
+    </div>
+
+    <div class="help" style="margin-top:10px">
+      <b>What makes this different from PDFs:</b> the “claim” is designed to be verifiable by a third party.
+      In V1 you can store a hash reference; later you attach a real Zcash view-scope or proof artifact.
+    </div>
+  `;
+}
+
+function renderPolicies(){
+  const panel = document.getElementById("panel-policies");
+
+  const list = demo.policies.map(p=>{
+    return `
+      <div class="item" style="cursor:default">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:140px">
+          <div class="badge info">${escapeHtml(p.key)}</div>
+          <div class="badge">v${p.version} · ${p.status}</div>
+        </div>
+        <div class="grow">
+          <div class="meta">Applies to: <span class="mono">${escapeHtml(JSON.stringify(p.json.applies_to||[]))}</span></div>
+          <div class="meta">Policy ID: <span class="mono">${escapeHtml(p.id)}</span></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const selected = demo.policies[0];
+
+  panel.innerHTML = `
+    <div class="help" style="margin-top:0">
+      Policies are stored as JSON and versioned. The evaluator reads the ACTIVE versions.
+      Editing here changes local demo behavior only.
+    </div>
+
+    <div class="line"></div>
+
+    ${list}
+
+    <div class="line"></div>
+
+    <h3 style="margin:0 0 8px;font-size:13px">Edit Policy JSON (demo)</h3>
+    <div class="two">
+      <div>
+        <label class="small">Policy</label>
+        <select id="policyPick"></select>
+        <div class="help">Choose a policy, edit JSON, then re-evaluate an event to see outcomes change.</div>
+      </div>
+      <div class="row" style="justify-content:flex-end;align-items:flex-end">
+        <button class="btn" id="btnResetPolicy">Reset JSON</button>
+        <button class="btn primary" id="btnSavePolicy">Save JSON</button>
+      </div>
+    </div>
+    <textarea id="policyJson" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" onclick="reEvaluateAll()">Re-evaluate ALL Events</button>
+      <button class="btn danger" onclick="retirePolicy()">Retire Selected Policy</button>
+    </div>
+  `;
+
+  // populate picker and editor
+  const pick = document.getElementById("policyPick");
+  pick.innerHTML = demo.policies.map(p => `<option value="${p.id}">${p.key}@v${p.version} (${p.status})</option>`).join("");
+  pick.value = selected.id;
+
+  const baseline = JSON.stringify(selected.json, null, 2);
+  document.getElementById("policyJson").value = baseline;
+
+  pick.onchange = ()=>{
+    const p = demo.policies.find(x=>x.id===pick.value);
+    document.getElementById("policyJson").value = JSON.stringify(p.json, null, 2);
+  };
+
+  document.getElementById("btnResetPolicy").onclick = ()=>{
+    const p = demo.policies.find(x=>x.id===pick.value);
+    document.getElementById("policyJson").value = JSON.stringify(p.json, null, 2);
+    toast("Policy JSON reset.");
+  };
+
+  document.getElementById("btnSavePolicy").onclick = ()=>{
+    const p = demo.policies.find(x=>x.id===pick.value);
+    try{
+      const parsed = JSON.parse(document.getElementById("policyJson").value);
+      p.json = parsed;
+      toast("Policy JSON saved.");
+    }catch(e){
+      toast("Invalid JSON. Not saved.");
+    }
+  };
+}
+
+/* ----------------------------
+   Actions (demo)
+---------------------------- */
+function reEvaluate(eventId){
+  evaluateEvent(eventId);
+  renderAll();
+  toast("Re-evaluated event " + eventId);
+}
+
+function reEvaluateAll(){
+  demo.events.forEach(ev=>evaluateEvent(ev.id));
+  renderAll();
+  toast("Re-evaluated all events.");
+}
+
+function retirePolicy(){
+  const pick = document.getElementById("policyPick");
+  const p = demo.policies.find(x=>x.id===pick.value);
+  if (!p) return;
+  p.status = "RETIRED";
+  renderPolicies();
+  toast("Policy retired (demo).");
+}
+
+function attachApprovalPrompt(eventId){
+  const ev = demo.events.find(e=>e.id===eventId);
+  if (!ev) return;
+
+  const msg = "Enter approval id to attach (a1/a2/a3 in demo), or create new: \n\nExisting approvals:\n" +
+    demo.approvals.map(a=>`${a.id} · ${a.type} · ${a.by}`).join("\n");
+
+  const id = prompt(msg, ev.approvalId || "a3");
+  if (!id) return;
+
+  let ap = demo.approvals.find(a=>a.id===id.trim());
+  if (!ap){
+    // create a simple approval
+    ap = { id: id.trim(), type:"BOARD_VOTE", by:"Board", at: iso(now), ref:"Manual entry" };
+    demo.approvals.push(ap);
+  }
+  ev.approvalId = ap.id;
+  evaluateEvent(ev.id);
+  renderAll();
+  toast("Approval attached: " + ap.id);
+}
+
+function clearApproval(eventId){
+  const ev = demo.events.find(e=>e.id===eventId);
+  if (!ev) return;
+  ev.approvalId = null;
+  evaluateEvent(ev.id);
+  renderAll();
+  toast("Approval cleared.");
+}
+
+function createClaimFromEvent(eventId){
+  const ev = demo.events.find(e=>e.id===eventId);
+  if (!ev) return;
+
+  const claim = {
+    id: "cl_" + Math.random().toString(16).slice(2),
+    claim_type: "PAYMENT_EXISTENCE",
+    period: monthOf(ev.occurred_at),
+    proof_system: ev.rail === "ZCASH" ? "ZCASH_VIEWKEY" : "HASH_ATTEST",
+    proof_ref: ev.rail_ref ? ev.rail_ref : ("claimhash_" + ev.id + "_demo"),
+    scopes: ["BOARD_MONTHLY","AUDITOR_FULL"],
+    created_at: iso(now)
+  };
+  demo.claims.push(claim);
+  toast("Created proof claim (placeholder).");
+  renderAll();
+  setTab("report");
+}
+
+function attachMonthlyClaim(monthKey){
+  // upsert a monthly claim
+  let c = demo.claims.find(x=>x.claim_type==="AGGREGATE_SPEND_SUMMARY" && x.period===monthKey);
+  if (!c){
+    c = {
+      id:"cl_" + Math.random().toString(16).slice(2),
+      claim_type:"AGGREGATE_SPEND_SUMMARY",
+      period:monthKey,
+      proof_system:"HASH_ATTEST",
+      proof_ref:"claimhash_demo_" + Math.random().toString(16).slice(2),
+      scopes:["HOMEOWNER_MONTHLY","BOARD_MONTHLY"],
+      created_at: iso(now)
+    };
+    demo.claims.push(c);
+  } else {
+    c.proof_ref = "claimhash_demo_" + Math.random().toString(16).slice(2);
+    c.created_at = iso(now);
+  }
+  toast("Monthly claim attached/refreshed.");
+  renderReport();
+}
+
+function exportReport(){
+  // demo export as JSON blob
+  const monthKey = monthOf(iso(now));
+  const payload = {
+    org: demo.org.name,
+    period: monthKey,
+    budget: demo.budget,
+    categories: demo.categories,
+    claims: demo.claims.filter(c=>c.period===monthKey),
+    exceptionCounts: {
+      fail: demo.evals.filter(x=>x.outcome==="FAIL").length,
+      warn: demo.evals.filter(x=>x.outcome==="WARN").length
+    }
+  };
+  navigator.clipboard?.writeText(JSON.stringify(payload, null, 2));
+  toast("Report JSON copied to clipboard (if supported).");
+}
+
+function newPaymentIntent(){
+  const amount = parseFloat(prompt("Payment amount (USD):", "2500") || "");
+  if (!isFinite(amount)) return toast("Invalid amount.");
+
+  const catCode = prompt("Category code (MAINT/UTIL/LEGAL/RES_ROOF/RES_POOL):", "MAINT");
+  const cat = demo.categories.find(c=>c.code===catCode);
+  if (!cat) return toast("Unknown category.");
+
+  const vendorName = prompt("Vendor name:", "GreenScape Landscaping");
+  let ven = demo.vendors.find(v=>v.name===vendorName);
+  if (!ven){
+    ven = { id:"v" + (demo.vendors.length+1), name: vendorName };
+    demo.vendors.push(ven);
+    // also add to allowlist policy? leave as-is to show FAIL
+  }
+
+  const memo = prompt("Memo:", "New payment intent");
+  const id = "e" + (demo.events.length + 1);
+  const ev = mkEvent(id, "PAYMENT_INTENT", iso(new Date()), cat.id, ven.id, amount, "BANK", null, memo, null);
+  demo.events.push(ev);
+  evaluateEvent(ev.id);
+  renderAll();
+  selectEvent(ev.id);
+  toast("Payment intent created.");
+}
+
+function selectEventFromId(id){
+  const ev = demo.events.find(e=>e.id===id);
+  if (!ev) return;
+  selectEvent(id);
+}
+
+function eventExists(id){ return demo.events.some(e=>e.id===id); }
+
+/* ----------------------------
+   Helpers
+---------------------------- */
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* ----------------------------
+   Wire up UI
+---------------------------- */
+document.getElementById("q").addEventListener("input", ()=>renderTape());
+document.getElementById("filter").addEventListener("change", ()=>renderTape());
+document.getElementById("btnSeed").addEventListener("click", reseed);
+document.getElementById("btnNewIntent").addEventListener("click", newPaymentIntent);
+
+// Tabs
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click", ()=> setTab(t.dataset.tab));
+});
+
+// Seed initial state
+reseed();
+setTab("detail");
+function selectEventFromExceptions(id){ selectEvent(id); setTab("detail"); }
+</script>
+</body>
+</html>

@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Approval Workflows & Payment Scheduling</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 220px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo { padding: 20px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .nav-section { padding: 16px 12px; }
+        .nav-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding: 0 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .nav-item .badge { margin-left: auto; background: var(--accent-red); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .page-title { font-size: 18px; font-weight: 600; }
+        .tabs { display: flex; gap: 4px; background: var(--bg-tertiary); padding: 4px; border-radius: 8px; }
+        .tab { padding: 8px 20px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; }
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { background: var(--bg-secondary); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-primary:hover { background: #3d96ef; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-success { background: var(--accent-green); color: white; }
+        .btn-danger { background: rgba(255, 107, 107, 0.2); color: var(--accent-red); border: 1px solid rgba(255, 107, 107, 0.3); }
+        .content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; }
+        .page-header h1 { font-size: 24px; font-weight: 600; }
+        .page-stats { display: flex; gap: 24px; }
+        .page-stat { text-align: center; }
+        .page-stat-value { font-size: 28px; font-weight: 700; font-family: 'SF Mono', Monaco, monospace; }
+        .page-stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .card-body { padding: 20px; }
+
+        /* Approval Queue */
+        .approval-queue { display: flex; flex-direction: column; gap: 12px; }
+        .approval-item { background: var(--bg-tertiary); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+        .approval-item:hover { border-color: var(--border-color); background: var(--bg-card); }
+        .approval-item.urgent { border-left: 4px solid var(--accent-red); }
+        .approval-item.high { border-left: 4px solid var(--accent-orange); }
+        .approval-item.normal { border-left: 4px solid var(--accent-blue); }
+        .approval-avatar { width: 40px; height: 40px; border-radius: 10px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: var(--text-secondary); }
+        .approval-content { flex: 1; }
+        .approval-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .approval-po { font-size: 14px; font-weight: 600; }
+        .approval-vendor { font-size: 13px; color: var(--text-secondary); }
+        .approval-meta { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); }
+        .approval-amount { font-size: 18px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-red); }
+        .approval-actions { display: flex; gap: 8px; }
+        .approval-time { font-size: 11px; color: var(--text-muted); text-align: right; min-width: 80px; }
+        .approval-time.overdue { color: var(--accent-red); }
+
+        /* Approval Chain Visualization */
+        .approval-chain { display: flex; align-items: center; gap: 8px; padding: 16px 0; }
+        .chain-step { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 100px; }
+        .chain-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; border: 3px solid var(--border-color); background: var(--bg-tertiary); }
+        .chain-step.completed .chain-avatar { background: var(--accent-green); border-color: var(--accent-green); color: white; }
+        .chain-step.current .chain-avatar { background: var(--accent-blue); border-color: var(--accent-blue); color: white; box-shadow: 0 0 0 4px rgba(77, 166, 255, 0.2); }
+        .chain-step.pending .chain-avatar { background: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-muted); }
+        .chain-name { font-size: 11px; font-weight: 500; text-align: center; }
+        .chain-role { font-size: 10px; color: var(--text-muted); text-align: center; }
+        .chain-time { font-size: 10px; color: var(--accent-green); text-align: center; }
+        .chain-connector { flex: 1; height: 3px; background: var(--border-color); min-width: 30px; }
+        .chain-connector.completed { background: var(--accent-green); }
+
+        /* Approval Detail */
+        .approval-detail-header { display: flex; justify-content: space-between; align-items: start; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+        .approval-detail-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .approval-detail-vendor { font-size: 14px; color: var(--text-secondary); }
+        .approval-detail-amount { font-size: 32px; font-weight: 700; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-red); }
+        .approval-detail-requested { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Line Items Table */
+        .line-items { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        .line-items th { text-align: left; padding: 10px 12px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary); }
+        .line-items td { padding: 12px; font-size: 13px; border-bottom: 1px solid var(--border-color); }
+        .line-items tr:hover { background: var(--bg-tertiary); }
+        .line-items .amount { font-family: 'SF Mono', Monaco, monospace; text-align: right; }
+        .line-items tfoot td { font-weight: 600; background: var(--bg-tertiary); }
+
+        /* Payment Scheduling */
+        .payment-calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-header { font-size: 11px; font-weight: 600; color: var(--text-muted); text-align: center; padding: 8px; }
+        .calendar-day { aspect-ratio: 1; background: var(--bg-tertiary); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+        .calendar-day:hover { border-color: var(--accent-blue); }
+        .calendar-day.today { border-color: var(--accent-blue); }
+        .calendar-day.has-payments { background: rgba(255, 107, 107, 0.1); }
+        .calendar-day.payment-run { background: rgba(77, 166, 255, 0.15); border-color: var(--accent-blue); }
+        .calendar-date { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+        .calendar-day.other-month .calendar-date { color: var(--text-muted); }
+        .calendar-amount { font-size: 10px; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-red); }
+        .calendar-count { font-size: 9px; color: var(--text-muted); }
+
+        /* Payment Run Builder */
+        .run-builder { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+        .run-payments { display: flex; flex-direction: column; gap: 8px; }
+        .run-payment { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-tertiary); border-radius: 8px; }
+        .run-payment input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent-blue); }
+        .run-payment-content { flex: 1; }
+        .run-payment-vendor { font-size: 13px; font-weight: 500; }
+        .run-payment-detail { font-size: 11px; color: var(--text-secondary); }
+        .run-payment-amount { font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .run-payment-due { font-size: 11px; color: var(--text-muted); }
+        .run-payment.has-discount .run-payment-amount { color: var(--accent-green); }
+        .run-payment .discount-badge { font-size: 9px; background: rgba(0, 212, 170, 0.15); color: var(--accent-green); padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
+
+        /* Run Summary Panel */
+        .run-summary { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; position: sticky; top: 24px; }
+        .run-summary-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+        .run-summary-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        .run-summary-row:last-of-type { border-bottom: none; }
+        .run-summary-label { color: var(--text-secondary); }
+        .run-summary-value { font-family: 'SF Mono', Monaco, monospace; font-weight: 500; }
+        .run-summary-total { display: flex; justify-content: space-between; padding: 16px 0; margin-top: 8px; border-top: 2px solid var(--border-color); font-size: 16px; font-weight: 600; }
+        .run-summary-total .amount { color: var(--accent-red); font-family: 'SF Mono', Monaco, monospace; }
+        .run-cash-impact { background: rgba(77, 166, 255, 0.1); border: 1px solid rgba(77, 166, 255, 0.3); border-radius: 8px; padding: 14px; margin-top: 16px; }
+        .run-cash-title { font-size: 11px; font-weight: 600; color: var(--accent-blue); margin-bottom: 10px; }
+        .run-cash-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+        .run-cash-row:last-child { margin-bottom: 0; }
+        .run-cash-label { color: var(--text-secondary); }
+        .run-cash-value { font-family: 'SF Mono', Monaco, monospace; }
+
+        /* Payment Methods */
+        .payment-methods { display: flex; gap: 12px; margin: 16px 0; }
+        .payment-method { flex: 1; padding: 14px; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.15s; }
+        .payment-method:hover { border-color: var(--accent-blue); }
+        .payment-method.selected { border-color: var(--accent-blue); background: rgba(77, 166, 255, 0.1); }
+        .payment-method-icon { font-size: 20px; margin-bottom: 6px; }
+        .payment-method-name { font-size: 12px; font-weight: 500; }
+        .payment-method-fee { font-size: 10px; color: var(--text-muted); }
+
+        /* History Timeline */
+        .approval-history { padding: 16px 0; }
+        .history-item { display: flex; gap: 12px; padding: 12px 0; position: relative; }
+        .history-item::before { content: ''; position: absolute; left: 15px; top: 36px; bottom: 0; width: 2px; background: var(--border-color); }
+        .history-item:last-child::before { display: none; }
+        .history-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; background: var(--bg-tertiary); border: 2px solid var(--border-color); z-index: 1; flex-shrink: 0; }
+        .history-dot.approved { background: var(--accent-green); border-color: var(--accent-green); color: white; }
+        .history-dot.pending { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+        .history-dot.created { background: var(--accent-purple); border-color: var(--accent-purple); color: white; }
+        .history-content { flex: 1; }
+        .history-action { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+        .history-actor { font-size: 12px; color: var(--text-secondary); }
+        .history-note { font-size: 12px; color: var(--text-muted); font-style: italic; margin-top: 4px; padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; }
+        .history-time { font-size: 11px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+
+        /* Filters */
+        .filters { display: flex; gap: 12px; margin-bottom: 20px; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-label { font-size: 12px; color: var(--text-muted); }
+        .filter-select { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 12px; }
+
+        /* Status Badge */
+        .status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status.pending { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+        .status.approved { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .status.rejected { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); }
+        .status.scheduled { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .status.processing { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+
+        /* Utility */
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-blue { color: var(--accent-blue); }
+        .text-orange { color: var(--accent-orange); }
+        .text-muted { color: var(--text-muted); }
+        .font-mono { font-family: 'SF Mono', Monaco, monospace; }
+        .font-bold { font-weight: 600; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .hidden { display: none !important; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal { background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); width: 90%; max-width: 700px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; transform: scale(0.95); transition: transform 0.2s; }
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: 600; }
+        .modal-close { width: 28px; height: 28px; border-radius: 6px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 16px; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        /* Tab Content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <nav class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item"><span>◉</span> Dashboard</div>
+                <div class="nav-item"><span>◈</span> Cash Position</div>
+                <div class="nav-item"><span>▤</span> 13-Week Forecast</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item"><span>↓</span> Collections (AR)</div>
+                <div class="nav-item"><span>↑</span> Payables (AP)</div>
+                <div class="nav-item"><span>◧</span> Purchase Orders</div>
+                <div class="nav-item active"><span>✓</span> Approvals <span class="badge">4</span></div>
+                <div class="nav-item"><span>⟳</span> Payment Runs</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Intelligence</div>
+                <div class="nav-item"><span>≋</span> Event Stream</div>
+                <div class="nav-item"><span>◔</span> Patterns</div>
+            </nav>
+        </aside>
+        <main class="main">
+            <header class="header">
+                <div class="header-left">
+                    <h2 class="page-title">Workflows</h2>
+                    <div class="tabs">
+                        <div class="tab active" onclick="showTab('approvals')">Approvals</div>
+                        <div class="tab" onclick="showTab('payments')">Payment Scheduling</div>
+                        <div class="tab" onclick="showTab('history')">History</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary">Configure Rules</button>
+                    <button class="btn btn-primary" onclick="openModal('newRun')">+ Schedule Payment Run</button>
+                </div>
+            </header>
+
+            <!-- APPROVALS TAB -->
+            <div class="content tab-content active" id="approvalsTab">
+                <div class="page-header">
+                    <div>
+                        <h1>Pending Approvals</h1>
+                        <p style="color: var(--text-secondary); margin-top: 4px;">4 items awaiting your approval</p>
+                    </div>
+                    <div class="page-stats">
+                        <div class="page-stat">
+                            <div class="page-stat-value text-orange">4</div>
+                            <div class="page-stat-label">Pending</div>
+                        </div>
+                        <div class="page-stat">
+                            <div class="page-stat-value">$412,500</div>
+                            <div class="page-stat-label">Total Value</div>
+                        </div>
+                        <div class="page-stat">
+                            <div class="page-stat-value text-green">2.4h</div>
+                            <div class="page-stat-label">Avg Response</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <span class="filter-label">Priority:</span>
+                        <select class="filter-select">
+                            <option>All</option>
+                            <option>Urgent</option>
+                            <option>High</option>
+                            <option>Normal</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Amount:</span>
+                        <select class="filter-select">
+                            <option>All</option>
+                            <option>> $100K</option>
+                            <option>> $50K</option>
+                            <option>> $10K</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Department:</span>
+                        <select class="filter-select">
+                            <option>All Departments</option>
+                            <option>Operations</option>
+                            <option>Engineering</option>
+                            <option>Marketing</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="approval-queue">
+                    <!-- Urgent Item -->
+                    <div class="approval-item urgent" onclick="openModal('approvalDetail')">
+                        <div class="approval-avatar">AM</div>
+                        <div class="approval-content">
+                            <div class="approval-header">
+                                <span class="approval-po">PO-2025-0092</span>
+                                <span class="status pending">Awaiting Approval</span>
+                            </div>
+                            <div class="approval-vendor">Allied Manufacturing • Subassembly components</div>
+                            <div class="approval-meta">
+                                <span>Requested by John Smith</span>
+                                <span>Operations</span>
+                                <span>GL: 5100</span>
+                            </div>
+                        </div>
+                        <div class="approval-amount">$87,000</div>
+                        <div>
+                            <div class="approval-time overdue">2 days ago</div>
+                            <div style="font-size: 10px; color: var(--accent-red); margin-top: 2px;">⚠ Blocking production</div>
+                        </div>
+                        <div class="approval-actions">
+                            <button class="btn btn-success" onclick="event.stopPropagation()">Approve</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation()">Reject</button>
+                        </div>
+                    </div>
+
+                    <!-- High Priority -->
+                    <div class="approval-item high">
+                        <div class="approval-avatar">PS</div>
+                        <div class="approval-content">
+                            <div class="approval-header">
+                                <span class="approval-po">PO-2025-0094</span>
+                                <span class="status pending">Awaiting Approval</span>
+                            </div>
+                            <div class="approval-vendor">Pacific Steel • Q2 Raw Materials Order</div>
+                            <div class="approval-meta">
+                                <span>Requested by Sarah Chen</span>
+                                <span>Operations</span>
+                                <span>GL: 5100</span>
+                            </div>
+                        </div>
+                        <div class="approval-amount">$245,000</div>
+                        <div>
+                            <div class="approval-time">4 hours ago</div>
+                            <div style="font-size: 10px; color: var(--accent-orange); margin-top: 2px;">High value</div>
+                        </div>
+                        <div class="approval-actions">
+                            <button class="btn btn-success" onclick="event.stopPropagation()">Approve</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation()">Reject</button>
+                        </div>
+                    </div>
+
+                    <!-- Normal Priority -->
+                    <div class="approval-item normal">
+                        <div class="approval-avatar">AW</div>
+                        <div class="approval-content">
+                            <div class="approval-header">
+                                <span class="approval-po">PO-2025-0095</span>
+                                <span class="status pending">Awaiting Approval</span>
+                            </div>
+                            <div class="approval-vendor">AWS • Infrastructure Upgrade</div>
+                            <div class="approval-meta">
+                                <span>Requested by Mike Johnson</span>
+                                <span>Engineering</span>
+                                <span>GL: 6400</span>
+                            </div>
+                        </div>
+                        <div class="approval-amount">$52,500</div>
+                        <div>
+                            <div class="approval-time">6 hours ago</div>
+                        </div>
+                        <div class="approval-actions">
+                            <button class="btn btn-success" onclick="event.stopPropagation()">Approve</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation()">Reject</button>
+                        </div>
+                    </div>
+
+                    <!-- Normal Priority -->
+                    <div class="approval-item normal">
+                        <div class="approval-avatar">MK</div>
+                        <div class="approval-content">
+                            <div class="approval-header">
+                                <span class="approval-po">PO-2025-0096</span>
+                                <span class="status pending">Awaiting Approval</span>
+                            </div>
+                            <div class="approval-vendor">MarketPro Agency • Q1 Campaign</div>
+                            <div class="approval-meta">
+                                <span>Requested by Lisa Park</span>
+                                <span>Marketing</span>
+                                <span>GL: 6200</span>
+                            </div>
+                        </div>
+                        <div class="approval-amount">$28,000</div>
+                        <div>
+                            <div class="approval-time">1 day ago</div>
+                        </div>
+                        <div class="approval-actions">
+                            <button class="btn btn-success" onclick="event.stopPropagation()">Approve</button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation()">Reject</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Approval Chain Rules -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Active Approval Rules</div>
+                            <div class="card-subtitle">Automatic routing based on amount and type</div>
+                        </div>
+                        <button class="btn btn-secondary" style="font-size: 11px;">Edit Rules</button>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="line-items">
+                            <thead>
+                                <tr>
+                                    <th>Rule</th>
+                                    <th>Condition</th>
+                                    <th>Approvers</th>
+                                    <th>Auto-Approve</th>
+                                    <th>Escalation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Standard PO</strong></td>
+                                    <td>All POs</td>
+                                    <td>Manager → Finance Manager (≥$25K) → VP Finance (≥$100K) → CEO (≥$500K)</td>
+                                    <td>< $1,000</td>
+                                    <td>3 days</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Capital Expenditure</strong></td>
+                                    <td>GL starts with 15</td>
+                                    <td>Dept Head → CFO (≥$10K) → CEO (≥$50K) → Board (≥$250K)</td>
+                                    <td>None</td>
+                                    <td>2 days</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Preferred Vendor</strong></td>
+                                    <td>Vendor is preferred</td>
+                                    <td>Manager → Finance Manager (≥$50K)</td>
+                                    <td>< $5,000</td>
+                                    <td>5 days</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAYMENT SCHEDULING TAB -->
+            <div class="content tab-content" id="paymentsTab">
+                <div class="page-header">
+                    <div>
+                        <h1>Payment Scheduling</h1>
+                        <p style="color: var(--text-secondary); margin-top: 4px;">January 2025</p>
+                    </div>
+                    <div class="page-stats">
+                        <div class="page-stat">
+                            <div class="page-stat-value text-red">$1.2M</div>
+                            <div class="page-stat-label">Due This Month</div>
+                        </div>
+                        <div class="page-stat">
+                            <div class="page-stat-value text-green">$4,680</div>
+                            <div class="page-stat-label">Discounts Available</div>
+                        </div>
+                        <div class="page-stat">
+                            <div class="page-stat-value">2</div>
+                            <div class="page-stat-label">Scheduled Runs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar View -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Payment Calendar</div>
+                            <div class="card-subtitle">Click a day to see details or schedule payments</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" style="font-size: 11px;">← Prev</button>
+                            <button class="btn btn-secondary" style="font-size: 11px;">Next →</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="payment-calendar">
+                            <div class="calendar-header">Sun</div>
+                            <div class="calendar-header">Mon</div>
+                            <div class="calendar-header">Tue</div>
+                            <div class="calendar-header">Wed</div>
+                            <div class="calendar-header">Thu</div>
+                            <div class="calendar-header">Fri</div>
+                            <div class="calendar-header">Sat</div>
+                            
+                            <div class="calendar-day other-month"><div class="calendar-date">29</div></div>
+                            <div class="calendar-day other-month"><div class="calendar-date">30</div></div>
+                            <div class="calendar-day other-month"><div class="calendar-date">31</div></div>
+                            <div class="calendar-day"><div class="calendar-date">1</div></div>
+                            <div class="calendar-day"><div class="calendar-date">2</div></div>
+                            <div class="calendar-day"><div class="calendar-date">3</div></div>
+                            <div class="calendar-day"><div class="calendar-date">4</div></div>
+                            
+                            <div class="calendar-day"><div class="calendar-date">5</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">6</div><div class="calendar-amount">$45,200</div><div class="calendar-count">3 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">7</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">8</div><div class="calendar-amount">$12,500</div><div class="calendar-count">1 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">9</div></div>
+                            <div class="calendar-day payment-run" onclick="openModal('runDetail')"><div class="calendar-date">10</div><div class="calendar-amount">$287,450</div><div class="calendar-count">⟳ Run scheduled</div></div>
+                            <div class="calendar-day"><div class="calendar-date">11</div></div>
+                            
+                            <div class="calendar-day"><div class="calendar-date">12</div></div>
+                            <div class="calendar-day"><div class="calendar-date">13</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">14</div><div class="calendar-amount">$28,500</div><div class="calendar-count">1 due</div></div>
+                            <div class="calendar-day today"><div class="calendar-date">15</div><div style="font-size: 9px; color: var(--accent-blue);">Today</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">16</div><div class="calendar-amount">$67,800</div><div class="calendar-count">2 due</div></div>
+                            <div class="calendar-day payment-run"><div class="calendar-date">17</div><div class="calendar-amount">$487,250</div><div class="calendar-count">⟳ Run scheduled</div></div>
+                            <div class="calendar-day"><div class="calendar-date">18</div></div>
+                            
+                            <div class="calendar-day"><div class="calendar-date">19</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">20</div><div class="calendar-amount">$24,000</div><div class="calendar-count">1 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">21</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">22</div><div class="calendar-amount">$89,200</div><div class="calendar-count">3 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">23</div></div>
+                            <div class="calendar-day"><div class="calendar-date">24</div></div>
+                            <div class="calendar-day"><div class="calendar-date">25</div></div>
+                            
+                            <div class="calendar-day"><div class="calendar-date">26</div></div>
+                            <div class="calendar-day"><div class="calendar-date">27</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">28</div><div class="calendar-amount">$152,047</div><div class="calendar-count">1 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">29</div></div>
+                            <div class="calendar-day has-payments"><div class="calendar-date">30</div><div class="calendar-amount">$34,600</div><div class="calendar-count">2 due</div></div>
+                            <div class="calendar-day"><div class="calendar-date">31</div></div>
+                            <div class="calendar-day other-month"><div class="calendar-date">1</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Payments -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Next Payment Run: Jan 17</div>
+                                <div class="card-subtitle">12 payments • $487,250</div>
+                            </div>
+                            <span class="status pending">Pending Approval</span>
+                        </div>
+                        <div class="card-body" style="padding: 0; max-height: 300px; overflow-y: auto;">
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Pacific Steel</div>
+                                    <div class="run-payment-detail">PO-2025-0089 • Raw materials</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount text-green">$152,047</div>
+                                    <div class="run-payment-due"><span class="discount-badge">2% disc</span></div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Shenzhen Logistics</div>
+                                    <div class="run-payment-detail">INV-78234 • Container shipping</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$172,400</div>
+                                    <div class="run-payment-due">Due Jan 18</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Charleston Properties</div>
+                                    <div class="run-payment-detail">Rent - January</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$28,500</div>
+                                    <div class="run-payment-due">Due Jan 15</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Blue Cross</div>
+                                    <div class="run-payment-detail">Health Insurance - January</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$24,000</div>
+                                    <div class="run-payment-due">Due Jan 20</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">AWS</div>
+                                    <div class="run-payment-detail">Cloud services - December</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$17,200</div>
+                                    <div class="run-payment-due">Due Jan 15</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 16px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted);">Cash after run</div>
+                                <div style="font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$2,360,142</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary">Edit</button>
+                                <button class="btn btn-success">Approve Run</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Early Payment Opportunities</div>
+                                <div class="card-subtitle">Take advantage of discounts</div>
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="run-payment has-discount" style="border-bottom: 1px solid var(--border-color);">
+                                <div style="width: 36px; height: 36px; background: rgba(0, 212, 170, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--accent-green);">$</div>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Henderson Manufacturing</div>
+                                    <div class="run-payment-detail">2% discount if paid by Jan 20 (10 days early)</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Save</div>
+                                    <div class="run-payment-amount text-green">$1,240</div>
+                                </div>
+                            </div>
+                            <div class="run-payment has-discount" style="border-bottom: 1px solid var(--border-color);">
+                                <div style="width: 36px; height: 36px; background: rgba(0, 212, 170, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--accent-green);">$</div>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">TechCorp Supplies</div>
+                                    <div class="run-payment-detail">1.5% discount if paid by Jan 25</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Save</div>
+                                    <div class="run-payment-amount text-green">$892</div>
+                                </div>
+                            </div>
+                            <div class="run-payment has-discount">
+                                <div style="width: 36px; height: 36px; background: rgba(0, 212, 170, 0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--accent-green);">$</div>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Global Parts Inc</div>
+                                    <div class="run-payment-detail">2.5% discount if paid by Jan 22</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: var(--text-muted);">Save</div>
+                                    <div class="run-payment-amount text-green">$2,125</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 16px 20px; border-top: 1px solid var(--border-color); background: rgba(0, 212, 170, 0.05);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Total Available Savings</div>
+                                    <div style="font-size: 20px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">$4,257</div>
+                                </div>
+                                <button class="btn btn-success">Capture All Discounts</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Configuration -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Payment Settings</div>
+                            <div class="card-subtitle">Configure automatic payment scheduling</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Default Payment Day</div>
+                                <div style="font-size: 14px; font-weight: 500;">Friday</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Payment Frequency</div>
+                                <div style="font-size: 14px; font-weight: 500;">Weekly</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Minimum Cash Reserve</div>
+                                <div style="font-size: 14px; font-weight: 500;">$500,000</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">Auto-Take Discounts</div>
+                                <div style="font-size: 14px; font-weight: 500; color: var(--accent-green);">Yes (if APR > 10%)</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                            <div style="font-size: 12px; font-weight: 500; margin-bottom: 12px;">Default Payment Methods</div>
+                            <div class="payment-methods">
+                                <div class="payment-method selected">
+                                    <div class="payment-method-icon">🏦</div>
+                                    <div class="payment-method-name">ACH</div>
+                                    <div class="payment-method-fee">3 day lead time</div>
+                                </div>
+                                <div class="payment-method">
+                                    <div class="payment-method-icon">📝</div>
+                                    <div class="payment-method-name">Check</div>
+                                    <div class="payment-method-fee">5 day lead time</div>
+                                </div>
+                                <div class="payment-method">
+                                    <div class="payment-method-icon">⚡</div>
+                                    <div class="payment-method-name">Wire</div>
+                                    <div class="payment-method-fee">Same day • $25 fee</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div class="content tab-content" id="historyTab">
+                <div class="page-header">
+                    <div>
+                        <h1>Workflow History</h1>
+                        <p style="color: var(--text-secondary); margin-top: 4px;">All approvals and payment runs</p>
+                    </div>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <span class="filter-label">Type:</span>
+                        <select class="filter-select">
+                            <option>All</option>
+                            <option>Approvals</option>
+                            <option>Payment Runs</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Status:</span>
+                        <select class="filter-select">
+                            <option>All</option>
+                            <option>Approved</option>
+                            <option>Rejected</option>
+                            <option>Completed</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Date Range:</span>
+                        <select class="filter-select">
+                            <option>Last 7 days</option>
+                            <option>Last 30 days</option>
+                            <option>Last 90 days</option>
+                            <option>This year</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <table class="line-items">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Reference</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actor</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Jan 15</td>
+                                    <td>Approval</td>
+                                    <td><strong>PO-2025-0089</strong></td>
+                                    <td>Pacific Steel • Raw materials</td>
+                                    <td class="amount">$155,150</td>
+                                    <td><span class="status approved">Approved</span></td>
+                                    <td>Sarah Chen</td>
+                                    <td>4 hours</td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 14</td>
+                                    <td>Payment Run</td>
+                                    <td><strong>RUN-2025-003</strong></td>
+                                    <td>Weekly payment run • 8 payments</td>
+                                    <td class="amount">$312,450</td>
+                                    <td><span class="status approved">Completed</span></td>
+                                    <td>System</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 12</td>
+                                    <td>Approval</td>
+                                    <td><strong>PO-2025-0088</strong></td>
+                                    <td>Shenzhen Logistics • Container</td>
+                                    <td class="amount">$168,000</td>
+                                    <td><span class="status approved">Approved</span></td>
+                                    <td>Michael Ross</td>
+                                    <td>2 hours</td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 10</td>
+                                    <td>Approval</td>
+                                    <td><strong>PO-2025-0087</strong></td>
+                                    <td>TechCorp • Office equipment</td>
+                                    <td class="amount">$8,500</td>
+                                    <td><span class="status rejected">Rejected</span></td>
+                                    <td>Sarah Chen</td>
+                                    <td>1 hour</td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 10</td>
+                                    <td>Payment Run</td>
+                                    <td><strong>RUN-2025-002</strong></td>
+                                    <td>Weekly payment run • 15 payments</td>
+                                    <td class="amount">$487,200</td>
+                                    <td><span class="status approved">Completed</span></td>
+                                    <td>System</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <td>Jan 8</td>
+                                    <td>Approval</td>
+                                    <td><strong>PO-2025-0086</strong></td>
+                                    <td>Henderson Mfg • Components</td>
+                                    <td class="amount">$62,000</td>
+                                    <td><span class="status approved">Approved</span></td>
+                                    <td>John Smith</td>
+                                    <td>6 hours</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Approval Detail Modal -->
+    <div class="modal-overlay" id="approvalDetailModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Approve Purchase Order</h3>
+                <button class="modal-close" onclick="closeModal('approvalDetail')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="approval-detail-header">
+                    <div>
+                        <div class="approval-detail-title">PO-2025-0092</div>
+                        <div class="approval-detail-vendor">Allied Manufacturing • Subassembly components</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="approval-detail-amount">$87,000</div>
+                        <div class="approval-detail-requested">Requested by John Smith • 2 days ago</div>
+                    </div>
+                </div>
+
+                <!-- Approval Chain -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px;">APPROVAL CHAIN</div>
+                    <div class="approval-chain">
+                        <div class="chain-step completed">
+                            <div class="chain-avatar">✓</div>
+                            <div class="chain-name">John Smith</div>
+                            <div class="chain-role">Requestor</div>
+                            <div class="chain-time">Jan 13, 9am</div>
+                        </div>
+                        <div class="chain-connector completed"></div>
+                        <div class="chain-step completed">
+                            <div class="chain-avatar">✓</div>
+                            <div class="chain-name">Mike Johnson</div>
+                            <div class="chain-role">Manager</div>
+                            <div class="chain-time">Jan 13, 2pm</div>
+                        </div>
+                        <div class="chain-connector completed"></div>
+                        <div class="chain-step current">
+                            <div class="chain-avatar">You</div>
+                            <div class="chain-name">Sarah Chen</div>
+                            <div class="chain-role">VP Operations</div>
+                            <div class="chain-time">Waiting...</div>
+                        </div>
+                        <div class="chain-connector"></div>
+                        <div class="chain-step pending">
+                            <div class="chain-avatar">-</div>
+                            <div class="chain-name">Final</div>
+                            <div class="chain-role">No more approvers</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Line Items -->
+                <div style="margin-bottom: 24px;">
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px;">LINE ITEMS</div>
+                    <table class="line-items">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>GL Account</th>
+                                <th>Qty</th>
+                                <th style="text-align: right;">Unit Price</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Precision motor assembly</td>
+                                <td>5100</td>
+                                <td>50</td>
+                                <td class="amount">$1,300</td>
+                                <td class="amount">$65,000</td>
+                            </tr>
+                            <tr>
+                                <td>Control boards</td>
+                                <td>5100</td>
+                                <td>100</td>
+                                <td class="amount">$180</td>
+                                <td class="amount">$18,000</td>
+                            </tr>
+                            <tr>
+                                <td>Shipping & handling</td>
+                                <td>5100</td>
+                                <td>1</td>
+                                <td class="amount">$4,000</td>
+                                <td class="amount">$4,000</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" style="text-align: right;"><strong>Total</strong></td>
+                                <td class="amount"><strong>$87,000</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Forecast Impact -->
+                <div class="run-cash-impact" style="margin: 0;">
+                    <div class="run-cash-title">📊 FORECAST IMPACT IF APPROVED</div>
+                    <div class="run-cash-row">
+                        <span class="run-cash-label">Expected invoice date</span>
+                        <span class="run-cash-value">~Feb 10 (vendor avg: 14 days)</span>
+                    </div>
+                    <div class="run-cash-row">
+                        <span class="run-cash-label">Expected payment date</span>
+                        <span class="run-cash-value">~Feb 25 (Net 15)</span>
+                    </div>
+                    <div class="run-cash-row">
+                        <span class="run-cash-label">Cash impact week</span>
+                        <span class="run-cash-value">Week 6</span>
+                    </div>
+                    <div class="run-cash-row">
+                        <span class="run-cash-label">Projected cash after</span>
+                        <span class="run-cash-value">$2,579,142 ✓</span>
+                    </div>
+                </div>
+
+                <!-- Approval History -->
+                <div class="approval-history" style="margin-top: 24px;">
+                    <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px;">ACTIVITY</div>
+                    <div class="history-item">
+                        <div class="history-dot approved">✓</div>
+                        <div class="history-content">
+                            <div class="history-action">Approved by Mike Johnson</div>
+                            <div class="history-actor">Operations Manager</div>
+                            <div class="history-note">"Verified with production schedule. Critical for Q1 delivery."</div>
+                        </div>
+                        <div class="history-time">Jan 13, 2:15pm</div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-dot created">→</div>
+                        <div class="history-content">
+                            <div class="history-action">Submitted for approval</div>
+                            <div class="history-actor">John Smith</div>
+                        </div>
+                        <div class="history-time">Jan 13, 9:00am</div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-dot created">+</div>
+                        <div class="history-content">
+                            <div class="history-action">PO created</div>
+                            <div class="history-actor">John Smith</div>
+                        </div>
+                        <div class="history-time">Jan 12, 4:30pm</div>
+                    </div>
+                </div>
+
+                <!-- Approval Note -->
+                <div style="margin-top: 20px;">
+                    <label style="font-size: 12px; font-weight: 500; color: var(--text-secondary); display: block; margin-bottom: 6px;">Add approval note (optional)</label>
+                    <textarea style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; resize: vertical;" rows="2" placeholder="Enter any notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('approvalDetail')">Cancel</button>
+                <button class="btn btn-danger">Reject</button>
+                <button class="btn btn-success">Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Payment Run Modal -->
+    <div class="modal-overlay" id="newRunModal">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Schedule Payment Run</h3>
+                <button class="modal-close" onclick="closeModal('newRun')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="run-builder">
+                    <div>
+                        <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px;">SELECT PAYMENTS TO INCLUDE</div>
+                        <div class="run-payments">
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Pacific Steel</div>
+                                    <div class="run-payment-detail">PO-2025-0089 • Raw materials</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$152,047</div>
+                                    <div class="run-payment-due">Due Jan 28 <span class="discount-badge">2% disc</span></div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Shenzhen Logistics</div>
+                                    <div class="run-payment-detail">INV-78234 • Container shipping</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$172,400</div>
+                                    <div class="run-payment-due">Due Jan 18</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox" checked>
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Charleston Properties</div>
+                                    <div class="run-payment-detail">Rent - January</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$28,500</div>
+                                    <div class="run-payment-due">Due Jan 15</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox">
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">Blue Cross</div>
+                                    <div class="run-payment-detail">Health Insurance - January</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$24,000</div>
+                                    <div class="run-payment-due">Due Jan 20</div>
+                                </div>
+                            </div>
+                            <div class="run-payment">
+                                <input type="checkbox">
+                                <div class="run-payment-content">
+                                    <div class="run-payment-vendor">AWS</div>
+                                    <div class="run-payment-detail">Cloud services - December</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div class="run-payment-amount">$17,200</div>
+                                    <div class="run-payment-due">Due Jan 15</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="run-summary">
+                        <div class="run-summary-title">Payment Run Summary</div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 4px;">Run Date</label>
+                            <input type="date" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);" value="2025-01-17">
+                        </div>
+                        
+                        <div class="run-summary-row">
+                            <span class="run-summary-label">Selected payments</span>
+                            <span class="run-summary-value">3</span>
+                        </div>
+                        <div class="run-summary-row">
+                            <span class="run-summary-label">Subtotal</span>
+                            <span class="run-summary-value">$352,947</span>
+                        </div>
+                        <div class="run-summary-row">
+                            <span class="run-summary-label">Discounts</span>
+                            <span class="run-summary-value text-green">-$3,103</span>
+                        </div>
+                        <div class="run-summary-total">
+                            <span>Total</span>
+                            <span class="amount">$349,844</span>
+                        </div>
+                        
+                        <div class="run-cash-impact">
+                            <div class="run-cash-title">📊 CASH IMPACT</div>
+                            <div class="run-cash-row">
+                                <span class="run-cash-label">Current cash</span>
+                                <span class="run-cash-value">$2,847,392</span>
+                            </div>
+                            <div class="run-cash-row">
+                                <span class="run-cash-label">This run</span>
+                                <span class="run-cash-value text-red">-$349,844</span>
+                            </div>
+                            <div class="run-cash-row" style="padding-top: 8px; border-top: 1px solid var(--border-color);">
+                                <span class="run-cash-label"><strong>Cash after</strong></span>
+                                <span class="run-cash-value"><strong>$2,497,548</strong></span>
+                            </div>
+                            <div class="run-cash-row">
+                                <span class="run-cash-label">vs Reserve ($500K)</span>
+                                <span class="run-cash-value text-green">+$1,997,548 ✓</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 16px;">
+                            <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px;">Payment Method</label>
+                            <select style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+                                <option>ACH (3 day lead time)</option>
+                                <option>Check (5 day lead time)</option>
+                                <option>Wire (same day, $25 fee)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('newRun')">Cancel</button>
+                <button class="btn btn-secondary">Save as Draft</button>
+                <button class="btn btn-primary">Schedule Run</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('active');
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('active');
+            });
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+    </script>
+</body>
+</html>

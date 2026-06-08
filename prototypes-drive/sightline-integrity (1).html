@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Financial Integrity</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 220px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo { padding: 20px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .nav-section { padding: 16px 12px; }
+        .nav-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding: 0 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); }
+        .page-title { font-size: 18px; font-weight: 600; }
+        .content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .card-body { padding: 20px; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+
+        /* Continuous Close Status */
+        .status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .status-card { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; border: 1px solid var(--border-color); }
+        .status-card.verified { border-color: rgba(0, 212, 170, 0.3); background: rgba(0, 212, 170, 0.05); }
+        .status-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .status-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.green { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .status-value { font-size: 20px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .status-detail { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .status-proof { font-size: 10px; color: var(--text-secondary); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); font-family: 'SF Mono', Monaco, monospace; }
+
+        /* Ledger State */
+        .ledger-state { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .ledger-column { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; }
+        .ledger-title { font-size: 12px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .ledger-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); }
+        .ledger-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
+        .ledger-row:last-child { border-bottom: none; }
+        .ledger-account { color: var(--text-secondary); }
+        .ledger-balance { font-family: 'SF Mono', Monaco, monospace; }
+        .ledger-total { display: flex; justify-content: space-between; padding: 12px 0 0; margin-top: 8px; border-top: 2px solid var(--border-color); font-size: 13px; font-weight: 600; }
+
+        /* Event Chain Visualization */
+        .event-chain { background: var(--bg-tertiary); border-radius: 10px; padding: 20px; }
+        .chain-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .chain-title { font-size: 13px; font-weight: 600; }
+        .chain-id { font-size: 11px; font-family: 'SF Mono', Monaco, monospace; color: var(--text-muted); }
+        .chain-flow { display: flex; align-items: stretch; gap: 0; }
+        .chain-node { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .chain-node::after { content: ''; position: absolute; top: 20px; right: 0; width: 50%; height: 2px; background: var(--accent-green); }
+        .chain-node:last-child::after { display: none; }
+        .chain-node::before { content: ''; position: absolute; top: 20px; left: 0; width: 50%; height: 2px; background: var(--accent-green); }
+        .chain-node:first-child::before { display: none; }
+        .chain-node.pending::after, .chain-node.pending::before { background: var(--border-color); }
+        .chain-node.pending ~ .chain-node::before, .chain-node.pending ~ .chain-node::after { background: var(--border-color); }
+        .node-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--accent-green); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 14px; color: white; position: relative; z-index: 1; }
+        .chain-node.pending .node-dot { background: var(--bg-card); border: 2px solid var(--border-color); color: var(--text-muted); }
+        .node-label { font-size: 11px; font-weight: 500; text-align: center; margin-bottom: 4px; }
+        .node-time { font-size: 10px; color: var(--text-muted); text-align: center; font-family: 'SF Mono', Monaco, monospace; }
+        .node-hash { font-size: 9px; color: var(--text-muted); text-align: center; font-family: 'SF Mono', Monaco, monospace; margin-top: 4px; }
+
+        /* Journal Entries */
+        .journal-entries { margin-top: 20px; }
+        .journal-entry { background: var(--bg-card); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; border-left: 3px solid var(--accent-green); }
+        .journal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .journal-event { font-size: 12px; font-weight: 500; }
+        .journal-timestamp { font-size: 10px; color: var(--text-muted); font-family: 'SF Mono', Monaco, monospace; }
+        .journal-lines { display: grid; grid-template-columns: 1fr 80px 80px; gap: 4px; font-size: 11px; }
+        .journal-lines .header { color: var(--text-muted); font-weight: 600; padding-bottom: 4px; border-bottom: 1px solid var(--border-color); }
+        .journal-lines .account { color: var(--text-secondary); padding: 4px 0; }
+        .journal-lines .amount { font-family: 'SF Mono', Monaco, monospace; text-align: right; padding: 4px 0; }
+        .journal-lines .debit { color: var(--text-primary); }
+        .journal-lines .credit { color: var(--text-primary); }
+
+        /* Pre-Authorization Flow */
+        .preauth-flow { display: grid; grid-template-columns: 1fr 60px 1fr 60px 1fr; align-items: center; gap: 0; padding: 30px 20px; }
+        .preauth-step { background: var(--bg-tertiary); border-radius: 10px; padding: 20px; text-align: center; border: 1px solid var(--border-color); }
+        .preauth-step.active { border-color: var(--accent-green); background: rgba(0, 212, 170, 0.05); }
+        .preauth-icon { font-size: 24px; margin-bottom: 10px; }
+        .preauth-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        .preauth-desc { font-size: 11px; color: var(--text-secondary); }
+        .preauth-arrow { text-align: center; color: var(--accent-green); font-size: 20px; }
+        .preauth-data { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); text-align: left; }
+        .preauth-data-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; }
+        .preauth-data-row .label { color: var(--text-muted); }
+        .preauth-data-row .value { font-family: 'SF Mono', Monaco, monospace; color: var(--text-secondary); }
+
+        /* Comparison Table */
+        .comparison { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 0; }
+        .comparison-header { background: var(--bg-tertiary); padding: 12px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border-color); }
+        .comparison-header.traditional { color: var(--text-muted); }
+        .comparison-header.sightline { color: var(--accent-green); }
+        .comparison-row { display: contents; }
+        .comparison-cell { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 12px; display: flex; align-items: center; }
+        .comparison-cell.label { background: var(--bg-tertiary); color: var(--text-secondary); font-weight: 500; }
+        .comparison-cell.traditional { color: var(--text-muted); }
+        .comparison-cell.sightline { color: var(--text-primary); }
+        .comparison-cell .icon { margin-right: 8px; }
+        .comparison-cell .icon.red { color: var(--accent-red); }
+        .comparison-cell .icon.green { color: var(--accent-green); }
+
+        /* Proof Log */
+        .proof-log { font-family: 'SF Mono', Monaco, monospace; font-size: 11px; background: var(--bg-card); border-radius: 8px; padding: 16px; max-height: 300px; overflow-y: auto; }
+        .proof-line { padding: 4px 0; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; }
+        .proof-line:last-child { border-bottom: none; }
+        .proof-time { color: var(--text-muted); min-width: 80px; }
+        .proof-type { color: var(--accent-blue); min-width: 100px; }
+        .proof-detail { color: var(--text-secondary); flex: 1; }
+        .proof-hash { color: var(--text-muted); font-size: 10px; }
+
+        /* Reconciliation Status */
+        .recon-status { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .recon-panel { background: var(--bg-tertiary); border-radius: 10px; padding: 20px; }
+        .recon-panel.native { border: 1px solid rgba(0, 212, 170, 0.3); }
+        .recon-panel.ingested { border: 1px solid var(--border-color); }
+        .recon-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+        .recon-badge { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+        .recon-badge.native { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .recon-badge.ingested { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .recon-title { font-size: 13px; font-weight: 600; }
+        .recon-stat { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+        .recon-stat:last-child { border-bottom: none; }
+        .recon-label { font-size: 12px; color: var(--text-secondary); }
+        .recon-value { font-size: 12px; font-family: 'SF Mono', Monaco, monospace; }
+
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-orange { color: var(--accent-orange); }
+        .text-muted { color: var(--text-muted); }
+        .font-mono { font-family: 'SF Mono', Monaco, monospace; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <nav class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item"><span>◉</span> Dashboard</div>
+                <div class="nav-item"><span>◈</span> Cash Position</div>
+                <div class="nav-item"><span>▤</span> 13-Week Forecast</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item"><span>↑</span> Payables (AP)</div>
+                <div class="nav-item"><span>◧</span> Purchase Orders</div>
+                <div class="nav-item"><span>⟳</span> Payment Runs</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <div class="nav-item active"><span>◈</span> Financial Integrity</div>
+                <div class="nav-item"><span>⚡</span> Policy Engine</div>
+                <div class="nav-item"><span>≋</span> Event Log</div>
+            </nav>
+        </aside>
+        
+        <main class="main">
+            <header class="header">
+                <div>
+                    <h2 class="page-title">Financial Integrity</h2>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary">Export Audit Log</button>
+                    <button class="btn btn-secondary">Verify All Balances</button>
+                </div>
+            </header>
+
+            <div class="content">
+                
+                <!-- Continuous Close Status -->
+                <div class="status-grid">
+                    <div class="status-card verified">
+                        <div class="status-header">
+                            <span class="status-label">GL Status</span>
+                            <span class="status-indicator"><span class="status-dot green"></span> Current</span>
+                        </div>
+                        <div class="status-value text-green">Balanced</div>
+                        <div class="status-detail">Debits = Credits</div>
+                        <div class="status-proof">Last event: 2 min ago<br>Hash: 8f3a...c721</div>
+                    </div>
+                    <div class="status-card verified">
+                        <div class="status-header">
+                            <span class="status-label">Trial Balance</span>
+                            <span class="status-indicator"><span class="status-dot green"></span> Current</span>
+                        </div>
+                        <div class="status-value">$0.00</div>
+                        <div class="status-detail">Net difference</div>
+                        <div class="status-proof">Computed from 2,847 entries<br>Period: Jan 1 - Jan 15</div>
+                    </div>
+                    <div class="status-card verified">
+                        <div class="status-header">
+                            <span class="status-label">Unreconciled (Native)</span>
+                            <span class="status-indicator"><span class="status-dot green"></span> None</span>
+                        </div>
+                        <div class="status-value text-green">0</div>
+                        <div class="status-detail">All native transactions confirmed</div>
+                        <div class="status-proof">186 native events this period<br>186 confirmed</div>
+                    </div>
+                    <div class="status-card">
+                        <div class="status-header">
+                            <span class="status-label">Unreconciled (Ingested)</span>
+                            <span class="status-indicator"><span class="status-dot green"></span> Low</span>
+                        </div>
+                        <div class="status-value text-orange">3</div>
+                        <div class="status-detail">Pending match from bank feed</div>
+                        <div class="status-proof">34 ingested events this period<br>31 matched, 3 pending</div>
+                    </div>
+                </div>
+
+                <!-- Ledger State Proof -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Real-Time Ledger State</div>
+                            <div class="card-subtitle">Computed continuously from event log • No batch close required</div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-family: 'SF Mono', Monaco, monospace;">
+                            State hash: 4a7f2e89...b3c1 • Block: 847,293
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="ledger-state">
+                            <div class="ledger-column">
+                                <div class="ledger-title"><span class="dot"></span> Assets</div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">1000 · Cash - Operating</span>
+                                    <span class="ledger-balance">$2,847,392.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">1100 · Accounts Receivable</span>
+                                    <span class="ledger-balance">$892,500.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">1200 · Inventory</span>
+                                    <span class="ledger-balance">$1,245,000.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">1500 · Fixed Assets</span>
+                                    <span class="ledger-balance">$3,200,000.00</span>
+                                </div>
+                                <div class="ledger-total">
+                                    <span>Total Assets</span>
+                                    <span class="ledger-balance">$8,184,892.00</span>
+                                </div>
+                            </div>
+                            <div class="ledger-column">
+                                <div class="ledger-title"><span class="dot"></span> Liabilities + Equity</div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">2000 · Accounts Payable</span>
+                                    <span class="ledger-balance">$687,250.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">2100 · Accrued Expenses</span>
+                                    <span class="ledger-balance">$342,000.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">2500 · Long-term Debt</span>
+                                    <span class="ledger-balance">$2,400,000.00</span>
+                                </div>
+                                <div class="ledger-row">
+                                    <span class="ledger-account">3000 · Equity</span>
+                                    <span class="ledger-balance">$4,755,642.00</span>
+                                </div>
+                                <div class="ledger-total">
+                                    <span>Total Liabilities + Equity</span>
+                                    <span class="ledger-balance">$8,184,892.00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pre-Authorization Flow -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Pre-Authorization Flow</div>
+                            <div class="card-subtitle">Every native outflow is authorized before execution • Bank confirmation is validation, not discovery</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="preauth-flow">
+                            <div class="preauth-step active">
+                                <div class="preauth-icon">📋</div>
+                                <div class="preauth-title">1. Expectation Created</div>
+                                <div class="preauth-desc">PO approved, bill entered, or recurring scheduled</div>
+                                <div class="preauth-data">
+                                    <div class="preauth-data-row"><span class="label">Event</span><span class="value">po_approved</span></div>
+                                    <div class="preauth-data-row"><span class="label">Amount</span><span class="value">$152,047.00</span></div>
+                                    <div class="preauth-data-row"><span class="label">Expected</span><span class="value">2025-01-28</span></div>
+                                    <div class="preauth-data-row"><span class="label">Hash</span><span class="value">7b2e...a891</span></div>
+                                </div>
+                            </div>
+                            <div class="preauth-arrow">→</div>
+                            <div class="preauth-step active">
+                                <div class="preauth-icon">✓</div>
+                                <div class="preauth-title">2. Payment Authorized</div>
+                                <div class="preauth-desc">Included in approved payment run</div>
+                                <div class="preauth-data">
+                                    <div class="preauth-data-row"><span class="label">Event</span><span class="value">payment_authorized</span></div>
+                                    <div class="preauth-data-row"><span class="label">Run ID</span><span class="value">RUN-2025-004</span></div>
+                                    <div class="preauth-data-row"><span class="label">Method</span><span class="value">ACH</span></div>
+                                    <div class="preauth-data-row"><span class="label">Hash</span><span class="value">3f1c...d482</span></div>
+                                </div>
+                            </div>
+                            <div class="preauth-arrow">→</div>
+                            <div class="preauth-step active">
+                                <div class="preauth-icon">🏦</div>
+                                <div class="preauth-title">3. Bank Confirms</div>
+                                <div class="preauth-desc">Matches pre-authorized expectation exactly</div>
+                                <div class="preauth-data">
+                                    <div class="preauth-data-row"><span class="label">Event</span><span class="value">bank_confirmed</span></div>
+                                    <div class="preauth-data-row"><span class="label">Amount</span><span class="value">$152,047.00 ✓</span></div>
+                                    <div class="preauth-data-row"><span class="label">Status</span><span class="value" style="color: var(--accent-green);">Matched</span></div>
+                                    <div class="preauth-data-row"><span class="label">Hash</span><span class="value">9e4a...f723</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="text-align: center; padding: 16px; background: rgba(0, 212, 170, 0.05); border-radius: 8px; margin-top: 16px;">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Result</div>
+                            <div style="font-size: 14px; font-weight: 600; color: var(--accent-green);">Confirmation, not reconciliation</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">The bank confirmed what we already knew would happen. No investigation required.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event → Journal Chain -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Event-to-Journal Chain</div>
+                            <div class="card-subtitle">Pacific Steel PO-2025-0089 • Each event generates journal entries automatically</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="event-chain">
+                            <div class="chain-header">
+                                <div class="chain-title">Transaction Lifecycle</div>
+                                <div class="chain-id">Chain ID: txn_8f3a7c21</div>
+                            </div>
+                            <div class="chain-flow">
+                                <div class="chain-node">
+                                    <div class="node-dot">1</div>
+                                    <div class="node-label">PO Created</div>
+                                    <div class="node-time">Jan 5, 09:14</div>
+                                    <div class="node-hash">evt_7a2b...</div>
+                                </div>
+                                <div class="chain-node">
+                                    <div class="node-dot">2</div>
+                                    <div class="node-label">PO Approved</div>
+                                    <div class="node-time">Jan 6, 12:30</div>
+                                    <div class="node-hash">evt_3c4d...</div>
+                                </div>
+                                <div class="chain-node">
+                                    <div class="node-dot">3</div>
+                                    <div class="node-label">Goods Received</div>
+                                    <div class="node-time">Jan 18, 14:22</div>
+                                    <div class="node-hash">evt_9e5f...</div>
+                                </div>
+                                <div class="chain-node">
+                                    <div class="node-dot">4</div>
+                                    <div class="node-label">Invoice Matched</div>
+                                    <div class="node-time">Jan 19, 10:15</div>
+                                    <div class="node-hash">evt_2b6g...</div>
+                                </div>
+                                <div class="chain-node">
+                                    <div class="node-dot">5</div>
+                                    <div class="node-label">Payment Auth</div>
+                                    <div class="node-time">Jan 27, 09:00</div>
+                                    <div class="node-hash">evt_4h8i...</div>
+                                </div>
+                                <div class="chain-node">
+                                    <div class="node-dot">6</div>
+                                    <div class="node-label">Bank Confirmed</div>
+                                    <div class="node-time">Jan 29, 06:42</div>
+                                    <div class="node-hash">evt_5j9k...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="journal-entries">
+                            <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">Generated Journal Entries</div>
+                            
+                            <div class="journal-entry">
+                                <div class="journal-header">
+                                    <span class="journal-event">Event: po_approved → Commitment Recorded</span>
+                                    <span class="journal-timestamp">2025-01-06 12:30:44 UTC</span>
+                                </div>
+                                <div class="journal-lines">
+                                    <div class="header">Account</div><div class="header" style="text-align: right;">Debit</div><div class="header" style="text-align: right;">Credit</div>
+                                    <div class="account">6100 · Purchase Commitments</div><div class="amount debit">$155,150.00</div><div class="amount credit">—</div>
+                                    <div class="account">2100 · Accrued Liabilities</div><div class="amount debit">—</div><div class="amount credit">$155,150.00</div>
+                                </div>
+                            </div>
+
+                            <div class="journal-entry">
+                                <div class="journal-header">
+                                    <span class="journal-event">Event: goods_received → Inventory + AP Recognized</span>
+                                    <span class="journal-timestamp">2025-01-18 14:22:17 UTC</span>
+                                </div>
+                                <div class="journal-lines">
+                                    <div class="header">Account</div><div class="header" style="text-align: right;">Debit</div><div class="header" style="text-align: right;">Credit</div>
+                                    <div class="account">1200 · Inventory</div><div class="amount debit">$152,047.00</div><div class="amount credit">—</div>
+                                    <div class="account">2000 · Accounts Payable</div><div class="amount debit">—</div><div class="amount credit">$152,047.00</div>
+                                    <div class="account">2100 · Accrued Liabilities</div><div class="amount debit">$155,150.00</div><div class="amount credit">—</div>
+                                    <div class="account">6100 · Purchase Commitments</div><div class="amount debit">—</div><div class="amount credit">$155,150.00</div>
+                                    <div class="account">5900 · Purchase Discounts</div><div class="amount debit">—</div><div class="amount credit">$3,103.00</div>
+                                </div>
+                            </div>
+
+                            <div class="journal-entry">
+                                <div class="journal-header">
+                                    <span class="journal-event">Event: bank_confirmed → Cash Disbursed</span>
+                                    <span class="journal-timestamp">2025-01-29 06:42:33 UTC</span>
+                                </div>
+                                <div class="journal-lines">
+                                    <div class="header">Account</div><div class="header" style="text-align: right;">Debit</div><div class="header" style="text-align: right;">Credit</div>
+                                    <div class="account">2000 · Accounts Payable</div><div class="amount debit">$152,047.00</div><div class="amount credit">—</div>
+                                    <div class="account">1000 · Cash - Operating</div><div class="amount debit">—</div><div class="amount credit">$152,047.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmation vs Reconciliation -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Confirmation vs. Reconciliation</div>
+                            <div class="card-subtitle">The fundamental difference in how transactions are verified</div>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="comparison">
+                            <div class="comparison-header"></div>
+                            <div class="comparison-header traditional">Traditional (Reconciliation)</div>
+                            <div class="comparison-header sightline">Sightline Native (Confirmation)</div>
+                            
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Starting Point</div>
+                                <div class="comparison-cell traditional">Bank statement arrives</div>
+                                <div class="comparison-cell sightline">Expectation exists before payment</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Process</div>
+                                <div class="comparison-cell traditional"><span class="icon red">↻</span> Match transactions after the fact</div>
+                                <div class="comparison-cell sightline"><span class="icon green">✓</span> Verify expected = actual</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Unknown Transactions</div>
+                                <div class="comparison-cell traditional"><span class="icon red">!</span> Common — requires investigation</div>
+                                <div class="comparison-cell sightline"><span class="icon green">◈</span> Impossible for native transactions</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Timing</div>
+                                <div class="comparison-cell traditional">Days or weeks after transaction</div>
+                                <div class="comparison-cell sightline">Instant on bank confirmation</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Manual Effort</div>
+                                <div class="comparison-cell traditional"><span class="icon red">↑</span> High — matching, categorizing, investigating</div>
+                                <div class="comparison-cell sightline"><span class="icon green">↓</span> Zero for native transactions</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Error Discovery</div>
+                                <div class="comparison-cell traditional">After money has moved</div>
+                                <div class="comparison-cell sightline">Before authorization (policy engine)</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Audit Trail</div>
+                                <div class="comparison-cell traditional">Reconstructed from fragments</div>
+                                <div class="comparison-cell sightline"><span class="icon green">◈</span> Complete chain from event to settlement</div>
+                            </div>
+                            <div class="comparison-row">
+                                <div class="comparison-cell label">Month-End Close</div>
+                                <div class="comparison-cell traditional"><span class="icon red">⏱</span> Required — batch reconciliation</div>
+                                <div class="comparison-cell sightline"><span class="icon green">✓</span> Continuous — books always current</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Native vs Ingested Status -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Transaction Source Status</div>
+                            <div class="card-subtitle">Native transactions require no reconciliation • Ingested transactions use traditional matching</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="recon-status">
+                            <div class="recon-panel native">
+                                <div class="recon-header">
+                                    <span class="recon-badge native">Native</span>
+                                    <span class="recon-title">Originated in Sightline</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Total Events (This Period)</span>
+                                    <span class="recon-value">186</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Pre-Authorized</span>
+                                    <span class="recon-value text-green">186 (100%)</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Bank Confirmed</span>
+                                    <span class="recon-value">142</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Awaiting Bank</span>
+                                    <span class="recon-value">44</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Reconciliation Required</span>
+                                    <span class="recon-value text-green">0</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Journal Entries Auto-Generated</span>
+                                    <span class="recon-value">847</span>
+                                </div>
+                            </div>
+                            <div class="recon-panel ingested">
+                                <div class="recon-header">
+                                    <span class="recon-badge ingested">Ingested</span>
+                                    <span class="recon-title">Synced from External Systems</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Total Events (This Period)</span>
+                                    <span class="recon-value">34</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Source</span>
+                                    <span class="recon-value">QuickBooks + Bank Feed</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Auto-Matched</span>
+                                    <span class="recon-value">28</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Rule-Matched</span>
+                                    <span class="recon-value">3</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Pending Manual Review</span>
+                                    <span class="recon-value text-orange">3</span>
+                                </div>
+                                <div class="recon-stat">
+                                    <span class="recon-label">Confidence Threshold</span>
+                                    <span class="recon-value">95%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proof Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Event Proof Log</div>
+                            <div class="card-subtitle">Immutable record of all state transitions • Cryptographically linked</div>
+                        </div>
+                        <button class="btn btn-secondary" style="font-size: 11px;">Export Full Log</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="proof-log">
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:17</span>
+                                <span class="proof-type">JOURNAL</span>
+                                <span class="proof-detail">Auto-generated 5 lines from evt_9e5f (goods_received)</span>
+                                <span class="proof-hash">jnl_4a7f2e89</span>
+                            </div>
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:17</span>
+                                <span class="proof-type">GL_UPDATE</span>
+                                <span class="proof-detail">1200 Inventory +$152,047.00 | 2000 AP +$152,047.00</span>
+                                <span class="proof-hash">gl_8b3c1d45</span>
+                            </div>
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:17</span>
+                                <span class="proof-type">TB_RECOMPUTE</span>
+                                <span class="proof-detail">Trial balance recomputed • Net difference: $0.00</span>
+                                <span class="proof-hash">tb_2e6f9a71</span>
+                            </div>
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:18</span>
+                                <span class="proof-type">FORECAST</span>
+                                <span class="proof-detail">Week 4 outflow updated: +$152,047.00 at 99% confidence</span>
+                                <span class="proof-hash">fcast_7c4d8e</span>
+                            </div>
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:18</span>
+                                <span class="proof-type">CHAIN_LINK</span>
+                                <span class="proof-detail">evt_9e5f linked to chain txn_8f3a7c21 (position 3 of 6)</span>
+                                <span class="proof-hash">link_9f5e2b</span>
+                            </div>
+                            <div class="proof-line">
+                                <span class="proof-time">14:22:18</span>
+                                <span class="proof-type">STATE_HASH</span>
+                                <span class="proof-detail">Global state hash updated</span>
+                                <span class="proof-hash">state_4a7f2e89b3c1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

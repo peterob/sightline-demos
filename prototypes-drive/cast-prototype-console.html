@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAST — Prototype Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #09090b;
+  --bg2:      #0f1012;
+  --bg3:      #141618;
+  --bg4:      #1a1d20;
+  --bg5:      #21252a;
+  --border:   #252930;
+  --border2:  #2e343b;
+  --text:     #c8c3bc;
+  --text-dim: #6e737a;
+  --text-faint:#3e434a;
+  --gold:     #c8a050;
+  --gold2:    #e8c070;
+  --gold-dim: #2a2010;
+  --green:    #3a9e6a;
+  --green2:   #50be80;
+  --green-bg: #0a1e14;
+  --yellow:   #c8a030;
+  --yellow-bg:#1e1800;
+  --red:      #c04040;
+  --red2:     #e05050;
+  --red-bg:   #1e0a0a;
+  --blue:     #4878b8;
+  --blue2:    #68a8e8;
+  --blue-bg:  #080e18;
+  --purple:   #7858b8;
+  --mono:     'IBM Plex Mono', monospace;
+  --serif:    'DM Serif Display', serif;
+  --cond:     'Barlow Condensed', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOPBAR ── */
+#topbar {
+  height: 44px;
+  min-height: 44px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+.topbar-brand {
+  font-family: var(--cond);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.topbar-sep { color: var(--text-faint); font-size: 10px; }
+
+.topbar-label {
+  font-family: var(--cond);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.topbar-spacer { flex: 1; }
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--green);
+  font-family: var(--cond);
+  text-transform: uppercase;
+}
+
+/* ── TAB NAV ── */
+#tabnav {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  padding: 8px 20px;
+  font-family: var(--cond);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── MAIN LAYOUT ── */
+#main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── PANELS ── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-family: var(--cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.panel-body::-webkit-scrollbar { width: 4px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── TAB VIEWS ── */
+.tab-view { display: none; flex: 1; overflow: hidden; }
+.tab-view.active { display: flex; }
+
+/* ══════════════════════════════════
+   TAB 1: TRANSACTION FLOW
+══════════════════════════════════ */
+#tab-flow {
+  flex-direction: row;
+}
+
+/* Left: form */
+#flow-form-panel {
+  width: 280px;
+  min-width: 280px;
+}
+
+.form-section {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 5px;
+  display: block;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-select:focus {
+  border-color: var(--gold);
+}
+.form-select option { background: var(--bg4); }
+
+.form-row { display: flex; gap: 8px; }
+.form-row .form-section { flex: 1; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-family: var(--cond);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: var(--bg);
+  width: 100%;
+  justify-content: center;
+}
+.btn-primary:hover { background: var(--gold2); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+}
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+.btn-confirm {
+  background: var(--green-bg);
+  border: 1px solid var(--green);
+  color: var(--green2);
+}
+.btn-confirm:hover { background: var(--green); color: var(--bg); }
+
+.btn-reject {
+  background: var(--red-bg);
+  border: 1px solid var(--red);
+  color: var(--red2);
+}
+.btn-reject:hover { background: var(--red); color: white; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+/* Middle: state track */
+#flow-track-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Right: event log */
+#flow-log-panel {
+  width: 300px;
+  min-width: 300px;
+  border-right: none;
+}
+
+/* ── THREE-TRACK STATE ── */
+.track-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.track {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.track-header {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.track-zone {
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.track-zone.proposed { color: var(--yellow); }
+.track-zone.bilateral { color: var(--blue2); }
+.track-zone.posted { color: var(--green2); }
+
+.track-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.track-body {
+  min-height: 60px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+.event-card {
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  padding: 8px 10px;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.event-card:hover { border-color: var(--gold); }
+.event-card.selected { border-color: var(--gold); background: var(--gold-dim); }
+
+.event-card.proposed { border-left: 3px solid var(--yellow); }
+.event-card.bilateral { border-left: 3px solid var(--blue2); }
+.event-card.posted { border-left: 3px solid var(--green2); }
+.event-card.held { border-left: 3px solid var(--red2); }
+.event-card.case { border-left: 3px solid var(--purple); }
+
+.ec-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.ec-id {
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+.ec-amount {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ec-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+.ec-hash {
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-top: 3px;
+  font-style: italic;
+}
+
+/* state badge */
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  font-family: var(--cond);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+.badge.proposed { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+.badge.bilateral { background: var(--blue-bg); color: var(--blue2); border: 1px solid var(--blue); }
+.badge.posted { background: var(--green-bg); color: var(--green2); border: 1px solid var(--green); }
+.badge.held { background: var(--red-bg); color: var(--red2); border: 1px solid var(--red); }
+.badge.case { background: #120d1e; color: #a888e8; border: 1px solid var(--purple); }
+
+/* ── DETAIL PANEL ── */
+.detail-panel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.detail-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detail-title {
+  font-family: var(--cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.detail-body { padding: 10px 12px; }
+
+.kv-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 12px;
+  margin-bottom: 10px;
+}
+
+.kv-key {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.kv-val {
+  font-size: 11px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.kv-val.mono { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+.kv-val.gold { color: var(--gold); }
+.kv-val.green { color: var(--green2); }
+.kv-val.red { color: var(--red2); }
+.kv-val.blue { color: var(--blue2); }
+
+.action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ── EVENT LOG ── */
+.log-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.log-entry:last-child { border-bottom: none; }
+
+.log-time {
+  font-size: 9px;
+  color: var(--text-faint);
+  margin-bottom: 2px;
+}
+
+.log-msg { color: var(--text); }
+.log-msg.success { color: var(--green2); }
+.log-msg.warn { color: var(--yellow); }
+.log-msg.error { color: var(--red2); }
+.log-msg.info { color: var(--blue2); }
+.log-msg.gold { color: var(--gold); }
+
+/* ══════════════════════════════════
+   TAB 2: INVESTOR EVIDENCE
+══════════════════════════════════ */
+#tab-evidence {
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+  gap: 16px;
+}
+
+.evidence-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.evidence-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--text);
+}
+
+.evidence-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--cond);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* metric cards */
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.metric-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px 14px;
+}
+
+.metric-label {
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.metric-value {
+  font-family: var(--cond);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.metric-delta {
+  font-size: 11px;
+  color: var(--green2);
+  font-family: var(--cond);
+}
+
+.metric-delta.neg { color: var(--red2); }
+
+/* two column lower */
+.evidence-lower {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ev-section {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ev-section-header {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ev-section-title {
+  font-family: var(--cond);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ev-section-body { padding: 10px 14px; }
+
+/* event feed */
+.feed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  animation: feedIn 0.3s ease-out;
+}
+
+@keyframes feedIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.feed-row:last-child { border-bottom: none; }
+
+.feed-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.feed-dot.proposed { background: var(--yellow); }
+.feed-dot.bilateral { background: var(--blue2); }
+.feed-dot.posted { background: var(--green2); }
+.feed-dot.held { background: var(--red2); }
+
+.feed-type { color: var(--text-dim); width: 72px; flex-shrink: 0; }
+.feed-vendor { color: var(--text); flex: 1; }
+.feed-amount { color: var(--gold); width: 80px; text-align: right; flex-shrink: 0; }
+.feed-time { color: var(--text-faint); font-size: 10px; width: 50px; text-align: right; flex-shrink: 0; }
+
+/* proof table */
+.proof-table { width: 100%; border-collapse: collapse; }
+.proof-table th {
+  text-align: left;
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.proof-table td {
+  padding: 6px 8px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.proof-table tr:last-child td { border-bottom: none; }
+.proof-table td.pass { color: var(--green2); }
+.proof-table td.fail { color: var(--red2); }
+.proof-table td.mono { font-size: 9px; color: var(--text-dim); }
+
+/* value chain */
+.value-chain {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-top: 4px;
+}
+
+.vc-item {
+  flex: 1;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  padding: 10px 10px;
+  position: relative;
+}
+
+.vc-item:not(:last-child)::after {
+  content: '▶';
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--text-faint);
+  z-index: 1;
+}
+
+.vc-label {
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.vc-saving {
+  font-family: var(--cond);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.vc-desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+/* ══════════════════════════════════
+   TAB 3: PRIMITIVES
+══════════════════════════════════ */
+#tab-primitives {
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.prim-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.prim-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.prim-card:hover, .prim-card.active {
+  border-color: var(--gold);
+}
+
+.prim-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-bottom: 6px;
+}
+
+.prim-name {
+  font-family: var(--cond);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+
+.prim-one {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.prim-detail {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: none;
+}
+
+.prim-detail.active { display: block; }
+
+.prim-detail-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prim-detail-name {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--gold);
+}
+
+.prim-detail-tag {
+  font-family: var(--cond);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.prim-detail-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.prim-detail-section {
+  padding: 12px 14px;
+  border-right: 1px solid var(--border);
+}
+
+.prim-detail-section:last-child { border-right: none; }
+
+.prim-section-title {
+  font-family: var(--cond);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.schema-field {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.schema-field:last-child { border-bottom: none; }
+
+.sf-name { color: var(--blue2); font-weight: 500; }
+.sf-type { color: var(--text-faint); font-size: 10px; }
+.sf-note { color: var(--text-dim); font-size: 10px; margin-left: auto; }
+
+.invariant-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  display: flex;
+  gap: 8px;
+}
+.invariant-item:last-child { border-bottom: none; }
+.inv-num { color: var(--gold); flex-shrink: 0; }
+.inv-text { color: var(--text); line-height: 1.4; }
+
+/* ══════════════════════════════════
+   RESPONSIVE SCROLLBARS
+══════════════════════════════════ */
+#tab-evidence::-webkit-scrollbar,
+#tab-primitives::-webkit-scrollbar { width: 4px; }
+#tab-evidence::-webkit-scrollbar-track,
+#tab-primitives::-webkit-scrollbar-track { background: transparent; }
+#tab-evidence::-webkit-scrollbar-thumb,
+#tab-primitives::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* empty state */
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-style: italic;
+}
+
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <span class="topbar-brand">CAST</span>
+  <span class="topbar-sep">·</span>
+  <span class="topbar-label">Coordinated Accounting Shared Truth</span>
+  <span class="topbar-sep">·</span>
+  <span class="topbar-label">Prototype Console</span>
+  <span class="topbar-spacer"></span>
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="status-dot"></div>
+    <span class="status-label">Synthetic Data</span>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div id="tabnav">
+  <div class="tab active" onclick="switchTab('flow')">Transaction Flow</div>
+  <div class="tab" onclick="switchTab('evidence')">Investor Evidence</div>
+  <div class="tab" onclick="switchTab('primitives')">Five Primitives</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ═══ TAB 1: FLOW ═══ -->
+  <div class="tab-view active" id="tab-flow">
+
+    <!-- Form Panel -->
+    <div class="panel" id="flow-form-panel">
+      <div class="panel-header">
+        <span class="panel-title">New Transaction</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="form-section">
+          <label class="form-label">Buyer Organization</label>
+          <select class="form-select" id="f-buyer">
+            <option>Meridian Supply Group</option>
+            <option>Atlas Distribution LLC</option>
+            <option>Keystone Fabricators</option>
+            <option>Summit Logistics Partners</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">Vendor</label>
+          <select class="form-select" id="f-vendor">
+            <option>Pinnacle Industrial Supply</option>
+            <option>CoreTech Components</option>
+            <option>Delta Freight Systems</option>
+            <option>Apex Materials Inc</option>
+            <option>Vector Logistics Co</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">Transaction Type</label>
+          <select class="form-select" id="f-type">
+            <option value="AP_INVOICE">AP Invoice</option>
+            <option value="PO_CONFIRM">Purchase Order Confirm</option>
+            <option value="MILESTONE">Milestone Payment</option>
+            <option value="SETTLEMENT">Settlement Event</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-section">
+            <label class="form-label">Amount ($)</label>
+            <input class="form-input" id="f-amount" type="number" value="48500" min="1000" step="500">
+          </div>
+          <div class="form-section">
+            <label class="form-label">Currency</label>
+            <select class="form-select" id="f-currency">
+              <option>USD</option>
+              <option>EUR</option>
+              <option>CAD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">Policy Version</label>
+          <select class="form-select" id="f-policy">
+            <option value="POL-v4.2">POL-v4.2 (current)</option>
+            <option value="POL-v4.1">POL-v4.1</option>
+            <option value="POL-v3.8">POL-v3.8</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">Risk Scenario</label>
+          <select class="form-select" id="f-scenario">
+            <option value="clean">Clean — all conditions pass</option>
+            <option value="threshold">Threshold breach — amount over limit</option>
+            <option value="missing_doc">Missing documentation</option>
+            <option value="duplicate">Potential duplicate</option>
+          </select>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="btn btn-primary" onclick="submitTransaction()" id="submit-btn">
+          ▶ Submit to Staging Zone
+        </button>
+
+        <div class="divider"></div>
+
+        <div class="form-section">
+          <label class="form-label">Preloaded Scenarios</label>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="loadScenario('construction')">Construction Draw — $340K</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadScenario('gpu')">GPU Procurement — $1.2M</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadScenario('bec')">BEC Attack Attempt</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Track Panel -->
+    <div class="panel" id="flow-track-panel">
+      <div class="panel-header">
+        <span class="panel-title">Three-Track State Machine</span>
+        <span style="font-size:10px;color:var(--text-faint)">Click any event for detail</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="track-container">
+
+          <!-- STAGING ZONE -->
+          <div class="track">
+            <div class="track-header">
+              <span class="track-zone proposed">◆ Staging Zone</span>
+              <span style="font-size:10px;color:var(--text-dim)">Proposed Events — quarantined, no Posting possible</span>
+              <span class="track-count" id="count-proposed">0</span>
+            </div>
+            <div class="track-body" id="track-proposed">
+              <div class="empty" id="empty-proposed">No events in staging</div>
+            </div>
+          </div>
+
+          <!-- BILATERAL ZONE -->
+          <div class="track">
+            <div class="track-header">
+              <span class="track-zone bilateral">◆ Bilateral Zone</span>
+              <span style="font-size:10px;color:var(--text-dim)">Co-signed events — hash sealed, awaiting Work Order</span>
+              <span class="track-count" id="count-bilateral">0</span>
+            </div>
+            <div class="track-body" id="track-bilateral">
+              <div class="empty" id="empty-bilateral">No bilateral events</div>
+            </div>
+          </div>
+
+          <!-- POSTED ZONE -->
+          <div class="track">
+            <div class="track-header">
+              <span class="track-zone posted">◆ Posted Zone</span>
+              <span style="font-size:10px;color:var(--text-dim)">Work Orders executed — Postings written to ledger</span>
+              <span class="track-count" id="count-posted">0</span>
+            </div>
+            <div class="track-body" id="track-posted">
+              <div class="empty" id="empty-posted">No postings</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- DETAIL PANEL -->
+        <div id="detail-container"></div>
+
+      </div>
+    </div>
+
+    <!-- Log Panel -->
+    <div class="panel" id="flow-log-panel">
+      <div class="panel-header">
+        <span class="panel-title">Event Log</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="panel-body" id="event-log">
+        <div class="empty">Awaiting first transaction...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ TAB 2: EVIDENCE ═══ -->
+  <div class="tab-view" id="tab-evidence">
+
+    <div class="evidence-header">
+      <span class="evidence-title">Investor Evidence Dashboard</span>
+      <span class="evidence-sub">Live metrics · Synthetic data · No login required</span>
+    </div>
+
+    <!-- METRIC CARDS -->
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="metric-label">Bilateral Events</div>
+        <div class="metric-value" id="ev-total">0</div>
+        <div class="metric-delta" id="ev-delta">↑ 0 this session</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Vendor Reuse Rate</div>
+        <div class="metric-value" id="ev-reuse">—</div>
+        <div class="metric-delta">Target: &gt; 20%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Proof Validity</div>
+        <div class="metric-value" id="ev-validity">100%</div>
+        <div class="metric-delta">Hash chain intact</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg Confirm Time</div>
+        <div class="metric-value" id="ev-confirmtime">—</div>
+        <div class="metric-delta">vs 3–5 days manual</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Cases Opened</div>
+        <div class="metric-value" id="ev-cases">0</div>
+        <div class="metric-delta">Exception rate</div>
+      </div>
+    </div>
+
+    <!-- LOWER PANELS -->
+    <div class="evidence-lower">
+
+      <!-- Live Event Feed -->
+      <div class="ev-section">
+        <div class="ev-section-header">
+          <span class="ev-section-title">Live Event Feed</span>
+          <div style="display:flex;align-items:center;gap:5px">
+            <div class="status-dot" style="width:5px;height:5px"></div>
+            <span style="font-size:10px;color:var(--green);font-family:var(--cond);letter-spacing:0.08em;text-transform:uppercase">Live</span>
+          </div>
+        </div>
+        <div class="ev-section-body" style="max-height:220px;overflow-y:auto">
+          <div id="live-feed">
+            <div class="empty">No events yet — submit a transaction</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proof Verification -->
+      <div class="ev-section">
+        <div class="ev-section-header">
+          <span class="ev-section-title">Proof Verification Log</span>
+        </div>
+        <div class="ev-section-body">
+          <table class="proof-table">
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Invariant</th>
+                <th>Result</th>
+                <th>Hash</th>
+              </tr>
+            </thead>
+            <tbody id="proof-tbody">
+              <tr><td colspan="4" style="color:var(--text-faint);font-style:italic;font-size:11px;text-align:center;padding:14px">Awaiting bilateral events</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Value Chain Economics -->
+      <div class="ev-section" style="grid-column:1/-1">
+        <div class="ev-section-header">
+          <span class="ev-section-title">Verification Value Chain — Where Savings Accrue</span>
+        </div>
+        <div class="ev-section-body">
+          <div class="value-chain">
+            <div class="vc-item">
+              <div class="vc-label">Audit</div>
+              <div class="vc-saving">$200K–$2M</div>
+              <div class="vc-desc">Reconstruction → hash check. Auditor reads, not reconstructs.</div>
+            </div>
+            <div class="vc-item">
+              <div class="vc-label">Lending</div>
+              <div class="vc-saving">+10% AR</div>
+              <div class="vc-desc">Advance rate improves from 85% to 95% on verified AP. $40K/yr per $5M.</div>
+            </div>
+            <div class="vc-item">
+              <div class="vc-label">Insurance</div>
+              <div class="vc-saving">BEC Blocked</div>
+              <div class="vc-desc">No bilateral event without passkey. Attack fails structurally, not by detection.</div>
+            </div>
+            <div class="vc-item">
+              <div class="vc-label">Vendors</div>
+              <div class="vc-saving">Portable Trust</div>
+              <div class="vc-desc">Proof history travels with vendor. One enrollment, network-wide recognition.</div>
+            </div>
+            <div class="vc-item">
+              <div class="vc-label">Agents</div>
+              <div class="vc-saving">50K TXN/mo</div>
+              <div class="vc-desc">Machine-verifiable proofs. No human AP team can review at this volume.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ TAB 3: PRIMITIVES ═══ -->
+  <div class="tab-view" id="tab-primitives">
+
+    <div class="evidence-header" style="margin-bottom:14px">
+      <span class="evidence-title">The Five Primitives</span>
+      <span class="evidence-sub">Everything else is a view, projection, or derived output</span>
+    </div>
+
+    <div class="prim-grid" id="prim-grid"></div>
+    <div id="prim-detail-container"></div>
+
+    <div style="margin-top:16px">
+      <div class="ev-section">
+        <div class="ev-section-header">
+          <span class="ev-section-title">Seven Structural Invariants — Database Level</span>
+        </div>
+        <div class="ev-section-body">
+          <div id="invariants-list"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+const state = {
+  events: [],
+  selectedId: null,
+  logEntries: [],
+  stats: { total: 0, bilateral: 0, posted: 0, cases: 0, vendorSeen: {} }
+};
+
+let eventCounter = 1000;
+
+function genId() { return 'EVT-' + (++eventCounter); }
+function genHash() {
+  const chars = '0123456789abcdef';
+  return Array.from({length: 16}, () => chars[Math.floor(Math.random()*16)]).join('');
+}
+function genWO() { return 'WO-' + Math.floor(Math.random()*9000+1000); }
+function now() {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' +
+         d.getMinutes().toString().padStart(2,'0') + ':' +
+         d.getSeconds().toString().padStart(2,'0');
+}
+
+// ══════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  const idx = {flow:0,evidence:1,primitives:2}[name];
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// ══════════════════════════════════════
+// LOG
+// ══════════════════════════════════════
+function log(msg, type='') {
+  state.logEntries.unshift({ msg, type, time: now() });
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('event-log');
+  if (state.logEntries.length === 0) {
+    el.innerHTML = '<div class="empty">Awaiting first transaction...</div>';
+    return;
+  }
+  el.innerHTML = state.logEntries.map(e =>
+    `<div class="log-entry">
+      <div class="log-time">${e.time}</div>
+      <div class="log-msg ${e.type}">${e.msg}</div>
+    </div>`
+  ).join('');
+}
+
+function clearLog() {
+  state.logEntries = [];
+  renderLog();
+}
+
+// ══════════════════════════════════════
+// SUBMIT TRANSACTION
+// ══════════════════════════════════════
+function submitTransaction() {
+  const buyer   = document.getElementById('f-buyer').value;
+  const vendor  = document.getElementById('f-vendor').value;
+  const type    = document.getElementById('f-type').value;
+  const amount  = parseFloat(document.getElementById('f-amount').value);
+  const currency= document.getElementById('f-currency').value;
+  const policy  = document.getElementById('f-policy').value;
+  const scenario= document.getElementById('f-scenario').value;
+
+  const id = genId();
+  const hash = genHash();
+
+  const event = { id, buyer, vendor, type, amount, currency, policy, scenario,
+    state: 'proposed', hash, wo: null, postingRef: null, timestamp: now(),
+    passkey: null, confirmTime: null };
+
+  state.events.push(event);
+  state.stats.total++;
+
+  // track vendor
+  state.stats.vendorSeen[vendor] = (state.stats.vendorSeen[vendor] || 0) + 1;
+
+  log(`${id} submitted to staging zone`, 'info');
+  log(`Buyer: ${buyer} | Vendor: ${vendor}`, '');
+  log(`Amount: ${currency} ${amount.toLocaleString()} | Policy: ${policy}`, '');
+
+  // Add to live feed
+  addFeedRow(event, 'proposed');
+
+  renderTracks();
+  updateMetrics();
+
+  // Auto-run policy check after short delay
+  setTimeout(() => policyCheck(id), 800);
+}
+
+// ══════════════════════════════════════
+// POLICY CHECK
+// ══════════════════════════════════════
+function policyCheck(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  log(`— Policy engine evaluating ${id}...`, 'info');
+
+  const scenario = ev.scenario;
+
+  if (scenario === 'clean') {
+    setTimeout(() => {
+      log(`✓ ${id} — PO match confirmed`, 'success');
+      log(`✓ ${id} — Amount within threshold`, 'success');
+      log(`✓ ${id} — Bank destination locked`, 'success');
+      log(`${id} cleared staging — awaiting vendor confirmation`, 'gold');
+      ev.policyResult = 'PASS';
+      renderTracks();
+      if (ev.state === 'proposed') renderDetailIfSelected(id);
+    }, 600);
+  } else if (scenario === 'threshold') {
+    setTimeout(() => {
+      log(`⚠ ${id} — Amount ${ev.currency} ${ev.amount.toLocaleString()} exceeds POL-v4.2 threshold`, 'warn');
+      log(`${id} → HELD — Case opened for controller review`, 'error');
+      ev.state = 'held';
+      ev.policyResult = 'HOLD';
+      state.stats.cases++;
+      renderTracks();
+      updateMetrics();
+      renderDetailIfSelected(id);
+    }, 600);
+  } else if (scenario === 'missing_doc') {
+    setTimeout(() => {
+      log(`⚠ ${id} — PO reference not found in system`, 'warn');
+      log(`${id} → HELD — Missing documentation`, 'error');
+      ev.state = 'held';
+      ev.policyResult = 'HOLD_DOCS';
+      state.stats.cases++;
+      renderTracks();
+      updateMetrics();
+      renderDetailIfSelected(id);
+    }, 600);
+  } else if (scenario === 'duplicate') {
+    setTimeout(() => {
+      log(`⚠ ${id} — Duplicate detection: similar event within 72hrs`, 'warn');
+      log(`${id} → HELD — Duplicate review required`, 'error');
+      ev.state = 'held';
+      ev.policyResult = 'HOLD_DUP';
+      state.stats.cases++;
+      renderTracks();
+      updateMetrics();
+      renderDetailIfSelected(id);
+    }, 600);
+  }
+}
+
+// ══════════════════════════════════════
+// VENDOR CONFIRM
+// ══════════════════════════════════════
+function vendorConfirm(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  log(`${ev.vendor} — passkey challenge issued for ${id}`, 'info');
+
+  setTimeout(() => {
+    ev.passkey = 'FIDO2-' + genHash().substring(0,8).toUpperCase();
+    ev.state = 'bilateral';
+    ev.confirmTime = now();
+    ev.hash = genHash(); // re-seal hash with both signatures
+    state.stats.bilateral++;
+    addFeedRow(ev, 'bilateral');
+    addProofRow(ev);
+    log(`✓ ${id} — Vendor passkey confirmed (${ev.passkey})`, 'success');
+    log(`✓ ${id} — Lineage hash sealed: ${ev.hash}`, 'success');
+    log(`${id} → BILATERAL ZONE — Work Order generated`, 'gold');
+    ev.wo = genWO();
+    renderTracks();
+    updateMetrics();
+    renderDetailIfSelected(id);
+  }, 700);
+}
+
+// ══════════════════════════════════════
+// APPROVE WORK ORDER → POST
+// ══════════════════════════════════════
+function approveWorkOrder(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev || ev.state !== 'bilateral') return;
+
+  log(`${ev.wo} — controller approved`, 'info');
+
+  setTimeout(() => {
+    ev.state = 'posted';
+    ev.postingRef = 'POST-' + Math.floor(Math.random()*90000+10000);
+    state.stats.posted++;
+    addFeedRow(ev, 'posted');
+    log(`✓ ${id} → POSTED`, 'success');
+    log(`Posting: ${ev.postingRef} written to ledger`, 'success');
+    log(`Lineage: ${ev.postingRef} → ${ev.wo} → ${id} (${ev.hash})`, '');
+    renderTracks();
+    updateMetrics();
+    renderDetailIfSelected(id);
+  }, 500);
+}
+
+// ══════════════════════════════════════
+// REJECT
+// ══════════════════════════════════════
+function rejectEvent(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+  ev.state = 'case';
+  log(`${id} → CASE opened — escalated for resolution`, 'error');
+  state.stats.cases++;
+  renderTracks();
+  updateMetrics();
+  renderDetailIfSelected(id);
+}
+
+// ══════════════════════════════════════
+// RENDER TRACKS
+// ══════════════════════════════════════
+function renderTracks() {
+  const zones = { proposed: [], bilateral: [], posted: [] };
+
+  state.events.forEach(ev => {
+    if (ev.state === 'proposed') zones.proposed.push(ev);
+    else if (ev.state === 'bilateral') zones.bilateral.push(ev);
+    else if (ev.state === 'posted') zones.posted.push(ev);
+    else zones.proposed.push(ev); // held/case stays in staging
+  });
+
+  renderZone('proposed', zones.proposed);
+  renderZone('bilateral', zones.bilateral);
+  renderZone('posted', zones.posted);
+
+  document.getElementById('count-proposed').textContent = zones.proposed.length;
+  document.getElementById('count-bilateral').textContent = zones.bilateral.length;
+  document.getElementById('count-posted').textContent = zones.posted.length;
+}
+
+function renderZone(zone, events) {
+  const el = document.getElementById('track-' + zone);
+  const empty = document.getElementById('empty-' + zone);
+
+  if (events.length === 0) {
+    el.innerHTML = `<div class="empty" id="empty-${zone}">No events in ${zone === 'proposed' ? 'staging' : zone + ' zone'}</div>`;
+    return;
+  }
+
+  el.innerHTML = events.map(ev => {
+    const isSelected = ev.id === state.selectedId;
+    return `<div class="event-card ${ev.state} ${isSelected ? 'selected' : ''}"
+              onclick="selectEvent('${ev.id}')">
+      <div class="ec-top">
+        <span class="ec-id">${ev.id}</span>
+        <span class="badge ${ev.state}">${ev.state.toUpperCase()}</span>
+      </div>
+      <div class="ec-amount">${ev.currency} ${ev.amount.toLocaleString()}</div>
+      <div class="ec-meta">
+        <span>${ev.vendor}</span>
+        <span>${ev.type}</span>
+      </div>
+      <div class="ec-hash">${ev.hash}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════
+// SELECT + DETAIL
+// ══════════════════════════════════════
+function selectEvent(id) {
+  state.selectedId = id;
+  renderTracks();
+  renderDetail(id);
+}
+
+function renderDetailIfSelected(id) {
+  if (state.selectedId === id) renderDetail(id);
+}
+
+function renderDetail(id) {
+  const ev = state.events.find(e => e.id === id);
+  if (!ev) return;
+
+  let actions = '';
+
+  if (ev.state === 'proposed' && ev.policyResult === 'PASS') {
+    actions = `<div class="action-row">
+      <button class="btn btn-confirm btn-sm" onclick="vendorConfirm('${id}')">▶ Vendor Confirm (Passkey)</button>
+      <button class="btn btn-reject btn-sm" onclick="rejectEvent('${id}')">✕ Reject</button>
+    </div>`;
+  } else if (ev.state === 'proposed' && !ev.policyResult) {
+    actions = `<div class="action-row"><span style="font-size:11px;color:var(--text-dim)">Policy check in progress...</span></div>`;
+  } else if (ev.state === 'bilateral') {
+    actions = `<div class="action-row">
+      <button class="btn btn-confirm btn-sm" onclick="approveWorkOrder('${id}')">▶ Approve Work Order → Post</button>
+      <button class="btn btn-reject btn-sm" onclick="rejectEvent('${id}')">✕ Reject</button>
+    </div>`;
+  } else if (ev.state === 'posted') {
+    actions = `<div class="action-row"><span style="font-size:11px;color:var(--green2)">✓ Posted to ledger — proof record sealed</span></div>`;
+  } else if (ev.state === 'held') {
+    actions = `<div class="action-row">
+      <span style="font-size:11px;color:var(--yellow)">⚠ Held — controller review required</span>
+    </div>`;
+  } else if (ev.state === 'case') {
+    actions = `<div class="action-row"><span style="font-size:11px;color:var(--red2)">Case open — escalated</span></div>`;
+  }
+
+  const policyBadge = ev.policyResult
+    ? (ev.policyResult === 'PASS'
+        ? `<span class="badge posted">PASS</span>`
+        : `<span class="badge held">${ev.policyResult}</span>`)
+    : `<span style="font-size:10px;color:var(--text-faint)">—</span>`;
+
+  document.getElementById('detail-container').innerHTML = `
+    <div class="detail-panel">
+      <div class="detail-header">
+        <span class="detail-title">${ev.id} — Event Detail</span>
+        <span class="badge ${ev.state}">${ev.state.toUpperCase()}</span>
+      </div>
+      <div class="detail-body">
+        <div class="kv-grid">
+          <span class="kv-key">Buyer</span>     <span class="kv-val">${ev.buyer}</span>
+          <span class="kv-key">Vendor</span>    <span class="kv-val">${ev.vendor}</span>
+          <span class="kv-key">Type</span>      <span class="kv-val gold">${ev.type}</span>
+          <span class="kv-key">Amount</span>    <span class="kv-val gold">${ev.currency} ${ev.amount.toLocaleString()}</span>
+          <span class="kv-key">Policy</span>    <span class="kv-val blue">${ev.policy}</span>
+          <span class="kv-key">Policy Eval</span> <span class="kv-val">${policyBadge}</span>
+          <span class="kv-key">Hash</span>      <span class="kv-val mono">${ev.hash}</span>
+          ${ev.passkey ? `<span class="kv-key">Passkey</span><span class="kv-val green">${ev.passkey}</span>` : ''}
+          ${ev.wo ? `<span class="kv-key">Work Order</span><span class="kv-val blue">${ev.wo}</span>` : ''}
+          ${ev.postingRef ? `<span class="kv-key">Posting</span><span class="kv-val green">${ev.postingRef}</span>` : ''}
+          <span class="kv-key">Submitted</span> <span class="kv-val mono">${ev.timestamp}</span>
+          ${ev.confirmTime ? `<span class="kv-key">Confirmed</span><span class="kv-val mono">${ev.confirmTime}</span>` : ''}
+        </div>
+        ${actions}
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// SCENARIOS
+// ══════════════════════════════════════
+function loadScenario(s) {
+  const scenarios = {
+    construction: { buyer: 'Keystone Fabricators', vendor: 'Apex Materials Inc',
+      type: 'MILESTONE', amount: 340000, currency: 'USD', policy: 'POL-v4.2', scenario: 'clean' },
+    gpu: { buyer: 'Atlas Distribution LLC', vendor: 'CoreTech Components',
+      type: 'PO_CONFIRM', amount: 1200000, currency: 'USD', policy: 'POL-v4.2', scenario: 'threshold' },
+    bec: { buyer: 'Meridian Supply Group', vendor: 'Vector Logistics Co',
+      type: 'AP_INVOICE', amount: 87500, currency: 'USD', policy: 'POL-v4.2', scenario: 'missing_doc' }
+  };
+
+  const sc = scenarios[s];
+  document.getElementById('f-buyer').value = sc.buyer;
+  document.getElementById('f-vendor').value = sc.vendor;
+  document.getElementById('f-type').value = sc.type;
+  document.getElementById('f-amount').value = sc.amount;
+  document.getElementById('f-currency').value = sc.currency;
+  document.getElementById('f-policy').value = sc.policy;
+  document.getElementById('f-scenario').value = sc.scenario;
+
+  if (s === 'bec') log('⚠ BEC scenario loaded — bank destination unconfirmed', 'warn');
+  if (s === 'construction') log('Construction draw scenario loaded — $340K milestone', 'info');
+  if (s === 'gpu') log('GPU procurement scenario loaded — $1.2M, threshold breach', 'warn');
+}
+
+// ══════════════════════════════════════
+// EVIDENCE DASHBOARD
+// ══════════════════════════════════════
+function addFeedRow(ev, stateStr) {
+  const feed = document.getElementById('live-feed');
+  const emptyEl = feed.querySelector('.empty');
+  if (emptyEl) feed.innerHTML = '';
+
+  const row = document.createElement('div');
+  row.className = 'feed-row';
+  row.innerHTML = `
+    <div class="feed-dot ${stateStr}"></div>
+    <span class="feed-type">${stateStr.toUpperCase()}</span>
+    <span class="feed-vendor">${ev.vendor}</span>
+    <span class="feed-amount">${ev.currency} ${(ev.amount/1000).toFixed(0)}K</span>
+    <span class="feed-time">${ev.timestamp}</span>`;
+  feed.insertBefore(row, feed.firstChild);
+}
+
+function addProofRow(ev) {
+  const tbody = document.getElementById('proof-tbody');
+  if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+
+  const invariants = ['No posting without bilateral','Hash chain unbroken','Policy version pinned','Passkey bound to WO hash','Bank destination locked','Amount within policy','No orphan Work Orders'];
+  const inv = invariants[Math.floor(Math.random() * 3)];
+
+  const row = document.createElement('tr');
+  row.innerHTML = `
+    <td>${ev.id}</td>
+    <td style="font-size:10px">${inv}</td>
+    <td class="pass">✓ PASS</td>
+    <td class="mono">${ev.hash}</td>`;
+  tbody.insertBefore(row, tbody.firstRow);
+}
+
+function updateMetrics() {
+  document.getElementById('ev-total').textContent = state.stats.bilateral + state.stats.posted;
+  document.getElementById('ev-cases').textContent = state.stats.cases;
+
+  const vendors = Object.keys(state.stats.vendorSeen);
+  const reused = vendors.filter(v => state.stats.vendorSeen[v] > 1).length;
+  if (vendors.length > 0) {
+    const rate = Math.round((reused / vendors.length) * 100);
+    document.getElementById('ev-reuse').textContent = rate + '%';
+  }
+
+  const total = state.stats.bilateral + state.stats.posted;
+  if (total > 0) {
+    document.getElementById('ev-delta').textContent = `↑ ${total} this session`;
+    document.getElementById('ev-confirmtime').textContent = '14s';
+  }
+}
+
+// ══════════════════════════════════════
+// PRIMITIVES TAB
+// ══════════════════════════════════════
+const PRIMITIVES = [
+  {
+    num: '01', name: 'Event', tag: 'What happened in the world',
+    one: 'The raw record. Immutable once written. Everything downstream derives from events.',
+    fields: [
+      {n:'event_id', t:'UUID', note:'PK'},
+      {n:'event_type', t:'TEXT', note:'AP_INVOICE, PO_CONFIRM…'},
+      {n:'proposed_at', t:'TIMESTAMPTZ', note:'staging entry'},
+      {n:'bilateral_at', t:'TIMESTAMPTZ', note:'null until co-signed'},
+      {n:'buyer_id', t:'UUID', note:'FK → org'},
+      {n:'vendor_id', t:'UUID', note:'FK → vendor'},
+      {n:'amount', t:'NUMERIC(18,2)', note:''},
+      {n:'currency', t:'CHAR(3)', note:'ISO 4217'},
+      {n:'lineage_hash', t:'TEXT', note:'SHA-256 chain'},
+      {n:'policy_version_id', t:'UUID', note:'FK → policy'},
+    ],
+    notes: ['Events record what happened. Work Orders record what the organization decided to do about it.', 'Proposed events are quarantined in the staging zone. A Proposed Event cannot generate a Posting under any circumstances.']
+  },
+  {
+    num: '02', name: 'Policy Version', tag: 'The versioned rulebook',
+    one: 'Immutable rule snapshot pinned to every event at evaluation time.',
+    fields: [
+      {n:'policy_version_id', t:'UUID', note:'PK'},
+      {n:'version_tag', t:'TEXT', note:'POL-v4.2'},
+      {n:'effective_from', t:'TIMESTAMPTZ', note:''},
+      {n:'effective_until', t:'TIMESTAMPTZ', note:'null = current'},
+      {n:'rules', t:'JSONB', note:'threshold, required docs…'},
+      {n:'created_by', t:'UUID', note:'FK → user'},
+      {n:'immutable_at', t:'TIMESTAMPTZ', note:'after first use'},
+    ],
+    notes: ['Policy pinning is non-negotiable: events before an amendment must replay under the old rules. This is the foundation of deterministic replay.', 'Policy versions are immutable once any event has been evaluated against them.']
+  },
+  {
+    num: '03', name: 'Work Order', tag: 'The organizational decision',
+    one: 'Records what the organization decided to do — GL account, cost center, approval chain.',
+    fields: [
+      {n:'wo_id', t:'UUID', note:'PK'},
+      {n:'bilateral_event_id', t:'UUID', note:'FK NOT NULL'},
+      {n:'state', t:'ENUM', note:'PENDING/APPROVED/REJECTED'},
+      {n:'approved_by', t:'UUID', note:'FK → user'},
+      {n:'approved_at', t:'TIMESTAMPTZ', note:''},
+      {n:'decision_log', t:'JSONB', note:'GL, cost center, notes'},
+      {n:'budget_snapshot', t:'JSONB', note:'at time of approval'},
+    ],
+    notes: ['The Work Order decision_log captures GL assignment, cost center, and dimension decisions. These fields are future schema candidates for Obligation and Allocation when a vertical requires them.', 'The auditor reads the decision log directly — who approved, what conditions were met, what the budget position was at that moment.']
+  },
+  {
+    num: '04', name: 'Posting', tag: 'The ledger entry',
+    one: 'The accounting entry. Cannot exist without a Bilateral Event — enforced at schema level.',
+    fields: [
+      {n:'posting_id', t:'UUID', note:'PK'},
+      {n:'work_order_id', t:'UUID', note:'FK NOT NULL'},
+      {n:'bilateral_event_id', t:'UUID', note:'FK NOT NULL — structural'},
+      {n:'debit_account', t:'TEXT', note:'GL account'},
+      {n:'credit_account', t:'TEXT', note:'GL account'},
+      {n:'amount', t:'NUMERIC(18,2)', note:''},
+      {n:'posted_at', t:'TIMESTAMPTZ', note:''},
+      {n:'period', t:'TEXT', note:'YYYY-MM'},
+    ],
+    notes: ['The non-nullable FK from Posting to Bilateral Event is not a validation rule — it is a structural impossibility. No Posting can exist without a Bilateral Event because the schema makes it architecturally impossible.', 'Posting carries lineage reference back to the originating event through the bilateral_event_id.']
+  },
+  {
+    num: '05', name: 'Case', tag: 'The exception record',
+    one: 'Every policy failure, dispute, or hold opens a Case. Human resolution is required.',
+    fields: [
+      {n:'case_id', t:'UUID', note:'PK'},
+      {n:'event_id', t:'UUID', note:'FK → triggering event'},
+      {n:'case_type', t:'ENUM', note:'HOLD / DISPUTE / FRAUD'},
+      {n:'opened_at', t:'TIMESTAMPTZ', note:''},
+      {n:'resolved_at', t:'TIMESTAMPTZ', note:'null = open'},
+      {n:'resolution', t:'TEXT', note:''},
+      {n:'resolved_by', t:'UUID', note:'FK → user'},
+    ],
+    notes: ['Cases are how exceptions surface. The policy engine never silently bypasses a rule — it opens a Case and halts.', 'Exception rate is the core operational metric. Low exception rate = policy well-tuned. High = either policy misconfiguration or genuine fraud signal.']
+  }
+];
+
+const INVARIANTS = [
+  'No Posting can exist without a Bilateral Event (NOT NULL FK — schema-enforced, not application-enforced)',
+  'No Work Order can exist without a Bilateral Event (NOT NULL FK)',
+  'A Bilateral Event requires both buyer and vendor confirmation records present',
+  'Lineage hash chain must be unbroken — any tampered event is immediately detectable',
+  'Policy Version referenced on each event must exist and must have been effective at event time',
+  'Amount on Posting must equal amount on originating Bilateral Event — conservation enforced',
+  'No direct writes to Posting table except via the Work Order approval path (trigger-enforced)',
+];
+
+function renderPrimitives() {
+  const grid = document.getElementById('prim-grid');
+  grid.innerHTML = PRIMITIVES.map((p, i) =>
+    `<div class="prim-card" id="pc-${i}" onclick="selectPrimitive(${i})">
+      <div class="prim-num">${p.num}</div>
+      <div class="prim-name">${p.name}</div>
+      <div class="prim-one">${p.one}</div>
+    </div>`
+  ).join('');
+
+  const inv = document.getElementById('invariants-list');
+  inv.innerHTML = INVARIANTS.map((t, i) =>
+    `<div class="invariant-item">
+      <span class="inv-num">I${i+1}</span>
+      <span class="inv-text">${t}</span>
+    </div>`
+  ).join('');
+}
+
+let selectedPrimitive = null;
+
+function selectPrimitive(idx) {
+  document.querySelectorAll('.prim-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('pc-'+idx).classList.add('active');
+
+  const p = PRIMITIVES[idx];
+  const container = document.getElementById('prim-detail-container');
+
+  container.innerHTML = `
+    <div class="prim-detail active">
+      <div class="prim-detail-header">
+        <span class="prim-detail-name">${p.name}</span>
+        <span class="prim-detail-tag">${p.tag}</span>
+      </div>
+      <div class="prim-detail-body">
+        <div class="prim-detail-section">
+          <div class="prim-section-title">Schema Fields</div>
+          ${p.fields.map(f => `
+            <div class="schema-field">
+              <span class="sf-name">${f.n}</span>
+              <span class="sf-type">${f.t}</span>
+              <span class="sf-note">${f.note}</span>
+            </div>`).join('')}
+        </div>
+        <div class="prim-detail-section">
+          <div class="prim-section-title">Design Notes</div>
+          ${p.notes.map(n => `<p style="font-size:11px;color:var(--text);line-height:1.6;margin-bottom:10px">${n}</p>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+renderPrimitives();
+selectPrimitive(0);
+</script>
+</body>
+</html>

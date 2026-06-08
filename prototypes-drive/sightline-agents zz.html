@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Agent Configuration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+            --accent-cyan: #22d3ee;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 220px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo { padding: 20px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .nav-section { padding: 16px 12px; }
+        .nav-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding: 0 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .nav-item .badge { margin-left: auto; background: var(--accent-orange); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); }
+        .page-title { font-size: 18px; font-weight: 600; }
+        .tabs { display: flex; gap: 4px; background: var(--bg-tertiary); padding: 4px; border-radius: 8px; }
+        .tab { padding: 8px 20px; border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; }
+        .tab:hover { color: var(--text-primary); }
+        .tab.active { background: var(--bg-secondary); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .card-body { padding: 20px; }
+
+        /* Agent Cards */
+        .agent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .agent-card { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); transition: all 0.15s; cursor: pointer; }
+        .agent-card:hover { border-color: var(--accent-blue); }
+        .agent-card.disabled { opacity: 0.5; }
+        .agent-header { display: flex; align-items: start; justify-content: space-between; margin-bottom: 16px; }
+        .agent-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .agent-icon.ap { background: linear-gradient(135deg, rgba(0, 212, 170, 0.2), rgba(0, 212, 170, 0.1)); color: var(--accent-green); }
+        .agent-icon.ar { background: linear-gradient(135deg, rgba(77, 166, 255, 0.2), rgba(77, 166, 255, 0.1)); color: var(--accent-blue); }
+        .agent-icon.forecast { background: linear-gradient(135deg, rgba(167, 139, 250, 0.2), rgba(167, 139, 250, 0.1)); color: var(--accent-purple); }
+        .agent-icon.anomaly { background: linear-gradient(135deg, rgba(255, 159, 67, 0.2), rgba(255, 159, 67, 0.1)); color: var(--accent-orange); }
+        .agent-icon.discount { background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0.1)); color: var(--accent-cyan); }
+        .agent-icon.close { background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.1)); color: var(--accent-yellow); }
+        .agent-status { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+        .agent-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .agent-status-dot.active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .agent-status-dot.paused { background: var(--accent-yellow); }
+        .agent-status-dot.inactive { background: var(--text-muted); }
+        .agent-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+        .agent-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4; }
+        .agent-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+        .agent-stat { text-align: center; }
+        .agent-stat-value { font-size: 16px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .agent-stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+        .agent-authority { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+        .authority-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .authority-bar { display: flex; gap: 4px; }
+        .authority-level { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-card); }
+        .authority-level.active { background: var(--accent-green); }
+        .authority-level.limited { background: var(--accent-yellow); }
+        .authority-labels { display: flex; justify-content: space-between; margin-top: 4px; font-size: 9px; color: var(--text-muted); }
+
+        /* Activity Feed */
+        .activity-feed { max-height: 400px; overflow-y: auto; }
+        .activity-item { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-item:hover { background: var(--bg-tertiary); }
+        .activity-agent { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+        .activity-content { flex: 1; min-width: 0; }
+        .activity-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+        .activity-name { font-size: 12px; font-weight: 600; }
+        .activity-action-type { font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .activity-action-type.executed { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .activity-action-type.proposed { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .activity-action-type.escalated { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .activity-desc { font-size: 12px; color: var(--text-secondary); }
+        .activity-meta { display: flex; gap: 12px; margin-top: 4px; font-size: 10px; color: var(--text-muted); }
+        .activity-time { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+
+        /* Escalation Queue */
+        .escalation-item { display: flex; gap: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 10px; margin-bottom: 12px; border-left: 4px solid var(--accent-orange); }
+        .escalation-item:last-child { margin-bottom: 0; }
+        .escalation-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); flex-shrink: 0; }
+        .escalation-content { flex: 1; }
+        .escalation-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .escalation-title { font-size: 13px; font-weight: 600; }
+        .escalation-agent { font-size: 11px; color: var(--accent-blue); }
+        .escalation-reason { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .escalation-details { background: var(--bg-card); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+        .escalation-detail-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+        .escalation-detail-row:last-child { margin-bottom: 0; }
+        .escalation-detail-label { color: var(--text-muted); }
+        .escalation-detail-value { font-family: 'SF Mono', Monaco, monospace; }
+        .escalation-actions { display: flex; gap: 8px; }
+        .escalation-time { font-size: 11px; color: var(--text-muted); text-align: right; flex-shrink: 0; }
+
+        /* Policy Config */
+        .policy-section { margin-bottom: 24px; }
+        .policy-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .policy-title { font-size: 13px; font-weight: 600; }
+        .policy-rules { background: var(--bg-tertiary); border-radius: 10px; overflow: hidden; }
+        .policy-rule { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+        .policy-rule:last-child { border-bottom: none; }
+        .policy-rule-check { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--accent-green); display: flex; align-items: center; justify-content: center; color: var(--accent-green); font-size: 12px; }
+        .policy-rule-check.disabled { border-color: var(--text-muted); color: var(--text-muted); }
+        .policy-rule-text { flex: 1; font-size: 12px; color: var(--text-secondary); }
+        .policy-rule-value { font-size: 12px; font-family: 'SF Mono', Monaco, monospace; color: var(--text-primary); }
+
+        /* Metrics Row */
+        .metrics-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+        .metric-card { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; border: 1px solid var(--border-color); }
+        .metric-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .metric-value { font-size: 24px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; }
+        .metric-change { font-size: 11px; margin-top: 4px; }
+        .metric-change.up { color: var(--accent-green); }
+        .metric-change.down { color: var(--accent-red); }
+
+        /* Agent Detail Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal { background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); width: 90%; max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; transform: scale(0.95); transition: transform 0.2s; }
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .modal-close { width: 28px; height: 28px; border-radius: 6px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 16px; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; }
+
+        /* Config Form */
+        .config-section { margin-bottom: 24px; }
+        .config-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; }
+        .config-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .config-row label { font-size: 12px; color: var(--text-secondary); min-width: 140px; }
+        .config-row input, .config-row select { flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 12px; }
+        .config-row input:focus, .config-row select:focus { outline: none; border-color: var(--accent-blue); }
+        .config-toggle { width: 44px; height: 24px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color); cursor: pointer; position: relative; transition: all 0.2s; }
+        .config-toggle.active { background: var(--accent-green); border-color: var(--accent-green); }
+        .config-toggle::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: all 0.2s; }
+        .config-toggle.active::after { left: 22px; }
+
+        /* Scope Tags */
+        .scope-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .scope-tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; background: var(--bg-card); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 6px; }
+        .scope-tag .remove { cursor: pointer; color: var(--text-muted); }
+        .scope-tag .remove:hover { color: var(--accent-red); }
+
+        /* Status Badge */
+        .status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status.active { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .status.paused { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+        .status.inactive { background: rgba(107, 114, 128, 0.15); color: var(--text-muted); }
+
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-orange { color: var(--accent-orange); }
+        .text-blue { color: var(--accent-blue); }
+        .text-muted { color: var(--text-muted); }
+        .font-mono { font-family: 'SF Mono', Monaco, monospace; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <nav class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item"><span>◉</span> Dashboard</div>
+                <div class="nav-item"><span>◈</span> Cash Position</div>
+                <div class="nav-item"><span>▤</span> 13-Week Forecast</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item"><span>↑</span> Payables (AP)</div>
+                <div class="nav-item"><span>◧</span> Purchase Orders</div>
+                <div class="nav-item"><span>⟳</span> Payment Runs</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">System</div>
+                <div class="nav-item"><span>◈</span> Financial Integrity</div>
+                <div class="nav-item"><span>⚡</span> Policy Engine</div>
+                <div class="nav-item active"><span>⬡</span> AI Agents <span class="badge">3</span></div>
+                <div class="nav-item"><span>≋</span> Event Log</div>
+            </nav>
+        </aside>
+        
+        <main class="main">
+            <header class="header">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <h2 class="page-title">AI Agents</h2>
+                    <div class="tabs">
+                        <div class="tab active" onclick="showTab('overview')">Overview</div>
+                        <div class="tab" onclick="showTab('activity')">Activity</div>
+                        <div class="tab" onclick="showTab('escalations')">Escalations <span style="background: var(--accent-orange); color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; margin-left: 4px;">3</span></div>
+                        <div class="tab" onclick="showTab('policies')">Policies</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary">Pause All Agents</button>
+                    <button class="btn btn-primary">+ Deploy Agent</button>
+                </div>
+            </header>
+
+            <!-- OVERVIEW TAB -->
+            <div class="content tab-content active" id="overviewTab">
+                <!-- Metrics -->
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="metric-label">Active Agents</div>
+                        <div class="metric-value">4</div>
+                        <div class="metric-change">of 6 deployed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Actions Today</div>
+                        <div class="metric-value">147</div>
+                        <div class="metric-change up">↑ 23% vs avg</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Auto-Executed</div>
+                        <div class="metric-value">89%</div>
+                        <div class="metric-change">132 of 147</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Escalated</div>
+                        <div class="metric-value text-orange">3</div>
+                        <div class="metric-change">Awaiting review</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Value Processed</div>
+                        <div class="metric-value">$842K</div>
+                        <div class="metric-change up">↑ $12K savings identified</div>
+                    </div>
+                </div>
+
+                <!-- Agent Grid -->
+                <div class="agent-grid">
+                    <!-- AP Matching Agent -->
+                    <div class="agent-card" onclick="openModal('agentDetail')">
+                        <div class="agent-header">
+                            <div class="agent-icon ap">⚡</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot active"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">AP Matching Agent</div>
+                        <div class="agent-desc">Matches invoices to POs, verifies quantities and pricing, routes discrepancies for review.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">52</div>
+                                <div class="agent-stat-label">Matched Today</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">98.2%</div>
+                                <div class="agent-stat-label">Accuracy</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value text-orange">2</div>
+                                <div class="agent-stat-label">Escalated</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collections Agent -->
+                    <div class="agent-card">
+                        <div class="agent-header">
+                            <div class="agent-icon ar">📧</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot active"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">Collections Agent</div>
+                        <div class="agent-desc">Monitors receivables, sends payment reminders, escalates overdue accounts, predicts payment timing.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">18</div>
+                                <div class="agent-stat-label">Reminders Sent</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">$124K</div>
+                                <div class="agent-stat-label">Collected</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">3.2d</div>
+                                <div class="agent-stat-label">Avg DSO Impact</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level limited"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Discount Agent -->
+                    <div class="agent-card">
+                        <div class="agent-header">
+                            <div class="agent-icon discount">%</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot active"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">Discount Optimizer</div>
+                        <div class="agent-desc">Identifies early-pay opportunities, calculates effective APR, executes within policy thresholds.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">$3.1K</div>
+                                <div class="agent-stat-label">Captured Today</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">24.6%</div>
+                                <div class="agent-stat-label">Avg APR</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">7</div>
+                                <div class="agent-stat-label">Opportunities</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Agent -->
+                    <div class="agent-card">
+                        <div class="agent-header">
+                            <div class="agent-icon anomaly">⚠</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot active"></span>
+                                <span>Active</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">Anomaly Detector</div>
+                        <div class="agent-desc">Monitors spending patterns, flags deviations, surfaces unusual transactions for review.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">847</div>
+                                <div class="agent-stat-label">Analyzed</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value text-orange">1</div>
+                                <div class="agent-stat-label">Flagged</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">0</div>
+                                <div class="agent-stat-label">False Positives</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level active"></div>
+                                <div class="authority-level active"></div>
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Forecast Agent -->
+                    <div class="agent-card disabled">
+                        <div class="agent-header">
+                            <div class="agent-icon forecast">📈</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot paused"></span>
+                                <span>Paused</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">Forecast Agent</div>
+                        <div class="agent-desc">Updates cash flow predictions, adjusts confidence intervals, incorporates pattern changes.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Updates Today</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Accuracy</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Adjustments</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level active"></div>
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Close Agent -->
+                    <div class="agent-card disabled">
+                        <div class="agent-header">
+                            <div class="agent-icon close">✓</div>
+                            <div class="agent-status">
+                                <span class="agent-status-dot inactive"></span>
+                                <span>Not Deployed</span>
+                            </div>
+                        </div>
+                        <div class="agent-name">Period Close Agent</div>
+                        <div class="agent-desc">Verifies chain completeness, identifies open items, generates period reports and reconciliation status.</div>
+                        <div class="agent-stats">
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Checks Run</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Issues Found</div>
+                            </div>
+                            <div class="agent-stat">
+                                <div class="agent-stat-value">—</div>
+                                <div class="agent-stat-label">Reports</div>
+                            </div>
+                        </div>
+                        <div class="agent-authority">
+                            <div class="authority-label">Authority Level</div>
+                            <div class="authority-bar">
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                                <div class="authority-level"></div>
+                            </div>
+                            <div class="authority-labels">
+                                <span>Observe</span>
+                                <span>Propose</span>
+                                <span>Execute</span>
+                                <span>Override</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIVITY TAB -->
+            <div class="content tab-content" id="activityTab">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Agent Activity Log</div>
+                            <div class="card-subtitle">All agent actions with full audit trail</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <select class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">
+                                <option>All Agents</option>
+                                <option>AP Matching</option>
+                                <option>Collections</option>
+                                <option>Discount Optimizer</option>
+                                <option>Anomaly Detector</option>
+                            </select>
+                            <select class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px;">
+                                <option>All Actions</option>
+                                <option>Executed</option>
+                                <option>Proposed</option>
+                                <option>Escalated</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="activity-feed">
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon ap" style="width: 32px; height: 32px; font-size: 12px;">⚡</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">AP Matching Agent</span>
+                                    <span class="activity-action-type executed">Executed</span>
+                                </div>
+                                <div class="activity-desc">Matched invoice INV-78392 to PO-2025-0091 • 3-way match verified</div>
+                                <div class="activity-meta">
+                                    <span>Confidence: 99.4%</span>
+                                    <span>Amount: $45,200</span>
+                                    <span>Hash: evt_8f3a...</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">2 min ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon discount" style="width: 32px; height: 32px; font-size: 12px;">%</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">Discount Optimizer</span>
+                                    <span class="activity-action-type executed">Executed</span>
+                                </div>
+                                <div class="activity-desc">Captured 2% early-pay discount on Henderson Mfg invoice</div>
+                                <div class="activity-meta">
+                                    <span>Savings: $1,240</span>
+                                    <span>Effective APR: 36.7%</span>
+                                    <span>Policy: auto_discount_apr_10</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">8 min ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon ap" style="width: 32px; height: 32px; font-size: 12px;">⚡</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">AP Matching Agent</span>
+                                    <span class="activity-action-type escalated">Escalated</span>
+                                </div>
+                                <div class="activity-desc">Invoice variance exceeds threshold • Shenzhen Logistics +$4,400 (2.6%)</div>
+                                <div class="activity-meta">
+                                    <span>Confidence: 67%</span>
+                                    <span>Threshold: 2%</span>
+                                    <span>Assigned: Finance Manager</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">14 min ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon ar" style="width: 32px; height: 32px; font-size: 12px;">📧</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">Collections Agent</span>
+                                    <span class="activity-action-type executed">Executed</span>
+                                </div>
+                                <div class="activity-desc">Sent payment reminder to Acme Corp • Invoice #4523 overdue 7 days</div>
+                                <div class="activity-meta">
+                                    <span>Amount: $28,500</span>
+                                    <span>Template: reminder_friendly</span>
+                                    <span>Attempt: 2 of 3</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">23 min ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon anomaly" style="width: 32px; height: 32px; font-size: 12px;">⚠</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">Anomaly Detector</span>
+                                    <span class="activity-action-type escalated">Escalated</span>
+                                </div>
+                                <div class="activity-desc">AWS spend 26% above 90-day pattern • $17,200 vs $13,650 expected</div>
+                                <div class="activity-meta">
+                                    <span>Deviation: +$3,550</span>
+                                    <span>Pattern confidence: 92%</span>
+                                    <span>Assigned: Engineering Lead</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">1 hr ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon ap" style="width: 32px; height: 32px; font-size: 12px;">⚡</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">AP Matching Agent</span>
+                                    <span class="activity-action-type executed">Executed</span>
+                                </div>
+                                <div class="activity-desc">Batch matched 12 invoices to corresponding POs</div>
+                                <div class="activity-meta">
+                                    <span>Total: $287,450</span>
+                                    <span>Avg confidence: 98.7%</span>
+                                    <span>Time: 1.2s</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">1 hr ago</div>
+                        </div>
+
+                        <div class="activity-item">
+                            <div class="activity-agent agent-icon discount" style="width: 32px; height: 32px; font-size: 12px;">%</div>
+                            <div class="activity-content">
+                                <div class="activity-header">
+                                    <span class="activity-name">Discount Optimizer</span>
+                                    <span class="activity-action-type proposed">Proposed</span>
+                                </div>
+                                <div class="activity-desc">Identified discount opportunity: TechCorp 1.5% if paid by Jan 25</div>
+                                <div class="activity-meta">
+                                    <span>Potential savings: $892</span>
+                                    <span>Effective APR: 18.3%</span>
+                                    <span>Cash impact: Acceptable</span>
+                                </div>
+                            </div>
+                            <div class="activity-time">2 hr ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ESCALATIONS TAB -->
+            <div class="content tab-content" id="escalationsTab">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Human-in-the-Loop Queue</div>
+                            <div class="card-subtitle">Items requiring human decision • Agents cannot proceed without resolution</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="escalation-item">
+                            <div class="escalation-icon">⚡</div>
+                            <div class="escalation-content">
+                                <div class="escalation-header">
+                                    <span class="escalation-title">Invoice Variance Exceeds Threshold</span>
+                                    <span class="escalation-agent">from AP Matching Agent</span>
+                                </div>
+                                <div class="escalation-reason">Invoice amount $172,400 exceeds PO amount $168,000 by 2.6%. Agent policy threshold is 2%.</div>
+                                <div class="escalation-details">
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Vendor</span>
+                                        <span class="escalation-detail-value">Shenzhen Logistics</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">PO Reference</span>
+                                        <span class="escalation-detail-value">PO-2025-0088</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Variance</span>
+                                        <span class="escalation-detail-value text-orange">+$4,400 (2.6%)</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Vendor Note</span>
+                                        <span class="escalation-detail-value">"Expedite fee - air freight due to port delay"</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Agent Confidence</span>
+                                        <span class="escalation-detail-value">67% (below 95% threshold)</span>
+                                    </div>
+                                </div>
+                                <div class="escalation-actions">
+                                    <button class="btn btn-primary btn-sm">Approve Variance</button>
+                                    <button class="btn btn-secondary btn-sm">Reject & Dispute</button>
+                                    <button class="btn btn-secondary btn-sm">Request More Info</button>
+                                </div>
+                            </div>
+                            <div class="escalation-time">14 min ago</div>
+                        </div>
+
+                        <div class="escalation-item">
+                            <div class="escalation-icon">⚠</div>
+                            <div class="escalation-content">
+                                <div class="escalation-header">
+                                    <span class="escalation-title">Spending Anomaly Detected</span>
+                                    <span class="escalation-agent">from Anomaly Detector</span>
+                                </div>
+                                <div class="escalation-reason">AWS December invoice is 26% above the 90-day rolling pattern. Agent cannot determine if this is expected growth or an issue.</div>
+                                <div class="escalation-details">
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Vendor</span>
+                                        <span class="escalation-detail-value">Amazon Web Services</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Invoice Amount</span>
+                                        <span class="escalation-detail-value">$17,200</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Expected (Pattern)</span>
+                                        <span class="escalation-detail-value">$13,650</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Deviation</span>
+                                        <span class="escalation-detail-value text-orange">+$3,550 (26%)</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Pattern Confidence</span>
+                                        <span class="escalation-detail-value">92%</span>
+                                    </div>
+                                </div>
+                                <div class="escalation-actions">
+                                    <button class="btn btn-primary btn-sm">Mark as Expected</button>
+                                    <button class="btn btn-secondary btn-sm">Investigate</button>
+                                    <button class="btn btn-secondary btn-sm">Update Pattern</button>
+                                </div>
+                            </div>
+                            <div class="escalation-time">1 hr ago</div>
+                        </div>
+
+                        <div class="escalation-item">
+                            <div class="escalation-icon">⚡</div>
+                            <div class="escalation-content">
+                                <div class="escalation-header">
+                                    <span class="escalation-title">Duplicate Invoice Suspected</span>
+                                    <span class="escalation-agent">from AP Matching Agent</span>
+                                </div>
+                                <div class="escalation-reason">Invoice INV-45892 appears similar to INV-45810 paid last week. Same vendor, similar amount, same GL coding.</div>
+                                <div class="escalation-details">
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Vendor</span>
+                                        <span class="escalation-detail-value">Office Supplies Plus</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">New Invoice</span>
+                                        <span class="escalation-detail-value">INV-45892 • $2,340</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Prior Invoice</span>
+                                        <span class="escalation-detail-value">INV-45810 • $2,340 (paid Jan 8)</span>
+                                    </div>
+                                    <div class="escalation-detail-row">
+                                        <span class="escalation-detail-label">Similarity Score</span>
+                                        <span class="escalation-detail-value text-orange">94%</span>
+                                    </div>
+                                </div>
+                                <div class="escalation-actions">
+                                    <button class="btn btn-primary btn-sm">Not a Duplicate - Process</button>
+                                    <button class="btn btn-secondary btn-sm">Confirm Duplicate - Reject</button>
+                                    <button class="btn btn-secondary btn-sm">Contact Vendor</button>
+                                </div>
+                            </div>
+                            <div class="escalation-time">3 hr ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- POLICIES TAB -->
+            <div class="content tab-content" id="policiesTab">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                    <!-- AP Matching Policies -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">AP Matching Agent Policies</div>
+                                <div class="card-subtitle">Constraints on automated invoice matching</div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm">Edit</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Execution Thresholds</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Auto-match if confidence above</div>
+                                        <div class="policy-rule-value">95%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Max variance without escalation</div>
+                                        <div class="policy-rule-value">2%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Max single invoice amount</div>
+                                        <div class="policy-rule-value">$100,000</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Require 3-way match (PO + Receipt + Invoice)</div>
+                                        <div class="policy-rule-value">Always</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Escalation Rules</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Escalate to</div>
+                                        <div class="policy-rule-value">Finance Manager</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Escalate if no PO found</div>
+                                        <div class="policy-rule-value">Always</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Escalate duplicate suspects if similarity above</div>
+                                        <div class="policy-rule-value">90%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Discount Optimizer Policies -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Discount Optimizer Policies</div>
+                                <div class="card-subtitle">Constraints on early payment decisions</div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm">Edit</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Execution Thresholds</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Auto-capture if effective APR above</div>
+                                        <div class="policy-rule-value">10%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Max early payment amount</div>
+                                        <div class="policy-rule-value">$50,000</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Minimum cash reserve after payment</div>
+                                        <div class="policy-rule-value">$500,000</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Check forecast before execution</div>
+                                        <div class="policy-rule-value">Always</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Proposal Rules</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Propose (don't execute) if APR below</div>
+                                        <div class="policy-rule-value">10%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Propose if amount above</div>
+                                        <div class="policy-rule-value">$50,000</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collections Agent Policies -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Collections Agent Policies</div>
+                                <div class="card-subtitle">Constraints on customer communication</div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm">Edit</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Communication Rules</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">First reminder after days overdue</div>
+                                        <div class="policy-rule-value">3 days</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Max reminders before escalation</div>
+                                        <div class="policy-rule-value">3</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Days between reminders</div>
+                                        <div class="policy-rule-value">4 days</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Use approved templates only</div>
+                                        <div class="policy-rule-value">Always</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Restrictions</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check disabled">✗</div>
+                                        <div class="policy-rule-text">Can modify payment terms</div>
+                                        <div class="policy-rule-value">No</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check disabled">✗</div>
+                                        <div class="policy-rule-text">Can offer discounts</div>
+                                        <div class="policy-rule-value">No</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check disabled">✗</div>
+                                        <div class="policy-rule-text">Can write off balances</div>
+                                        <div class="policy-rule-value">No</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Detector Policies -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Anomaly Detector Policies</div>
+                                <div class="card-subtitle">Constraints on pattern-based alerts</div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm">Edit</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Detection Thresholds</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Flag if deviation from pattern exceeds</div>
+                                        <div class="policy-rule-value">20%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Minimum pattern confidence to alert</div>
+                                        <div class="policy-rule-value">85%</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Minimum transaction count for pattern</div>
+                                        <div class="policy-rule-value">6</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="policy-section">
+                                <div class="policy-header">
+                                    <div class="policy-title">Authority</div>
+                                </div>
+                                <div class="policy-rules">
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check">✓</div>
+                                        <div class="policy-rule-text">Can flag for review</div>
+                                        <div class="policy-rule-value">Yes</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check disabled">✗</div>
+                                        <div class="policy-rule-text">Can block transactions</div>
+                                        <div class="policy-rule-value">No</div>
+                                    </div>
+                                    <div class="policy-rule">
+                                        <div class="policy-rule-check disabled">✗</div>
+                                        <div class="policy-rule-text">Can adjust patterns autonomously</div>
+                                        <div class="policy-rule-value">No</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Agent Detail Modal -->
+    <div class="modal-overlay" id="agentDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <div class="agent-icon ap" style="width: 32px; height: 32px; font-size: 14px;">⚡</div>
+                    AP Matching Agent
+                    <span class="status active">Active</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('agentDetail')">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                    <div>
+                        <div class="config-section">
+                            <div class="config-label">Agent Configuration</div>
+                            <div class="config-row">
+                                <label>Agent ID</label>
+                                <input type="text" value="ap-matching-agent-v2" readonly style="color: var(--text-muted);">
+                            </div>
+                            <div class="config-row">
+                                <label>Version</label>
+                                <input type="text" value="2.1.4" readonly style="color: var(--text-muted);">
+                            </div>
+                            <div class="config-row">
+                                <label>Deployed</label>
+                                <input type="text" value="Jan 3, 2025" readonly style="color: var(--text-muted);">
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <div class="config-label">Authority Level</div>
+                            <div class="config-row">
+                                <label>Observe</label>
+                                <div class="config-toggle active"></div>
+                            </div>
+                            <div class="config-row">
+                                <label>Propose</label>
+                                <div class="config-toggle active"></div>
+                            </div>
+                            <div class="config-row">
+                                <label>Execute</label>
+                                <div class="config-toggle active"></div>
+                            </div>
+                            <div class="config-row">
+                                <label>Override</label>
+                                <div class="config-toggle"></div>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <div class="config-label">Operational Scope</div>
+                            <div class="scope-tags">
+                                <div class="scope-tag">Invoice Matching <span class="remove">×</span></div>
+                                <div class="scope-tag">3-Way Verification <span class="remove">×</span></div>
+                                <div class="scope-tag">Duplicate Detection <span class="remove">×</span></div>
+                                <div class="scope-tag">Variance Analysis <span class="remove">×</span></div>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <div class="config-label">Escalation Chain</div>
+                            <div class="config-row">
+                                <label>Primary Escalation</label>
+                                <select>
+                                    <option>Finance Manager</option>
+                                    <option>AP Supervisor</option>
+                                    <option>Controller</option>
+                                </select>
+                            </div>
+                            <div class="config-row">
+                                <label>Secondary Escalation</label>
+                                <select>
+                                    <option>Controller</option>
+                                    <option>CFO</option>
+                                </select>
+                            </div>
+                            <div class="config-row">
+                                <label>Escalate if unresolved after</label>
+                                <input type="text" value="24 hours">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="config-section">
+                            <div class="config-label">Performance (Last 30 Days)</div>
+                            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Actions Taken</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">1,247</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Auto-Executed</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">1,189 (95%)</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Escalated</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">58 (5%)</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Accuracy Rate</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace; color: var(--accent-green);">99.1%</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Avg Processing Time</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">0.8s</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Value Processed</span>
+                                    <span style="font-size: 14px; font-weight: 600; font-family: 'SF Mono', Monaco, monospace;">$4.2M</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-section">
+                            <div class="config-label">Recent Errors</div>
+                            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px; text-align: center;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">✓</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">No errors in last 30 days</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" style="color: var(--accent-yellow);">Pause Agent</button>
+                    <button class="btn btn-secondary" style="color: var(--accent-red);">Disable Agent</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="closeModal('agentDetail')">Cancel</button>
+                    <button class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('active');
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('active');
+            });
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        document.querySelectorAll('.config-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+    </script>
+</body>
+</html>

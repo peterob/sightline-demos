@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAST - Enterprise SaaS | Autonomous Financial Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --cast-primary: #0f172a;
+            --cast-accent: #0ea5e9;
+        }
+        .tab-active { border-bottom: 3px solid #0ea5e9; color: #0ea5e9; background: #f0f9ff; }
+        .status-pill { padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-card { transition: all 0.2s; border-left: 4px solid transparent; }
+        .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .kpi-card.positive { border-left-color: #10b981; }
+        .kpi-card.negative { border-left-color: #ef4444; }
+        .kpi-card.neutral { border-left-color: #0ea5e9; }
+        .policy-card { border-left: 4px solid #8b5cf6; }
+        .policy-card.from-exception { border-left-color: #f59e0b; }
+        .event-row:hover { background: #f8fafc; }
+        .hash-badge { font-family: monospace; font-size: 10px; background: #1e293b; color: #94a3b8; padding: 2px 6px; border-radius: 4px; }
+        .flow-arrow { color: #cbd5e1; }
+        .nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; padding: 12px 16px 4px; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; color: #475569; font-size: 14px; transition: all 0.15s; border-left: 3px solid transparent; }
+        .sidebar-link:hover { background: #f1f5f9; color: #0f172a; }
+        .sidebar-link.active { background: #f0f9ff; color: #0ea5e9; border-left-color: #0ea5e9; font-weight: 600; }
+        .metric-bar { height: 6px; border-radius: 3px; background: #e2e8f0; overflow: hidden; }
+        .metric-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .underwriting-flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 16px; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .pulse-dot { animation: pulse-dot 2s infinite; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-slate-200 min-h-screen fixed left-0 top-0 z-40">
+            <div class="p-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-lg">C</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-slate-800">CAST</h1>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-wider">Autonomous Financial Controller</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="py-4">
+                <div class="nav-section">Overview</div>
+                <a href="#" onclick="showSection('dashboard')" class="sidebar-link active" id="nav-dashboard">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path></svg>
+                    Dashboard
+                </a>
+                <a href="#" onclick="showSection('underwriting')" class="sidebar-link" id="nav-underwriting">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Underwriting View
+                </a>
+                
+                <div class="nav-section mt-4">Control Assurance</div>
+                <a href="#" onclick="showSection('events')" class="sidebar-link" id="nav-events">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Events
+                </a>
+                <a href="#" onclick="showSection('policies')" class="sidebar-link" id="nav-policies">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    Policies
+                </a>
+                <a href="#" onclick="showSection('workorders')" class="sidebar-link" id="nav-workorders">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    Work Orders
+                </a>
+                <a href="#" onclick="showSection('exceptions')" class="sidebar-link" id="nav-exceptions">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Exceptions
+                    <span class="ml-auto status-pill bg-red-100 text-red-700">4</span>
+                </a>
+                
+                <div class="nav-section mt-4">Settlement</div>
+                <a href="#" onclick="showSection('ledger')" class="sidebar-link" id="nav-ledger">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    Ledger
+                </a>
+                <a href="#" onclick="showSection('revenue')" class="sidebar-link" id="nav-revenue">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Revenue Recognition
+                </a>
+                
+                <div class="nav-section mt-4">Intelligence</div>
+                <a href="#" onclick="showSection('automation')" class="sidebar-link" id="nav-automation">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    Automation Metrics
+                </a>
+                <a href="#" onclick="showSection('audit')" class="sidebar-link" id="nav-audit">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    Audit Trail
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200 bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center">
+                        <span class="text-sky-700 font-semibold text-xs">AC</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-800 truncate">Acme Corp</p>
+                        <p class="text-xs text-slate-500">Enterprise Plan</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 min-h-screen">
+            <!-- Header -->
+            <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+                <div class="px-6 py-4 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800" id="page-title">Dashboard</h2>
+                        <p class="text-sm text-slate-500" id="page-subtitle">Autonomous Financial Controller Overview</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full pulse-dot"></span>
+                            <span class="text-sm text-emerald-700 font-medium">System Healthy</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-500">Last sync</p>
+                            <p class="text-sm font-medium text-slate-700">2 min ago</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-6">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard">
+                    <!-- The Core Insight Banner -->
+                    <div class="bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl p-6 mb-6 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-slate-400 text-sm uppercase tracking-wider mb-1">The CAST Principle</p>
+                                <h3 class="text-2xl font-bold mb-2">Every Transaction Is an Underwriting Decision</h3>
+                                <p class="text-slate-300 max-w-2xl">The General Ledger is a General Autopsy—a report on what went wrong after the money is gone. CAST underwrites every transaction <em>before</em> a dollar moves.</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-4xl font-bold text-sky-400">91.4%</p>
+                                <p class="text-slate-400">Auto-Verified Today</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI Grid -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="kpi-card positive bg-white rounded-xl p-5 shadow-sm">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Monthly Recurring Revenue</p>
+                                    <p class="text-2xl font-bold text-slate-800 mt-1">$2.47M</p>
+                                </div>
+                                <span class="status-pill bg-emerald-100 text-emerald-700">+8.2%</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="metric-bar"><div class="metric-bar-fill bg-emerald-500" style="width: 82%"></div></div>
+                                <p class="text-xs text-slate-500 mt-1">vs $2.28M last month</p>
+                            </div>
+                        </div>
+                        
+                        <div class="kpi-card positive bg-white rounded-xl p-5 shadow-sm">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Net Revenue Retention</p>
+                                    <p class="text-2xl font-bold text-slate-800 mt-1">118%</p>
+                                </div>
+                                <span class="status-pill bg-emerald-100 text-emerald-700">+3pts</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="metric-bar"><div class="metric-bar-fill bg-emerald-500" style="width: 90%"></div></div>
+                                <p class="text-xs text-slate-500 mt-1">Target: 115%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="kpi-card neutral bg-white rounded-xl p-5 shadow-sm">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Invoices Processed</p>
+                                    <p class="text-2xl font-bold text-slate-800 mt-1">1,847</p>
+                                </div>
+                                <span class="status-pill bg-sky-100 text-sky-700">MTD</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="metric-bar"><div class="metric-bar-fill bg-sky-500" style="width: 74%"></div></div>
+                                <p class="text-xs text-slate-500 mt-1">1,687 auto-verified (91.4%)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="kpi-card negative bg-white rounded-xl p-5 shadow-sm">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Exceptions Open</p>
+                                    <p class="text-2xl font-bold text-slate-800 mt-1">4</p>
+                                </div>
+                                <span class="status-pill bg-red-100 text-red-700">Action</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="metric-bar"><div class="metric-bar-fill bg-red-500" style="width: 8%"></div></div>
+                                <p class="text-xs text-slate-500 mt-1">$127,400 at risk</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Two Column: Transaction Flow + Revenue -->
+                    <div class="grid grid-cols-2 gap-6 mb-6">
+                        <!-- Transaction Underwriting Flow -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 mb-4">Transaction Underwriting Pipeline</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">Submitted</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-slate-500 rounded" style="width: 100%"></div>
+                                            <span class="absolute inset-0 flex items-center justify-center text-white text-sm font-medium">1,847</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">Policy Check</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-sky-500 rounded" style="width: 98%"></div>
+                                            <span class="absolute inset-0 flex items-center justify-center text-white text-sm font-medium">1,809 (98%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">3-Way Match</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-cyan-500 rounded" style="width: 94%"></div>
+                                            <span class="absolute inset-0 flex items-center justify-center text-white text-sm font-medium">1,736 (94%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">Auto-Verified</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-emerald-500 rounded" style="width: 91.4%"></div>
+                                            <span class="absolute inset-0 flex items-center justify-center text-white text-sm font-medium">1,687 (91.4%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">Human Review</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-amber-500 rounded" style="width: 6.5%"></div>
+                                            <span class="absolute inset-0 flex items-center pl-4 text-slate-700 text-sm font-medium">120 (6.5%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="w-24 text-right">
+                                        <p class="text-sm text-slate-600">Exceptions</p>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="h-8 bg-slate-200 rounded relative">
+                                            <div class="absolute inset-y-0 left-0 bg-red-500 rounded" style="width: 2.1%"></div>
+                                            <span class="absolute inset-0 flex items-center pl-4 text-slate-700 text-sm font-medium">40 (2.1%)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Revenue Recognition Status -->
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 mb-4">Revenue Recognition (ASC 606)</h3>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-slate-50 rounded-lg">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm text-slate-600">Contracted Revenue</span>
+                                        <span class="font-semibold text-slate-800">$34.2M</span>
+                                    </div>
+                                    <div class="metric-bar"><div class="metric-bar-fill bg-slate-400" style="width: 100%"></div></div>
+                                </div>
+                                <div class="p-4 bg-emerald-50 rounded-lg">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm text-slate-600">Recognized (Delivered)</span>
+                                        <span class="font-semibold text-emerald-700">$28.7M</span>
+                                    </div>
+                                    <div class="metric-bar"><div class="metric-bar-fill bg-emerald-500" style="width: 84%"></div></div>
+                                    <p class="text-xs text-emerald-600 mt-1">84% of contracted</p>
+                                </div>
+                                <div class="p-4 bg-amber-50 rounded-lg">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm text-slate-600">Deferred Revenue</span>
+                                        <span class="font-semibold text-amber-700">$5.5M</span>
+                                    </div>
+                                    <div class="metric-bar"><div class="metric-bar-fill bg-amber-500" style="width: 16%"></div></div>
+                                    <p class="text-xs text-amber-600 mt-1">16% pending delivery</p>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-slate-200">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                        <span class="text-sm text-slate-600">ASC 606 compliant • Auto-calculated</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Three Column: Work Order Status -->
+                    <div class="grid grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 mb-4">Vendor Payments</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Pending Verification</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">12</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Ready to Pay</span>
+                                    <span class="status-pill bg-emerald-100 text-emerald-700">47</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Paid (MTD)</span>
+                                    <span class="status-pill bg-slate-100 text-slate-700">284</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Disputed</span>
+                                    <span class="status-pill bg-red-100 text-red-700">3</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <p class="text-xs text-slate-500">Total payable: <span class="font-semibold text-slate-700">$847,200</span></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 mb-4">Customer Billing</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Invoices to Generate</span>
+                                    <span class="status-pill bg-sky-100 text-sky-700">8</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Sent, Awaiting Payment</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">124</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Collected (MTD)</span>
+                                    <span class="status-pill bg-emerald-100 text-emerald-700">$2.1M</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Past Due</span>
+                                    <span class="status-pill bg-red-100 text-red-700">7</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <p class="text-xs text-slate-500">DSO: <span class="font-semibold text-slate-700">24 days</span> (target: 30)</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 mb-4">Contract Lifecycle</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">New (This Month)</span>
+                                    <span class="status-pill bg-emerald-100 text-emerald-700">14</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Expansion Pending</span>
+                                    <span class="status-pill bg-sky-100 text-sky-700">23</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Renewal (90 days)</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">18</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-slate-600">Churn Risk</span>
+                                    <span class="status-pill bg-red-100 text-red-700">2</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100">
+                                <p class="text-xs text-slate-500">ARR at risk: <span class="font-semibold text-red-600">$84,000</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-800">Recent Underwriting Decisions</h3>
+                            <span class="text-sm text-slate-500">Last 24 hours</span>
+                        </div>
+                        <div class="divide-y divide-slate-100">
+                            <div class="p-4 event-row flex items-center gap-4">
+                                <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-slate-800">Invoice #INV-2026-4892 auto-verified</p>
+                                    <p class="text-xs text-slate-500">AWS Cloud Services • 3-way match passed • Policy compliant</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-emerald-600">$24,847.00</p>
+                                    <p class="text-xs text-slate-500">3 min ago</p>
+                                </div>
+                                <span class="hash-badge">0x7f3a...b2c1</span>
+                            </div>
+                            <div class="p-4 event-row flex items-center gap-4">
+                                <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-slate-800">Subscription renewal verified</p>
+                                    <p class="text-xs text-slate-500">TechStart Inc • Annual contract • Auto-renewal clause active</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-emerald-600">$48,000.00</p>
+                                    <p class="text-xs text-slate-500">18 min ago</p>
+                                </div>
+                                <span class="hash-badge">0x3c2d...a8f4</span>
+                            </div>
+                            <div class="p-4 event-row flex items-center gap-4 bg-amber-50">
+                                <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-slate-800">Invoice #INV-2026-4891 flagged for review</p>
+                                    <p class="text-xs text-slate-500">Marketing Agency • Amount exceeds PO by 12% • Requires approval</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-amber-600">$67,200.00</p>
+                                    <p class="text-xs text-slate-500">42 min ago</p>
+                                </div>
+                                <span class="hash-badge">0x9e1f...c3d2</span>
+                            </div>
+                            <div class="p-4 event-row flex items-center gap-4 bg-red-50">
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-slate-800">Invoice #INV-2026-4889 rejected</p>
+                                    <p class="text-xs text-slate-500">Unknown Vendor • No matching PO • Vendor not credentialed</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-red-600">$12,400.00</p>
+                                    <p class="text-xs text-slate-500">1 hour ago</p>
+                                </div>
+                                <span class="hash-badge">0x2b4e...f7a9</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Underwriting View Section -->
+                <section id="section-underwriting" class="hidden">
+                    <div class="bg-white rounded-xl p-8 shadow-sm mb-6">
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">The Underwriting Model</h3>
+                        <p class="text-slate-600 mb-6">Every transaction is a risk decision. CAST underwrites each one before money moves.</p>
+                        
+                        <div class="underwriting-flow mb-8">
+                            <div class="text-center p-6 bg-slate-100 rounded-xl">
+                                <div class="w-16 h-16 bg-slate-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                </div>
+                                <p class="font-semibold text-slate-800">CLAIM</p>
+                                <p class="text-sm text-slate-600">Invoice arrives</p>
+                            </div>
+                            
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            
+                            <div class="text-center p-6 bg-sky-100 rounded-xl">
+                                <div class="w-16 h-16 bg-sky-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                </div>
+                                <p class="font-semibold text-slate-800">CAST</p>
+                                <p class="text-sm text-slate-600">Underwrites the risk</p>
+                            </div>
+                            
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            
+                            <div class="text-center p-6 bg-emerald-100 rounded-xl">
+                                <div class="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <p class="font-semibold text-slate-800">PAYOUT</p>
+                                <p class="text-sm text-slate-600">Payment released</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-5 gap-4">
+                            <div class="p-4 border border-slate-200 rounded-lg text-center">
+                                <p class="text-2xl font-bold text-slate-800">1</p>
+                                <p class="text-xs text-slate-600 mt-1">Vendor Credentialed?</p>
+                                <p class="text-[10px] text-emerald-600 mt-2">✓ AUTO-CHECK</p>
+                            </div>
+                            <div class="p-4 border border-slate-200 rounded-lg text-center">
+                                <p class="text-2xl font-bold text-slate-800">2</p>
+                                <p class="text-xs text-slate-600 mt-1">PO Exists & Matches?</p>
+                                <p class="text-[10px] text-emerald-600 mt-2">✓ AUTO-CHECK</p>
+                            </div>
+                            <div class="p-4 border border-slate-200 rounded-lg text-center">
+                                <p class="text-2xl font-bold text-slate-800">3</p>
+                                <p class="text-xs text-slate-600 mt-1">Delivery Verified?</p>
+                                <p class="text-[10px] text-emerald-600 mt-2">✓ AUTO-CHECK</p>
+                            </div>
+                            <div class="p-4 border border-slate-200 rounded-lg text-center">
+                                <p class="text-2xl font-bold text-slate-800">4</p>
+                                <p class="text-xs text-slate-600 mt-1">Price Within Tolerance?</p>
+                                <p class="text-[10px] text-emerald-600 mt-2">✓ AUTO-CHECK</p>
+                            </div>
+                            <div class="p-4 border border-slate-200 rounded-lg text-center">
+                                <p class="text-2xl font-bold text-slate-800">5</p>
+                                <p class="text-xs text-slate-600 mt-1">Budget Available?</p>
+                                <p class="text-[10px] text-emerald-600 mt-2">✓ AUTO-CHECK</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h4 class="font-semibold text-slate-800 mb-4">Traditional Process (Without CAST)</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                                    <span class="text-red-500">✗</span>
+                                    <span class="text-sm text-slate-700">Invoice arrives via email</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                                    <span class="text-red-500">✗</span>
+                                    <span class="text-sm text-slate-700">Human reviews "Looks legit"</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                                    <span class="text-red-500">✗</span>
+                                    <span class="text-sm text-slate-700">Payment sent</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                                    <span class="text-red-500">✗</span>
+                                    <span class="text-sm text-slate-700">30 days later: "We overpaid $47K"</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-4 bg-red-100 rounded-lg">
+                                <p class="text-sm text-red-800"><strong>Result:</strong> Accountability without control</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 shadow-sm">
+                            <h4 class="font-semibold text-slate-800 mb-4">CAST Process (With Underwriting)</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                                    <span class="text-emerald-500">✓</span>
+                                    <span class="text-sm text-slate-700">Invoice arrives via any channel</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                                    <span class="text-emerald-500">✓</span>
+                                    <span class="text-sm text-slate-700">CAST validates against 5 policy checks</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                                    <span class="text-emerald-500">✓</span>
+                                    <span class="text-sm text-slate-700">3-way match verified automatically</span>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
+                                    <span class="text-emerald-500">✓</span>
+                                    <span class="text-sm text-slate-700">Payment released only when verified</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-4 bg-emerald-100 rounded-lg">
+                                <p class="text-sm text-emerald-800"><strong>Result:</strong> Control AND accountability</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Events Section -->
+                <section id="section-events" class="hidden">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200 flex justify-between items-center">
+                            <h3 class="font-semibold text-slate-800">Event Stream</h3>
+                            <div class="flex gap-2">
+                                <select class="text-sm border border-slate-300 rounded-lg px-3 py-1.5">
+                                    <option>All Events</option>
+                                    <option>Invoices</option>
+                                    <option>Payments</option>
+                                    <option>Contracts</option>
+                                </select>
+                                <select class="text-sm border border-slate-300 rounded-lg px-3 py-1.5">
+                                    <option>Last 24 hours</option>
+                                    <option>Last 7 days</option>
+                                    <option>Last 30 days</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                            <div class="p-4 event-row">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="status-pill bg-sky-100 text-sky-700">INVOICE_RECEIVED</span>
+                                            <span class="text-xs text-slate-500">evt_a1b2c3d4 • 3 minutes ago</span>
+                                        </div>
+                                        <p class="text-sm text-slate-800 mt-1">Invoice #INV-2026-4893 received from AWS</p>
+                                        <p class="text-xs text-slate-500">Amount: $24,847.00 • PO: PO-2026-1247 • Net 30</p>
+                                    </div>
+                                    <span class="hash-badge">0x7f3a...b2c1</span>
+                                </div>
+                            </div>
+                            <div class="p-4 event-row">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="status-pill bg-emerald-100 text-emerald-700">POLICY_PASSED</span>
+                                            <span class="text-xs text-slate-500">evt_a1b2c3d5 • 3 minutes ago</span>
+                                        </div>
+                                        <p class="text-sm text-slate-800 mt-1">Invoice #INV-2026-4893 passed policy evaluation</p>
+                                        <p class="text-xs text-slate-500">Policies: VND-001, BUD-003, APR-002 • All passed</p>
+                                    </div>
+                                    <span class="hash-badge">0x8e2b...c3d2</span>
+                                </div>
+                            </div>
+                            <div class="p-4 event-row">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="status-pill bg-emerald-100 text-emerald-700">THREE_WAY_MATCH</span>
+                                            <span class="text-xs text-slate-500">evt_a1b2c3d6 • 3 minutes ago</span>
+                                        </div>
+                                        <p class="text-sm text-slate-800 mt-1">3-way match verified for Invoice #INV-2026-4893</p>
+                                        <p class="text-xs text-slate-500">PO ✓ • Invoice ✓ • Receipt ✓ • Variance: 0%</p>
+                                    </div>
+                                    <span class="hash-badge">0x9f3c...d4e3</span>
+                                </div>
+                            </div>
+                            <div class="p-4 event-row">
+                                <div class="flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="status-pill bg-emerald-100 text-emerald-700">PAYMENT_APPROVED</span>
+                                            <span class="text-xs text-slate-500">evt_a1b2c3d7 • 3 minutes ago</span>
+                                        </div>
+                                        <p class="text-sm text-slate-800 mt-1">Payment approved for Invoice #INV-2026-4893</p>
+                                        <p class="text-xs text-slate-500">Amount: $24,847.00 • Executor: CAST-Agent • Auto-verified</p>
+                                    </div>
+                                    <span class="hash-badge">0xa04d...e5f4</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Policies Section -->
+                <section id="section-policies" class="hidden">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="policy-card bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="status-pill bg-emerald-100 text-emerald-700">Active</span>
+                                <span class="text-xs text-slate-500">VND-001</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-800">Vendor Credentialing</h4>
+                            <p class="text-sm text-slate-600 mt-1 mb-4">Only pay invoices from credentialed vendors</p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Trigger</span>
+                                    <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded">INVOICE_RECEIVED</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Check</span>
+                                    <span class="font-medium">vendor.status = 'APPROVED'</span>
+                                </div>
+                                <div class="flex justify-between py-2">
+                                    <span class="text-slate-600">On Fail</span>
+                                    <span class="status-pill bg-red-100 text-red-700">REJECT + FLAG</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+                                Evaluations: 1,847 • Pass: 98.2% • Avg: 0.02s
+                            </div>
+                        </div>
+
+                        <div class="policy-card bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="status-pill bg-emerald-100 text-emerald-700">Active</span>
+                                <span class="text-xs text-slate-500">BUD-003</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-800">Budget Compliance</h4>
+                            <p class="text-sm text-slate-600 mt-1 mb-4">Verify budget availability before approval</p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Trigger</span>
+                                    <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded">POLICY_PASSED(VND-001)</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Check</span>
+                                    <span class="font-medium">dept.budget >= invoice.amount</span>
+                                </div>
+                                <div class="flex justify-between py-2">
+                                    <span class="text-slate-600">On Fail</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">ESCALATE</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-500">
+                                Evaluations: 1,812 • Pass: 94.7% • Avg: 0.04s
+                            </div>
+                        </div>
+
+                        <div class="policy-card bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="status-pill bg-emerald-100 text-emerald-700">Active</span>
+                                <span class="text-xs text-slate-500">APR-002</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-800">Approval Authority</h4>
+                            <p class="text-sm text-slate-600 mt-1 mb-4">Route based on amount thresholds</p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">≤ $10,000</span>
+                                    <span class="status-pill bg-emerald-100 text-emerald-700">Auto-approve</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">$10K - $50K</span>
+                                    <span class="status-pill bg-sky-100 text-sky-700">Manager</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">$50K - $100K</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">Director</span>
+                                </div>
+                                <div class="flex justify-between py-2">
+                                    <span class="text-slate-600">&gt; $100K</span>
+                                    <span class="status-pill bg-purple-100 text-purple-700">CFO</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="policy-card from-exception bg-white rounded-xl p-6 shadow-sm">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="status-pill bg-amber-100 text-amber-700">From Exception</span>
+                                <span class="text-xs text-slate-500">VAR-004</span>
+                            </div>
+                            <h4 class="font-semibold text-slate-800">Variance Tolerance</h4>
+                            <p class="text-sm text-slate-600 mt-1 mb-4">Allow minor invoice-to-PO variance</p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Trigger</span>
+                                    <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded">THREE_WAY_MATCH</span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-slate-100">
+                                    <span class="text-slate-600">Tolerance</span>
+                                    <span class="font-medium">≤ 5% or ≤ $500</span>
+                                </div>
+                                <div class="flex justify-between py-2">
+                                    <span class="text-slate-600">On Exceed</span>
+                                    <span class="status-pill bg-amber-100 text-amber-700">Human Review</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-amber-200 bg-amber-50 -mx-6 -mb-6 px-6 py-3 rounded-b-xl">
+                                <p class="text-xs text-amber-700">Created from: 47 exceptions for shipping variance (Q4 2025)</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Work Orders Section -->
+                <section id="section-workorders" class="hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+                            <p class="text-3xl font-bold text-amber-600">42</p>
+                            <p class="text-sm text-slate-600">Pending</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+                            <p class="text-3xl font-bold text-sky-600">18</p>
+                            <p class="text-sm text-slate-600">In Progress</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+                            <p class="text-3xl font-bold text-emerald-600">1,687</p>
+                            <p class="text-sm text-slate-600">Completed (MTD)</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm text-center">
+                            <p class="text-3xl font-bold text-red-600">4</p>
+                            <p class="text-sm text-slate-600">Exception</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Work Order</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Type</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Reference</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Amount</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Executor</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">SLA</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-sm text-slate-600">WO-24892</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-sky-100 text-sky-700">invoice_verify</span></td>
+                                    <td class="px-4 py-3 text-sm">INV-2026-4893</td>
+                                    <td class="px-4 py-3 text-sm font-semibold">$24,847</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">CAST-Agent</span></td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Complete</span></td>
+                                    <td class="px-4 py-3 text-sm text-emerald-600">0.4s</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-sm text-slate-600">WO-24891</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-purple-100 text-purple-700">contract_renew</span></td>
+                                    <td class="px-4 py-3 text-sm">CTR-TechStart-2024</td>
+                                    <td class="px-4 py-3 text-sm font-semibold">$48,000</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">CAST-Agent</span></td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Complete</span></td>
+                                    <td class="px-4 py-3 text-sm text-emerald-600">Auto</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 bg-amber-50">
+                                    <td class="px-4 py-3 font-mono text-sm text-slate-600">WO-24890</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-amber-100 text-amber-700">variance_review</span></td>
+                                    <td class="px-4 py-3 text-sm">INV-2026-4891</td>
+                                    <td class="px-4 py-3 text-sm font-semibold">$67,200</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-slate-100 text-slate-700">Sarah K.</span></td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-amber-100 text-amber-700">Assigned</span></td>
+                                    <td class="px-4 py-3 text-sm text-amber-600">4h left</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 bg-red-50">
+                                    <td class="px-4 py-3 font-mono text-sm text-slate-600">WO-24889</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-red-100 text-red-700">vendor_review</span></td>
+                                    <td class="px-4 py-3 text-sm">INV-2026-4889</td>
+                                    <td class="px-4 py-3 text-sm font-semibold">$12,400</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-slate-100 text-slate-700">Procurement</span></td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-red-100 text-red-700">Exception</span></td>
+                                    <td class="px-4 py-3 text-sm text-red-600">Overdue</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Exceptions Section -->
+                <section id="section-exceptions" class="hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 uppercase">Open</p>
+                            <p class="text-2xl font-bold text-red-600">4</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 uppercase">Resolved (MTD)</p>
+                            <p class="text-2xl font-bold text-emerald-600">36</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 uppercase">→ New Policies</p>
+                            <p class="text-2xl font-bold text-purple-600">3</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 shadow-sm">
+                            <p class="text-xs text-slate-500 uppercase">$ At Risk</p>
+                            <p class="text-2xl font-bold text-amber-600">$127,400</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-red-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="status-pill bg-red-100 text-red-700">CRITICAL</span>
+                                        <span class="text-xs text-slate-500">exc_unknown_vendor</span>
+                                    </div>
+                                    <h4 class="font-semibold text-slate-800">Invoice from Unknown Vendor</h4>
+                                    <p class="text-sm text-slate-600 mt-1">INV-2026-4889 from "Tech Solutions LLC" - vendor not in approved list, no matching PO found.</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-red-600">$12,400</p>
+                                    <p class="text-xs text-slate-500">SLA: Overdue</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-2">
+                                <button class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">Reject Invoice</button>
+                                <button class="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200">Credential Vendor</button>
+                                <button class="px-3 py-1.5 bg-purple-100 text-purple-700 text-sm rounded-lg hover:bg-purple-200">Create Policy</button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-xl p-6 shadow-sm border-l-4 border-amber-500">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="status-pill bg-amber-100 text-amber-700">HIGH</span>
+                                        <span class="text-xs text-slate-500">exc_variance_exceeded</span>
+                                    </div>
+                                    <h4 class="font-semibold text-slate-800">Invoice Exceeds PO by 12%</h4>
+                                    <p class="text-sm text-slate-600 mt-1">Marketing Agency invoice $67,200 vs PO $60,000. Variance ($7,200) exceeds 5% tolerance.</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-amber-600">$67,200</p>
+                                    <p class="text-xs text-slate-500">SLA: 4h remaining</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-2">
+                                <button class="px-3 py-1.5 bg-emerald-500 text-white text-sm rounded-lg hover:bg-emerald-600">Approve with Note</button>
+                                <button class="px-3 py-1.5 bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600">Request Credit</button>
+                                <button class="px-3 py-1.5 bg-slate-100 text-slate-700 text-sm rounded-lg hover:bg-slate-200">Reject</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Ledger Section -->
+                <section id="section-ledger" class="hidden">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                        <div class="p-4 border-b border-slate-200">
+                            <h3 class="font-semibold text-slate-800">General Ledger (Real-time)</h3>
+                        </div>
+                        <table class="w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Entry</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Account</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Description</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600">Debit</th>
+                                    <th class="px-4 py-3 text-right text-xs font-semibold text-slate-600">Credit</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Source</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600">Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-slate-600">JE-48921</td>
+                                    <td class="px-4 py-3">6100 - Cloud Services</td>
+                                    <td class="px-4 py-3">AWS Invoice Jan 2026</td>
+                                    <td class="px-4 py-3 text-right font-semibold">$24,847.00</td>
+                                    <td class="px-4 py-3 text-right">-</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Auto</span></td>
+                                    <td class="px-4 py-3"><span class="hash-badge">0x7f3a...b2c1</span></td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-slate-600">JE-48922</td>
+                                    <td class="px-4 py-3">2100 - Accounts Payable</td>
+                                    <td class="px-4 py-3">AWS Invoice Jan 2026</td>
+                                    <td class="px-4 py-3 text-right">-</td>
+                                    <td class="px-4 py-3 text-right font-semibold">$24,847.00</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Auto</span></td>
+                                    <td class="px-4 py-3"><span class="hash-badge">0x7f3a...b2c1</span></td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-slate-600">JE-48919</td>
+                                    <td class="px-4 py-3">1100 - Cash</td>
+                                    <td class="px-4 py-3">TechStart Inc - Renewal</td>
+                                    <td class="px-4 py-3 text-right font-semibold">$48,000.00</td>
+                                    <td class="px-4 py-3 text-right">-</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Auto</span></td>
+                                    <td class="px-4 py-3"><span class="hash-badge">0x3c2d...a8f4</span></td>
+                                </tr>
+                                <tr class="hover:bg-slate-50">
+                                    <td class="px-4 py-3 font-mono text-slate-600">JE-48920</td>
+                                    <td class="px-4 py-3">4100 - Subscription Revenue</td>
+                                    <td class="px-4 py-3">TechStart Inc - Renewal</td>
+                                    <td class="px-4 py-3 text-right">-</td>
+                                    <td class="px-4 py-3 text-right font-semibold">$48,000.00</td>
+                                    <td class="px-4 py-3"><span class="status-pill bg-emerald-100 text-emerald-700">Auto</span></td>
+                                    <td class="px-4 py-3"><span class="hash-badge">0x3c2d...a8f4</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-slate-800 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            <div>
+                                <p class="text-white font-semibold">Hash Chain Verified</p>
+                                <p class="text-slate-400 text-sm">48,921 entries • Last block: 0x7f3a...b2c1 • Integrity: 100%</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Revenue Recognition Section -->
+                <section id="section-revenue" class="hidden">
+                    <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                        <h3 class="font-semibold text-slate-800 mb-4">ASC 606 Revenue Recognition</h3>
+                        <p class="text-slate-600 mb-6">CAST automatically calculates revenue recognition based on performance obligations and delivery milestones.</p>
+                        
+                        <div class="grid grid-cols-3 gap-6">
+                            <div class="p-4 bg-slate-50 rounded-lg">
+                                <p class="text-sm text-slate-600">Total Contract Value</p>
+                                <p class="text-2xl font-bold text-slate-800">$34.2M</p>
+                            </div>
+                            <div class="p-4 bg-emerald-50 rounded-lg">
+                                <p class="text-sm text-slate-600">Recognized Revenue</p>
+                                <p class="text-2xl font-bold text-emerald-700">$28.7M</p>
+                            </div>
+                            <div class="p-4 bg-amber-50 rounded-lg">
+                                <p class="text-sm text-slate-600">Deferred Revenue</p>
+                                <p class="text-2xl font-bold text-amber-700">$5.5M</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Automation Section -->
+                <section id="section-automation" class="hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="bg-white rounded-xl p-6 shadow-sm text-center">
+                            <p class="text-4xl font-bold text-emerald-600">91.4%</p>
+                            <p class="text-sm text-slate-600 mt-2">AI Automated</p>
+                            <p class="text-xs text-slate-500">1,687 transactions</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm text-center">
+                            <p class="text-4xl font-bold text-sky-600">6.5%</p>
+                            <p class="text-sm text-slate-600 mt-2">Human Review</p>
+                            <p class="text-xs text-slate-500">120 transactions</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm text-center">
+                            <p class="text-4xl font-bold text-purple-600">2.1%</p>
+                            <p class="text-sm text-slate-600 mt-2">Exceptions</p>
+                            <p class="text-xs text-slate-500">40 transactions</p>
+                        </div>
+                        <div class="bg-white rounded-xl p-6 shadow-sm text-center">
+                            <p class="text-4xl font-bold text-slate-800">0.3s</p>
+                            <p class="text-sm text-slate-600 mt-2">Avg Processing</p>
+                            <p class="text-xs text-slate-500">vs 4.2 days manual</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 class="font-semibold text-slate-800 mb-4">The Learning Loop</h3>
+                        <p class="text-slate-600 mb-6">Every exception that requires human judgment becomes a candidate for a new policy. CAST gets smarter over time.</p>
+                        
+                        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                    <span class="text-red-600 font-bold">40</span>
+                                </div>
+                                <span class="text-slate-600">Exceptions this month</span>
+                            </div>
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                                    <span class="text-amber-600 font-bold">12</span>
+                                </div>
+                                <span class="text-slate-600">Pattern identified</span>
+                            </div>
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <span class="text-purple-600 font-bold">3</span>
+                                </div>
+                                <span class="text-slate-600">New policies created</span>
+                            </div>
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                                    <span class="text-emerald-600 font-bold">↑</span>
+                                </div>
+                                <span class="text-slate-600">Automation improves</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Audit Section -->
+                <section id="section-audit" class="hidden">
+                    <div class="bg-white rounded-xl p-6 shadow-sm">
+                        <h3 class="font-semibold text-slate-800 mb-4">Immutable Audit Trail</h3>
+                        <p class="text-slate-600 mb-6">Every decision is cryptographically chained. You can't edit history. Auditors love us.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 border border-slate-200 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-mono text-sm">Block #48921</span>
+                                    <span class="hash-badge">0x7f3a8b2c1d4e5f6a7b8c9d0e1f2a3b4c</span>
+                                </div>
+                                <p class="text-sm text-slate-600">Invoice verification • INV-2026-4893 • Auto-approved • $24,847.00</p>
+                                <p class="text-xs text-slate-500 mt-1">2026-01-15 14:32:18 UTC • Previous: 0x8e2b...c3d2</p>
+                            </div>
+                            <div class="p-4 border border-slate-200 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-mono text-sm">Block #48920</span>
+                                    <span class="hash-badge">0x8e2bc3d2e4f5a6b7c8d9e0f1a2b3c4d5</span>
+                                </div>
+                                <p class="text-sm text-slate-600">Contract renewal • TechStart Inc • Auto-processed • $48,000.00</p>
+                                <p class="text-xs text-slate-500 mt-1">2026-01-15 14:18:42 UTC • Previous: 0x9f3c...d4e3</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('section[id^="section-"]').forEach(s => s.classList.add('hidden'));
+            // Show selected section
+            document.getElementById('section-' + sectionId).classList.remove('hidden');
+            
+            // Update nav
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.getElementById('nav-' + sectionId).classList.add('active');
+            
+            // Update header
+            const titles = {
+                'dashboard': ['Dashboard', 'Autonomous Financial Controller Overview'],
+                'underwriting': ['Underwriting View', 'Every Transaction Is a Risk Decision'],
+                'events': ['Event Stream', 'Real-time Transaction Events'],
+                'policies': ['Policies', 'Business Rules & Automation Logic'],
+                'workorders': ['Work Orders', 'Task Execution & Assignment'],
+                'exceptions': ['Exceptions', 'Items Requiring Human Judgment'],
+                'ledger': ['General Ledger', 'Real-time Financial Entries'],
+                'revenue': ['Revenue Recognition', 'ASC 606 Compliance'],
+                'automation': ['Automation Metrics', 'AI Performance & Learning Loop'],
+                'audit': ['Audit Trail', 'Immutable Hash Chain']
+            };
+            document.getElementById('page-title').textContent = titles[sectionId][0];
+            document.getElementById('page-subtitle').textContent = titles[sectionId][1];
+        }
+    </script>
+</body>
+</html>

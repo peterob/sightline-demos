@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+            --accent-cyan: #22d3ee;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); height: 100vh; overflow: hidden; }
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 200px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+        .logo { padding: 16px; border-bottom: 1px solid var(--border-color); font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: var(--bg-secondary); }
+        .logo-icon { width: 26px; height: 26px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .nav-section { padding: 12px 8px; }
+        .nav-title { font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; padding: 0 8px; margin-bottom: 6px; }
+        .nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; transition: all 0.15s; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .nav-item .badge { margin-left: auto; background: var(--accent-orange); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header { padding: 12px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); position: sticky; top: 0; z-index: 10; }
+        .header-title { font-size: 16px; font-weight: 600; }
+        .header-metrics { display: flex; gap: 24px; }
+        .header-metric { text-align: right; }
+        .header-metric-value { font-size: 16px; font-weight: 600; color: var(--accent-green); }
+        .header-metric-label { font-size: 11px; color: var(--text-muted); }
+        .content { flex: 1; padding: 20px 24px; overflow: auto; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; margin-bottom: 16px; }
+        .card-header { padding: 14px 16px; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .card-body { padding: 16px; }
+        .story-banner { background: linear-gradient(135deg, rgba(77, 166, 255, 0.1), rgba(167, 139, 250, 0.1)); border: 1px solid rgba(77, 166, 255, 0.3); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+        .story-banner p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+        .story-banner strong { color: var(--accent-blue); }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stats-grid.three-col { grid-template-columns: repeat(3, 1fr); }
+        .stats-grid.five-col { grid-template-columns: repeat(5, 1fr); }
+        .stat-card { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-value.green { color: var(--accent-green); }
+        .stat-value.red { color: var(--accent-red); }
+        .stat-value.blue { color: var(--accent-blue); }
+        .stat-value.orange { color: var(--accent-orange); }
+        .stat-value.yellow { color: var(--accent-yellow); }
+        .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .stat-sub { font-size: 10px; color: var(--accent-green); margin-top: 2px; }
+        .stat-sub.red { color: var(--accent-red); }
+        .stat-sub.yellow { color: var(--accent-yellow); }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th { text-align: left; padding: 10px 12px; background: var(--bg-tertiary); border-bottom: 1px solid var(--border-color); font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .data-table td { padding: 12px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .data-table tr:hover { background: var(--bg-tertiary); }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr.highlight { background: rgba(255, 193, 7, 0.1); }
+        .data-table tr.total-row { background: var(--bg-tertiary); font-weight: 600; }
+        .status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+        .status.green { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .status.red { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); }
+        .status.yellow { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+        .status.blue { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .status.orange { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .status.purple { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+        .btn { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-success { background: var(--accent-green); color: white; }
+        .btn-ghost { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .btn-sm { padding: 4px 8px; font-size: 11px; }
+        .mechanism-flow { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 20px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 20px; }
+        .mechanism-step { text-align: center; padding: 16px 24px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; min-width: 140px; }
+        .mechanism-step.active { border-color: var(--accent-blue); background: rgba(77, 166, 255, 0.1); }
+        .mechanism-icon { font-size: 24px; margin-bottom: 8px; }
+        .mechanism-label { font-size: 12px; font-weight: 600; }
+        .mechanism-desc { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+        .mechanism-arrow { font-size: 20px; color: var(--text-muted); }
+        .footer-status { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(0, 212, 170, 0.1); border: 1px solid rgba(0, 212, 170, 0.3); border-radius: 8px; font-size: 12px; color: var(--accent-green); }
+        .status-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+        .decisions-grid { display: flex; flex-direction: column; gap: 10px; }
+        .decision-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; }
+        .decision-info { flex: 1; }
+        .decision-title { font-size: 13px; font-weight: 500; }
+        .decision-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .decision-actions { display: flex; gap: 8px; }
+        .integrity-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .integrity-card { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center; }
+        .integrity-card.success { border-color: rgba(0, 212, 170, 0.5); background: rgba(0, 212, 170, 0.1); }
+        .integrity-card.warning { border-color: rgba(255, 159, 67, 0.5); background: rgba(255, 159, 67, 0.1); }
+        .integrity-value { font-size: 20px; font-weight: 700; }
+        .integrity-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+        .comparison-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .comparison-table th { text-align: left; padding: 12px; background: var(--bg-tertiary); border: 1px solid var(--border-color); font-weight: 600; }
+        .comparison-table td { padding: 12px; border: 1px solid var(--border-color); }
+        .agents-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px; }
+        .agent-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; }
+        .agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .agent-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .agent-icon.blue { background: rgba(77, 166, 255, 0.2); }
+        .agent-icon.green { background: rgba(0, 212, 170, 0.2); }
+        .agent-icon.purple { background: rgba(167, 139, 250, 0.2); }
+        .agent-icon.orange { background: rgba(255, 159, 67, 0.2); }
+        .agent-name { font-weight: 600; font-size: 14px; }
+        .agent-status { font-size: 11px; color: var(--accent-green); }
+        .agent-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+        .agent-metrics { display: flex; gap: 16px; }
+        .agent-metric { text-align: center; }
+        .agent-metric-value { font-size: 16px; font-weight: 600; }
+        .agent-metric-label { font-size: 10px; color: var(--text-muted); }
+        .escalation-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-left: 3px solid var(--accent-orange); border-radius: 8px; margin-bottom: 10px; }
+        .policies-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .policy-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 16px; }
+        .policy-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .policy-id { font-size: 10px; color: var(--accent-purple); font-weight: 600; }
+        .policy-name { font-size: 14px; font-weight: 600; }
+        .policy-rule { display: flex; gap: 8px; margin-bottom: 6px; padding: 6px 8px; background: var(--bg-tertiary); border-radius: 4px; font-size: 12px; }
+        .rule-keyword { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+        .rule-if { background: rgba(255, 193, 7, 0.2); color: var(--accent-yellow); }
+        .rule-then { background: rgba(0, 212, 170, 0.2); color: var(--accent-green); }
+        .rule-never { background: rgba(255, 107, 107, 0.2); color: var(--accent-red); }
+        .event-filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-label { font-size: 11px; color: var(--text-muted); }
+        .filter-select, .filter-input { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; color: var(--text-primary); font-size: 12px; }
+        .filter-input { width: 200px; }
+        .event-type { font-family: 'SF Mono', 'Consolas', monospace; font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg-primary); color: var(--accent-cyan); }
+        .event-hash { font-family: 'SF Mono', 'Consolas', monospace; font-size: 10px; color: var(--text-muted); }
+        .event-actor { display: flex; align-items: center; gap: 6px; }
+        .actor-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        .actor-avatar.system { background: rgba(167, 139, 250, 0.2); color: var(--accent-purple); }
+        .actor-avatar.human { background: rgba(77, 166, 255, 0.2); color: var(--accent-blue); }
+        .actor-avatar.agent { background: rgba(0, 212, 170, 0.2); color: var(--accent-green); }
+        .causal-link { font-family: 'SF Mono', 'Consolas', monospace; font-size: 10px; color: var(--accent-purple); text-decoration: none; }
+        .cash-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .breakdown-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text-muted); }
+        .breakdown-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 13px; }
+        .breakdown-item:last-child { border-bottom: none; }
+        .breakdown-item.total { font-weight: 600; background: var(--bg-tertiary); margin: 0 -16px; padding: 12px 16px; }
+        .aging-bar { display: flex; height: 24px; border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+        .aging-segment { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: white; }
+        .aging-segment.current { background: var(--accent-green); }
+        .aging-segment.days30 { background: var(--accent-blue); }
+        .aging-segment.days60 { background: var(--accent-yellow); }
+        .aging-segment.days90 { background: var(--accent-orange); }
+        .aging-segment.over90 { background: var(--accent-red); }
+        .aging-legend { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
+        .aging-legend-item { display: flex; align-items: center; gap: 6px; }
+        .aging-dot { width: 10px; height: 10px; border-radius: 2px; }
+        .confidence-bar { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+        .confidence-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .confidence-fill.high { background: var(--accent-green); }
+        .confidence-fill.medium { background: var(--accent-yellow); }
+        .confidence-fill.low { background: var(--accent-red); }
+        .confidence-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .confidence-section { background: var(--bg-tertiary); border-radius: 8px; padding: 14px; }
+        .confidence-section-title { font-size: 12px; font-weight: 600; margin-bottom: 10px; color: var(--text-muted); }
+        .confidence-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px solid var(--border-color); }
+        .confidence-item:last-child { border-bottom: none; }
+        .weight-badge { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: var(--bg-primary); }
+        .uncertainty-alert { background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+        .uncertainty-alert-title { font-size: 12px; font-weight: 600; color: var(--accent-yellow); margin-bottom: 4px; }
+        .uncertainty-alert-text { font-size: 12px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <div class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+                <div class="nav-item" data-page="cash">💰 Cash Position</div>
+                <div class="nav-item" data-page="forecast">📈 13-Week Forecast</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item" data-page="ar">📥 Collections (AR)</div>
+                <div class="nav-item" data-page="ap">📤 Payables (AP)</div>
+                <div class="nav-item" data-page="po">📋 Purchase Orders</div>
+                <div class="nav-item" data-page="approvals">✅ Approvals <span class="badge">3</span></div>
+                <div class="nav-item" data-page="payments">💸 Payment Runs</div>
+            </div>
+            <div class="nav-section">
+                <div class="nav-title">System</div>
+                <div class="nav-item" data-page="integrity">🔒 Integrity</div>
+                <div class="nav-item" data-page="policies">📜 Policies</div>
+                <div class="nav-item" data-page="agents">🤖 AI Agents</div>
+                <div class="nav-item" data-page="events">📝 Event Log</div>
+            </div>
+        </aside>
+        <main class="main">
+            <header class="header">
+                <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                <div class="header-metrics">
+                    <div class="header-metric"><div class="header-metric-value">$2,847,392</div><div class="header-metric-label">Cash Position</div></div>
+                    <div class="header-metric"><div class="header-metric-value" style="color: var(--accent-blue);">84%</div><div class="header-metric-label">Forecast Confidence</div></div>
+                </div>
+            </header>
+            <div class="content">
+                <!-- DASHBOARD -->
+                <div class="page-content active" id="page-dashboard">
+                    <div class="story-banner"><p><strong>Today:</strong> 3 items totaling $109,250 awaiting approval. AP Matching agent processed 4 invoices (80% auto-matched, 1 escalated). Forecast confidence at 84% for Week 1, dropping to 69% by Week 13. Books current as of 2 minutes ago.</p></div>
+                    
+                    <div class="stats-grid five-col">
+                        <div class="stat-card"><div class="stat-value green">$2.85M</div><div class="stat-label">Total Cash</div><div class="stat-sub">3 accounts</div></div>
+                        <div class="stat-card"><div class="stat-value blue">$2.35M</div><div class="stat-label">Available</div><div class="stat-sub">After reserve</div></div>
+                        <div class="stat-card"><div class="stat-value">$1.12M</div><div class="stat-label">AR Outstanding</div><div class="stat-sub">9 invoices</div></div>
+                        <div class="stat-card"><div class="stat-value red">$166.9K</div><div class="stat-label">AP Outstanding</div><div class="stat-sub">4 invoices</div></div>
+                        <div class="stat-card"><div class="stat-value orange">$109.3K</div><div class="stat-label">Pending Approval</div><div class="stat-sub">3 items</div></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>📈 13-Week Forecast with Confidence</span>
+                            <span style="font-weight: normal; color: var(--text-muted);">Confidence = % backed by committed transactions</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin-bottom: 16px;">
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W1</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.72M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">84%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W2</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.75M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">81%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W3</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.52M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">79%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W4</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.55M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">77%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W5</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.59M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">75%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W6</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.62M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">73%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W7</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.64M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">72%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W8</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.62M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">71%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: rgba(255,193,7,0.15); border-radius: 6px; border: 1px solid var(--accent-yellow); border-bottom: 3px solid var(--accent-green);">
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">W9 ⚠️</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: var(--accent-yellow);">$1.82M</div>
+                                    <div style="font-size: 10px; color: var(--accent-green);">87%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W10</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$2.97M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">70%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W11</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$3.01M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">69%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W12</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$3.07M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">68%</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px 4px; background: var(--bg-tertiary); border-radius: 6px; border-bottom: 3px solid var(--accent-yellow);">
+                                    <div style="font-size: 10px; color: var(--text-muted);">W13</div>
+                                    <div style="font-size: 14px; font-weight: 600;">$3.21M</div>
+                                    <div style="font-size: 10px; color: var(--accent-yellow);">69%</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 24px; font-size: 11px; color: var(--text-muted);">
+                                <span>🟢 High Confidence (≥75%)</span>
+                                <span>🟡 Moderate Confidence (60-74%)</span>
+                                <span>🔴 Low Confidence (&lt;60%)</span>
+                                <span style="margin-left: auto;">Reserve: $500K</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">⏳ Awaiting Your Decision</div>
+                        <div class="card-body">
+                            <div class="decisions-grid">
+                                <div class="decision-item"><div class="decision-info"><div class="decision-title">PO #892 — DataCenter Corp</div><div class="decision-meta">$62,000 • Server infrastructure • Above $50K threshold • Needs CFO approval</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Reject</button></div></div>
+                                <div class="decision-item"><div class="decision-info"><div class="decision-title">Invoice VINV-8421 — TechSupply Inc</div><div class="decision-meta">$47,250 • 2.6% variance from PO ($46,050) • AP Matching agent escalated</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Dispute</button></div></div>
+                                <div class="decision-item"><div class="decision-info"><div class="decision-title">Payment PAY-0894 — TechSupply Inc</div><div class="decision-meta">$47,250 • Pending approval before payment run</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Hold</button></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mechanism-flow"><div class="mechanism-step active"><div class="mechanism-icon">📝</div><div class="mechanism-label">Expectation</div><div class="mechanism-desc">PO approved, bill entered</div></div><div class="mechanism-arrow">→</div><div class="mechanism-step"><div class="mechanism-icon">✅</div><div class="mechanism-label">Authorization</div><div class="mechanism-desc">Payment scheduled</div></div><div class="mechanism-arrow">→</div><div class="mechanism-step"><div class="mechanism-icon">🏦</div><div class="mechanism-label">Confirmation</div><div class="mechanism-desc">Bank confirms expected</div></div></div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Open POs</div><div class="stat-sub">$263.4K committed</div></div>
+                        <div class="stat-card"><div class="stat-value">5</div><div class="stat-label">AP Invoices</div><div class="stat-sub">4 matched, 1 escalated</div></div>
+                        <div class="stat-card"><div class="stat-value">$551</div><div class="stat-label">Discounts Available</div><div class="stat-sub">2 opportunities</div></div>
+                        <div class="stat-card"><div class="stat-value">$3.44M</div><div class="stat-label">Total Uncertainty</div><div class="stat-sub">13-week exposure</div></div>
+                    </div>
+
+                    <div class="footer-status"><span class="status-dot"></span><span>GL balanced • Trial balance $0.00 • Books current as of 2 min ago</span></div>
+                </div>
+
+                <!-- CASH POSITION -->
+                <div class="page-content" id="page-cash">
+                    <div class="stats-grid"><div class="stat-card"><div class="stat-value green">$2,847,392</div><div class="stat-label">Total Cash</div><div class="stat-sub">Across all accounts</div></div><div class="stat-card"><div class="stat-value blue">$2,347,392</div><div class="stat-label">Available Cash</div><div class="stat-sub">After reserve</div></div><div class="stat-card"><div class="stat-value orange">$500,000</div><div class="stat-label">Reserve Minimum</div><div class="stat-sub">Policy threshold</div></div><div class="stat-card"><div class="stat-value">$166,349</div><div class="stat-label">Next Payment Run</div><div class="stat-sub">Jan 31 (4 payments)</div></div></div>
+                    <div class="card"><div class="card-header"><span>💰 Cash Breakdown by Account</span><span class="status blue">As of Jan 29, 2026 2:34 PM</span></div><div class="card-body"><div class="cash-breakdown">
+                        <div><div class="breakdown-title">Bank Accounts</div><div class="breakdown-item"><span>Operating — Chase ****4521</span><span>$1,847,392</span></div><div class="breakdown-item"><span>Payroll — Chase ****4522</span><span>$650,000</span></div><div class="breakdown-item"><span>Reserve — Chase ****4523</span><span>$350,000</span></div><div class="breakdown-item total"><span>Total Cash</span><span style="color: var(--accent-green);">$2,847,392</span></div></div>
+                        <div><div class="breakdown-title">Committed Outflows (Next 7 Days)</div><div class="breakdown-item"><span>Payments Queued</span><span style="color: var(--accent-red);">-$119,099</span></div><div class="breakdown-item"><span>Payments Pending Approval</span><span style="color: var(--accent-orange);">-$47,250</span></div><div class="breakdown-item"><span>Approved POs (awaiting invoice)</span><span style="color: var(--accent-orange);">-$47,250</span></div><div class="breakdown-item total"><span>Net Available (after commitments)</span><span style="color: var(--accent-blue);">$2,633,793</span></div></div>
+                    </div></div></div>
+                    <div class="card"><div class="card-header">📊 Recent Cash Activity</div><div class="card-body"><table class="data-table"><thead><tr><th>Date</th><th>Description</th><th>Account</th><th>Amount</th><th>Balance</th><th>Status</th></tr></thead><tbody>
+                        <tr><td>Jan 29</td><td>Payment — TechSupply Inc (VINV-8410)</td><td>Operating</td><td style="color: var(--accent-red);">-$23,450</td><td>$1,847,392</td><td><span class="status green">✓ Confirmed</span></td></tr>
+                        <tr><td>Jan 29</td><td>Receipt — Acme Corp (INV-2891)</td><td>Operating</td><td style="color: var(--accent-green);">+$47,200</td><td>$1,870,842</td><td><span class="status green">✓ Confirmed</span></td></tr>
+                        <tr><td>Jan 28</td><td>Payment — DataCenter Corp</td><td>Operating</td><td style="color: var(--accent-red);">-$89,000</td><td>$1,823,642</td><td><span class="status green">✓ Confirmed</span></td></tr>
+                    </tbody></table></div></div>
+                </div>
+
+                <!-- 13-WEEK FORECAST -->
+                <div class="page-content" id="page-forecast">
+                    <div class="stats-grid five-col">
+                        <div class="stat-card"><div class="stat-value green">$2.85M</div><div class="stat-label">Starting Cash</div><div class="stat-sub">Week 1</div></div>
+                        <div class="stat-card"><div class="stat-value blue">$3.21M</div><div class="stat-label">Ending Cash</div><div class="stat-sub">Week 13</div></div>
+                        <div class="stat-card"><div class="stat-value yellow">$1.82M</div><div class="stat-label">Low Point</div><div class="stat-sub">Week 9</div></div>
+                        <div class="stat-card"><div class="stat-value">76%</div><div class="stat-label">Avg Confidence</div><div class="stat-sub">Weighted average</div></div>
+                        <div class="stat-card"><div class="stat-value orange">$3.44M</div><div class="stat-label">Total Uncertainty</div><div class="stat-sub">Low-confidence items</div></div>
+                    </div>
+
+                    <div class="uncertainty-alert">
+                        <div class="uncertainty-alert-title">⚠️ Week 9 Analysis — Low Point but High Confidence</div>
+                        <div class="uncertainty-alert-text">Cash drops to $1.82M due to $348K quarterly tax payment (100% certain). Confidence is actually higher (87%) because the large outflow is a known obligation. The risk is concentrated in lower projected inflows ($156K at 50% confidence). Consider accelerating collections in weeks 7-8.</div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>📈 Weekly Forecast with Confidence Breakdown</span><div><button class="btn btn-ghost btn-sm">Export</button><button class="btn btn-primary btn-sm" style="margin-left: 8px;">+ Scenario</button></div></div>
+                        <div class="card-body">
+                            <table class="data-table">
+                                <thead><tr><th>Week</th><th>Dates</th><th>Starting</th><th>Inflows</th><th>Outflows</th><th>Ending</th><th>vs Reserve</th><th>Confidence</th><th>Rating</th><th>Primary Driver</th></tr></thead>
+                                <tbody>
+                                    <tr><td><strong>W1</strong></td><td>Jan 27 - Feb 2</td><td>$2,847,392</td><td style="color: var(--accent-green);">+$423,000</td><td style="color: var(--accent-red);">-$547,250</td><td><strong>$2,723,142</strong></td><td><span class="status green">+$2.22M</span></td><td>84%</td><td><span class="status green">High</span></td><td>Scheduled payments</td></tr>
+                                    <tr><td><strong>W2</strong></td><td>Feb 3 - 9</td><td>$2,723,142</td><td style="color: var(--accent-green);">+$312,000</td><td style="color: var(--accent-red);">-$289,000</td><td><strong>$2,746,142</strong></td><td><span class="status green">+$2.25M</span></td><td>81%</td><td><span class="status green">High</span></td><td>AR collections</td></tr>
+                                    <tr><td><strong>W3</strong></td><td>Feb 10 - 16</td><td>$2,746,142</td><td style="color: var(--accent-green);">+$187,000</td><td style="color: var(--accent-red);">-$412,000</td><td><strong>$2,521,142</strong></td><td><span class="status green">+$2.02M</span></td><td>79%</td><td><span class="status green">High</span></td><td>Payroll + POs</td></tr>
+                                    <tr><td><strong>W4</strong></td><td>Feb 17 - 23</td><td>$2,521,142</td><td style="color: var(--accent-green);">+$298,000</td><td style="color: var(--accent-red);">-$267,000</td><td><strong>$2,552,142</strong></td><td><span class="status green">+$2.05M</span></td><td>77%</td><td><span class="status green">High</span></td><td>Projected AP</td></tr>
+                                    <tr><td><strong>W5</strong></td><td>Feb 24 - Mar 2</td><td>$2,552,142</td><td style="color: var(--accent-green);">+$345,000</td><td style="color: var(--accent-red);">-$312,000</td><td><strong>$2,585,142</strong></td><td><span class="status green">+$2.09M</span></td><td>75%</td><td><span class="status green">High</span></td><td>Payroll</td></tr>
+                                    <tr><td><strong>W6</strong></td><td>Mar 3 - 9</td><td>$2,585,142</td><td style="color: var(--accent-green);">+$278,000</td><td style="color: var(--accent-red);">-$245,000</td><td><strong>$2,618,142</strong></td><td><span class="status green">+$2.12M</span></td><td>73%</td><td><span class="status yellow">Moderate</span></td><td>Projected collections</td></tr>
+                                    <tr><td><strong>W7</strong></td><td>Mar 10 - 16</td><td>$2,618,142</td><td style="color: var(--accent-green);">+$320,000</td><td style="color: var(--accent-red);">-$298,000</td><td><strong>$2,640,142</strong></td><td><span class="status green">+$2.14M</span></td><td>72%</td><td><span class="status yellow">Moderate</span></td><td>Payroll</td></tr>
+                                    <tr><td><strong>W8</strong></td><td>Mar 17 - 23</td><td>$2,640,142</td><td style="color: var(--accent-green);">+$265,000</td><td style="color: var(--accent-red);">-$287,000</td><td><strong>$2,618,142</strong></td><td><span class="status green">+$2.12M</span></td><td>71%</td><td><span class="status yellow">Moderate</span></td><td>Projected AP</td></tr>
+                                    <tr class="highlight"><td><strong>W9 ⚠️</strong></td><td>Mar 24 - 30</td><td>$2,618,142</td><td style="color: var(--accent-green);">+$156,000</td><td style="color: var(--accent-red);">-$348,000</td><td><strong style="color: var(--accent-yellow);">$1,820,142</strong></td><td><span class="status yellow">+$1.32M</span></td><td>87%</td><td><span class="status green">High</span></td><td>Tax payment (certain)</td></tr>
+                                    <tr><td><strong>W10</strong></td><td>Mar 31 - Apr 6</td><td>$1,820,142</td><td style="color: var(--accent-green);">+$412,000</td><td style="color: var(--accent-red);">-$267,000</td><td><strong>$2,965,142</strong></td><td><span class="status green">+$2.47M</span></td><td>70%</td><td><span class="status yellow">Moderate</span></td><td>Projected collections</td></tr>
+                                    <tr><td><strong>W11</strong></td><td>Apr 7 - 13</td><td>$2,965,142</td><td style="color: var(--accent-green);">+$356,000</td><td style="color: var(--accent-red);">-$312,000</td><td><strong>$3,009,142</strong></td><td><span class="status green">+$2.51M</span></td><td>69%</td><td><span class="status yellow">Moderate</span></td><td>Payroll</td></tr>
+                                    <tr><td><strong>W12</strong></td><td>Apr 14 - 20</td><td>$3,009,142</td><td style="color: var(--accent-green);">+$298,000</td><td style="color: var(--accent-red);">-$245,000</td><td><strong>$3,062,142</strong></td><td><span class="status green">+$2.56M</span></td><td>68%</td><td><span class="status yellow">Moderate</span></td><td>Projected AP</td></tr>
+                                    <tr><td><strong>W13</strong></td><td>Apr 21 - 27</td><td>$3,062,142</td><td style="color: var(--accent-green);">+$520,000</td><td style="color: var(--accent-red);">-$198,000</td><td><strong style="color: var(--accent-green);">$3,212,142</strong></td><td><span class="status green">+$2.71M</span></td><td>69%</td><td><span class="status yellow">Moderate</span></td><td>Projected collections</td></tr>
+                                    <tr class="total-row"><td colspan="3"><strong>TOTALS</strong></td><td style="color: var(--accent-green);"><strong>+$4,170,000</strong></td><td style="color: var(--accent-red);"><strong>-$4,027,250</strong></td><td colspan="5"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">📊 Confidence Methodology</div>
+                        <div class="card-body">
+                            <div class="confidence-breakdown">
+                                <div class="confidence-section">
+                                    <div class="confidence-section-title">INFLOW WEIGHTS</div>
+                                    <div class="confidence-item"><span>AR Current (not due)</span><span class="weight-badge" style="color: var(--accent-green);">95%</span></div>
+                                    <div class="confidence-item"><span>AR 1-30 days overdue</span><span class="weight-badge" style="color: var(--accent-green);">75%</span></div>
+                                    <div class="confidence-item"><span>AR 31-60 days overdue</span><span class="weight-badge" style="color: var(--accent-yellow);">55%</span></div>
+                                    <div class="confidence-item"><span>AR 61-90 days overdue</span><span class="weight-badge" style="color: var(--accent-orange);">35%</span></div>
+                                    <div class="confidence-item"><span>AR 90+ days overdue</span><span class="weight-badge" style="color: var(--accent-red);">15%</span></div>
+                                    <div class="confidence-item"><span>Projected (no invoice)</span><span class="weight-badge" style="color: var(--accent-yellow);">50%</span></div>
+                                </div>
+                                <div class="confidence-section">
+                                    <div class="confidence-section-title">OUTFLOW WEIGHTS</div>
+                                    <div class="confidence-item"><span>Payments Queued</span><span class="weight-badge" style="color: var(--accent-green);">100%</span></div>
+                                    <div class="confidence-item"><span>Payments Pending</span><span class="weight-badge" style="color: var(--accent-green);">90%</span></div>
+                                    <div class="confidence-item"><span>Payroll (scheduled)</span><span class="weight-badge" style="color: var(--accent-green);">100%</span></div>
+                                    <div class="confidence-item"><span>Approved POs</span><span class="weight-badge" style="color: var(--accent-green);">85%</span></div>
+                                    <div class="confidence-item"><span>POs Pending Approval</span><span class="weight-badge" style="color: var(--accent-yellow);">60%</span></div>
+                                    <div class="confidence-item"><span>Projected AP (no PO)</span><span class="weight-badge" style="color: var(--accent-yellow);">50%</span></div>
+                                    <div class="confidence-item"><span>Tax Payments</span><span class="weight-badge" style="color: var(--accent-green);">100%</span></div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 12px; color: var(--text-secondary);">
+                                <strong>Formula:</strong> Weekly Confidence = Σ(Cash Flow × Weight) / Σ(Cash Flow)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- AR -->
+                <div class="page-content" id="page-ar">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value green">$1,121,950</div><div class="stat-label">Total AR Outstanding</div><div class="stat-sub">9 invoices</div></div>
+                        <div class="stat-card"><div class="stat-value blue">$742,700</div><div class="stat-label">Current</div><div class="stat-sub">66.2%</div></div>
+                        <div class="stat-card"><div class="stat-value orange">$311,000</div><div class="stat-label">Past Due</div><div class="stat-sub">27.7%</div></div>
+                        <div class="stat-card"><div class="stat-value red">$68,250</div><div class="stat-label">90+ Days</div><div class="stat-sub">6.1%</div></div>
+                    </div>
+                    <div class="card"><div class="card-header">📊 Aging Summary</div><div class="card-body">
+                        <div class="aging-bar">
+                            <div class="aging-segment current" style="width: 66.2%;">Current</div>
+                            <div class="aging-segment days30" style="width: 15.4%;">1-30</div>
+                            <div class="aging-segment days60" style="width: 6.7%;">31-60</div>
+                            <div class="aging-segment days90" style="width: 5.6%;">61-90</div>
+                            <div class="aging-segment over90" style="width: 6.1%;">90+</div>
+                        </div>
+                        <div class="aging-legend">
+                            <div class="aging-legend-item"><div class="aging-dot" style="background: var(--accent-green);"></div> Current: $742,700 (4)</div>
+                            <div class="aging-legend-item"><div class="aging-dot" style="background: var(--accent-blue);"></div> 1-30: $173,500 (2)</div>
+                            <div class="aging-legend-item"><div class="aging-dot" style="background: var(--accent-yellow);"></div> 31-60: $74,850 (1)</div>
+                            <div class="aging-legend-item"><div class="aging-dot" style="background: var(--accent-orange);"></div> 61-90: $62,650 (1)</div>
+                            <div class="aging-legend-item"><div class="aging-dot" style="background: var(--accent-red);"></div> 90+: $68,250 (1)</div>
+                        </div>
+                    </div></div>
+                    <div class="card"><div class="card-header"><span>📋 Open Invoices</span><button class="btn btn-ghost btn-sm">Export</button></div><div class="card-body"><table class="data-table"><thead><tr><th>Invoice</th><th>Customer</th><th>Amount</th><th>Due Date</th><th>Days Out</th><th>Bucket</th><th>Status</th><th>Conf Weight</th></tr></thead><tbody>
+                        <tr><td><strong>INV-2894</strong></td><td>Acme Corporation</td><td>$47,250</td><td>Feb 5, 2026</td><td>-</td><td><span class="status green">Current</span></td><td><span class="status blue">Sent</span></td><td><span class="status green">95%</span></td></tr>
+                        <tr><td><strong>INV-2895</strong></td><td>GlobalTech Inc</td><td>$85,000</td><td>Feb 22, 2026</td><td>-</td><td><span class="status green">Current</span></td><td><span class="status blue">Sent</span></td><td><span class="status green">95%</span></td></tr>
+                        <tr><td><strong>INV-2896</strong></td><td>Smith & Associates</td><td>$112,000</td><td>Feb 25, 2026</td><td>-</td><td><span class="status green">Current</span></td><td><span class="status blue">Sent</span></td><td><span class="status green">95%</span></td></tr>
+                        <tr><td><strong>INV-2897</strong></td><td>Acme Corporation</td><td>$498,450</td><td>Feb 28, 2026</td><td>-</td><td><span class="status green">Current</span></td><td><span class="status blue">Sent</span></td><td><span class="status green">95%</span></td></tr>
+                        <tr><td><strong>INV-2847</strong></td><td>GlobalTech Inc</td><td>$23,800</td><td>Jan 20, 2026</td><td>9</td><td><span class="status blue">1-30</span></td><td><span class="status orange">Reminder Sent</span></td><td><span class="status green">75%</span></td></tr>
+                        <tr><td><strong>INV-2850</strong></td><td>Acme Corporation</td><td>$149,700</td><td>Dec 31, 2025</td><td>29</td><td><span class="status blue">1-30</span></td><td><span class="status blue">Sent</span></td><td><span class="status green">75%</span></td></tr>
+                        <tr><td><strong>INV-2820</strong></td><td>GlobalTech Inc</td><td>$74,850</td><td>Dec 15, 2025</td><td>45</td><td><span class="status yellow">31-60</span></td><td><span class="status orange">Reminder Sent</span></td><td><span class="status yellow">55%</span></td></tr>
+                        <tr><td><strong>INV-2800</strong></td><td>Smith & Associates</td><td>$62,650</td><td>Nov 20, 2025</td><td>70</td><td><span class="status orange">61-90</span></td><td><span class="status orange">Reminder Sent</span></td><td><span class="status orange">35%</span></td></tr>
+                        <tr><td><strong>INV-2756</strong></td><td>Smith & Associates</td><td>$68,250</td><td>Oct 15, 2025</td><td>106</td><td><span class="status red">90+</span></td><td><span class="status red">Escalated</span></td><td><span class="status red">15%</span></td></tr>
+                    </tbody></table></div></div>
+                </div>
+
+                <!-- AP -->
+                <div class="page-content" id="page-ap">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value red">$166,900</div><div class="stat-label">Total AP Outstanding</div><div class="stat-sub">4 invoices</div></div>
+                        <div class="stat-card"><div class="stat-value blue">$119,650</div><div class="stat-label">Ready to Pay</div><div class="stat-sub">3 invoices</div></div>
+                        <div class="stat-card"><div class="stat-value green">$551</div><div class="stat-label">Discounts Available</div><div class="stat-sub">2 opportunities</div></div>
+                        <div class="stat-card"><div class="stat-value orange">$47,250</div><div class="stat-label">Escalated</div><div class="stat-sub">1 variance issue</div></div>
+                    </div>
+                    <div class="card"><div class="card-header">🔍 3-Way Match Status</div><div class="card-body">
+                        <div class="stats-grid three-col">
+                            <div class="stat-card"><div class="stat-value green">4</div><div class="stat-label">Matched</div><div class="stat-sub">Within 2% tolerance</div></div>
+                            <div class="stat-card"><div class="stat-value orange">1</div><div class="stat-label">Variance</div><div class="stat-sub">Escalated for review</div></div>
+                            <div class="stat-card"><div class="stat-value blue">80%</div><div class="stat-label">Match Rate</div><div class="stat-sub">Auto-approved</div></div>
+                        </div>
+                    </div></div>
+                    <div class="card"><div class="card-header"><span>📋 Invoices by Payment Status</span><button class="btn btn-primary btn-sm">Create Payment Run</button></div><div class="card-body"><table class="data-table"><thead><tr><th>Invoice</th><th>Vendor</th><th>PO</th><th>Amount</th><th>Due Date</th><th>Match</th><th>Discount</th><th>Status</th></tr></thead><tbody>
+                        <tr><td><strong>VINV-8412</strong></td><td>CloudHost Pro</td><td>PO-887</td><td>$12,450</td><td>Feb 5</td><td><span class="status green">✓ 0.0%</span></td><td><span class="status green">$187 (1.5%)</span></td><td><span class="status blue">Scheduled</span></td></tr>
+                        <tr><td><strong>VINV-8415</strong></td><td>DataCenter Corp</td><td>PO-888</td><td>$89,000</td><td>Feb 3</td><td><span class="status green">✓ 0.0%</span></td><td>—</td><td><span class="status blue">Ready</span></td></tr>
+                        <tr><td><strong>VINV-8419</strong></td><td>Acme Supplies</td><td>PO-889</td><td>$18,200</td><td>Feb 10</td><td><span class="status green">✓ 0.0%</span></td><td><span class="status green">$364 (2%)</span></td><td><span class="status blue">Ready</span></td></tr>
+                        <tr class="highlight"><td><strong>VINV-8421</strong></td><td>TechSupply Inc</td><td>PO-891</td><td>$47,250</td><td>Feb 1</td><td><span class="status orange">⚠ 2.6%</span></td><td>—</td><td><span class="status orange">Escalated</span></td></tr>
+                    </tbody></table></div></div>
+                </div>
+
+                <!-- PO -->
+                <div class="page-content" id="page-po">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value">6</div><div class="stat-label">Total POs</div><div class="stat-sub">$263,400 value</div></div>
+                        <div class="stat-card"><div class="stat-value orange">1</div><div class="stat-label">Pending Approval</div><div class="stat-sub">$62,000</div></div>
+                        <div class="stat-card"><div class="stat-value blue">1</div><div class="stat-label">Awaiting Receipt</div><div class="stat-sub">$47,250</div></div>
+                        <div class="stat-card"><div class="stat-value yellow">1</div><div class="stat-label">Partial</div><div class="stat-sub">$34,500</div></div>
+                    </div>
+                    <div class="card"><div class="card-header">📊 PO Status Breakdown</div><div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card"><div class="stat-value orange">$62,000</div><div class="stat-label">Pending Approval</div><div class="stat-sub">Conf: 60%</div></div>
+                            <div class="stat-card"><div class="stat-value blue">$47,250</div><div class="stat-label">Awaiting Receipt</div><div class="stat-sub">Conf: 85%</div></div>
+                            <div class="stat-card"><div class="stat-value yellow">$34,500</div><div class="stat-label">Partial Receipt</div><div class="stat-sub">60% received</div></div>
+                            <div class="stat-card"><div class="stat-value green">$119,650</div><div class="stat-label">Received</div><div class="stat-sub">Ready for invoice</div></div>
+                        </div>
+                    </div></div>
+                    <div class="card"><div class="card-header"><span>📋 Purchase Orders</span><button class="btn btn-primary btn-sm">+ New PO</button></div><div class="card-body"><table class="data-table"><thead><tr><th>PO #</th><th>Vendor</th><th>Amount</th><th>Created</th><th>Expected</th><th>Status</th><th>Approved By</th><th>Actions</th></tr></thead><tbody>
+                        <tr class="highlight"><td><strong>PO-892</strong></td><td>DataCenter Corp</td><td>$62,000</td><td>Jan 28</td><td>Feb 15</td><td><span class="status orange">Pending Approval</span></td><td>—</td><td><button class="btn btn-success btn-sm">Approve</button></td></tr>
+                        <tr><td><strong>PO-891</strong></td><td>TechSupply Inc</td><td>$47,250</td><td>Jan 25</td><td>Feb 5</td><td><span class="status blue">Awaiting Receipt</span></td><td>M. Johnson</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                        <tr><td><strong>PO-889</strong></td><td>Acme Supplies</td><td>$18,200</td><td>Jan 22</td><td>Jan 30</td><td><span class="status green">Received</span></td><td>M. Johnson</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                        <tr><td><strong>PO-888</strong></td><td>DataCenter Corp</td><td>$89,000</td><td>Jan 22</td><td>Jan 30</td><td><span class="status green">Received</span></td><td>CFO</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                        <tr><td><strong>PO-887</strong></td><td>CloudHost Pro</td><td>$12,450</td><td>Jan 20</td><td>Jan 28</td><td><span class="status green">Received</span></td><td>M. Johnson</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                        <tr><td><strong>PO-885</strong></td><td>Industrial Parts Co</td><td>$34,500</td><td>Jan 18</td><td>Feb 1</td><td><span class="status yellow">Partial (60%)</span></td><td>M. Johnson</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+                    </tbody></table></div></div>
+                </div>
+
+                <!-- APPROVALS -->
+                <div class="page-content" id="page-approvals">
+                    <div class="stats-grid three-col">
+                        <div class="stat-card"><div class="stat-value orange">3</div><div class="stat-label">Pending Approval</div><div class="stat-sub">$109,250 total</div></div>
+                        <div class="stat-card"><div class="stat-value green">12</div><div class="stat-label">Approved This Week</div><div class="stat-sub">$287,100</div></div>
+                        <div class="stat-card"><div class="stat-value">1.8 hrs</div><div class="stat-label">Avg Approval Time</div><div class="stat-sub">↓ 22% from last week</div></div>
+                    </div>
+                    <div class="card"><div class="card-header">⏳ Awaiting Your Approval</div><div class="card-body"><div class="decisions-grid">
+                        <div class="decision-item"><div class="decision-info"><div class="decision-title">PO #892 — DataCenter Corp</div><div class="decision-meta">$62,000 • Server infrastructure • <strong>Above $50K → CFO required</strong> (Policy POL-001-C)</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Reject</button><button class="btn btn-ghost">Details</button></div></div>
+                        <div class="decision-item"><div class="decision-info"><div class="decision-title">Invoice VINV-8421 — TechSupply Inc</div><div class="decision-meta">$47,250 • <strong>2.6% variance</strong> from PO $46,050 • Exceeds 2% tolerance (Policy POL-003)</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Dispute</button><button class="btn btn-ghost">Details</button></div></div>
+                        <div class="decision-item"><div class="decision-info"><div class="decision-title">Payment PAY-0894 — TechSupply Inc</div><div class="decision-meta">$47,250 • Payment for escalated invoice • Requires approval before payment run</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Hold</button><button class="btn btn-ghost">Details</button></div></div>
+                    </div></div></div>
+                    <div class="card"><div class="card-header">📊 Approval by Tier</div><div class="card-body"><table class="data-table"><thead><tr><th>Approval Tier</th><th>Threshold</th><th>Approver</th><th>Pending</th><th>Amount</th></tr></thead><tbody>
+                        <tr><td>Tier 1</td><td>≤ $5,000</td><td>Dept Manager</td><td>0</td><td>$0</td></tr>
+                        <tr><td>Tier 2</td><td>$5K - $50K</td><td>VP + Finance</td><td>2</td><td>$47,250</td></tr>
+                        <tr><td>Tier 3</td><td>> $50,000</td><td>CFO</td><td>1</td><td>$62,000</td></tr>
+                        <tr class="total-row"><td colspan="3"><strong>TOTAL</strong></td><td><strong>3</strong></td><td><strong>$109,250</strong></td></tr>
+                    </tbody></table></div></div>
+                </div>
+
+                <!-- PAYMENTS -->
+                <div class="page-content" id="page-payments">
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value blue">$166,349</div><div class="stat-label">Next Run Total</div><div class="stat-sub">Jan 31, 2026</div></div>
+                        <div class="stat-card"><div class="stat-value">4</div><div class="stat-label">Payments in Run</div><div class="stat-sub">3 queued, 1 pending</div></div>
+                        <div class="stat-card"><div class="stat-value green">$551</div><div class="stat-label">Discounts in Run</div><div class="stat-sub">2 early-pay</div></div>
+                        <div class="stat-card"><div class="stat-value">$23,450</div><div class="stat-label">Confirmed Today</div><div class="stat-sub">1 payment</div></div>
+                    </div>
+                    <div class="card"><div class="card-header"><span>📅 Payment Run — Jan 31, 2026</span><div><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-primary btn-sm" style="margin-left: 8px;">Execute Now</button></div></div><div class="card-body"><table class="data-table"><thead><tr><th>Payment ID</th><th>Vendor</th><th>Invoice</th><th>Gross</th><th>Discount</th><th>Net</th><th>Method</th><th>Status</th></tr></thead><tbody>
+                        <tr><td><strong>PAY-0891</strong></td><td>DataCenter Corp</td><td>VINV-8415</td><td>$89,000</td><td>—</td><td>$89,000</td><td>ACH</td><td><span class="status blue">Queued</span></td></tr>
+                        <tr><td><strong>PAY-0892</strong></td><td>Acme Supplies</td><td>VINV-8419</td><td>$18,200</td><td><span style="color: var(--accent-green);">-$364</span></td><td>$17,836</td><td>ACH</td><td><span class="status blue">Queued</span></td></tr>
+                        <tr><td><strong>PAY-0893</strong></td><td>CloudHost Pro</td><td>VINV-8412</td><td>$12,450</td><td><span style="color: var(--accent-green);">-$187</span></td><td>$12,263</td><td>ACH</td><td><span class="status blue">Queued</span></td></tr>
+                        <tr class="highlight"><td><strong>PAY-0894</strong></td><td>TechSupply Inc</td><td>VINV-8421</td><td>$47,250</td><td>—</td><td>$47,250</td><td>ACH</td><td><span class="status orange">Pending Approval</span></td></tr>
+                        <tr class="total-row"><td colspan="3"><strong>RUN TOTAL</strong></td><td><strong>$166,900</strong></td><td><strong>-$551</strong></td><td><strong>$166,349</strong></td><td colspan="2"></td></tr>
+                    </tbody></table></div></div>
+                    <div class="card"><div class="card-header">✅ Recently Confirmed</div><div class="card-body"><table class="data-table"><thead><tr><th>Payment ID</th><th>Vendor</th><th>Amount</th><th>Date</th><th>Bank Ref</th><th>Status</th></tr></thead><tbody>
+                        <tr><td><strong>PAY-0890</strong></td><td>TechSupply Inc</td><td>$23,450</td><td>Jan 29, 2:34 PM</td><td>ACH-7892341</td><td><span class="status green">✓ Confirmed</span></td></tr>
+                    </tbody></table></div></div>
+                </div>
+metric"><div class="agent-metric-value">$3.4M</div><div class="agent-metric-label">Uncertainty</div></div><div class="agent-metric"><div class="agent-metric-value">W9</div><div class="agent-metric-label">Low Point</div></div></div></div>
+                    </div>
+                    <div class="card"><div class="card-header">🚨 Escalation Queue — Awaiting Human Decision</div><div class="card-body">
+                        <div class="escalation-item"><div class="decision-info"><div class="decision-title">Invoice VINV-8421 — 2.6% variance</div><div class="decision-meta">AP Matching Agent • Threshold: 2% (POL-003) • Vendor claims expedite fee</div></div><div class="decision-actions"><button class="btn btn-success">Approve</button><button class="btn btn-ghost">Dispute</button></div></div>
+                        <div class="escalation-item"><div class="decision-info"><div class="decision-title">AR Invoice INV-2756 — 106 days overdue</div><div class="decision-meta">Collections Agent • Smith & Associates • $68,250 • Exceeded escalation threshold</div></div><div class="decision-actions"><button class="btn btn-success">Write Off</button><button class="btn btn-ghost">Legal</button></div></div>
+                    </div></div>
+                </div>
+
+                <!-- EVENT LOG -->
+                <div class="page-content" id="page-events">
+                    <div class="story-banner"><p><strong>Event Log:</strong> The immutable record of everything that happened. Every event is cryptographically linked to its predecessors—tamper-proof by design. This is your audit trail, your source of truth, your proof.</p></div>
+                    <div class="event-filters">
+                        <div class="filter-group"><input type="text" class="filter-input" placeholder="Search events..." id="eventSearch"></div>
+                        <div class="filter-group"><label class="filter-label">Type:</label><select class="filter-select"><option value="">All Types</option><option value="po">Purchase Orders</option><option value="invoice">Invoices</option><option value="payment">Payments</option><option value="receipt">Receipts</option></select></div>
+                        <div class="filter-group"><label class="filter-label">Actor:</label><select class="filter-select"><option value="">All Actors</option><option value="human">Human</option><option value="agent">AI Agent</option><option value="system">System</option></select></div>
+                    </div>
+                    <div class="card"><div class="card-header"><span>📝 Event Stream</span><span style="color: var(--text-muted); font-weight: normal;">Chain integrity: <span style="color: var(--accent-green);">✓ Verified</span></span></div><div class="card-body" style="padding: 0;"><table class="data-table"><thead><tr><th>Timestamp</th><th>Event Type</th><th>Entity</th><th>Actor</th><th>Details</th><th>Caused By</th><th>Hash</th></tr></thead><tbody>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 2:34 PM</div><div style="font-size: 10px; color: var(--text-muted);">2 min ago</div></td><td><span class="event-type">bank.confirmed</span></td><td>PAY-0890</td><td><div class="event-actor"><div class="actor-avatar system">SYS</div><span>Chase Bank</span></div></td><td>Payment $23,450 confirmed • Ref: ACH-7892341</td><td><a href="#" class="causal-link">EVT-8891</a></td><td><span class="event-hash">0x7f3a...2c1d</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 2:31 PM</div><div style="font-size: 10px; color: var(--text-muted);">5 min ago</div></td><td><span class="event-type">payment.executed</span></td><td>PAY-0890</td><td><div class="event-actor"><div class="actor-avatar system">SYS</div><span>Payment Engine</span></div></td><td>ACH initiated to TechSupply Inc • $23,450</td><td><a href="#" class="causal-link">EVT-8890</a></td><td><span class="event-hash">0x2e8b...9f4a</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 2:28 PM</div><div style="font-size: 10px; color: var(--text-muted);">8 min ago</div></td><td><span class="event-type">invoice.matched</span></td><td>VINV-8419</td><td><div class="event-actor"><div class="actor-avatar agent">AI</div><span>AP Matching</span></div></td><td>3-way match complete • PO-889 • Variance: 0.0%</td><td><a href="#" class="causal-link">EVT-8887</a></td><td><span class="event-hash">0x5c2d...1a3b</span></td></tr>
+                        <tr style="background: rgba(255, 159, 67, 0.05);"><td style="white-space: nowrap;"><div>Jan 29, 2:15 PM</div><div style="font-size: 10px; color: var(--text-muted);">21 min ago</div></td><td><span class="event-type" style="color: var(--accent-orange);">escalation.created</span></td><td>VINV-8421</td><td><div class="event-actor"><div class="actor-avatar agent">AI</div><span>AP Matching</span></div></td><td>Variance 2.6% exceeds 2% threshold (POL-003)</td><td><a href="#" class="causal-link">EVT-8885</a></td><td><span class="event-hash">0x9a1c...4d2e</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 2:12 PM</div><div style="font-size: 10px; color: var(--text-muted);">24 min ago</div></td><td><span class="event-type">invoice.received</span></td><td>VINV-8421</td><td><div class="event-actor"><div class="actor-avatar system">SYS</div><span>Email Intake</span></div></td><td>TechSupply Inc • $47,250 • Due: Feb 1</td><td>—</td><td><span class="event-hash">0x3f7e...8b2c</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 1:45 PM</div><div style="font-size: 10px; color: var(--text-muted);">51 min ago</div></td><td><span class="event-type" style="color: var(--accent-purple);">confidence.calculated</span></td><td>FORECAST</td><td><div class="event-actor"><div class="actor-avatar agent">AI</div><span>Conf Calc</span></div></td><td>13-week avg: 76% • Low: W13 (69%) • Uncertainty: $3.44M</td><td>—</td><td><span class="event-hash">0x6d4a...2f1e</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 1:30 PM</div><div style="font-size: 10px; color: var(--text-muted);">1 hr ago</div></td><td><span class="event-type">po.approved</span></td><td>PO-891</td><td><div class="event-actor"><div class="actor-avatar human">MJ</div><span>M. Johnson</span></div></td><td>TechSupply Inc • $47,250 • Policy: POL-001-B</td><td><a href="#" class="causal-link">EVT-8875</a></td><td><span class="event-hash">0x1b5c...7e3d</span></td></tr>
+                        <tr><td style="white-space: nowrap;"><div>Jan 29, 1:15 PM</div><div style="font-size: 10px; color: var(--text-muted);">1 hr ago</div></td><td><span class="event-type">po.created</span></td><td>PO-891</td><td><div class="event-actor"><div class="actor-avatar human">JS</div><span>J. Smith</span></div></td><td>TechSupply Inc • $47,250 • Network equipment</td><td>—</td><td><span class="event-hash">0x8e2f...4a1c</span></td></tr>
+                    </tbody></table></div></div>
+                    <div class="card"><div class="card-header">🔗 Event Chain Visualization</div><div class="card-body">
+                        <div style="font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; color: var(--text-secondary); line-height: 1.8;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                                <span style="color: var(--accent-cyan);">po.created</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">po.approved</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">receipt.confirmed</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">invoice.received</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">invoice.matched</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">payment.scheduled</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-cyan);">payment.executed</span><span style="color: var(--text-muted);">→</span>
+                                <span style="color: var(--accent-green);">bank.confirmed</span>
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 11px;">Each event cryptographically references its causal predecessor. The chain is immutable—any tampering breaks the hash verification.</div>
+                        </div>
+                    </div></div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+    <script>
+        const navItems = document.querySelectorAll('.nav-item[data-page]');
+        const pages = document.querySelectorAll('.page-content');
+        const pageTitle = document.getElementById('pageTitle');
+        const titles = { dashboard: 'Dashboard', cash: 'Cash Position', forecast: '13-Week Forecast', ar: 'Collections (AR)', ap: 'Payables (AP)', po: 'Purchase Orders', approvals: 'Approvals', payments: 'Payment Runs', integrity: 'Financial Integrity', policies: 'Policies', agents: 'AI Agents', events: 'Event Log' };
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const page = item.dataset.page;
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                pages.forEach(p => p.classList.remove('active'));
+                document.getElementById('page-' + page).classList.add('active');
+                pageTitle.textContent = titles[page] || page;
+            });
+        });
+        const eventSearch = document.getElementById('eventSearch');
+        if (eventSearch) {
+            eventSearch.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const rows = document.querySelectorAll('#page-events tbody tr');
+                rows.forEach(row => { row.style.display = row.textContent.toLowerCase().includes(searchTerm) ? '' : 'none'; });
+            });
+        }
+    </script>
+</body>
+</html>

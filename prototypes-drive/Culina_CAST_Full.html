@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culina Health | CAST Revenue Intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1E33;
+  --navy-mid: #172840;
+  --navy-light: #1F3650;
+  --teal: #2A9D8F;
+  --teal-bright: #3EBFAF;
+  --teal-dim: #1A6B61;
+  --amber: #E9A84C;
+  --red: #E05252;
+  --red-dim: #6B1F1F;
+  --green: #3AB07A;
+  --green-dim: #1A5C3A;
+  --purple: #8B6FD4;
+  --slate: #8AA4BE;
+  --slate-dim: #3A5470;
+  --border: rgba(42,157,143,0.18);
+  --text: #C8DDF0;
+  --text-dim: #6A8AAA;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Instrument Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--navy);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(42,157,143,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,157,143,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+* { position: relative; z-index: 1; }
+
+/* HEADER */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15,30,51,0.95);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--teal), #1A6B61);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px; color: white;
+}
+.logo-text { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
+.logo-sub { font-size: 9px; color: var(--teal); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 1px; }
+.header-right { display: flex; align-items: center; gap: 16px; font-size: 11px; }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; display: inline-block; margin-right: 5px; }
+@keyframes pulse {
+  0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(58,176,122,0.4); }
+  50% { opacity:0.7; box-shadow: 0 0 0 4px rgba(58,176,122,0); }
+}
+
+/* TICKER */
+.ticker {
+  background: rgba(42,157,143,0.05);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 28px;
+  display: flex; align-items: center; gap: 14px;
+  overflow: hidden;
+}
+.ticker-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; color: var(--teal);
+  text-transform: uppercase; white-space: nowrap;
+  background: rgba(42,157,143,0.1); padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border);
+}
+.ticker-inner {
+  display: flex; gap: 48px; white-space: nowrap;
+  animation: ticker 35s linear infinite;
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+}
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+.te { color: var(--teal-bright); } .tok { color: var(--green); } .twn { color: var(--amber); } .terr { color: var(--red); }
+
+/* NAV TABS */
+.nav-bar {
+  background: rgba(15,30,51,0.8);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex; align-items: center; gap: 2px;
+  position: sticky; top: 57px; z-index: 150;
+  backdrop-filter: blur(8px);
+}
+.nav-tab {
+  padding: 10px 18px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none; background: none;
+  font-family: var(--font-body); color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 7px;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--teal-bright); border-bottom-color: var(--teal-bright); }
+.tab-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 10px;
+  background: rgba(42,157,143,0.15); color: var(--teal);
+}
+.tab-badge.red { background: rgba(224,82,82,0.15); color: var(--red); }
+.tab-badge.amber { background: rgba(233,168,76,0.15); color: var(--amber); }
+
+/* PAGE SECTIONS */
+.page { display: none; padding: 20px 28px; }
+.page.active { display: block; }
+
+/* KPI STRIP */
+.kpi-strip { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; margin-bottom: 20px; }
+.kpi { background: var(--navy-mid); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.kpi-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.kpi-value { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: white; line-height: 1; }
+.kpi-delta { font-size: 11px; margin-top: 5px; }
+.up { color: var(--green); } .down { color: var(--red); } .warn { color: var(--amber); } .dim { color: var(--text-dim); }
+
+/* CARDS */
+.card { background: var(--navy-mid); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+.card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: white; }
+.card-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.card-body { padding: 16px 18px; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-6040 { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; margin-bottom: 16px; }
+
+/* SECTION LABEL */
+.section-label {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--teal); display: flex; align-items: center; gap: 10px; margin-bottom: 12px; margin-top: 8px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* BADGE */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+}
+.badge-teal { background: rgba(42,157,143,0.15); color: var(--teal-bright); }
+.badge-amber { background: rgba(233,168,76,0.15); color: var(--amber); }
+.badge-red { background: rgba(224,82,82,0.15); color: var(--red); }
+.badge-green { background: rgba(58,176,122,0.15); color: var(--green); }
+.badge-slate { background: rgba(138,164,190,0.1); color: var(--slate); }
+.badge-purple { background: rgba(139,111,212,0.15); color: var(--purple); }
+
+/* DATA TABLE */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-dim); padding: 8px 14px; text-align: left;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table td {
+  padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px; vertical-align: middle;
+}
+.data-table tr:hover td { background: rgba(42,157,143,0.04); cursor: pointer; }
+.data-table tr.selected td { background: rgba(42,157,143,0.08); }
+.mono { font-family: var(--font-mono); font-size: 10px; color: var(--slate); }
+.link { color: var(--teal-bright); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: var(--font-mono); font-size: 10px; }
+.link:hover { color: white; }
+
+/* STATUS DOTS */
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-green { background: var(--green); }
+.dot-amber { background: var(--amber); }
+.dot-red { background: var(--red); }
+.dot-slate { background: var(--slate-dim); }
+.dot-blue { background: #4A8FCC; }
+
+/* CHAIN VIZ */
+.chain-row {
+  display: flex; align-items: stretch; gap: 0;
+  margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.chain-node {
+  flex: 1; padding: 10px 12px; border-radius: 7px; margin: 0 4px;
+  font-size: 11px;
+}
+.chain-arrow { display: flex; align-items: center; color: var(--slate-dim); font-size: 16px; padding: 0 2px; flex-shrink: 0; }
+.chain-label { font-size: 8px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+.chain-value { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.chain-meta { font-size: 9px; color: var(--text-dim); font-family: var(--font-mono); }
+
+/* FUNNEL */
+.funnel-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.funnel-num {
+  width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 10px; flex-shrink: 0;
+  background: var(--navy-light); color: var(--text-dim); border: 1px solid var(--border);
+}
+.funnel-label { width: 110px; flex-shrink: 0; }
+.funnel-stage { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.funnel-actor { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+.funnel-bar-wrap { flex: 1; height: 24px; }
+.funnel-bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 10px; }
+.funnel-vol { font-family: var(--font-mono); font-size: 11px; color: white; }
+.funnel-drop { width: 80px; flex-shrink: 0; text-align: right; font-family: var(--font-mono); font-size: 10px; font-weight: 600; }
+.funnel-conn { margin-left: 142px; padding: 2px 0 2px 10px; font-size: 9px; font-weight: 600; border-left: 1px dashed; margin-bottom: 2px; }
+
+/* EVENT FEED */
+.event-row { padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 0.12s; }
+.event-row:hover { background: rgba(42,157,143,0.05); }
+.event-row.lw { border-left: 2px solid var(--amber); }
+.event-row.le { border-left: 2px solid var(--red); }
+.event-row.lo { border-left: 2px solid var(--green); }
+.event-row.li { border-left: 2px solid #4A8FCC; }
+.event-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.event-name { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--teal-bright); }
+
+/* EXCEPTION ROWS */
+.exc-row { padding: 11px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 0.12s; }
+.exc-row:hover { background: rgba(233,168,76,0.04); }
+
+/* WATERFALL */
+.wf-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.wf-step { width: 24px; height: 24px; background: var(--navy-light); border: 1px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; flex-shrink: 0; }
+.wf-info { flex: 1; }
+.wf-name { font-size: 12px; font-weight: 500; }
+.wf-desc { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+.wf-amt { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.wf-status { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; }
+.wf-ok { background: rgba(58,176,122,0.15); color: var(--green); }
+.wf-pend { background: rgba(233,168,76,0.15); color: var(--amber); }
+
+/* SLOT ROW */
+.slot-row { padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; align-items: center; gap: 12px; }
+.slot-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+/* POLICY BAR */
+.pol-bar-wrap { height: 5px; background: var(--navy-light); border-radius: 99px; overflow: hidden; margin-top: 4px; }
+.pol-bar-fill { height: 100%; border-radius: 99px; }
+
+/* VERIFY BANNER */
+.verify-banner { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: rgba(58,176,122,0.05); border: 1px solid rgba(58,176,122,0.2); border-radius: 8px; margin-top: 14px; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--slate-dim); border-radius: 4px; }
+
+/* FOOTER */
+footer { border-top: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; margin-top: 24px; }
+.footer-stats { display: flex; gap: 28px; }
+.fstat-val { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: white; }
+.fstat-lbl { font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+
+/* DETAIL PANEL */
+.detail-panel {
+  background: var(--navy-light); border: 1px solid var(--teal-bright); border-radius: 10px;
+  padding: 16px 18px; margin-top: 12px;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">CH</div>
+    <div>
+      <div class="logo-text">Culina Health</div>
+      <div class="logo-sub">CAST Revenue Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span><span class="pulse-dot"></span><span style="color:var(--text-dim)">Live · All Systems Active</span></span>
+    <span style="color:var(--text-dim)">Period: <span style="color:var(--text)">Mar 2026 · W11</span></span>
+    <span style="background:var(--navy-light);border:1px solid var(--border);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;color:var(--teal-bright);">15 RDs · 2,500 Pts · $135/session</span>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-label">Live Events</div>
+  <div style="overflow:hidden;flex:1;">
+    <div class="ticker-inner">
+      <span><span class="te">REFERRAL_RECEIVED</span> · Dr. Patel, Cardiology · ICD-10 E11.9 · evt_4a2f...</span>
+      <span><span class="tok">SESSION_DELIVERED</span> · RD: Maria Santos · Metabolic Pod · CPT 97803 · $135 · evt_9c1d...</span>
+      <span><span class="twn">PA_DENIED</span> · Patient #4821 · Payer: Aetna · First-pass denial · Appeal triggered · evt_2b7e...</span>
+      <span><span class="tok">CLAIM_PAID</span> · $135.00 · CareFirst BCBS · ERA posted · evt_7f3a...</span>
+      <span><span class="te">ELIGIBILITY_CONFIRMED</span> · MNT covered · Auth required · Patient #5102 · evt_3e8c...</span>
+      <span><span class="terr">NO_SHOW</span> · Patient #3847 · GI Pod · $50 fee triggered · Slot lost · evt_6a9b...</span>
+      <span><span class="tok">CLAIM_SUBMITTED</span> · CPT 97802 · Dx E11.65 · Auth #PA-2024-8812 · evt_1d5f...</span>
+      <span><span class="tok">COPAY_COLLECTED</span> · $30.00 · Patient #4102 · Card on file · evt_8b2a...</span>
+      <span><span class="twn">PA_PENDING_72H</span> · Cigna · Patient #5041 · Appeal window risk · evt_5c4d...</span>
+      <span><span class="te">REFERRAL_RECEIVED</span> · Dr. Patel, Cardiology · ICD-10 E11.9 · evt_4a2f...</span>
+      <span><span class="tok">SESSION_DELIVERED</span> · RD: Maria Santos · Metabolic Pod · CPT 97803 · $135 · evt_9c1d...</span>
+      <span><span class="twn">PA_DENIED</span> · Patient #4821 · Payer: Aetna · First-pass denial · Appeal triggered · evt_2b7e...</span>
+      <span><span class="tok">CLAIM_PAID</span> · $135.00 · CareFirst BCBS · ERA posted · evt_7f3a...</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-bar">
+  <button class="nav-tab active" onclick="switchTab('pipeline',this)">Pipeline <span class="tab-badge">Overview</span></button>
+  <button class="nav-tab" onclick="switchTab('events',this)">Events <span class="tab-badge">1,247</span></button>
+  <button class="nav-tab" onclick="switchTab('policies',this)">Policies <span class="tab-badge">12</span></button>
+  <button class="nav-tab" onclick="switchTab('workorders',this)">Work Orders <span class="tab-badge amber">34</span></button>
+  <button class="nav-tab" onclick="switchTab('ledger',this)">Ledger <span class="tab-badge">$120K</span></button>
+  <button class="nav-tab" onclick="switchTab('exceptions',this)">Exceptions <span class="tab-badge red">14</span></button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: PIPELINE (Overview) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-pipeline" class="page active">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Referral-to-Cash Pipeline</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Event-driven tracking from physician referral through insurance payment collection</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="badge badge-teal">CAST Framework v1.0</span>
+      <span class="badge badge-slate">Business-Model Agnostic Taxonomy</span>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi"><div class="kpi-label">Referrals (MTD)</div><div class="kpi-value">1,247</div><div class="kpi-delta up">↑ 12% vs prior month</div></div>
+    <div class="kpi"><div class="kpi-label">Sessions Delivered</div><div class="kpi-value">892</div><div class="kpi-delta dim">71.5% funnel yield</div></div>
+    <div class="kpi"><div class="kpi-label">Revenue Billed</div><div class="kpi-value">$120K</div><div class="kpi-delta up">892 × $135 blended</div></div>
+    <div class="kpi"><div class="kpi-label">Cash Collected</div><div class="kpi-value">$98K</div><div class="kpi-delta warn">$22K in AR pipeline</div></div>
+    <div class="kpi"><div class="kpi-label">PA First-Pass</div><div class="kpi-value" style="color:var(--amber)">87%</div><div class="kpi-delta warn">Target: 90% · 39 appeals</div></div>
+    <div class="kpi"><div class="kpi-label">Exceptions Open</div><div class="kpi-value" style="color:var(--red)">14</div><div class="kpi-delta down">3 critical · SLA at risk</div></div>
+  </div>
+
+  <!-- TAXONOMY EXPLAINER -->
+  <div class="section-label">CAST Taxonomy — How It Connects</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <div><div class="card-title">Event → Policy → Work Order → Ledger Chain</div><div class="card-sub">Every financial outcome traces back to a triggering event. Non-financial events drive operational work orders.</div></div>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch;">
+        <div style="background:rgba(42,157,143,0.08);border:1px solid rgba(42,157,143,0.25);border-radius:8px 0 0 8px;padding:16px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.15em;color:var(--teal);margin-bottom:10px;">EVENT</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:white;">What happened?</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.7;">
+            SESSION_DELIVERED<br>REFERRAL_RECEIVED<br>PA_DENIED<br>NO_SHOW<br>CLAIM_PAID<br>ELIGIBILITY_CONFIRMED
+          </div>
+          <div style="margin-top:8px;font-size:9px;color:var(--text-dim);">All events logged. Financial events trigger policy eval. Operational events drive work orders directly.</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:20px;padding:0 4px;">→</div>
+        <div style="background:rgba(74,143,204,0.08);border:1px solid rgba(74,143,204,0.25);border-radius:0;padding:16px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.15em;color:#4A8FCC;margin-bottom:10px;">POLICY</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:white;">What should happen?</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.7;">
+            BILL-001: Submit claim ≤3d<br>PA-001: Appeal within 48h<br>NOTE-001: Send note ≤48h<br>FEE-001: Bill $50 no-show<br>ELIG-001: Check at intake<br>PAY-001: Reconcile ERA
+          </div>
+          <div style="margin-top:8px;font-size:9px;color:var(--text-dim);">Rules engine evaluates every relevant event. PASS → auto-execute. FAIL → exception.</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:20px;padding:0 4px;">→</div>
+        <div style="background:rgba(139,111,212,0.08);border:1px solid rgba(139,111,212,0.25);padding:16px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.15em;color:var(--purple);margin-bottom:10px;">WORK ORDER</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:white;">Who does what?</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.7;">
+            → Claim submitted (API)<br>→ Appeal filed (Human)<br>→ Note delivered (API/RD)<br>→ No-show fee billed (API)<br>→ PA submitted (API)<br>→ ERA reconciled (API)
+          </div>
+          <div style="margin-top:8px;font-size:9px;color:var(--text-dim);">Routes to correct execution slot: API, AI agent, or human with right authority.</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:20px;padding:0 4px;">→</div>
+        <div style="background:rgba(58,176,122,0.06);border:1px solid rgba(58,176,122,0.2);border-radius:0 8px 8px 0;padding:16px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.15em;color:var(--green);margin-bottom:10px;">LEDGER</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:white;">What was recognized?</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.7;">
+            Revenue: $135.00<br>Payer EFT: $103.00<br>Copay: $32.00<br>No-show fee: $50.00<br>Write-off: $(135.00)<br>AR posted: $(135.00)
+          </div>
+          <div style="margin-top:8px;font-size:9px;color:var(--text-dim);">Only financial work orders produce ledger entries. Full audit trail. Immutable hash chain.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUNNEL + WATERFALL -->
+  <div class="section-label">Pipeline Volume & Revenue Waterfall</div>
+  <div class="grid-6040">
+    <!-- FUNNEL -->
+    <div class="card">
+      <div class="card-header">
+        <div><div class="card-title">8-Stage Referral-to-Cash Funnel</div><div class="card-sub">Volume at each pipeline stage · Click stage to see event detail</div></div>
+        <span class="badge badge-slate">56.3% overall yield</span>
+      </div>
+      <div class="card-body" style="padding:14px 16px;">
+        <div class="funnel-row"><div class="funnel-num">1</div><div class="funnel-label"><div class="funnel-stage">Referral</div><div class="funnel-actor">Physician</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:100%;background:linear-gradient(90deg,#1B3A5C,#2E6DA4);"><span class="funnel-vol">1,000</span></div></div><div class="funnel-drop" style="color:var(--text-dim)">−50</div></div>
+        <div class="funnel-conn" style="border-color:var(--slate-dim);color:var(--text-dim)">5% — Incomplete referrals / missing ICD-10</div>
+        <div class="funnel-row"><div class="funnel-num">2</div><div class="funnel-label"><div class="funnel-stage">Eligibility</div><div class="funnel-actor">Ops API</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:95%;background:linear-gradient(90deg,#2E8B8B,#3AABAB);"><span class="funnel-vol">950</span></div></div><div class="funnel-drop" style="color:var(--amber)">−57</div></div>
+        <div class="funnel-conn" style="border-color:#7A4F10;color:var(--amber)">6% — Not covered / high deductible</div>
+        <div class="funnel-row"><div class="funnel-num">3</div><div class="funnel-label"><div class="funnel-stage">Prior Auth</div><div class="funnel-actor">Billing+Payer</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:89.3%;background:linear-gradient(90deg,#C05820,#E07040);"><span class="funnel-vol">893</span></div></div><div class="funnel-drop" style="color:var(--red)">−116</div></div>
+        <div class="funnel-conn" style="border-color:var(--red-dim);color:var(--red)">⚠ 13% first-pass denial · CRITICAL EXCEPTION</div>
+        <div class="funnel-row"><div class="funnel-num">4</div><div class="funnel-label"><div class="funnel-stage">Scheduling</div><div class="funnel-actor">Ops+Patient</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:77.6%;background:linear-gradient(90deg,#4A3A7A,#6A5A9A);"><span class="funnel-vol">776</span></div></div><div class="funnel-drop" style="color:var(--amber)">−62</div></div>
+        <div class="funnel-conn" style="border-color:#7A4F10;color:var(--amber)">8% — Disengagement during wait</div>
+        <div class="funnel-row"><div class="funnel-num">5</div><div class="funnel-label"><div class="funnel-stage">Session</div><div class="funnel-actor">RD+Patient</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:71.4%;background:linear-gradient(90deg,#1E6A3A,#2E8A4A);"><span class="funnel-vol">714</span></div></div><div class="funnel-drop" style="color:var(--amber)">−64</div></div>
+        <div class="funnel-conn" style="border-color:#7A4F10;color:var(--amber)">9% no-show · $50 fee triggered · Slot lost permanently</div>
+        <div class="funnel-row"><div class="funnel-num">6</div><div class="funnel-label"><div class="funnel-stage">Claim Sub.</div><div class="funnel-actor">Billing</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:65%;background:linear-gradient(90deg,#6A1010,#9A2020);"><span class="funnel-vol">650</span></div></div><div class="funnel-drop" style="color:var(--text-dim)">−26</div></div>
+        <div class="funnel-conn" style="border-color:var(--slate-dim);color:var(--text-dim)">4% formatting errors · same-day resubmit</div>
+        <div class="funnel-row"><div class="funnel-num">7</div><div class="funnel-label"><div class="funnel-stage">Adjudication</div><div class="funnel-actor">Payer</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:62.4%;background:linear-gradient(90deg,#1B3A5C,#2E6DA4);"><span class="funnel-vol">624</span></div></div><div class="funnel-drop" style="color:var(--amber)">−31</div></div>
+        <div class="funnel-conn" style="border-color:#7A4F10;color:var(--amber)">5% — CPT/Dx mismatch · auth expired</div>
+        <div class="funnel-row"><div class="funnel-num">8</div><div class="funnel-label"><div class="funnel-stage">Collections</div><div class="funnel-actor">Billing+Pt</div></div><div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:59.3%;background:linear-gradient(90deg,#1E6A3A,#2E8A4A);"><span class="funnel-vol">593</span></div></div><div class="funnel-drop" style="color:var(--text-dim)">−30</div></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1A6B61;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--green)">✓ PAID & CLOSED: 563 sessions</span>
+          <span style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--green)">56.3% yield</span>
+        </div>
+      </div>
+    </div>
+    <!-- WATERFALL -->
+    <div class="card">
+      <div class="card-header"><div><div class="card-title">Revenue Waterfall — Per Session</div><div class="card-sub">Policy WF-CLIN-001 · $135 session → $68 contribution margin</div></div><span class="badge badge-teal">50% CM</span></div>
+      <div class="card-body" style="padding:0;">
+        <div class="wf-row"><div class="wf-step">1</div><div class="wf-info"><div class="wf-name">Session Revenue Earned</div><div class="wf-desc">CPT 97802/97803 · Billable event triggered</div></div><div class="wf-amt" style="color:var(--teal-bright)">$135.00</div><div class="wf-status wf-ok">✓</div></div>
+        <div class="wf-row"><div class="wf-step">2</div><div class="wf-info"><div class="wf-name">Claim Submitted (CMS-1500)</div><div class="wf-desc">EDI 837P · Same day target</div></div><div class="wf-amt" style="color:var(--text)">$135.00</div><div class="wf-status wf-ok">Sent</div></div>
+        <div class="wf-row"><div class="wf-step">3</div><div class="wf-info"><div class="wf-name">Payer Adjudicates</div><div class="wf-desc">ERA 835 · 14–30 day lag</div></div><div class="wf-amt" style="color:var(--amber)">Pending</div><div class="wf-status wf-pend">⏳</div></div>
+        <div class="wf-row"><div class="wf-step">4</div><div class="wf-info"><div class="wf-name">Payer EFT Received</div><div class="wf-desc">Avg blended $103 · Reconcile vs contracted</div></div><div class="wf-amt" style="color:var(--green)">$103.00</div><div class="wf-status wf-ok">✓</div></div>
+        <div class="wf-row"><div class="wf-step">5</div><div class="wf-info"><div class="wf-name">Patient Copay / Coinsurance</div><div class="wf-desc">Card on file · App payment · Avg $32</div></div><div class="wf-amt" style="color:var(--green)">$32.00</div><div class="wf-status wf-ok">✓</div></div>
+        <div class="wf-row" style="background:rgba(42,157,143,0.05);"><div class="wf-step" style="background:var(--teal-dim);border-color:var(--teal);">6</div><div class="wf-info"><div class="wf-name" style="color:var(--teal-bright);font-weight:700;">Gross Cash per Session</div><div class="wf-desc">Payer EFT + Copay · Pre-labor</div></div><div class="wf-amt" style="color:var(--teal-bright);font-size:17px;font-weight:700;">$135.00</div><div class="wf-status" style="background:rgba(42,157,143,0.2);color:var(--teal-bright);">100%</div></div>
+        <div class="wf-row"><div class="wf-step">7</div><div class="wf-info"><div class="wf-name">RD Labor (loaded)</div><div class="wf-desc">$112.5k / 167 pts / 4.5 sess = $33/session</div></div><div class="wf-amt" style="color:var(--red)">−$33.00</div><div class="wf-status wf-ok">W-2/1099</div></div>
+        <div class="wf-row"><div class="wf-step">8</div><div class="wf-info"><div class="wf-name">Ops + Tech + Billing Overhead</div><div class="wf-desc">RCM, clearinghouse, EHR, ops · ~25% SG&A</div></div><div class="wf-amt" style="color:var(--red)">−$34.00</div><div class="wf-status wf-ok">Allocated</div></div>
+        <div class="wf-row" style="background:rgba(58,176,122,0.05);border-top:1px solid #1A5C3A;"><div class="wf-step" style="background:var(--green-dim);border-color:var(--green);">✓</div><div class="wf-info"><div class="wf-name" style="color:var(--green);font-weight:700;">Contribution Margin</div><div class="wf-desc">$135 revenue − $67 direct costs</div></div><div class="wf-amt" style="color:var(--green);font-size:17px;font-weight:700;">$68.00</div><div class="wf-status" style="background:rgba(58,176,122,0.2);color:var(--green);">50%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13-WEEK CASH FLOW -->
+  <div class="section-label">13-Week Cash Flow Projection</div>
+  <div class="card">
+    <div class="card-header" style="padding:10px 18px;">
+      <div><div class="card-title">13-Week Cash Flow</div><div class="card-sub">Payer EFT inflows (14–30 day lag) vs. bi-weekly payroll · Breakeven: 2,905 pts vs 2,500 today</div></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge badge-green">Cash+ W4</span>
+        <span class="badge badge-amber">W1–4 Avg $18.2K</span>
+        <span class="badge badge-teal">W5–9 Avg $31.4K</span>
+        <span class="badge badge-green">13-Wk Net $342K</span>
+        <span class="badge badge-red">PA Drag −$15.7K</span>
+      </div>
+    </div>
+    <div class="card-body" style="padding:12px 18px;">
+      <div style="height:140px;position:relative;">
+        <canvas id="cashflowChart" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: EVENTS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-events" class="page">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Event Registry</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Every observable occurrence in the referral-to-cash pipeline · Financial events trigger policy evaluation · Operational events drive work orders</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-green">Financial (triggers policy+ledger)</span>
+      <span class="badge badge-teal">Operational (triggers work order)</span>
+      <span class="badge badge-amber">Warning</span>
+      <span class="badge badge-red">Exception</span>
+    </div>
+  </div>
+
+  <!-- Event type summary -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="kpi"><div class="kpi-label">Financial Events</div><div class="kpi-value" style="color:var(--green)">563</div><div class="kpi-delta">SESSION_DELIVERED → CLAIM_PAID</div></div>
+    <div class="kpi"><div class="kpi-label">Operational Events</div><div class="kpi-value">684</div><div class="kpi-delta dim">Referrals, schedules, notes</div></div>
+    <div class="kpi"><div class="kpi-label">Warning Events</div><div class="kpi-value" style="color:var(--amber)">116</div><div class="kpi-delta warn">PA denials, PA pending</div></div>
+    <div class="kpi"><div class="kpi-label">Exception Events</div><div class="kpi-value" style="color:var(--red)">14</div><div class="kpi-delta down">Require human resolution</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">All Events — Current Period</div><div class="card-sub">Click any event to see its downstream chain (Policy → Work Order → Ledger)</div></div>
+      <div style="display:flex;gap:6px;">
+        <span class="badge badge-slate">1,247 total</span>
+        <input type="text" placeholder="Filter events..." style="padding:4px 10px;background:var(--navy-light);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font-mono);font-size:10px;outline:none;width:160px;" oninput="filterEvents(this.value)">
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="events-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Event Type</th>
+            <th>Category</th>
+            <th>Patient / Entity</th>
+            <th>Details</th>
+            <th>Policy Triggered</th>
+            <th>Work Order</th>
+            <th>Ledger Entry</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="events-tbody"></tbody>
+      </table>
+    </div>
+    <div id="event-detail-panel"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: POLICIES -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-policies" class="page">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Policy Registry</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Rules that govern how events are processed · Each policy defines: trigger event, conditions, required action, SLA, execution authority</div>
+    </div>
+    <span class="badge badge-teal">12 active policies</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="kpi"><div class="kpi-label">Policies Active</div><div class="kpi-value">12</div><div class="kpi-delta dim">Across 4 domains</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Compliance (7d)</div><div class="kpi-value" style="color:var(--teal-bright)">93.4%</div><div class="kpi-delta warn">3 below 90% target</div></div>
+    <div class="kpi"><div class="kpi-label">Policy Evaluations (MTD)</div><div class="kpi-value">8,419</div><div class="kpi-delta dim">Automated</div></div>
+    <div class="kpi"><div class="kpi-label">Exceptions → New Policy</div><div class="kpi-value">3</div><div class="kpi-delta up">This month</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Active Policies</div><div class="card-sub">Trigger event · Conditions · Required action · SLA · Executor · Compliance rate</div></div></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="policies-table">
+        <thead>
+          <tr>
+            <th>Policy ID</th>
+            <th>Name</th>
+            <th>Trigger Event</th>
+            <th>Condition</th>
+            <th>Required Action</th>
+            <th>SLA</th>
+            <th>Executor</th>
+            <th>Compliance (7d)</th>
+            <th>Evaluations</th>
+            <th>Exceptions</th>
+          </tr>
+        </thead>
+        <tbody id="policies-tbody"></tbody>
+      </table>
+    </div>
+    <div id="policy-detail-panel"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: WORK ORDERS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-workorders" class="page">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Work Order Queue</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Tasks generated by policy evaluation · Routed to execution slots (API / AI Agent / Human) by capability and authority level</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-red">5 overdue</span>
+      <span class="badge badge-amber">12 pending</span>
+      <span class="badge badge-green">17 completed today</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="kpi"><div class="kpi-label">Open Work Orders</div><div class="kpi-value" style="color:var(--amber)">34</div><div class="kpi-delta warn">5 SLA at risk</div></div>
+    <div class="kpi"><div class="kpi-label">Completed Today</div><div class="kpi-value">17</div><div class="kpi-delta up">↑ vs 12 yesterday</div></div>
+    <div class="kpi"><div class="kpi-label">API / Automated</div><div class="kpi-value">28</div><div class="kpi-delta dim">82% automation rate</div></div>
+    <div class="kpi"><div class="kpi-label">Human Required</div><div class="kpi-value" style="color:var(--amber)">6</div><div class="kpi-delta warn">Billing team queue: 5</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Work Order Queue</div><div class="card-sub">Source event · Policy · Assigned executor · Status · Financial impact if not completed</div></div></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="wo-table">
+        <thead>
+          <tr>
+            <th>Work Order ID</th>
+            <th>Type</th>
+            <th>Source Event</th>
+            <th>Policy</th>
+            <th>Assigned To</th>
+            <th>Executor Type</th>
+            <th>SLA Deadline</th>
+            <th>$ at Risk</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="wo-tbody"></tbody>
+      </table>
+    </div>
+    <div id="wo-detail-panel"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: LEDGER -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-ledger" class="page">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Ledger</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">All financial entries generated by completed work orders · Every entry traces back to a source event via hash chain · Immutable audit trail</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-green">$98K collected</span>
+      <span class="badge badge-amber">$22K AR pending</span>
+      <span class="badge badge-red">$4.1K write-off risk</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;">
+    <div class="kpi"><div class="kpi-label">Revenue Billed (MTD)</div><div class="kpi-value">$120K</div><div class="kpi-delta up">892 sessions × $135</div></div>
+    <div class="kpi"><div class="kpi-label">Payer EFT Collected</div><div class="kpi-value">$75K</div><div class="kpi-delta dim">563 × $133 avg</div></div>
+    <div class="kpi"><div class="kpi-label">Patient Copay</div><div class="kpi-value">$18K</div><div class="kpi-delta dim">563 × $32 avg</div></div>
+    <div class="kpi"><div class="kpi-label">No-Show Fees</div><div class="kpi-value">$3.2K</div><div class="kpi-delta dim">64 × $50</div></div>
+    <div class="kpi"><div class="kpi-label">AR Outstanding</div><div class="kpi-value" style="color:var(--amber)">$22K</div><div class="kpi-delta warn">14–30 day payer lag</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div><div class="card-title">Ledger Entries</div><div class="card-sub">Every entry generated by a completed financial work order · Full hash chain lineage</div></div>
+      <div style="display:flex;gap:6px;">
+        <span class="badge badge-slate">All entries immutable</span>
+        <span class="badge badge-green">100% hash integrity</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="ledger-table">
+        <thead>
+          <tr>
+            <th>Ledger ID</th>
+            <th>Date</th>
+            <th>Entry Type</th>
+            <th>Patient / Payer</th>
+            <th>Source Event</th>
+            <th>Work Order</th>
+            <th>Debit</th>
+            <th>Credit</th>
+            <th>Balance Impact</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="ledger-tbody"></tbody>
+      </table>
+    </div>
+    <div id="ledger-detail-panel"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB: EXCEPTIONS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="tab-exceptions" class="page">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;">
+    <div>
+      <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:white;">Exception Registry</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Events where no matching policy exists, or policy evaluation failed · Require human resolution · Resolution often creates new policies</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-red">3 critical</span>
+      <span class="badge badge-amber">8 warning</span>
+      <span class="badge badge-slate">3 informational</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+    <div class="kpi"><div class="kpi-label">Open Exceptions</div><div class="kpi-value" style="color:var(--red)">14</div><div class="kpi-delta down">3 SLA breach imminent</div></div>
+    <div class="kpi"><div class="kpi-label">$ at Risk (Open)</div><div class="kpi-value" style="color:var(--amber)">$8.4K</div><div class="kpi-delta warn">If not resolved in window</div></div>
+    <div class="kpi"><div class="kpi-label">Resolved This Week</div><div class="kpi-value">6</div><div class="kpi-delta up">Avg 4.2h resolution time</div></div>
+    <div class="kpi"><div class="kpi-label">New Policies Created</div><div class="kpi-value" style="color:var(--green)">3</div><div class="kpi-delta up">From resolved exceptions</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Active Exceptions</div><div class="card-sub">Source event · Type · SLA · $ at risk · Assigned resolver · Resolution path</div></div></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="exc-table">
+        <thead>
+          <tr>
+            <th>Exception ID</th>
+            <th>Type</th>
+            <th>Source Event</th>
+            <th>Severity</th>
+            <th>SLA Deadline</th>
+            <th>Time Remaining</th>
+            <th>$ at Risk</th>
+            <th>Assigned To</th>
+            <th>Resolution Path</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="exc-tbody"></tbody>
+      </table>
+    </div>
+    <div id="exc-detail-panel"></div>
+  </div>
+
+  <!-- EXCEPTION → POLICY LOOP -->
+  <div class="section-label">Exception Resolution Loop — How Exceptions Become Policies</div>
+  <div class="card">
+    <div class="card-header"><div><div class="card-title">Exception → Policy Learning Loop</div><div class="card-sub">Resolved exceptions where no policy existed → new policy created to automate future handling</div></div></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div style="background:rgba(224,82,82,0.06);border:1px solid rgba(224,82,82,0.2);border-radius:8px;padding:14px;">
+          <div style="font-size:9px;color:var(--red);font-weight:700;letter-spacing:0.15em;margin-bottom:8px;">RESOLVED EXCEPTION</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">NO_POLICY_MATCH: Medicaid MCO</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.6;">First Medicaid Managed Care patient. No PA workflow existed. Billing lead handled manually. 2h resolution.</div>
+          <div style="margin-top:8px;font-size:10px;"><span class="badge badge-slate">exc_mc_001</span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--teal);">→</div>
+        <div style="background:rgba(74,143,204,0.06);border:1px solid rgba(74,143,204,0.2);border-radius:8px;padding:14px;">
+          <div style="font-size:9px;color:#4A8FCC;font-weight:700;letter-spacing:0.15em;margin-bottom:8px;">NEW POLICY CREATED</div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">PA-MCO-001: Medicaid MCO Prior Auth</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.6;">Trigger: ELIGIBILITY_CONFIRMED where plan_type = 'medicaid_mco'. Action: route PA to state-specific portal within 24h. Executor: Billing Team.</div>
+          <div style="margin-top:8px;font-size:10px;"><span class="badge badge-green">Active · 3 evaluations</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-stats">
+    <div><div class="fstat-val">892</div><div class="fstat-lbl">Sessions (MTD)</div></div>
+    <div><div class="fstat-val">$120K</div><div class="fstat-lbl">Billed (MTD)</div></div>
+    <div><div class="fstat-val">$98K</div><div class="fstat-lbl">Collected (MTD)</div></div>
+    <div><div class="fstat-val" style="color:var(--amber)">87%</div><div class="fstat-lbl">PA First-Pass</div></div>
+    <div><div class="fstat-val" style="color:var(--green)">100%</div><div class="fstat-lbl">Hash Integrity</div></div>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:10px;color:var(--slate-dim);">Culina Health · CAST v1.0 · Mar 2026 · $135/session · 15 RDs · 2,500 pts</div>
+</footer>
+
+<script>
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+
+const EVENTS = [
+  { id:'evt_9c1d', ts:'08:14:22', type:'SESSION_DELIVERED', category:'Financial', patient:'Patient #5203 / Dr. Kim', details:'Cardio Pod · CPT 97803 · 45min · Maria Santos RD', policy:'BILL-001', wo:'wo_clm_5203', ledger:'ldg_a1b2', status:'processed', color:'green' },
+  { id:'evt_4a2f', ts:'08:28:11', type:'REFERRAL_RECEIVED', category:'Operational', patient:'Patient #5311 / Dr. Patel', details:'ICD-10 E11.9 · Cardiology · Eligibility check queued', policy:'ELIG-001', wo:'wo_elig_5311', ledger:'—', status:'processed', color:'blue' },
+  { id:'evt_3e8c', ts:'08:31:04', type:'ELIGIBILITY_CONFIRMED', category:'Operational', patient:'Patient #5298 / Cigna', details:'MNT covered · Auth required · PA submission queued', policy:'PA-001', wo:'wo_pa_5298', ledger:'—', status:'processed', color:'blue' },
+  { id:'evt_2b7e', ts:'09:02:18', type:'PA_DENIED', category:'Exception', patient:'Patient #4821 / Aetna', details:'CPT 97803 · Medical necessity denial · Appeal triggered', policy:'PA-APPEAL-001', wo:'wo_appeal_4821', ledger:'—', status:'exception', color:'red' },
+  { id:'evt_6a9b', ts:'10:00:00', type:'NO_SHOW', category:'Warning', patient:'Patient #3847 / GI Pod', details:'Slot 10:00AM · $50 fee auto-billed · RD slot lost', policy:'FEE-001', wo:'wo_fee_3847', ledger:'ldg_c3d4', status:'processed', color:'amber' },
+  { id:'evt_7f3a', ts:'10:18:44', type:'CLAIM_PAID', category:'Financial', patient:'Patient #5101 / CareFirst BCBS', details:'$135.00 · ERA 835 · Auth #PA-7741 cleared · EFT', policy:'PAY-001', wo:'wo_era_5101', ledger:'ldg_e5f6', status:'processed', color:'green' },
+  { id:'evt_7c4e', ts:'11:04:29', type:'CLAIM_REJECTED', category:'Exception', patient:'Claim #CLM-2918 / United', details:'NPI mismatch · Format error · Same-day resubmit SLA', policy:'RESUB-001', wo:'wo_fix_2918', ledger:'—', status:'exception', color:'red' },
+  { id:'evt_9e4c', ts:'11:22:07', type:'AR_AGING_60D', category:'Exception', patient:'Claim #CLM-2841 / UHC', details:'$270 · 2 sessions · CO-4 denial · Timely filing risk', policy:'AR-001', wo:'wo_esc_2841', ledger:'—', status:'exception', color:'red' },
+  { id:'evt_5b3a', ts:'12:00:00', type:'PHYSICIAN_NOTE_LATE', category:'Warning', patient:'Session #892-W / Dr. Rodriguez', details:'48h SLA missed by 6h · Referral relationship at risk', policy:'NOTE-001', wo:'wo_note_892', ledger:'—', status:'warning', color:'amber' },
+  { id:'evt_8b2a', ts:'12:44:52', type:'COPAY_COLLECTED', category:'Financial', patient:'Patient #4102 / Self', details:'$30.00 · Card on file · Account closed · Episode complete', policy:'PAY-001', wo:'wo_pay_4102', ledger:'ldg_g7h8', status:'processed', color:'green' },
+  { id:'evt_1d5f', ts:'13:02:11', type:'CLAIM_SUBMITTED', category:'Financial', patient:'Patient #5203 / CareFirst', details:'CPT 97803 · Dx E11.9 · Auth #PA-2024-8812 · EDI 837P', policy:'BILL-001', wo:'wo_clm_5203', ledger:'ldg_i9j0', status:'processed', color:'green' },
+  { id:'evt_5c4d', ts:'14:15:33', type:'PA_PENDING_72H', category:'Warning', patient:'Patient #5041 / Cigna', details:'Appeal window risk · 4-week cash delay if no resolution', policy:'PA-APPEAL-001', wo:'wo_pa_5041', ledger:'—', status:'warning', color:'amber' },
+];
+
+const POLICIES = [
+  { id:'BILL-001', name:'Claim Submission', trigger:'SESSION_DELIVERED', condition:'session documented + CPT captured', action:'Submit CMS-1500 via clearinghouse', sla:'3 business days', executor:'Change Healthcare API', compliance:96, evals:714, exceptions:26 },
+  { id:'ELIG-001', name:'Eligibility Check at Intake', trigger:'REFERRAL_RECEIVED', condition:'patient insurance on file', action:'Run real-time eligibility check', sla:'Same day (before scheduling)', executor:'Change Healthcare API', compliance:100, evals:1000, exceptions:0 },
+  { id:'PA-001', name:'Prior Auth Submission', trigger:'ELIGIBILITY_CONFIRMED', condition:'plan requires prior auth', action:'Submit PA request to payer', sla:'24 hours', executor:'Rhyme PA Automation', compliance:87, evals:893, exceptions:116 },
+  { id:'PA-APPEAL-001', name:'PA Denial Appeal', trigger:'PA_DENIED', condition:'first-pass denial received', action:'Auto-generate appeal with clinical notes', sla:'48 hours', executor:'Billing Team (Human)', compliance:82, evals:116, exceptions:21 },
+  { id:'FEE-001', name:'No-Show Fee Billing', trigger:'NO_SHOW', condition:'appointment missed without 24h cancel', action:'Auto-bill $50 via card on file', sla:'Same day', executor:'Patient Engagement App API', compliance:98, evals:64, exceptions:1 },
+  { id:'NOTE-001', name:'Physician Progress Note', trigger:'SESSION_DELIVERED', condition:'RD completes session documentation', action:'Send clinical note to referring physician EHR', sla:'48 hours', executor:'Redox/Epic FHIR API', compliance:91, evals:714, exceptions:64 },
+  { id:'PAY-001', name:'ERA Reconciliation', trigger:'CLAIM_PAID', condition:'ERA 835 received from payer', action:'Reconcile vs contracted rate · Flag if variance >$10', sla:'Same day as ERA post', executor:'Athenahealth RCM API', compliance:100, evals:563, exceptions:0 },
+  { id:'RESUB-001', name:'Claim Resubmission', trigger:'CLAIM_REJECTED', condition:'formatting or coding error', action:'Fix and resubmit same day', sla:'Same business day', executor:'Billing Team (Human)', compliance:94, evals:26, exceptions:2 },
+  { id:'AR-001', name:'AR Aging Escalation', trigger:'AR_AGING_60D', condition:'claim unpaid >60 days', action:'Escalate to senior biller + denial appeal', sla:'24 hours', executor:'Senior Biller (Human)', compliance:78, evals:18, exceptions:4 },
+  { id:'UNDERPAY-001', name:'Underpayment Flag', trigger:'CLAIM_PAID', condition:'payer payment <contracted rate by >$10', action:'Flag for manual reconciliation', sla:'72 hours', executor:'Billing API Auto-flag', compliance:100, evals:563, exceptions:0 },
+  { id:'ELIG-LAP-001', name:'Eligibility Lapse Recovery', trigger:'SESSION_DELIVERED', condition:'patient coverage lapsed since eligibility check', action:'Notify ops · offer self-pay conversion', sla:'18 hours', executor:'Clinical Ops Lead (Human)', compliance:88, evals:8, exceptions:1 },
+  { id:'PA-MCO-001', name:'Medicaid MCO Prior Auth', trigger:'ELIGIBILITY_CONFIRMED', condition:"plan_type = 'medicaid_mco'", action:'Route PA to state-specific portal', sla:'24 hours', executor:'Billing Team (Human)', compliance:100, evals:3, exceptions:0 },
+];
+
+const WORK_ORDERS = [
+  { id:'wo_appeal_4821', type:'PA_APPEAL', srcEvt:'evt_2b7e', policy:'PA-APPEAL-001', assignee:'Billing Team', exType:'human', sla:'Mar 11 · 11:02AM', risk:135, status:'in_progress' },
+  { id:'wo_esc_2841', type:'AR_ESCALATION', srcEvt:'evt_9e4c', policy:'AR-001', assignee:'Senior Biller', exType:'human', sla:'Mar 11 · 12:22PM', risk:270, status:'in_progress' },
+  { id:'wo_note_892', type:'PHYSICIAN_NOTE', srcEvt:'evt_5b3a', policy:'NOTE-001', assignee:'RD: T. Williams', exType:'human', sla:'OVERDUE', risk:0, status:'overdue' },
+  { id:'wo_fix_2918', type:'CLAIM_RESUBMIT', srcEvt:'evt_7c4e', policy:'RESUB-001', assignee:'Billing API', exType:'api', sla:'Mar 11 · 5:00PM', risk:135, status:'queued' },
+  { id:'wo_pa_5298', type:'PA_SUBMISSION', srcEvt:'evt_3e8c', policy:'PA-001', assignee:'Rhyme PA API', exType:'api', sla:'Mar 12 · 8:31AM', risk:135, status:'queued' },
+  { id:'wo_pa_5041', type:'PA_PENDING_FOLLOW', srcEvt:'evt_5c4d', policy:'PA-APPEAL-001', assignee:'Billing Team', exType:'human', sla:'Mar 11 · 3:15PM', risk:135, status:'pending' },
+  { id:'wo_clm_5203', type:'CLAIM_SUBMISSION', srcEvt:'evt_9c1d', policy:'BILL-001', assignee:'Change Healthcare', exType:'api', sla:'Mar 14 · EOD', risk:135, status:'completed' },
+  { id:'wo_elig_5311', type:'ELIGIBILITY_CHECK', srcEvt:'evt_4a2f', policy:'ELIG-001', assignee:'CH API', exType:'api', sla:'Mar 11 · 8:28AM', risk:0, status:'completed' },
+  { id:'wo_era_5101', type:'ERA_RECONCILE', srcEvt:'evt_7f3a', policy:'PAY-001', assignee:'Athenahealth API', exType:'api', sla:'Mar 11 · EOD', risk:0, status:'completed' },
+  { id:'wo_fee_3847', type:'NO_SHOW_FEE', srcEvt:'evt_6a9b', policy:'FEE-001', assignee:'Patient App API', exType:'api', sla:'Mar 11 · 10:00AM', risk:0, status:'completed' },
+  { id:'wo_pay_4102', type:'COPAY_COLLECTION', srcEvt:'evt_8b2a', policy:'PAY-001', assignee:'Patient App API', exType:'api', sla:'Mar 11 · 12:44PM', risk:0, status:'completed' },
+  { id:'wo_appeal_4819', type:'PA_APPEAL', srcEvt:'evt_a1b2', policy:'PA-APPEAL-001', assignee:'Billing Team', exType:'human', sla:'OVERDUE', risk:135, status:'overdue' },
+];
+
+const LEDGER = [
+  { id:'ldg_e5f6', date:'Mar 11 10:18', type:'PAYER_EFT_RECEIVED', entity:'Patient #5101 / CareFirst BCBS', srcEvt:'evt_7f3a', wo:'wo_era_5101', debit:'', credit:'$103.00', balance:'+$103.00', status:'settled' },
+  { id:'ldg_g7h8', date:'Mar 11 12:44', type:'COPAY_COLLECTED', entity:'Patient #4102 / Self-pay', srcEvt:'evt_8b2a', wo:'wo_pay_4102', debit:'', credit:'$32.00', balance:'+$32.00', status:'settled' },
+  { id:'ldg_c3d4', date:'Mar 11 10:00', type:'NO_SHOW_FEE', entity:'Patient #3847 / Self-pay', srcEvt:'evt_6a9b', wo:'wo_fee_3847', debit:'', credit:'$50.00', balance:'+$50.00', status:'settled' },
+  { id:'ldg_i9j0', date:'Mar 11 13:02', type:'CLAIM_AR_POSTED', entity:'Patient #5203 / CareFirst', srcEvt:'evt_1d5f', wo:'wo_clm_5203', debit:'$135.00', credit:'', balance:'+$135.00 AR', status:'pending' },
+  { id:'ldg_a1b2', date:'Mar 11 08:14', type:'SESSION_REVENUE_EARNED', entity:'Patient #5203 / Culina', srcEvt:'evt_9c1d', wo:'wo_clm_5203', debit:'', credit:'$135.00', balance:'+$135.00', status:'billed' },
+  { id:'ldg_k1l2', date:'Mar 10 16:22', type:'PAYER_EFT_RECEIVED', entity:'Patient #5099 / Aetna', srcEvt:'evt_b2c3', wo:'wo_era_5099', debit:'', credit:'$108.00', balance:'+$108.00', status:'settled' },
+  { id:'ldg_m3n4', date:'Mar 10 14:11', type:'COPAY_COLLECTED', entity:'Patient #4980 / Self-pay', srcEvt:'evt_d4e5', wo:'wo_pay_4980', debit:'', credit:'$27.00', balance:'+$27.00', status:'settled' },
+  { id:'ldg_o5p6', date:'Mar 10 11:05', type:'WRITE_OFF_RISK', entity:'Claim #CLM-2841 / UHC', srcEvt:'evt_9e4c', wo:'wo_esc_2841', debit:'$270.00', credit:'', balance:'−$270.00 risk', status:'at_risk' },
+  { id:'ldg_q7r8', date:'Mar 9 09:44', type:'UNDERPAYMENT_FLAGGED', entity:'Patient #4811 / CareFirst', srcEvt:'evt_f6g7', wo:'wo_era_4811', debit:'$25.00', credit:'', balance:'−$25.00 variance', status:'flagged' },
+  { id:'ldg_s9t0', date:'Mar 9 08:30', type:'PAYER_EFT_RECEIVED', entity:'Patient #4799 / Cigna', srcEvt:'evt_h8i9', wo:'wo_era_4799', debit:'', credit:'$97.00', balance:'+$97.00', status:'settled' },
+];
+
+const EXCEPTIONS = [
+  { id:'exc_001', type:'PA_FIRST_PASS_DENIAL', srcEvt:'evt_2b7e', severity:'critical', sla:'Mar 11 · 11:02AM', remaining:'1h 22m', risk:135, assignee:'Billing Team', resolution:'Submit appeal with clinical notes + medical necessity letter', status:'in_progress' },
+  { id:'exc_002', type:'AR_AGING_60D', srcEvt:'evt_9e4c', severity:'critical', sla:'Mar 11 · 12:22PM', remaining:'2h 42m', risk:270, assignee:'Senior Biller', resolution:'File appeal · CO-4 code = diagnosis insufficient. Add supporting notes.', status:'in_progress' },
+  { id:'exc_003', type:'NOTE_SLA_BREACH', srcEvt:'evt_5b3a', severity:'critical', sla:'OVERDUE', remaining:'−6h', risk:0, assignee:'RD: T. Williams', resolution:'Deliver note immediately. Alert clinical ops. Log SLA breach.', status:'overdue' },
+  { id:'exc_004', type:'UNDERPAYMENT_FLAGGED', srcEvt:'evt_f6g7', severity:'warning', sla:'Mar 13 · 5:00PM', remaining:'41h', risk:25, assignee:'Billing API', resolution:'Auto-reconcile ERA vs contracted rate. If unresolved, escalate to billing.', status:'pending' },
+  { id:'exc_005', type:'ELIGIBILITY_LAPSED', srcEvt:'evt_j0k1', severity:'warning', sla:'Mar 12 · 8:00AM', remaining:'14h', risk:135, assignee:'Clinical Ops Lead', resolution:'Offer self-pay conversion at DTC rate. Back-bill if coverage was active at service.', status:'pending' },
+  { id:'exc_006', type:'NO_POLICY_MATCH', srcEvt:'evt_l2m3', severity:'warning', sla:'Mar 12 · 10:00AM', remaining:'16h', risk:135, assignee:'Billing Lead', resolution:'Define PA workflow for Medicaid MCO plan type. Create new policy PA-MCO-001.', status:'pending' },
+  { id:'exc_007', type:'CLAIM_REJECTED_RESUB', srcEvt:'evt_7c4e', severity:'warning', sla:'Mar 11 · 5:00PM', remaining:'5h', risk:135, assignee:'Billing API', resolution:'Correct NPI. Resubmit same day via clearinghouse.', status:'queued' },
+  { id:'exc_008', type:'PA_PENDING_72H', srcEvt:'evt_5c4d', severity:'warning', sla:'Mar 11 · 3:15PM', remaining:'3h 15m', risk:135, assignee:'Billing Team', resolution:'Call payer status line. Document call. If still pending, escalate to PA supervisor.', status:'in_progress' },
+];
+
+// ═══════════════════════════════
+// RENDER FUNCTIONS
+// ═══════════════════════════════
+
+function severityColor(s) {
+  return s === 'critical' ? 'var(--red)' : s === 'warning' ? 'var(--amber)' : 'var(--text-dim)';
+}
+function statusBadge(s) {
+  const map = {
+    processed: '<span class="badge badge-green">Processed</span>',
+    exception: '<span class="badge badge-red">Exception</span>',
+    warning: '<span class="badge badge-amber">Warning</span>',
+    completed: '<span class="badge badge-green">Completed</span>',
+    in_progress: '<span class="badge badge-teal">In Progress</span>',
+    queued: '<span class="badge badge-slate">Queued</span>',
+    overdue: '<span class="badge badge-red">Overdue</span>',
+    pending: '<span class="badge badge-amber">Pending</span>',
+    settled: '<span class="badge badge-green">Settled</span>',
+    billed: '<span class="badge badge-teal">Billed</span>',
+    at_risk: '<span class="badge badge-red">At Risk</span>',
+    flagged: '<span class="badge badge-amber">Flagged</span>',
+  };
+  return map[s] || s;
+}
+function exType(t) {
+  if (t === 'api') return '<span class="badge badge-teal">API</span>';
+  if (t === 'human') return '<span class="badge badge-slate">Human</span>';
+  return t;
+}
+
+function renderEvents(filter = '') {
+  const tbody = document.getElementById('events-tbody');
+  const filtered = EVENTS.filter(e => !filter || e.type.toLowerCase().includes(filter.toLowerCase()) || e.patient.toLowerCase().includes(filter.toLowerCase()) || e.category.toLowerCase().includes(filter.toLowerCase()));
+  tbody.innerHTML = filtered.map(e => `
+    <tr onclick="showEventDetail('${e.id}')">
+      <td><span class="mono">${e.ts}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:11px;color:${e.color === 'green' ? 'var(--green)' : e.color === 'red' ? 'var(--red)' : e.color === 'amber' ? 'var(--amber)' : 'var(--teal-bright)'}">${e.type}</span></td>
+      <td><span class="badge ${e.category === 'Financial' ? 'badge-green' : e.category === 'Exception' ? 'badge-red' : e.category === 'Warning' ? 'badge-amber' : 'badge-teal'}">${e.category}</span></td>
+      <td>${e.patient}</td>
+      <td style="color:var(--text-dim);font-size:11px;">${e.details}</td>
+      <td><span class="link">${e.policy}</span></td>
+      <td><span class="link">${e.wo}</span></td>
+      <td><span class="link">${e.ledger}</span></td>
+      <td>${statusBadge(e.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function showEventDetail(id) {
+  const e = EVENTS.find(x => x.id === id);
+  if (!e) return;
+  const pol = POLICIES.find(p => p.id === e.policy);
+  const panel = document.getElementById('event-detail-panel');
+  panel.innerHTML = `
+    <div class="detail-panel">
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.15em;color:var(--teal);margin-bottom:12px;">EVENT CHAIN — ${e.id}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        <div style="background:rgba(42,157,143,0.08);border:1px solid rgba(42,157,143,0.25);border-radius:7px;padding:12px;">
+          <div style="font-size:8px;color:var(--teal);font-weight:700;letter-spacing:0.15em;margin-bottom:6px;">EVENT</div>
+          <div style="font-size:12px;font-weight:600;color:white;">${e.type}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">${e.patient}</div>
+          <div style="font-size:10px;color:var(--text-dim);">${e.details}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--slate-dim);margin-top:6px;">${e.id}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:18px;">→</div>
+        <div style="background:rgba(74,143,204,0.08);border:1px solid rgba(74,143,204,0.25);border-radius:7px;padding:12px;">
+          <div style="font-size:8px;color:#4A8FCC;font-weight:700;letter-spacing:0.15em;margin-bottom:6px;">POLICY</div>
+          <div style="font-size:12px;font-weight:600;color:white;">${e.policy}</div>
+          ${pol ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">${pol.name}</div><div style="font-size:10px;color:var(--text-dim);">SLA: ${pol.sla}</div>` : ''}
+          <div style="background:rgba(58,176,122,0.15);color:var(--green);font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;display:inline-block;margin-top:5px;">PASS</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:18px;">→</div>
+        <div style="background:rgba(139,111,212,0.08);border:1px solid rgba(139,111,212,0.25);border-radius:7px;padding:12px;">
+          <div style="font-size:8px;color:var(--purple);font-weight:700;letter-spacing:0.15em;margin-bottom:6px;">WORK ORDER</div>
+          <div style="font-size:12px;font-weight:600;color:white;">${e.wo}</div>
+          <div style="font-family:var(--font-mono);font-size:9px;color:var(--slate-dim);margin-top:4px;">${e.wo}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;color:var(--slate-dim);font-size:18px;">→</div>
+        <div style="background:rgba(58,176,122,0.06);border:1px solid rgba(58,176,122,0.2);border-radius:7px;padding:12px;">
+          <div style="font-size:8px;color:var(--green);font-weight:700;letter-spacing:0.15em;margin-bottom:6px;">LEDGER</div>
+          <div style="font-size:12px;font-weight:600;color:white;">${e.ledger !== '—' ? e.ledger : 'No financial entry'}</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px;">${e.category === 'Financial' ? 'Revenue recognized' : 'Operational — no ledger entry'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function filterEvents(val) { renderEvents(val); }
+
+function renderPolicies() {
+  const tbody = document.getElementById('policies-tbody');
+  tbody.innerHTML = POLICIES.map(p => `
+    <tr onclick="showPolicyDetail('${p.id}')">
+      <td><span class="mono">${p.id}</span></td>
+      <td style="font-weight:500;">${p.name}</td>
+      <td><span style="font-family:var(--font-mono);font-size:10px;color:var(--teal-bright);">${p.trigger}</span></td>
+      <td style="font-size:11px;color:var(--text-dim);">${p.condition}</td>
+      <td style="font-size:11px;">${p.action}</td>
+      <td><span class="mono">${p.sla}</span></td>
+      <td style="font-size:11px;">${p.executor}</td>
+      <td>
+        <span style="font-weight:700;color:${p.compliance >= 95 ? 'var(--green)' : p.compliance >= 85 ? 'var(--amber)' : 'var(--red)'};">${p.compliance}%</span>
+        <div class="pol-bar-wrap" style="width:80px;margin-top:4px;"><div class="pol-bar-fill" style="width:${p.compliance}%;background:${p.compliance >= 95 ? 'var(--green)' : p.compliance >= 85 ? 'var(--amber)' : 'var(--red)'};"></div></div>
+      </td>
+      <td><span class="mono">${p.evals.toLocaleString()}</span></td>
+      <td><span style="color:${p.exceptions > 10 ? 'var(--red)' : p.exceptions > 0 ? 'var(--amber)' : 'var(--green)'};">${p.exceptions}</span></td>
+    </tr>
+  `).join('');
+}
+
+function showPolicyDetail(id) {
+  const p = POLICIES.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('policy-detail-panel').innerHTML = `
+    <div class="detail-panel">
+      <div style="font-size:9px;color:var(--teal);font-weight:700;letter-spacing:0.15em;margin-bottom:10px;">POLICY DETAIL — ${p.id}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">TRIGGER EVENT</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--teal-bright);">${p.trigger}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">CONDITION</div><div style="font-size:11px;">${p.condition}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">REQUIRED ACTION</div><div style="font-size:11px;">${p.action}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">SLA</div><div style="font-size:11px;font-weight:600;">${p.sla}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">EXECUTOR</div><div style="font-size:11px;">${p.executor}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">COMPLIANCE</div><div style="font-size:18px;font-weight:700;font-family:var(--font-display);color:${p.compliance >= 95 ? 'var(--green)' : p.compliance >= 85 ? 'var(--amber)' : 'var(--red)'};">${p.compliance}%</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkOrders() {
+  const tbody = document.getElementById('wo-tbody');
+  tbody.innerHTML = WORK_ORDERS.map(w => `
+    <tr onclick="showWODetail('${w.id}')">
+      <td><span class="mono">${w.id}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:10px;color:var(--teal-bright);">${w.type}</span></td>
+      <td><span class="link">${w.srcEvt}</span></td>
+      <td><span class="link">${w.policy}</span></td>
+      <td style="font-size:11px;">${w.assignee}</td>
+      <td>${exType(w.exType)}</td>
+      <td><span class="mono" style="color:${w.sla === 'OVERDUE' ? 'var(--red)' : 'var(--text)'}">${w.sla}</span></td>
+      <td><span style="font-family:var(--font-mono);color:${w.risk > 0 ? 'var(--amber)' : 'var(--text-dim)'};">${w.risk > 0 ? '$' + w.risk : '—'}</span></td>
+      <td>${statusBadge(w.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function showWODetail(id) {
+  const w = WORK_ORDERS.find(x => x.id === id);
+  if (!w) return;
+  document.getElementById('wo-detail-panel').innerHTML = `
+    <div class="detail-panel">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">TYPE</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--purple);">${w.type}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">SOURCE EVENT</div><div class="link">${w.srcEvt}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">POLICY</div><div class="link">${w.policy}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">ASSIGNED TO</div><div style="font-size:11px;">${w.assignee} · ${w.exType.toUpperCase()}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">SLA</div><div style="font-size:12px;font-weight:600;color:${w.sla === 'OVERDUE' ? 'var(--red)' : 'var(--text)'};">${w.sla}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">$ AT RISK</div><div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:${w.risk > 0 ? 'var(--amber)' : 'var(--text-dim)'};">${w.risk > 0 ? '$' + w.risk : 'None'}</div></div>
+        <div style="grid-column:span 2;"><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">STATUS</div>${statusBadge(w.status)}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderLedger() {
+  const tbody = document.getElementById('ledger-tbody');
+  tbody.innerHTML = LEDGER.map(l => `
+    <tr onclick="showLedgerDetail('${l.id}')">
+      <td><span class="mono">${l.id}</span></td>
+      <td><span class="mono" style="font-size:9px;">${l.date}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:10px;color:${l.type.includes('RECEIVED') || l.type.includes('COLLECTED') || l.type.includes('FEE') ? 'var(--green)' : l.type.includes('RISK') || l.type.includes('UNDER') ? 'var(--red)' : 'var(--teal-bright)'};">${l.type}</span></td>
+      <td style="font-size:11px;">${l.entity}</td>
+      <td><span class="link">${l.srcEvt}</span></td>
+      <td><span class="link">${l.wo}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--red);">${l.debit}</td>
+      <td style="font-family:var(--font-mono);color:var(--green);">${l.credit}</td>
+      <td style="font-family:var(--font-mono);font-weight:600;color:${l.balance.includes('+') ? 'var(--green)' : 'var(--red)'};">${l.balance}</td>
+      <td>${statusBadge(l.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function showLedgerDetail(id) {
+  const l = LEDGER.find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('ledger-detail-panel').innerHTML = `
+    <div class="detail-panel">
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">ENTRY TYPE</div><div style="font-family:var(--font-mono);font-size:11px;color:var(--green);">${l.type}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">SOURCE EVENT</div><div class="link">${l.srcEvt}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">WORK ORDER</div><div class="link">${l.wo}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">DEBIT</div><div style="font-family:var(--font-mono);font-weight:600;color:var(--red);">${l.debit || '—'}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">CREDIT</div><div style="font-family:var(--font-mono);font-weight:600;color:var(--green);">${l.credit || '—'}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">LEDGER HASH</div><div style="font-family:var(--font-mono);font-size:9px;color:var(--slate-dim);">${l.id}...chain_verified</div></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;background:rgba(58,176,122,0.08);border:1px solid rgba(58,176,122,0.2);padding:8px 14px;border-radius:7px;">
+          <span style="color:var(--green);font-size:14px;">✓</span>
+          <span style="font-size:11px;font-weight:600;color:var(--green);">Hash Chain Verified</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderExceptions() {
+  const tbody = document.getElementById('exc-tbody');
+  tbody.innerHTML = EXCEPTIONS.map(ex => `
+    <tr onclick="showExcDetail('${ex.id}')">
+      <td><span class="mono">${ex.id}</span></td>
+      <td><span style="font-family:var(--font-mono);font-size:10px;color:${severityColor(ex.severity)};">${ex.type}</span></td>
+      <td><span class="link">${ex.srcEvt}</span></td>
+      <td><span class="badge ${ex.severity === 'critical' ? 'badge-red' : 'badge-amber'}">${ex.severity.toUpperCase()}</span></td>
+      <td><span class="mono" style="color:${ex.sla === 'OVERDUE' ? 'var(--red)' : 'var(--text)'};">${ex.sla}</span></td>
+      <td><span style="font-weight:600;color:${ex.remaining.includes('−') ? 'var(--red)' : parseInt(ex.remaining) < 3 ? 'var(--amber)' : 'var(--text-dim)'};">${ex.remaining}</span></td>
+      <td><span style="font-family:var(--font-mono);color:${ex.risk > 0 ? 'var(--amber)' : 'var(--text-dim)'};">${ex.risk > 0 ? '$' + ex.risk : '—'}</span></td>
+      <td style="font-size:11px;">${ex.assignee}</td>
+      <td style="font-size:11px;color:var(--text-dim);">${ex.resolution.substring(0,55)}...</td>
+      <td>${statusBadge(ex.status)}</td>
+    </tr>
+  `).join('');
+}
+
+function showExcDetail(id) {
+  const ex = EXCEPTIONS.find(x => x.id === id);
+  if (!ex) return;
+  document.getElementById('exc-detail-panel').innerHTML = `
+    <div class="detail-panel">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">EXCEPTION TYPE</div><div style="font-family:var(--font-mono);font-size:11px;color:${severityColor(ex.severity)};">${ex.type}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">SOURCE EVENT</div><div class="link">${ex.srcEvt}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">ASSIGNED TO</div><div style="font-size:11px;">${ex.assignee}</div></div>
+        <div style="grid-column:span 3;"><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">RESOLUTION PATH</div><div style="font-size:12px;color:var(--teal-bright);">${ex.resolution}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">TIME REMAINING</div><div style="font-size:16px;font-weight:700;color:${ex.remaining.includes('−') ? 'var(--red)' : 'var(--amber)'};">${ex.remaining}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">$ AT RISK</div><div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--amber);">${ex.risk > 0 ? '$' + ex.risk : 'None'}</div></div>
+        <div><div style="font-size:9px;color:var(--text-dim);margin-bottom:4px;">STATUS</div>${statusBadge(ex.status)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════
+// CASH FLOW CHART
+// ═══════════════════════════════
+const ctx = document.getElementById('cashflowChart').getContext('2d');
+const weeks = ['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12','W13'];
+const inflows = [12, 16, 21, 26, 32, 34, 36, 38, 40, 41, 42, 44, 45];
+const outflows = [28, 18, 28, 18, 28, 18, 28, 18, 28, 18, 28, 18, 28];
+const net = inflows.map((v,i) => v - outflows[i]);
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: weeks,
+    datasets: [
+      { label: 'Inflows', data: inflows, backgroundColor: 'rgba(42,157,143,0.55)', borderColor: 'rgba(42,157,143,0.8)', borderWidth: 1, borderRadius: 2, order: 2 },
+      { label: 'Outflows', data: outflows.map(v => -v), backgroundColor: 'rgba(224,82,82,0.35)', borderColor: 'rgba(224,82,82,0.6)', borderWidth: 1, borderRadius: 2, order: 2 },
+      { label: 'Net', data: net, type: 'line', borderColor: '#E9A84C', backgroundColor: 'rgba(233,168,76,0.1)', borderWidth: 2, pointRadius: 2, pointBackgroundColor: '#E9A84C', tension: 0.4, fill: false, order: 1 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#6A8AAA', boxWidth: 10, padding: 14, font: { size: 10, family: "'DM Mono', monospace" } } },
+      tooltip: { backgroundColor: '#172840', borderColor: 'rgba(42,157,143,0.3)', borderWidth: 1, titleColor: '#C8DDF0', bodyColor: '#8AA4BE', callbacks: { label: ctx => `${ctx.dataset.label}: $${Math.abs(ctx.raw)}K` } }
+    },
+    scales: {
+      x: { stacked: true, grid: { color: 'rgba(42,157,143,0.05)' }, ticks: { color: '#6A8AAA', font: { size: 10, family: "'DM Mono', monospace" } } },
+      y: { stacked: true, grid: { color: 'rgba(42,157,143,0.05)' }, ticks: { color: '#6A8AAA', font: { size: 10, family: "'DM Mono', monospace" }, callback: v => `$${v}K` } }
+    }
+  }
+});
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+renderEvents();
+renderPolicies();
+renderWorkOrders();
+renderLedger();
+renderExceptions();
+
+</script>
+</body>
+</html>

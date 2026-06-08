@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline | Control Assurance Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0c0f;
+            --bg-secondary: #12151a;
+            --bg-tertiary: #1a1e26;
+            --bg-elevated: #222831;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-medium: rgba(255,255,255,0.12);
+            --text-primary: #f0f2f5;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-violet: #8b5cf6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .app { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+        .logo-section {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-section { padding: 16px 12px; flex: 1; }
+        .nav-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            margin-top: 8px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            margin: 2px 0;
+        }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent-rose);
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .role-selector {
+            padding: 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+        .role-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        .role-dropdown {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text-primary);
+            width: 100%;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        /* Main Content */
+        .main { flex: 1; margin-left: 260px; }
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .page-title { font-size: 24px; font-weight: 600; }
+        .entity-badge {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .content { padding: 32px; }
+        
+        /* Page Views */
+        .page-view { display: none; }
+        .page-view.active { display: block; }
+        
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .metric-card.blue::before { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+        .metric-card.emerald::before { background: linear-gradient(135deg, #10b981, #06b6d4); }
+        .metric-card.amber::before { background: linear-gradient(135deg, #f59e0b, #f97316); }
+        .metric-card.rose::before { background: linear-gradient(135deg, #f43f5e, #ec4899); }
+        .metric-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+        .metric-value { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .metric-trend { font-size: 13px; margin-top: 8px; }
+        .metric-trend.up { color: var(--accent-emerald); }
+        .metric-trend.down { color: var(--accent-rose); }
+        
+        /* Architecture Layers */
+        .section-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+        .architecture-layers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .layer-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .layer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+        }
+        .layer-card.active { border-color: var(--accent-blue); }
+        .layer-number {
+            position: absolute;
+            top: 12px; right: 12px;
+            width: 24px; height: 24px;
+            border-radius: 6px;
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .layer-icon {
+            width: 56px; height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 28px;
+        }
+        .layer-card:nth-child(1) .layer-icon { background: rgba(59, 130, 246, 0.15); }
+        .layer-card:nth-child(2) .layer-icon { background: rgba(139, 92, 246, 0.15); }
+        .layer-card:nth-child(3) .layer-icon { background: rgba(16, 185, 129, 0.15); }
+        .layer-card:nth-child(4) .layer-icon { background: rgba(6, 182, 212, 0.15); }
+        .layer-name { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .layer-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        
+        /* Table Section */
+        .table-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .table-title { font-size: 16px; font-weight: 600; }
+        .search-input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            width: 240px;
+        }
+        .search-input::placeholder { color: var(--text-muted); }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            text-align: left;
+            padding: 14px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        tbody td {
+            padding: 16px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        tbody tr { cursor: pointer; transition: background 0.15s; }
+        tbody tr:hover { background: var(--bg-tertiary); }
+        .vendor-cell { display: flex; flex-direction: column; }
+        .vendor-name { font-weight: 500; }
+        .invoice-num { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .amount-cell { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+        
+        /* Badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-badge.pending { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .status-badge.approved { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .status-badge.paid { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+        .status-badge.rejected { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+        .sla-badge {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .sla-badge.ok { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .sla-badge.warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .sla-badge.breached { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+        .policy-badge { font-size: 12px; font-weight: 500; }
+        .policy-badge.pass { color: var(--accent-emerald); }
+        .policy-badge.fail { color: var(--accent-rose); }
+        .policy-badge.bypassed { color: var(--accent-amber); }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-medium);
+            border-radius: 16px;
+            width: 900px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: modalSlide 0.3s ease;
+        }
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .modal-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .modal-subtitle { color: var(--text-secondary); font-size: 14px; }
+        .modal-close {
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 8px;
+            width: 36px; height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+        .modal-close:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .modal-body { padding: 24px; overflow-y: auto; flex: 1; }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        .detail-item {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .detail-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .detail-value { font-size: 16px; font-weight: 500; }
+        
+        /* Timeline */
+        .timeline-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 4px;
+            bottom: 4px;
+            width: 2px;
+            background: var(--border-medium);
+        }
+        .timeline-item { position: relative; padding-bottom: 20px; }
+        .timeline-item:last-child { padding-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            border: 2px solid var(--bg-secondary);
+        }
+        .timeline-item.pass .timeline-dot { background: var(--accent-emerald); }
+        .timeline-item.fail .timeline-dot { background: var(--accent-rose); }
+        .timeline-item.warning .timeline-dot { background: var(--accent-amber); }
+        .timeline-content {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .timeline-event { font-weight: 500; font-size: 14px; }
+        .timeline-time { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .timeline-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary); }
+        .modal-actions {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-medium);
+            color: var(--text-secondary);
+        }
+        .btn-secondary:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .btn-success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--accent-emerald);
+        }
+        .btn-success:hover { background: rgba(16, 185, 129, 0.25); }
+        .btn-danger {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            color: var(--accent-rose);
+        }
+        .btn-danger:hover { background: rgba(244, 63, 94, 0.25); }
+        
+        /* Quick Actions */
+        .quick-actions { display: flex; gap: 12px; margin-bottom: 24px; }
+        .action-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-primary);
+        }
+        .action-btn:hover { background: var(--bg-tertiary); border-color: var(--accent-blue); }
+        .action-icon { font-size: 24px; }
+        .action-label { font-weight: 500; }
+        .action-desc { font-size: 12px; color: var(--text-muted); }
+        
+        /* Approval Queue */
+        .approval-queue { display: flex; flex-direction: column; gap: 16px; }
+        .approval-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .approval-info { display: flex; gap: 20px; align-items: center; }
+        .approval-amount { font-size: 24px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+        .approval-details { display: flex; flex-direction: column; gap: 4px; }
+        .approval-vendor { font-weight: 500; }
+        .approval-meta { display: flex; gap: 16px; font-size: 13px; color: var(--text-secondary); }
+        .approval-actions { display: flex; gap: 10px; }
+        
+        /* Policy Cards */
+        .policy-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .policy-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .policy-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .policy-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .policy-desc { font-size: 13px; color: var(--text-secondary); }
+        .policy-toggle { position: relative; width: 48px; height: 26px; }
+        .policy-toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-elevated);
+            border-radius: 13px;
+            transition: 0.3s;
+        }
+        .toggle-slider::before {
+            position: absolute;
+            content: '';
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .policy-toggle input:checked + .toggle-slider { background: var(--accent-emerald); }
+        .policy-toggle input:checked + .toggle-slider::before { transform: translateX(22px); background: white; }
+        .policy-config { display: flex; gap: 12px; margin-top: 16px; }
+        .config-item { flex: 1; background: var(--bg-tertiary); border-radius: 8px; padding: 12px; }
+        .config-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .config-value { font-size: 14px; font-weight: 500; font-family: 'JetBrains Mono', monospace; }
+        
+        /* Demo Section */
+        .demo-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 24px;
+        }
+        .demo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .demo-title { font-size: 16px; font-weight: 600; }
+        .demo-controls { display: flex; gap: 16px; align-items: center; }
+        .demo-input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            width: 120px;
+        }
+        .demo-result {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+            display: none;
+        }
+        .demo-result.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .result-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .result-icon.pass { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .result-icon.fail { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+        .result-title { font-size: 18px; font-weight: 600; }
+        .result-checks { display: flex; flex-direction: column; gap: 10px; }
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        /* Audit Log */
+        .audit-log {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .audit-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .audit-title { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .audit-entry {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: grid;
+            grid-template-columns: 1fr 180px 140px 180px;
+            gap: 16px;
+            align-items: center;
+            font-size: 14px;
+        }
+        .audit-entry:last-child { border-bottom: none; }
+        .audit-event { font-weight: 500; }
+        .audit-actor { color: var(--text-secondary); }
+        .audit-hash {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .audit-time { color: var(--text-muted); font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+        
+        /* Budget Section */
+        .budget-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+        .budget-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .budget-category { font-weight: 600; }
+        .budget-percent { font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+        .budget-bar { height: 8px; background: var(--bg-elevated); border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .budget-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .budget-fill.safe { background: linear-gradient(135deg, #10b981, #06b6d4); }
+        .budget-fill.warning { background: linear-gradient(135deg, #f59e0b, #f97316); }
+        .budget-fill.over { background: linear-gradient(135deg, #f43f5e, #ec4899); }
+        .budget-amounts { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); }
+        .budget-spent, .budget-total { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary); }
+        .form-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus { outline: none; border-color: var(--accent-blue); }
+        .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .form-select {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 1400px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+            .architecture-layers { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <div class="logo">
+                    <div class="logo-icon">👁</div>
+                    <div class="logo-text">Sightline</div>
+                </div>
+            </div>
+            <nav class="nav-section">
+                <div class="nav-label">Main</div>
+                <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+                <div class="nav-item" data-page="transactions">📋 Transactions</div>
+                <div class="nav-item" data-page="approvals">✓ Approvals <span class="nav-badge">3</span></div>
+                <div class="nav-item" data-page="escalations">⚠ Escalations</div>
+                <div class="nav-label">Configuration</div>
+                <div class="nav-item" data-page="policies">🛡 Policy Engine</div>
+                <div class="nav-item" data-page="audit">🔗 Audit Log</div>
+                <div class="nav-item" data-page="architecture">🏗 Architecture</div>
+            </nav>
+            <div class="role-selector">
+                <div class="role-label">Current Role</div>
+                <select class="role-dropdown" id="roleSelector">
+                    <option value="submitter">Submitter</option>
+                    <option value="approver">Approver</option>
+                    <option value="controller">Controller</option>
+                    <option value="payer">Payer</option>
+                    <option value="policyadmin">PolicyAdmin</option>
+                    <option value="auditor">Auditor</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="entity-badge">🏢 Oakwood HOA</div>
+            </header>
+            <div class="content">
+                <!-- Dashboard Page -->
+                <div class="page-view active" id="page-dashboard">
+                    <div id="dashboard-content"></div>
+                </div>
+
+                <!-- Transactions Page -->
+                <div class="page-view" id="page-transactions">
+                    <div class="metrics-grid">
+                        <div class="metric-card blue">
+                            <div class="metric-label">Total Transactions</div>
+                            <div class="metric-value">10</div>
+                            <div class="metric-trend up">↑ +12% this month</div>
+                        </div>
+                        <div class="metric-card emerald">
+                            <div class="metric-label">Approved</div>
+                            <div class="metric-value">7</div>
+                            <div class="metric-trend up">70% approval rate</div>
+                        </div>
+                        <div class="metric-card amber">
+                            <div class="metric-label">Pending</div>
+                            <div class="metric-value">2</div>
+                            <div class="metric-trend">Avg 1.2 days wait</div>
+                        </div>
+                        <div class="metric-card rose">
+                            <div class="metric-label">Policy Violations</div>
+                            <div class="metric-value">3</div>
+                            <div class="metric-trend down">2 bypassed</div>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Transaction Log</div>
+                            <input type="text" class="search-input" placeholder="🔍 Search transactions...">
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Vendor / Invoice</th>
+                                    <th>Amount</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>SLA</th>
+                                    <th>Policy</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Approvals Page -->
+                <div class="page-view" id="page-approvals">
+                    <h2 class="section-title">Pending Approvals</h2>
+                    <div class="approval-queue" id="approvalQueue"></div>
+                </div>
+
+                <!-- Escalations Page -->
+                <div class="page-view" id="page-escalations">
+                    <div class="metrics-grid">
+                        <div class="metric-card rose">
+                            <div class="metric-label">Active Escalations</div>
+                            <div class="metric-value">2</div>
+                        </div>
+                        <div class="metric-card amber">
+                            <div class="metric-label">SLA Breaches Today</div>
+                            <div class="metric-value">1</div>
+                        </div>
+                        <div class="metric-card blue">
+                            <div class="metric-label">Avg Resolution Time</div>
+                            <div class="metric-value">4.2h</div>
+                        </div>
+                        <div class="metric-card emerald">
+                            <div class="metric-label">Resolved This Week</div>
+                            <div class="metric-value">5</div>
+                        </div>
+                    </div>
+                    <div class="table-section">
+                        <div class="table-header">
+                            <div class="table-title">Escalation Log</div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Transaction</th>
+                                    <th>Escalation Reason</th>
+                                    <th>Escalated To</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="escalationTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Policies Page -->
+                <div class="page-view" id="page-policies">
+                    <h2 class="section-title">Active Policies</h2>
+                    <div class="policy-cards" id="policyCards"></div>
+                    <div class="demo-section">
+                        <div class="demo-header">
+                            <div class="demo-title">🧪 Policy Evaluation Demo</div>
+                            <div class="demo-controls">
+                                <span style="color: var(--text-secondary); font-size: 13px;">Amount: $</span>
+                                <input type="number" class="demo-input" id="demoAmount" value="15000">
+                                <button class="btn btn-primary" onclick="runPolicyDemo()">▶ Evaluate</button>
+                            </div>
+                        </div>
+                        <div class="demo-result" id="demoResult"></div>
+                    </div>
+                </div>
+
+                <!-- Audit Log Page -->
+                <div class="page-view" id="page-audit">
+                    <div class="audit-log">
+                        <div class="audit-header">
+                            <div class="audit-title">🔗 Hash-Linked Audit Trail</div>
+                            <button class="btn btn-secondary">📥 Export</button>
+                        </div>
+                        <div id="auditLog"></div>
+                    </div>
+                </div>
+
+                <!-- Architecture Page -->
+                <div class="page-view" id="page-architecture">
+                    <h2 class="section-title">Four-Layer Control Architecture</h2>
+                    <div class="architecture-layers">
+                        <div class="layer-card" onclick="showLayerDetail(1)">
+                            <div class="layer-number">1</div>
+                            <div class="layer-icon">📋</div>
+                            <div class="layer-name">Transaction Log</div>
+                            <div class="layer-desc">Immutable event capture with hash-linking for tamper-evidence</div>
+                        </div>
+                        <div class="layer-card" onclick="showLayerDetail(2)">
+                            <div class="layer-number">2</div>
+                            <div class="layer-icon">🛡</div>
+                            <div class="layer-name">Policy Engine</div>
+                            <div class="layer-desc">Configurable rules engine with real-time compliance evaluation</div>
+                        </div>
+                        <div class="layer-card" onclick="showLayerDetail(3)">
+                            <div class="layer-number">3</div>
+                            <div class="layer-icon">🔐</div>
+                            <div class="layer-name">Access Control</div>
+                            <div class="layer-desc">Role-based permissions with functional role assignments</div>
+                        </div>
+                        <div class="layer-card" onclick="showLayerDetail(4)">
+                            <div class="layer-number">4</div>
+                            <div class="layer-icon">📊</div>
+                            <div class="layer-name">Dashboard</div>
+                            <div class="layer-desc">Role-specific views with real-time metrics and insights</div>
+                        </div>
+                    </div>
+                    <h2 class="section-title">Budget vs. Actual Tracking</h2>
+                    <div class="budget-grid">
+                        <div class="budget-card">
+                            <div class="budget-header">
+                                <span class="budget-category">Landscaping</span>
+                                <span class="budget-percent" style="color: var(--accent-emerald)">62%</span>
+                            </div>
+                            <div class="budget-bar"><div class="budget-fill safe" style="width: 62%"></div></div>
+                            <div class="budget-amounts">
+                                <span class="budget-spent">$12,400</span>
+                                <span class="budget-total">of $20,000</span>
+                            </div>
+                        </div>
+                        <div class="budget-card">
+                            <div class="budget-header">
+                                <span class="budget-category">Legal</span>
+                                <span class="budget-percent" style="color: var(--accent-amber)">85%</span>
+                            </div>
+                            <div class="budget-bar"><div class="budget-fill warning" style="width: 85%"></div></div>
+                            <div class="budget-amounts">
+                                <span class="budget-spent">$8,500</span>
+                                <span class="budget-total">of $10,000</span>
+                            </div>
+                        </div>
+                        <div class="budget-card">
+                            <div class="budget-header">
+                                <span class="budget-category">Maintenance</span>
+                                <span class="budget-percent" style="color: var(--accent-rose)">105%</span>
+                            </div>
+                            <div class="budget-bar"><div class="budget-fill over" style="width: 100%"></div></div>
+                            <div class="budget-amounts">
+                                <span class="budget-spent">$15,750</span>
+                                <span class="budget-total">of $15,000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modalTitle">GreenScape LLC</div>
+                    <div class="modal-subtitle" id="modalSubtitle">INV-0001 • Maintenance</div>
+                </div>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-grid" id="modalDetails"></div>
+                <div class="timeline-title">🕐 Event Timeline</div>
+                <div class="timeline" id="modalTimeline"></div>
+            </div>
+            <div class="modal-actions" id="modalActions"></div>
+        </div>
+    </div>
+
+    <!-- Submit Invoice Modal -->
+    <div class="modal-overlay" id="submitModal">
+        <div class="modal" style="width: 600px;">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title">Submit New Invoice</div>
+                    <div class="modal-subtitle">Enter invoice details for approval</div>
+                </div>
+                <button class="modal-close" onclick="closeSubmitModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Vendor Name</label>
+                    <input type="text" class="form-input" placeholder="Enter vendor name">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Invoice Number</label>
+                        <input type="text" class="form-input" placeholder="INV-XXXX">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Amount</label>
+                        <input type="number" class="form-input" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select class="form-select">
+                            <option value="landscaping">Landscaping</option>
+                            <option value="legal">Legal</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="security">Security</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" rows="3" placeholder="Brief description..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSubmitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitInvoice()">📤 Submit for Approval</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== DATA =====
+        const transactions = [
+            { id: 'TXN-0001', invoice: 'INV-0001', vendor: 'GreenScape LLC', amount: 1506.19, category: 'Maintenance', status: 'Pending Approval', sla: 'OK', policy: 'BYPASSED' },
+            { id: 'TXN-0002', invoice: 'INV-0002', vendor: 'Neighborhood Law PLLC', amount: 4263.58, category: 'Legal', status: 'Approved', sla: 'Breached', policy: 'PASS' },
+            { id: 'TXN-0003', invoice: 'INV-0003', vendor: 'ABC Maintenance Co', amount: 1335.00, category: 'Landscaping', status: 'Paid', sla: 'Warning', policy: 'FAIL' },
+            { id: 'TXN-0004', invoice: 'INV-0004', vendor: 'Summit Security', amount: 2879.45, category: 'Security', status: 'Approved', sla: 'OK', policy: 'PASS' },
+            { id: 'TXN-0005', invoice: 'INV-0005', vendor: 'ClearWater Utilities', amount: 892.33, category: 'Utilities', status: 'Pending Approval', sla: 'Warning', policy: 'PASS' },
+            { id: 'TXN-0006', invoice: 'INV-0006', vendor: 'Metro Electric', amount: 3421.00, category: 'Utilities', status: 'Rejected', sla: 'Breached', policy: 'FAIL' },
+            { id: 'TXN-0007', invoice: 'INV-0007', vendor: 'ProClean Services', amount: 1750.00, category: 'Maintenance', status: 'Paid', sla: 'OK', policy: 'PASS' },
+            { id: 'TXN-0008', invoice: 'INV-0008', vendor: 'Urban Landscaping', amount: 1839.20, category: 'Landscaping', status: 'Approved', sla: 'OK', policy: 'PASS' },
+            { id: 'TXN-0009', invoice: 'INV-0009', vendor: 'Civic Legal Aid', amount: 2292.97, category: 'Legal', status: 'Pending Approval', sla: 'Breached', policy: 'FAIL' },
+            { id: 'TXN-0010', invoice: 'INV-0010', vendor: 'Brightway Waste', amount: 5160.02, category: 'Security', status: 'Paid', sla: 'Warning', policy: 'BYPASSED' }
+        ];
+
+        const policies = [
+            { id: 'POL-001', name: 'Dual Approval > $5,000', desc: 'Transactions over $5,000 require two approvers', threshold: 5000, enabled: true, type: 'approval' },
+            { id: 'POL-002', name: 'Single Approval ≤ $5,000', desc: 'Transactions $5,000 or less need one approval', threshold: 5000, enabled: true, type: 'approval' },
+            { id: 'POL-003', name: 'Budget Check', desc: 'Verify spend against category budget', threshold: null, enabled: true, type: 'budget' },
+            { id: 'POL-004', name: 'SLA: Approval 24h', desc: 'All approvals must complete within 24 hours', threshold: 24, enabled: true, type: 'sla' },
+            { id: 'POL-005', name: 'Vendor Verification', desc: 'New vendors require additional documentation', threshold: null, enabled: false, type: 'verification' },
+            { id: 'POL-006', name: 'Category Cap Alert', desc: 'Alert when category spend exceeds 90% of budget', threshold: 90, enabled: true, type: 'budget' }
+        ];
+
+        const auditEvents = [
+            { event: 'Transaction Submitted', actor: 'Jane Doe (Submitter)', hash: '09c5dc8f', time: '2025-04-13 19:08' },
+            { event: 'Policy Evaluated: PASS', actor: 'System', hash: 'a05202eb', time: '2025-04-13 19:09' },
+            { event: 'Routed to Approver', actor: 'System', hash: 'e26b53b7', time: '2025-04-13 19:10' },
+            { event: 'Approval Granted', actor: 'Bob Smith (Approver)', hash: '35712525', time: '2025-04-13 19:45' },
+            { event: 'Payment Initiated', actor: 'Sarah Chen (Payer)', hash: '9da95113', time: '2025-04-13 20:00' },
+            { event: 'Payment Confirmed', actor: 'System', hash: 'c8e98e8a', time: '2025-04-13 20:05' },
+            { event: 'Transaction Completed', actor: 'System', hash: '612ce5d0', time: '2025-04-13 20:06' }
+        ];
+
+        const escalations = [
+            { txn: 'TXN-0002', reason: 'SLA Breach - 24h exceeded', escalatedTo: 'Controller', time: '2025-04-14 20:15', status: 'Resolved' },
+            { txn: 'TXN-0006', reason: 'Budget exceeded for Utilities', escalatedTo: 'PolicyAdmin', time: '2025-04-16 14:30', status: 'Pending' },
+            { txn: 'TXN-0009', reason: 'Dual approval pending > 48h', escalatedTo: 'Controller', time: '2025-04-21 21:00', status: 'Active' }
+        ];
+
+        let currentRole = 'submitter';
+        let currentPage = 'dashboard';
+
+        // ===== NAVIGATION =====
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => navigateTo(item.dataset.page));
+        });
+
+        function navigateTo(page) {
+            currentPage = page;
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.page === page);
+            });
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.toggle('active', view.id === `page-${page}`);
+            });
+            const titles = { dashboard: 'Dashboard', transactions: 'Transactions', approvals: 'Approvals', escalations: 'Escalations', policies: 'Policy Engine', audit: 'Audit Log', architecture: 'Architecture' };
+            document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
+            if (page === 'dashboard') renderDashboard();
+            if (page === 'transactions') renderTransactions();
+            if (page === 'approvals') renderApprovals();
+            if (page === 'escalations') renderEscalations();
+            if (page === 'policies') renderPolicies();
+            if (page === 'audit') renderAuditLog();
+        }
+
+        document.getElementById('roleSelector').addEventListener('change', (e) => {
+            currentRole = e.target.value;
+            renderDashboard();
+        });
+
+        // ===== RENDER FUNCTIONS =====
+        function renderDashboard() {
+            const content = document.getElementById('dashboard-content');
+            const roleLabels = { submitter: 'Submitter', approver: 'Approver', controller: 'Controller', payer: 'Payer', policyadmin: 'Policy Admin', auditor: 'Auditor' };
+            
+            content.innerHTML = `
+                <div class="quick-actions">
+                    <button class="action-btn" onclick="openSubmitModal()">
+                        <span class="action-icon">➕</span>
+                        <div><div class="action-label">Submit New Invoice</div><div class="action-desc">Create a new submission</div></div>
+                    </button>
+                    <button class="action-btn" onclick="navigateTo('transactions')">
+                        <span class="action-icon">📋</span>
+                        <div><div class="action-label">View Transactions</div><div class="action-desc">Track all invoices</div></div>
+                    </button>
+                    <button class="action-btn" onclick="navigateTo('approvals')">
+                        <span class="action-icon">✓</span>
+                        <div><div class="action-label">Approval Queue</div><div class="action-desc">3 pending approvals</div></div>
+                    </button>
+                </div>
+                <div class="metrics-grid">
+                    <div class="metric-card blue">
+                        <div class="metric-label">Total Transactions</div>
+                        <div class="metric-value">10</div>
+                        <div class="metric-trend up">↑ +12% this month</div>
+                    </div>
+                    <div class="metric-card emerald">
+                        <div class="metric-label">Approved</div>
+                        <div class="metric-value">7</div>
+                        <div class="metric-trend">70% approval rate</div>
+                    </div>
+                    <div class="metric-card amber">
+                        <div class="metric-label">Pending</div>
+                        <div class="metric-value">3</div>
+                        <div class="metric-trend">Avg 1.2 days wait</div>
+                    </div>
+                    <div class="metric-card rose">
+                        <div class="metric-label">Policy Violations</div>
+                        <div class="metric-value">3</div>
+                        <div class="metric-trend down">↓ 2 bypassed</div>
+                    </div>
+                </div>
+                <h2 class="section-title">Recent Activity (${roleLabels[currentRole]} View)</h2>
+                <div class="table-section">
+                    <table>
+                        <thead>
+                            <tr><th>Vendor</th><th>Amount</th><th>Status</th><th>SLA</th></tr>
+                        </thead>
+                        <tbody>
+                            ${transactions.slice(0, 5).map(txn => `
+                                <tr onclick="openTransactionDetail('${txn.id}')">
+                                    <td><div class="vendor-cell"><span class="vendor-name">${txn.vendor}</span><span class="invoice-num">${txn.invoice}</span></div></td>
+                                    <td class="amount-cell">$${txn.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                    <td><span class="status-badge ${txn.status.toLowerCase().replace(/ /g, '-')}">${txn.status}</span></td>
+                                    <td><span class="sla-badge ${txn.sla.toLowerCase()}">${txn.sla}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderTransactions() {
+            document.getElementById('transactionTable').innerHTML = transactions.map(txn => `
+                <tr onclick="openTransactionDetail('${txn.id}')">
+                    <td><div class="vendor-cell"><span class="vendor-name">${txn.vendor}</span><span class="invoice-num">${txn.invoice}</span></div></td>
+                    <td class="amount-cell">$${txn.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <td>${txn.category}</td>
+                    <td><span class="status-badge ${txn.status.toLowerCase().replace(/ /g, '-')}">${txn.status}</span></td>
+                    <td><span class="sla-badge ${txn.sla.toLowerCase()}">${txn.sla}</span></td>
+                    <td><span class="policy-badge ${txn.policy.toLowerCase()}">${txn.policy === 'PASS' ? '✓' : txn.policy === 'FAIL' ? '✗' : '⚠'} ${txn.policy}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderApprovals() {
+            const pending = transactions.filter(t => t.status === 'Pending Approval');
+            document.getElementById('approvalQueue').innerHTML = pending.map(txn => `
+                <div class="approval-card">
+                    <div class="approval-info">
+                        <div class="approval-amount">$${txn.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div class="approval-details">
+                            <span class="approval-vendor">${txn.vendor}</span>
+                            <div class="approval-meta">
+                                <span>${txn.invoice}</span>
+                                <span>${txn.category}</span>
+                                <span class="sla-badge ${txn.sla.toLowerCase()}">${txn.sla}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="approval-actions">
+                        <button class="btn btn-success" onclick="event.stopPropagation(); alert('Approved: ${txn.id}')">✓ Approve</button>
+                        <button class="btn btn-danger" onclick="event.stopPropagation(); alert('Rejected: ${txn.id}')">✗ Reject</button>
+                        <button class="btn btn-secondary" onclick="openTransactionDetail('${txn.id}')">Details</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderEscalations() {
+            document.getElementById('escalationTable').innerHTML = escalations.map(esc => `
+                <tr>
+                    <td><span class="invoice-num">${esc.txn}</span></td>
+                    <td>${esc.reason}</td>
+                    <td>${esc.escalatedTo}</td>
+                    <td><span class="audit-time">${esc.time}</span></td>
+                    <td><span class="status-badge ${esc.status.toLowerCase()}">${esc.status}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPolicies() {
+            document.getElementById('policyCards').innerHTML = policies.map(pol => `
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <div>
+                            <div class="policy-name">${pol.name}</div>
+                            <div class="policy-desc">${pol.desc}</div>
+                        </div>
+                        <label class="policy-toggle">
+                            <input type="checkbox" ${pol.enabled ? 'checked' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="policy-config">
+                        <div class="config-item">
+                            <div class="config-label">Type</div>
+                            <div class="config-value">${pol.type.toUpperCase()}</div>
+                        </div>
+                        ${pol.threshold ? `<div class="config-item"><div class="config-label">Threshold</div><div class="config-value">${pol.type === 'sla' ? pol.threshold + 'h' : '$' + pol.threshold.toLocaleString()}</div></div>` : ''}
+                        <div class="config-item">
+                            <div class="config-label">Status</div>
+                            <div class="config-value" style="color: ${pol.enabled ? 'var(--accent-emerald)' : 'var(--text-muted)'}">${pol.enabled ? 'ACTIVE' : 'DISABLED'}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAuditLog() {
+            document.getElementById('auditLog').innerHTML = auditEvents.map(evt => `
+                <div class="audit-entry">
+                    <span class="audit-event">${evt.event}</span>
+                    <span class="audit-actor">${evt.actor}</span>
+                    <span class="audit-hash">${evt.hash}...</span>
+                    <span class="audit-time">${evt.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // ===== MODALS =====
+        function openTransactionDetail(id) {
+            const txn = transactions.find(t => t.id === id);
+            if (!txn) return;
+            
+            document.getElementById('modalTitle').textContent = txn.vendor;
+            document.getElementById('modalSubtitle').textContent = `${txn.invoice} • ${txn.category}`;
+            document.getElementById('modalDetails').innerHTML = `
+                <div class="detail-item"><div class="detail-label">Amount</div><div class="detail-value">$${txn.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></div>
+                <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="status-badge ${txn.status.toLowerCase().replace(/ /g, '-')}">${txn.status}</span></div></div>
+                <div class="detail-item"><div class="detail-label">SLA Status</div><div class="detail-value"><span class="sla-badge ${txn.sla.toLowerCase()}">${txn.sla}</span></div></div>
+                <div class="detail-item"><div class="detail-label">Policy Result</div><div class="detail-value"><span class="policy-badge ${txn.policy.toLowerCase()}">${txn.policy}</span></div></div>
+                <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">${txn.category}</div></div>
+                <div class="detail-item"><div class="detail-label">Transaction ID</div><div class="detail-value" style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">${txn.id}</div></div>
+            `;
+            
+            document.getElementById('modalTimeline').innerHTML = auditEvents.slice(0, 4).map((evt, i) => `
+                <div class="timeline-item ${i === 0 ? 'pass' : ''}">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="timeline-event">${evt.event}</span>
+                            <span class="timeline-time">${evt.time}</span>
+                        </div>
+                        <div class="timeline-meta">
+                            <span>👤 ${evt.actor}</span>
+                            <span>🔗 ${evt.hash}...</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('modalActions').innerHTML = txn.status === 'Pending Approval' ? `
+                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-danger">✗ Reject</button>
+                <button class="btn btn-success">✓ Approve</button>
+            ` : `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`;
+            
+            document.getElementById('transactionModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('transactionModal').classList.remove('active');
+        }
+
+        function openSubmitModal() {
+            document.getElementById('submitModal').classList.add('active');
+        }
+
+        function closeSubmitModal() {
+            document.getElementById('submitModal').classList.remove('active');
+        }
+
+        function submitInvoice() {
+            alert('Invoice submitted successfully! It will be routed for approval based on the configured policies.');
+            closeSubmitModal();
+        }
+
+        // ===== POLICY DEMO =====
+        function runPolicyDemo() {
+            const amount = parseFloat(document.getElementById('demoAmount').value) || 0;
+            const needsDualApproval = amount > 5000;
+            const budgetCheck = amount < 20000;
+            const allPass = budgetCheck;
+            
+            document.getElementById('demoResult').innerHTML = `
+                <div class="result-header">
+                    <div class="result-icon ${allPass ? 'pass' : 'fail'}">${allPass ? '✓' : '✗'}</div>
+                    <div class="result-title">Policy Evaluation: ${allPass ? 'PASS' : 'REQUIRES ACTION'}</div>
+                </div>
+                <div class="result-checks">
+                    <div class="check-item">
+                        <span style="color: var(--accent-${needsDualApproval ? 'amber' : 'emerald'})">${needsDualApproval ? '⚠' : '✓'}</span>
+                        <span>Approval Level: ${needsDualApproval ? 'Dual approval required (>$5,000)' : 'Single approval sufficient (≤$5,000)'}</span>
+                    </div>
+                    <div class="check-item">
+                        <span style="color: var(--accent-${budgetCheck ? 'emerald' : 'rose'})">${budgetCheck ? '✓' : '✗'}</span>
+                        <span>Budget Check: ${budgetCheck ? 'Within budget limits' : 'Exceeds category budget'}</span>
+                    </div>
+                    <div class="check-item">
+                        <span style="color: var(--accent-emerald)">✓</span>
+                        <span>SLA Timer: Started (24h deadline)</span>
+                    </div>
+                    <div class="check-item">
+                        <span style="color: var(--accent-emerald)">✓</span>
+                        <span>Vendor Status: Verified</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('demoResult').classList.add('active');
+        }
+
+        function showLayerDetail(layer) {
+            const details = {
+                1: 'Transaction Log captures every financial event with cryptographic hash-linking, creating an immutable audit trail that provides mathematical proof of data integrity.',
+                2: 'Policy Engine evaluates each transaction against configurable business rules in real-time, flagging violations and enforcing governance requirements.',
+                3: 'Access Control implements role-based permissions through functional roles (Submitter, Approver, Controller, Payer, PolicyAdmin, Auditor) ensuring proper segregation of duties.',
+                4: 'Dashboard provides role-specific views with real-time metrics, SLA tracking, and actionable insights tailored to each user\'s responsibilities.'
+            };
+            alert(`Layer ${layer}: ${details[layer]}`);
+        }
+
+        // Initialize
+        renderDashboard();
+    </script>
+</body>
+</html>

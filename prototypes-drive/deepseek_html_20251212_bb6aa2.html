@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Ledger Views & Financial Reports</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        body {
+            background: var(--gray-900);
+            color: var(--gray-100);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--gray-800), var(--gray-900));
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--gray-700);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tab-navigation {
+            display: flex;
+            gap: 8px;
+            background: var(--gray-800);
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--gray-300);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--gray-700);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .content-area {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .content-area.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Ledger Views */
+        .ledger-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .ledger-card {
+            background: var(--gray-800);
+            border-radius: 12px;
+            border: 1px solid var(--gray-700);
+            overflow: hidden;
+        }
+
+        .ledger-header {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ledger-header h3 {
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ledger-stats {
+            display: flex;
+            gap: 20px;
+            padding: 16px 20px;
+            background: var(--gray-700);
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-300);
+        }
+
+        .ledger-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .ledger-table th {
+            text-align: left;
+            padding: 16px 20px;
+            background: var(--gray-700);
+            color: var(--gray-300);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .ledger-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--gray-700);
+            font-size: 14px;
+        }
+
+        .ledger-table tr:hover {
+            background: var(--gray-700);
+        }
+
+        .event-id {
+            color: var(--primary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .evidence-ref {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--gray-300);
+            background: var(--gray-700);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-approved {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status-rejected {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* Financial Reports */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .report-card {
+            background: var(--gray-800);
+            border-radius: 12px;
+            border: 1px solid var(--gray-700);
+            padding: 24px;
+            transition: all 0.3s;
+        }
+
+        .report-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .report-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .report-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: white;
+        }
+
+        .report-description {
+            color: var(--gray-300);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .report-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-700);
+        }
+
+        .report-period {
+            font-size: 12px;
+            color: var(--gray-300);
+        }
+
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-700);
+            color: var(--gray-300);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        /* Report Preview */
+        .report-preview {
+            background: var(--gray-800);
+            border-radius: 12px;
+            border: 1px solid var(--gray-700);
+            padding: 32px;
+            margin-bottom: 32px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .financial-statement {
+            background: var(--gray-700);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .statement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .statement-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .statement-table th {
+            text-align: left;
+            padding: 12px 16px;
+            color: var(--gray-300);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .statement-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-600);
+        }
+
+        .statement-table tr:last-child td {
+            border-bottom: none;
+            font-weight: 700;
+            background: var(--gray-600);
+        }
+
+        .amount {
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .positive {
+            color: var(--success);
+        }
+
+        .negative {
+            color: var(--danger);
+        }
+
+        /* Event Detail Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--gray-800);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-700);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--gray-300);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 12px;
+        }
+
+        .event-detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .detail-section {
+            background: var(--gray-700);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .detail-section h4 {
+            margin-bottom: 16px;
+            color: var(--gray-300);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .detail-item {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: var(--gray-300);
+        }
+
+        .detail-value {
+            color: white;
+            font-weight: 500;
+        }
+
+        .evidence-chain {
+            background: var(--gray-700);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 24px;
+        }
+
+        .chain-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--gray-600);
+            border-radius: 6px;
+        }
+
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-weight: 700;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .ledger-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .event-detail-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .reports-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-navigation {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+            
+            .tab-btn {
+                white-space: nowrap;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--gray-700);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Status Indicators */
+        .ledger-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.online {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-dot.syncing {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Export Options */
+        .export-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--gray-700);
+            border: 1px solid var(--gray-600);
+            border-radius: 8px;
+            color: var(--gray-300);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: var(--gray-600);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧭 Sightline - Ledger Views & Financial Reports</h1>
+            <div class="ledger-status">
+                <div class="status-dot online"></div>
+                <span>All ledgers synced</span>
+                <span style="color: var(--gray-300); margin-left: 16px;">Last update: Just now</span>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" onclick="showTab('event-ledger')">Event Ledger</button>
+            <button class="tab-btn" onclick="showTab('finance-ledger')">Finance Ledger</button>
+            <button class="tab-btn" onclick="showTab('project-ledger')">Project Ledger</button>
+            <button class="tab-btn" onclick="showTab('outcome-ledger')">Outcome Ledger</button>
+            <button class="tab-btn" onclick="showTab('slo-ledger')">SLO Ledger</button>
+            <button class="tab-btn" onclick="showTab('financial-reports')">Financial Reports</button>
+            <button class="tab-btn" onclick="showTab('statements')">Financial Statements</button>
+            <button class="tab-btn" onclick="showTab('audit-reports')">Audit Reports</button>
+        </div>
+
+        <!-- Event Ledger -->
+        <div id="event-ledger" class="content-area active">
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <h3>🔗 Event Ledger - Core</h3>
+                    <span>Immutable • Policy-bound • Evidence-linked</span>
+                </div>
+                <div class="ledger-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">1,842</div>
+                        <div class="stat-label">Total Events</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">99.7%</div>
+                        <div class="stat-label">Policy Compliance</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Evidence Linked</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">24</div>
+                        <div class="stat-label">Active Policy Versions</div>
+                    </div>
+                </div>
+                <div style="padding: 20px;">
+                    <input type="text" placeholder="Search events by ID, actor, or policy..." 
+                           style="width: 100%; padding: 12px 16px; background: var(--gray-700); border: 1px solid var(--gray-600); border-radius: 8px; color: white; margin-bottom: 16px;">
+                </div>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Timestamp</th>
+                            <th>Actor</th>
+                            <th>Event Type</th>
+                            <th>Policy Version</th>
+                            <th>Evidence Ref</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr onclick="showEventDetail('evt_2024_11_15_001')">
+                            <td><span class="event-id">EVT-2024-11-15-001</span></td>
+                            <td>2024-11-15 14:30:00</td>
+                            <td>sales_bot_alpha</td>
+                            <td>enterprise_contract_signed</td>
+                            <td>policy_v2.1</td>
+                            <td><code class="evidence-ref">0x8f3c6a9d2e1</code></td>
+                            <td><span class="status-badge status-approved">Approved</span></td>
+                        </tr>
+                        <tr onclick="showEventDetail('evt_2024_11_10_001')">
+                            <td><span class="event-id">EVT-2024-11-10-001</span></td>
+                            <td>2024-11-10 09:15:00</td>
+                            <td>procurement_bot</td>
+                            <td>gpu_purchase_order</td>
+                            <td>policy_v3.0</td>
+                            <td><code class="evidence-ref">0x4a7d8b3c9f2</code></td>
+                            <td><span class="status-badge status-approved">Approved</span></td>
+                        </tr>
+                        <tr onclick="showEventDetail('evt_2024_11_05_001')">
+                            <td><span class="event-id">EVT-2024-11-05-001</span></td>
+                            <td>2024-11-05 11:00:00</td>
+                            <td>pricing_engine</td>
+                            <td>price_increase_implemented</td>
+                            <td>policy_v1.4</td>
+                            <td><code class="evidence-ref">0x9b2c4d6f8a1</code></td>
+                            <td><span class="status-badge status-approved">Approved</span></td>
+                        </tr>
+                        <tr onclick="showEventDetail('evt_2024_11_01_001')">
+                            <td><span class="event-id">EVT-2024-11-01-001</span></td>
+                            <td>2024-11-01 16:45:00</td>
+                            <td>ops_automation</td>
+                            <td>automation_complete</td>
+                            <td>policy_v2.2</td>
+                            <td><code class="evidence-ref">0x3e7a5c9d1f4</code></td>
+                            <td><span class="status-badge status-approved">Approved</span></td>
+                        </tr>
+                        <tr onclick="showEventDetail('evt_2024_10_25_001')">
+                            <td><span class="event-id">EVT-2024-10-25-001</span></td>
+                            <td>2024-10-25 10:30:00</td>
+                            <td>audit_bot</td>
+                            <td>correction_applied</td>
+                            <td>policy_v1.1</td>
+                            <td><code class="evidence-ref">0x6d9f2a4c7b8</code></td>
+                            <td><span class="status-badge status-approved">Approved</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="padding: 20px; border-top: 1px solid var(--gray-700); display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--gray-300);">Showing 5 of 1,842 events</span>
+                    <button class="btn btn-secondary">Load More Events</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance Ledger -->
+        <div id="finance-ledger" class="content-area">
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <h3>💰 Finance Ledger</h3>
+                    <span>All Monetary Movements • Double-Entry • Audit-Ready</span>
+                </div>
+                <div class="ledger-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">$12.4M</div>
+                        <div class="stat-label">Q4 Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$3.1M</div>
+                        <div class="stat-label">Q4 EBITDA</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$2.8M</div>
+                        <div class="stat-label">Operating Cash</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">18.4%</div>
+                        <div class="stat-label">ROIC</div>
+                    </div>
+                </div>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Finance ID</th>
+                            <th>Event ID</th>
+                            <th>Account</th>
+                            <th>Amount</th>
+                            <th>Direction</th>
+                            <th>Counterparty</th>
+                            <th>Payment Ref</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>FIN-001</td>
+                            <td><span class="event-id">EVT-2024-11-15-001</span></td>
+                            <td>Accounts Receivable</td>
+                            <td style="color: var(--success);">$1,200,000</td>
+                            <td>Debit</td>
+                            <td>Enterprise Client Corp</td>
+                            <td>INV-7890</td>
+                        </tr>
+                        <tr>
+                            <td>FIN-002</td>
+                            <td><span class="event-id">EVT-2024-11-10-001</span></td>
+                            <td>Capital Equipment</td>
+                            <td style="color: var(--danger);">$2,400,000</td>
+                            <td>Debit</td>
+                            <td>NVIDIA Corp</td>
+                            <td>PO-4567</td>
+                        </tr>
+                        <tr>
+                            <td>FIN-003</td>
+                            <td><span class="event-id">EVT-2024-11-05-001</span></td>
+                            <td>Revenue</td>
+                            <td style="color: var(--success);">$400,000</td>
+                            <td>Credit</td>
+                            <td>Price Adjustment</td>
+                            <td>ADJ-123</td>
+                        </tr>
+                        <tr>
+                            <td>FIN-004</td>
+                            <td><span class="event-id">EVT-2024-11-01-001</span></td>
+                            <td>Operating Expenses</td>
+                            <td style="color: var(--success);">$800,000</td>
+                            <td>Credit</td>
+                            <td>Efficiency Savings</td>
+                            <td>SAV-456</td>
+                        </tr>
+                        <tr>
+                            <td>FIN-005</td>
+                            <td><span class="event-id">EVT-2024-10-25-001</span></td>
+                            <td>Accounts Payable</td>
+                            <td style="color: var(--danger);">$125,000</td>
+                            <td>Credit</td>
+                            <td>Vendor Correction</td>
+                            <td>COR-789</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Project Ledger -->
+        <div id="project-ledger" class="content-area">
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <h3>📊 Project Ledger</h3>
+                    <span>Work Unit Lifecycles • Budget Tracking • Milestones</span>
+                </div>
+                <div class="ledger-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">14</div>
+                        <div class="stat-label">Active Projects</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$48.2M</div>
+                        <div class="stat-label">Total Budget</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">94%</div>
+                        <div class="stat-label">On Budget</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">78%</div>
+                        <div class="stat-label">Milestones Met</div>
+                    </div>
+                </div>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Project ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Budget</th>
+                            <th>Committed</th>
+                            <th>Paid</th>
+                            <th>Next Milestone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PROJ-001</td>
+                            <td>GPU Cluster Expansion</td>
+                            <td><span class="status-badge status-pending">In Progress</span></td>
+                            <td>$2,400,000</td>
+                            <td>$2,400,000</td>
+                            <td>$2,400,000</td>
+                            <td>Production Load</td>
+                        </tr>
+                        <tr>
+                            <td>PROJ-002</td>
+                            <td>Data Center Build</td>
+                            <td><span class="status-badge status-pending">In Progress</span></td>
+                            <td>$48,000,000</td>
+                            <td>$42,500,000</td>
+                            <td>$38,200,000</td>
+                            <td>Equipment Installation</td>
+                        </tr>
+                        <tr>
+                            <td>PROJ-003</td>
+                            <td>Automation Initiative</td>
+                            <td><span class="status-badge status-approved">Completed</span></td>
+                            <td>$1,200,000</td>
+                            <td>$1,200,000</td>
+                            <td>$1,200,000</td>
+                            <td>Project Close</td>
+                        </tr>
+                        <tr>
+                            <td>PROJ-004</td>
+                            <td>Ecommerce Platform</td>
+                            <td><span class="status-badge status-approved">Live</span></td>
+                            <td>$87,000</td>
+                            <td>$87,000</td>
+                            <td>$87,000</td>
+                            <td>Q4 Review</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Outcome Ledger -->
+        <div id="outcome-ledger" class="content-area">
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <h3>🎯 Outcome Ledger</h3>
+                    <span>Results Tied to Spend • ROI Calculation • Business Value</span>
+                </div>
+                <div class="ledger-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">218%</div>
+                        <div class="stat-label">Avg Project ROI</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$42</div>
+                        <div class="stat-label">Cost per Outcome Unit</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">97.3%</div>
+                        <div class="stat-label">SLO Achievement</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">34%</div>
+                        <div class="stat-label">Productivity Increase</div>
+                    </div>
+                </div>
+                <table class="ledger-table">
+                    <thead>
+                        <tr>
+                            <th>Outcome ID</th>
+                            <th>Event ID</th>
+                            <th>Metric</th>
+                            <th>Baseline</th>
+                            <th>Actual</th>
+                            <th>Delta</th>
+                            <th>Cost per Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>OUT-001</td>
+                            <td><span class="event-id">EVT-2024-11-15-001</span></td>
+                            <td>Utilization Rate</td>
+                            <td>120%</td>
+                            <td>142%</td>
+                            <td style="color: var(--success);">+22%</td>
+                            <td>$8,450</td>
+                        </tr>
+                        <tr>
+                            <td>OUT-002</td>
+                            <td><span class="event-id">EVT-2024-11-10-001</span></td>
+                            <td>Training Speed</td>
+                            <td>24 hours</td>
+                            <td>8 hours</td>
+                            <td style="color: var(--success);">-16 hours</td>
+                            <td>$300,000</td>
+                        </tr>
+                        <tr>
+                            <td>OUT-003</td>
+                            <td><span class="event-id">EVT-2024-11-05-001</span></td>
+                            <td>Customer Retention</td>
+                            <td>94%</td>
+                            <td>97%</td>
+                            <td style="color: var(--success);">+3%</td>
+                            <td>$133,333</td>
+                        </tr>
+                        <tr>
+                            <td>OUT-004</td>
+                            <td><span class="event-id">EVT-2024-11-01-001</span></td>
+                            <td>Productivity</td>
+                            <td>100%</td>
+                            <td>134%</td>
+                            <td style="color: var(--success);">+34%</td>
+                            <td>$23,529</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Financial Reports -->
+        <div id="financial-reports" class="content-area">
+            <div class="reports-grid">
+                <div class="report-card">
+                    <div class="report-icon">📊</div>
+                    <h3>Monthly Financial Report</h3>
+                    <p class="report-description">Complete financial performance analysis with causal attribution and event references.</p>
+                    <div class="report-meta">
+                        <span class="report-period">November 2024</span>
+                        <span style="color: var(--success);">● Ready</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateReport('monthly')">View Report</button>
+                        <button class="btn btn-secondary" onclick="exportReport('monthly')">Export PDF</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-icon">👔</div>
+                    <h3>Board Financial Report</h3>
+                    <p class="report-description">Executive summary with ROI analysis, risk assessment, and forward-looking projections.</p>
+                    <div class="report-meta">
+                        <span class="report-period">Q4 2024</span>
+                        <span style="color: var(--success);">● Ready</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateReport('board')">View Report</button>
+                        <button class="btn btn-secondary" onclick="exportReport('board')">Export PDF</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-icon">🔍</div>
+                    <h3>Audit Trail Report</h3>
+                    <p class="report-description">Complete evidence chain verification with Merkle proofs and policy compliance validation.</p>
+                    <div class="report-meta">
+                        <span class="report-period">Year-to-Date</span>
+                        <span style="color: var(--success);">● Ready</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="showAuditTrail()">View Report</button>
+                        <button class="btn btn-secondary" onclick="exportReport('audit')">Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-icon">📈</div>
+                    <h3>ROI Analysis Report</h3>
+                    <p class="report-description">Investment performance by initiative with causal attribution and outcome alignment.</p>
+                    <div class="report-meta">
+                        <span class="report-period">2024 Performance</span>
+                        <span style="color: var(--warning);">● Generating...</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateReport('roi')">Generate</button>
+                        <button class="btn btn-secondary" disabled>Export</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-icon">💸</div>
+                    <h3>Cash Flow Forecast</h3>
+                    <p class="report-description">12-month cash flow projection based on event patterns and contract milestones.</p>
+                    <div class="report-meta">
+                        <span class="report-period">Next 12 Months</span>
+                        <span style="color: var(--success);">● Updated Daily</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateReport('cashflow')">View Forecast</button>
+                        <button class="btn btn-secondary" onclick="exportReport('cashflow')">Export Excel</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-icon">⚖️</div>
+                    <h3>Compliance Report</h3>
+                    <p class="report-description">Policy compliance tracking and regulatory requirements verification.</p>
+                    <div class="report-meta">
+                        <span class="report-period">Q4 2024</span>
+                        <span style="color: var(--success);">● 99.7% Compliant</span>
+                    </div>
+                    <div class="report-actions">
+                        <button class="btn btn-primary" onclick="generateReport('compliance')">View Report</button>
+                        <button class="btn btn-secondary" onclick="exportReport('compliance')">Export PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Statements -->
+        <div id="statements" class="content-area">
+            <div class="report-preview">
+                <div class="preview-header">
+                    <h2>Financial Statements - Q4 2024</h2>
+                    <div>
+                        <button class="btn btn-outline" onclick="exportStatements()">Export All</button>
+                    </div>
+                </div>
+
+                <div class="financial-statement">
+                    <div class="statement-header">
+                        <h3>Income Statement (P&L)</h3>
+                        <span style="color: var(--gray-300);">For Quarter Ending December 31, 2024</span>
+                    </div>
+                    <table class="statement-table">
+                        <tr>
+                            <td>Revenue</td>
+                            <td class="amount positive">$12,400,000</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px; color: var(--gray-300);">Cost of Goods Sold</td>
+                            <td class="amount negative">$4,800,000</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gross Profit</strong></td>
+                            <td class="amount positive">$7,600,000</td>
+                        </tr>
+                        <tr>
+                            <td style="padding-left: 20px; color: var(--gray-300);">Operating Expenses</td>
+                            <td class="amount negative">$4,500,000</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Operating Income (EBITDA)</strong></td>
+                            <td class="amount positive">$3,100,000</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Net Income</strong></td>
+                            <td class="amount positive">$2,600,000</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="financial-statement">
+                    <div class="statement-header">
+                        <h3>Balance Sheet</h3>
+                        <span style="color: var(--gray-300);">As of December 31, 2024</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                        <div>
+                            <h4 style="margin-bottom: 16px; color: var(--gray-300);">Assets</h4>
+                            <table class="statement-table">
+                                <tr>
+                                    <td>Cash & Equivalents</td>
+                                    <td class="amount">$8,400,000</td>
+                                </tr>
+                                <tr>
+                                    <td>Accounts Receivable</td>
+                                    <td class="amount">$3,200,000</td>
+                                </tr>
+                                <tr>
+                                    <td>Capital Equipment</td>
+                                    <td class="amount">$42,800,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Assets</strong></td>
+                                    <td class="amount">$54,400,000</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 16px; color: var(--gray-300);">Liabilities & Equity</h4>
+                            <table class="statement-table">
+                                <tr>
+                                    <td>Accounts Payable</td>
+                                    <td class="amount">$2,100,000</td>
+                                </tr>
+                                <tr>
+                                    <td>Long-term Debt</td>
+                                    <td class="amount">$18,000,000</td>
+                                </tr>
+                                <tr>
+                                    <td>Retained Earnings</td>
+                                    <td class="amount">$34,300,000</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Liabilities & Equity</strong></td>
+                                    <td class="amount">$54,400,000</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="export-options">
+                    <div class="export-btn" onclick="exportFormat('quickbooks')">
+                        <span>📤</span> Export to QuickBooks
+                    </div>
+                    <div class="export-btn" onclick="exportFormat('xero')">
+                        <span>📤</span> Export to Xero
+                    </div>
+                    <div class="export-btn" onclick="exportFormat('netsuite')">
+                        <span>📤</span> Export to NetSuite
+                    </div>
+                    <div class="export-btn" onclick="exportFormat('pdf')">
+                        <span>📄</span> Export as PDF
+                    </div>
+                    <div class="export-btn" onclick="exportFormat('excel')">
+                        <span>📊</span> Export as Excel
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Detail Modal -->
+        <div id="eventModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Event Detail & Causal Chain</h3>
+                    <button class="close-modal" onclick="closeModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="event-detail-grid">
+                        <div class="detail-section">
+                            <h4>Event Information</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Event ID:</span>
+                                <span class="detail-value">EVT-2024-11-15-001</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Timestamp:</span>
+                                <span class="detail-value">2024-11-15 14:30:00 UTC</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Event Type:</span>
+                                <span class="detail-value">enterprise_contract_signed</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Actor:</span>
+                                <span class="detail-value">sales_bot_alpha</span>
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h4>Policy & Evidence</h4>
+                            <div class="detail-item">
+                                <span class="detail-label">Policy Version:</span>
+                                <span class="detail-value">Strategic Account v2.1</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Evidence Hash:</span>
+                                <span class="detail-value"><code>0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3</code></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">Compliance:</span>
+                                <span class="detail-value" style="color: var(--success);">✓ All constraints passed</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">From State → To State:</span>
+                                <span class="detail-value">Pending → Contract Executed</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <h4>Financial Impact</h4>
+                        <div class="detail-item">
+                            <span class="detail-label">Revenue Generated:</span>
+                            <span class="detail-value" style="color: var(--success);">$1,200,000</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Accounts Affected:</span>
+                            <span class="detail-value">Accounts Receivable (debit), Revenue (credit)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Payment Terms:</span>
+                            <span class="detail-value">Net 60</span>
+                        </div>
+                    </div>
+
+                    <div class="evidence-chain">
+                        <h4>Evidence Chain</h4>
+                        <div class="chain-step">
+                            <div class="step-number">1</div>
+                            <div>
+                                <strong>Signed Contract PDF</strong><br>
+                                <span style="color: var(--gray-300);">Hash: 0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3</span>
+                            </div>
+                        </div>
+                        <div class="chain-step">
+                            <div class="step-number">2</div>
+                            <div>
+                                <strong>Approval Workflow Audit Trail</strong><br>
+                                <span style="color: var(--gray-300);">4 approvers, 2-hour completion</span>
+                            </div>
+                        </div>
+                        <div class="chain-step">
+                            <div class="step-number">3</div>
+                            <div>
+                                <strong>Customer Credit Check Results</strong><br>
+                                <span style="color: var(--gray-300);">Score: 850/1000, Approved</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Navigation
+        function showTab(tabId) {
+            // Hide all content areas
+            document.querySelectorAll('.content-area').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab and activate button
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Event Detail Modal
+        function showEventDetail(eventId) {
+            const modal = document.getElementById('eventModal');
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('eventModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Report Generation
+        function generateReport(reportType) {
+            const reports = {
+                monthly: 'Monthly Financial Report',
+                board: 'Board Financial Report',
+                roi: 'ROI Analysis Report',
+                cashflow: 'Cash Flow Forecast',
+                compliance: 'Compliance Report'
+            };
+            
+            alert(`Generating ${reports[reportType]}...\n\nThis report includes:\n✓ Financial statements with causal attribution\n✓ Event references for all numbers\n✓ Policy compliance verification\n✓ Evidence chain validation\n✓ Audit trail hashes\n\nReport will be available for download in 30 seconds.`);
+        }
+
+        function exportReport(reportType) {
+            alert(`Exporting ${reportType} report...\n\nExport includes:\n✓ Complete financial analysis\n✓ Causal event references\n✓ Evidence hashes\n✓ Policy version information\n✓ Merkle proof for audit trail`);
+        }
+
+        // Show Audit Trail
+        function showAuditTrail() {
+            alert('Audit Trail Report\n\n• Merkle Root Hash: 0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3\n• Timestamp Proof: Blockchain anchor #12482\n• Total Events Audited: 1,842\n• Evidence Integrity: 100% verified\n• Policy Compliance Rate: 99.7%\n\nDownload complete audit trail with all evidence hashes.');
+        }
+
+        // Export Financial Statements
+        function exportStatements() {
+            alert('Exporting all financial statements...\n\nIncluding:\n✓ Income Statement (P&L)\n✓ Balance Sheet\n✓ Cash Flow Statement\n✓ Notes to Financials\n✓ Causal attribution for all line items\n✓ Event references for all transactions\n✓ Policy compliance verification');
+        }
+
+        function exportFormat(format) {
+            const formats = {
+                quickbooks: 'QuickBooks',
+                xero: 'Xero',
+                netsuite: 'NetSuite',
+                pdf: 'PDF',
+                excel: 'Excel'
+            };
+            
+            alert(`Exporting financial statements in ${formats[format]} format...\n\nExport includes:\n✓ All financial statements\n✓ Complete journal entries with event references\n✓ Supporting evidence links\n✓ Audit trail verification codes\n✓ Policy version information`);
+        }
+
+        // Initialize with first tab active
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners for ledger table rows
+            document.querySelectorAll('.event-id').forEach(element => {
+                element.onclick = function(e) {
+                    e.stopPropagation();
+                    showEventDetail(this.textContent);
+                };
+            });
+            
+            // Set up table row clicks
+            document.querySelectorAll('.ledger-table tbody tr').forEach(row => {
+                row.style.cursor = 'pointer';
+            });
+        });
+    </script>
+</body>
+</html>

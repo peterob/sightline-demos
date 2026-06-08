@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Accounting System - 4D-FR Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --border: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 400px 1fr; /* Wider sidebar */
+            grid-template-rows: 70px 1fr;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 16px;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .logo-text h1 {
+            font-size: 22px;
+            color: var(--dark);
+        }
+
+        .logo-text span {
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .space-toggle {
+            display: flex;
+            background: var(--light);
+            padding: 5px;
+            border-radius: 12px;
+        }
+
+        .space-btn {
+            padding: 8px 20px;
+            border: none;
+            background: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .space-btn.active {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Sidebar - Now Wider */
+        .sidebar {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto;
+            min-width: 400px; /* Minimum width */
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+
+        /* 4D Transaction Form */
+        .transaction-form {
+            background: var(--light);
+            padding: 25px; /* More padding */
+            border-radius: 12px;
+            border: 2px dashed var(--border);
+            min-width: 350px;
+        }
+
+        .form-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            color: var(--dark);
+        }
+
+        .form-title i {
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px; /* More spacing */
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px; /* Slightly larger */
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px; /* Larger padding */
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 15px; /* Larger font */
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px; /* More gap */
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px; /* Larger button */
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 15px;
+        }
+
+        .btn-submit:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Network Properties */
+        .properties-card {
+            background: white;
+            padding: 25px; /* More padding */
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            min-width: 350px;
+        }
+
+        .property-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0; /* More padding */
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .property-item:last-child {
+            border-bottom: none;
+        }
+
+        .property-name {
+            color: #4b5563;
+            font-size: 15px; /* Larger font */
+        }
+
+        .property-value {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 15px;
+        }
+
+        .property-value.valid {
+            color: var(--success);
+        }
+
+        .property-value.invalid {
+            color: var(--danger);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 350px;
+            gap: 20px;
+            min-width: 0; /* Prevent overflow */
+        }
+
+        .network-container {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .network-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .network-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .network-title h2 {
+            color: var(--dark);
+            font-size: 20px;
+        }
+
+        .network-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .network-controls button {
+            padding: 10px 20px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .network-controls button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        #network {
+            width: 100%;
+            height: calc(100% - 60px);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        /* Charts Container */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            min-width: 0;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-header h3 {
+            color: var(--dark);
+            font-size: 16px;
+        }
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            width: 900px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            color: var(--dark);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+        }
+
+        /* Transaction History */
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .transactions-table th {
+            text-align: left;
+            padding: 15px;
+            background: var(--light);
+            color: #4b5563;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .transactions-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f3f4f6;
+            color: var(--dark);
+        }
+
+        .transaction-action {
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .action-physical { background: #dbeafe; color: #1e40af; }
+        .action-financial { background: #f3e8ff; color: #7c3aed; }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: 70px auto 1fr;
+            }
+            
+            .sidebar {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                min-width: 100%;
+            }
+            
+            .main-content {
+                grid-template-rows: 500px 350px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(3, auto);
+            }
+            
+            .main-content {
+                grid-template-rows: 400px auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .header {
+                padding: 0 15px;
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .space-toggle {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-good {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Help Tooltip */
+        .help-tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .help-tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Network<span>Accounting</span> 4D-FR</h1>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <div class="space-toggle">
+                    <button class="space-btn active" data-space="double-entry">
+                        <i class="fas fa-columns"></i> Double-Entry
+                    </button>
+                    <button class="space-btn" data-space="topological">
+                        <i class="fas fa-sitemap"></i> Topological
+                    </button>
+                    <button class="space-btn" data-space="affine">
+                        <i class="fas fa-wave-square"></i> Affine
+                    </button>
+                </div>
+                <button class="btn-submit" onclick="openModal('transaction-history')" style="padding: 10px 20px; width: auto;">
+                    <i class="fas fa-history"></i> Transaction History
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar - Now 400px wide -->
+        <div class="sidebar">
+            <!-- 4D Transaction Form -->
+            <div class="transaction-form">
+                <div class="form-title">
+                    <i class="fas fa-plus-circle"></i>
+                    <h3>Record 4D Transaction</h3>
+                    <span class="help-tooltip" data-tooltip="Flow, Action, Tail, Head">
+                        <i class="fas fa-question-circle" style="color: #9ca3af;"></i>
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill-wave"></i> Flow Amount ($)</label>
+                    <input type="number" id="flowAmount" placeholder="e.g., 1000.00" step="0.01" min="0.01">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-bolt"></i> Action Type</label>
+                    <select id="actionSelect" onchange="updateActionInfo()">
+                        <option value="work">🛠️ Work (Expenditure)</option>
+                        <option value="purchase">🛒 Purchase (Expenditure)</option>
+                        <option value="expense">📉 Expense</option>
+                        <option value="revenue">📈 Revenue</option>
+                        <option value="receipt">💰 Receipt (Cash Flow)</option>
+                        <option value="payment">💳 Payment (Cash Flow)</option>
+                        <option value="capitalization">🏛️ Capitalization</option>
+                        <option value="investment">📊 Investment</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-arrow-left"></i> Tail Account (Creditor)</label>
+                        <select id="tailAccount">
+                            <option value="payables">🧾 Payables</option>
+                            <option value="earnings">📊 Earnings</option>
+                            <option value="cash">💵 Cash</option>
+                            <option value="receivables">📄 Receivables</option>
+                            <option value="physical_assets">🏢 Physical Assets</option>
+                            <option value="capital">🏛️ Capital</option>
+                            <option value="loans">🏦 Loans</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-arrow-right"></i> Head Account (Debtor)</label>
+                        <select id="headAccount">
+                            <option value="physical_assets">🏢 Physical Assets</option>
+                            <option value="earnings">📊 Earnings</option>
+                            <option value="cash">💵 Cash</option>
+                            <option value="receivables">📄 Receivables</option>
+                            <option value="payables">🧾 Payables</option>
+                            <option value="securities">📈 Securities</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-info-circle"></i> Connection Preview</label>
+                    <div id="connectionPreview" style="
+                        background: #f8fafc; 
+                        padding: 15px; 
+                        border-radius: 8px; 
+                        font-family: monospace; 
+                        border: 1px dashed #cbd5e1;
+                        font-size: 14px;
+                        margin-top: 5px;
+                    ">
+                        [Action, (Tail, Head)]
+                    </div>
+                </div>
+                <button class="btn-submit" onclick="recordTransaction()">
+                    <i class="fas fa-network-wired"></i> Record 4D Transaction
+                </button>
+            </div>
+
+            <!-- Network Properties -->
+            <div class="properties-card">
+                <div class="form-title">
+                    <i class="fas fa-shield-alt"></i>
+                    <h3>Network Properties Status</h3>
+                </div>
+                
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-unlink" style="color: #3b82f6;"></i>
+                        Independence
+                    </span>
+                    <span class="property-value valid">
+                        <i class="fas fa-check-circle"></i> Valid
+                        <span class="status-indicator status-good">Flow≠Actions≠Accounts</span>
+                    </span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-link" style="color: #7c3aed;"></i>
+                        Structural Coupling
+                    </span>
+                    <span class="property-value valid">
+                        <i class="fas fa-check-circle"></i> Valid
+                        <span class="status-indicator status-good">Physical+Financial=0</span>
+                    </span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-layer-group" style="color: #10b981;"></i>
+                        Compositionality
+                    </span>
+                    <span class="property-value valid">
+                        <i class="fas fa-check-circle"></i> Valid
+                        <span class="status-indicator status-good">Hierarchy Intact</span>
+                    </span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-balance-scale" style="color: #f59e0b;"></i>
+                        Flow Equilibrium
+                    </span>
+                    <span class="property-value valid">
+                        $0.00
+                        <span class="status-indicator status-good">Balanced</span>
+                    </span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-cubes" style="color: #ef4444;"></i>
+                        Stock Equilibrium
+                    </span>
+                    <span class="property-value valid">
+                        $0.00
+                        <span class="status-indicator status-good">Wealth+NetPosition=0</span>
+                    </span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-project-diagram" style="color: #8b5cf6;"></i>
+                        Network Density
+                    </span>
+                    <span class="property-value">0.42</span>
+                </div>
+                <div class="property-item">
+                    <span class="property-name">
+                        <i class="fas fa-sitemap" style="color: #06b6d4;"></i>
+                        Total Transactions
+                    </span>
+                    <span class="property-value" id="transactionCount">8</span>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px dashed #e5e7eb;">
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="verifyEquilibrium()" style="
+                            flex: 1; 
+                            padding: 10px; 
+                            background: #f0f9ff; 
+                            border: 2px solid #0ea5e9; 
+                            border-radius: 8px; 
+                            color: #0369a1; 
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">
+                            <i class="fas fa-check-double"></i> Verify Equilibrium
+                        </button>
+                        <button onclick="showNetworkMetrics()" style="
+                            flex: 1; 
+                            padding: 10px; 
+                            background: #fef3c7; 
+                            border: 2px solid #f59e0b; 
+                            border-radius: 8px; 
+                            color: #92400e; 
+                            font-weight: 600;
+                            cursor: pointer;
+                        ">
+                            <i class="fas fa-chart-line"></i> Metrics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Network Visualization -->
+            <div class="network-container">
+                <div class="network-header">
+                    <div class="network-title">
+                        <i class="fas fa-sitemap"></i>
+                        <h2>Accounting Network Graph</h2>
+                        <span class="status-indicator status-good" id="networkStatus">
+                            <i class="fas fa-circle"></i> Active Network
+                        </span>
+                    </div>
+                    <div class="network-controls">
+                        <button onclick="visualizeNetwork()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button onclick="togglePhysics()" id="physicsToggle">
+                            <i class="fas fa-magnet"></i> Physics On
+                        </button>
+                        <button onclick="showHomomorphicQuotient()">
+                            <i class="fas fa-layer-group"></i> Quotient
+                        </button>
+                        <button onclick="exportNetwork()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div id="network"></div>
+                <div style="
+                    margin-top: 15px; 
+                    display: flex; 
+                    justify-content: space-between; 
+                    font-size: 13px; 
+                    color: #6b7280;
+                ">
+                    <div>
+                        <span style="color: #3b82f6;">● Physical Flows</span> | 
+                        <span style="color: #8b5cf6;">● Financial Flows</span>
+                    </div>
+                    <div>
+                        <span id="nodeCount">6 Nodes</span> | 
+                        <span id="edgeCount">8 Edges</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-balance-scale"></i> Wealth vs Net Position</h3>
+                        <select id="periodSelect" onchange="updateCharts()" style="padding: 8px; border-radius: 6px;">
+                            <option value="day">Today</option>
+                            <option value="week" selected>This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">Quarter</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="equilibriumChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 13px; color: #6b7280;">
+                        <i class="fas fa-info-circle"></i> 
+                        Wealth + Net Position = $<span id="equilibriumTotal">0.00</span>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-exchange-alt"></i> Action Volumes</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="chip" style="background: #f0f9ff; padding: 4px 10px; border-radius: 12px;">
+                                Physical vs Financial
+                            </span>
+                            <i class="fas fa-filter" style="color: #9ca3af; cursor: pointer;" 
+                               onclick="filterByActionType()"></i>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="actionVolumeChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 13px; color: #6b7280;">
+                        <i class="fas fa-chart-pie"></i> 
+                        Total Volume: $<span id="totalVolume">8,500</span>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-project-diagram"></i> Account Centrality</h3>
+                        <div style="display: flex; gap: 5px;">
+                            <span class="chip" style="background: #fef3c7; padding: 4px 10px; border-radius: 12px;">
+                                Degree
+                            </span>
+                            <span class="chip" style="background: #f0f9ff; padding: 4px 10px; border-radius: 12px;">
+                                Betweenness
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="centralityChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 13px; color: #6b7280;">
+                        <i class="fas fa-star"></i> 
+                        Most Central: <span id="mostCentralAccount">Payables</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction History Modal -->
+    <div class="modal" id="transaction-history-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-history"></i> 4D Transaction History</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" placeholder="Search transactions..." style="
+                        padding: 10px; 
+                        border: 2px solid var(--border); 
+                        border-radius: 8px;
+                        font-size: 14px;
+                    ">
+                    <button class="close-modal" onclick="closeModal('transaction-history')">&times;</button>
+                </div>
+            </div>
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Flow</th>
+                        <th>Action</th>
+                        <th>Tail → Head</th>
+                        <th>Connection</th>
+                        <th>Network Type</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionHistory">
+                    <!-- Filled by JavaScript -->
+                </tbody>
+            </table>
+            <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+                Showing <span id="historyCount">8</span> transactions in 4D-FR format
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Network Data
+        let transactions = [
+            { id: 1, flow: 1000, action: 'Work', tail: 'Payables', head: 'Physical Assets', type: 'physical', timestamp: '2024-01-15T10:30:00Z' },
+            { id: 2, flow: 2000, action: 'Purchase', tail: 'Payables', head: 'Physical Assets', type: 'physical', timestamp: '2024-01-15T11:15:00Z' },
+            { id: 3, flow: 500, action: 'Expense', tail: 'Physical Assets', head: 'Earnings', type: 'physical', timestamp: '2024-01-15T14:20:00Z' },
+            { id: 4, flow: 1200, action: 'Revenue', tail: 'Earnings', head: 'Receivables', type: 'physical', timestamp: '2024-01-15T16:45:00Z' },
+            { id: 5, flow: 800, action: 'Receipt', tail: 'Receivables', head: 'Cash', type: 'financial', timestamp: '2024-01-16T09:30:00Z' },
+            { id: 6, flow: 600, action: 'Payment', tail: 'Cash', head: 'Payables', type: 'financial', timestamp: '2024-01-16T11:00:00Z' },
+            { id: 7, flow: 1500, action: 'Revenue', tail: 'Earnings', head: 'Receivables', type: 'physical', timestamp: '2024-01-17T13:15:00Z' },
+            { id: 8, flow: 900, action: 'Capitalization', tail: 'Capital', head: 'Cash', type: 'financial', timestamp: '2024-01-17T15:30:00Z' }
+        ];
+
+        // Initialize Network
+        let networkInstance = null;
+        let physicsEnabled = true;
+
+        function visualizeNetwork() {
+            const container = document.getElementById('network');
+            
+            // Create nodes (accounts)
+            const nodes = new vis.DataSet([
+                { id: 'payables', label: 'Payables\n-$3,600', group: 'liabilities', shape: 'box', color: { background: '#fecaca', border: '#ef4444' } },
+                { id: 'physical_assets', label: 'Physical Assets\n$2,500', group: 'assets', shape: 'box', color: { background: '#bbf7d0', border: '#10b981' } },
+                { id: 'earnings', label: 'Earnings\n-$800', group: 'equity', shape: 'box', color: { background: '#fed7aa', border: '#f59e0b' } },
+                { id: 'receivables', label: 'Receivables\n$2,700', group: 'assets', shape: 'box', color: { background: '#dbeafe', border: '#3b82f6' } },
+                { id: 'cash', label: 'Cash\n$1,400', group: 'assets', shape: 'box', color: { background: '#e0e7ff', border: '#8b5cf6' } },
+                { id: 'capital', label: 'Capital\n-$900', group: 'equity', shape: 'box', color: { background: '#f3e8ff', border: '#7c3aed' } }
+            ]);
+
+            // Create edges (transactions)
+            const edges = new vis.DataSet(transactions.map(tx => ({
+                id: tx.id,
+                from: tx.tail.toLowerCase().replace(' ', '_'),
+                to: tx.head.toLowerCase().replace(' ', '_'),
+                label: `${tx.action}\n$${tx.flow.toLocaleString()}`,
+                arrows: 'to',
+                color: tx.type === 'physical' ? { color: '#3b82f6', highlight: '#1d4ed8' } : { color: '#8b5cf6', highlight: '#6d28d9' },
+                font: { size: 13, color: tx.type === 'physical' ? '#1e40af' : '#7c3aed', strokeWidth: 0 },
+                width: 2 + Math.min(tx.flow / 500, 5),
+                smooth: { type: 'curvedCW', roundness: 0.3 }
+            })));
+
+            const data = { nodes, edges };
+            const options = {
+                nodes: {
+                    shape: 'box',
+                    margin: 15,
+                    font: { size: 15, face: 'Segoe UI', bold: true },
+                    borderWidth: 2,
+                    shadow: true,
+                    scaling: { min: 20, max: 40 }
+                },
+                edges: {
+                    smooth: { type: 'curvedCW', roundness: 0.2 },
+                    font: { size: 13, align: 'middle', background: 'white', strokeWidth: 2 },
+                    arrows: { to: { enabled: true, scaleFactor: 0.8, type: 'arrow' } },
+                    length: 200
+                },
+                physics: {
+                    enabled: physicsEnabled,
+                    stabilization: {
+                        iterations: 100,
+                        updateInterval: 50
+                    },
+                    barnesHut: {
+                        gravitationalConstant: -1500,
+                        centralGravity: 0.4,
+                        springLength: 150,
+                        springConstant: 0.08
+                    },
+                    solver: 'barnesHut'
+                },
+                interaction: {
+                    dragNodes: true,
+                    dragView: true,
+                    zoomView: true,
+                    hover: true,
+                    hoverConnectedEdges: true,
+                    tooltipDelay: 100,
+                    multiselect: true
+                },
+                layout: {
+                    randomSeed: 42,
+                    improvedLayout: true
+                },
+                groups: {
+                    assets: { color: { background: '#dbeafe', border: '#3b82f6' } },
+                    liabilities: { color: { background: '#fecaca', border: '#ef4444' } },
+                    equity: { color: { background: '#fed7aa', border: '#f59e0b' } }
+                }
+            };
+
+            networkInstance = new vis.Network(container, data, options);
+            
+            // Update counters
+            document.getElementById('nodeCount').textContent = nodes.length + ' Nodes';
+            document.getElementById('edgeCount').textContent = edges.length + ' Edges';
+            
+            // Network events
+            networkInstance.on("click", function(params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    showNodeDetails(nodeId);
+                } else if (params.edges.length > 0) {
+                    const edgeId = params.edges[0];
+                    showEdgeDetails(edgeId);
+                }
+            });
+            
+            networkInstance.on("doubleClick", function(params) {
+                networkInstance.fit();
+            });
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            if (networkInstance) {
+                networkInstance.setOptions({ physics: { enabled: physicsEnabled } });
+                document.getElementById('physicsToggle').innerHTML = 
+                    physicsEnabled ? '<i class="fas fa-magnet"></i> Physics On' : 
+                    '<i class="fas fa-magnet"></i> Physics Off';
+            }
+        }
+
+        // Update Action Info Preview
+        function updateActionInfo() {
+            const action = document.getElementById('actionSelect').value;
+            const tail = document.getElementById('tailAccount').value;
+            const head = document.getElementById('headAccount').value;
+            
+            const actionMap = {
+                'work': 'Work', 'purchase': 'Purchase', 'expense': 'Expense',
+                'revenue': 'Revenue', 'receipt': 'Receipt', 'payment': 'Payment',
+                'capitalization': 'Capitalization', 'investment': 'Investment'
+            };
+            
+            const tailLabel = tail.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            const headLabel = head.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            
+            document.getElementById('connectionPreview').innerHTML = 
+                `[<strong>${actionMap[action]}</strong>, (<strong>${tailLabel}</strong>, <strong>${headLabel}</strong>)]`;
+        }
+
+        // Record Transaction
+        function recordTransaction() {
+            const flow = parseFloat(document.getElementById('flowAmount').value);
+            const action = document.getElementById('actionSelect').value;
+            const tail = document.getElementById('tailAccount').value;
+            const head = document.getElementById('headAccount').value;
+            
+            if (!flow || flow <= 0) {
+                alert('Please enter a valid flow amount greater than 0');
+                return;
+            }
+
+            const actionMap = {
+                'work': 'Work', 'purchase': 'Purchase', 'expense': 'Expense',
+                'revenue': 'Revenue', 'receipt': 'Receipt', 'payment': 'Payment',
+                'capitalization': 'Capitalization', 'investment': 'Investment'
+            };
+
+            const type = ['receipt', 'payment', 'capitalization', 'investment'].includes(action) ? 'financial' : 'physical';
+            
+            const tailLabel = tail.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            const headLabel = head.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            
+            const newTx = {
+                id: transactions.length + 1,
+                flow: flow,
+                action: actionMap[action],
+                tail: tailLabel,
+                head: headLabel,
+                type: type,
+                timestamp: new Date().toISOString()
+            };
+
+            transactions.push(newTx);
+            updateTransactionHistory();
+            visualizeNetwork();
+            updateCharts();
+            updateNetworkProperties();
+            
+            // Show success message
+            const successMsg = document.createElement('div');
+            successMsg.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #10b981;
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+                    z-index: 1000;
+                    animation: slideIn 0.3s;
+                ">
+                    <i class="fas fa-check-circle"></i> 
+                    Transaction recorded! 4D Tuple: ($${flow}, ${actionMap[action]}, ${tailLabel}, ${headLabel})
+                </div>
+            `;
+            document.body.appendChild(successMsg);
+            setTimeout(() => successMsg.remove(), 3000);
+        }
+
+        // Update Transaction History
+        function updateTransactionHistory() {
+            const tbody = document.getElementById('transactionHistory');
+            const countSpan = document.getElementById('historyCount');
+            tbody.innerHTML = '';
+            
+            transactions.slice().reverse().forEach(tx => {
+                const row = document.createElement('tr');
+                
+                const date = new Date(tx.timestamp);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td>${dateStr}<br><small>${timeStr}</small></td>
+                    <td><strong>$${tx.flow.toLocaleString()}</strong></td>
+                    <td><span class="transaction-action action-${tx.type}">${tx.action}</span></td>
+                    <td>${tx.tail} → ${tx.head}</td>
+                    <td>[${tx.action}, (${tx.tail}, ${tx.head})]</td>
+                    <td>${tx.type === 'physical' ? 'Physical Network' : 'Financial Network'}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            countSpan.textContent = transactions.length;
+            document.getElementById('transactionCount').textContent = transactions.length;
+        }
+
+        // Initialize Charts
+        let equilibriumChart, actionVolumeChart, centralityChart;
+
+        function initCharts() {
+            const ctx1 = document.getElementById('equilibriumChart').getContext('2d');
+            equilibriumChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Payables', 'Physical Assets', 'Earnings', 'Receivables', 'Cash', 'Capital'],
+                    datasets: [
+                        {
+                            label: 'Wealth',
+                            data: [-3600, 2500, -800, 2700, 1400, -900],
+                            backgroundColor: [
+                                '#ef4444', '#10b981', '#f59e0b', 
+                                '#3b82f6', '#8b5cf6', '#7c3aed'
+                            ],
+                            borderColor: [
+                                '#dc2626', '#059669', '#d97706', 
+                                '#1d4ed8', '#6d28d9', '#6d28d9'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `$${ctx.raw.toLocaleString()}`,
+                                title: items => items[0].label
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: value => `$${value.toLocaleString()}`
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('actionVolumeChart').getContext('2d');
+            actionVolumeChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Expenditures', 'Expenses', 'Revenues', 'Cash Flows', 'Financing'],
+                    datasets: [{
+                        data: [3000, 500, 2700, 1400, 900],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#7c3aed'],
+                        borderWidth: 3,
+                        borderColor: 'white',
+                        hoverOffset: 20
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { 
+                            position: 'right',
+                            labels: { padding: 20, usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.label}: $${ctx.raw.toLocaleString()} (${((ctx.raw/8000)*100).toFixed(1)}%)`
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctx3 = document.getElementById('centralityChart').getContext('2d');
+            centralityChart = new Chart(ctx3, {
+                type: 'radar',
+                data: {
+                    labels: ['Degree', 'Betweenness', 'Closeness', 'Eigenvector', 'PageRank', 'Flow Centrality'],
+                    datasets: [
+                        {
+                            label: 'Payables',
+                            data: [3, 85, 72, 0.8, 0.9, 92],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Physical Assets',
+                            data: [2, 60, 65, 0.6, 0.7, 78],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            pointBackgroundColor: '#10b981',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Cash',
+                            data: [2, 40, 58, 0.5, 0.6, 65],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { display: false, stepSize: 20 },
+                            pointLabels: { font: { size: 12 } },
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+            
+            updateChartTotals();
+        }
+
+        function updateCharts() {
+            const period = document.getElementById('periodSelect').value;
+            const multiplier = period === 'month' ? 3 : period === 'week' ? 1.5 : period === 'quarter' ? 4 : 1;
+            
+            equilibriumChart.data.datasets[0].data = [
+                -3600 * multiplier, 2500 * multiplier, -800 * multiplier, 
+                2700 * multiplier, 1400 * multiplier, -900 * multiplier
+            ];
+            equilibriumChart.update();
+            
+            actionVolumeChart.data.datasets[0].data = [
+                3000 * multiplier, 500 * multiplier, 2700 * multiplier, 
+                1400 * multiplier, 900 * multiplier
+            ];
+            actionVolumeChart.update();
+            
+            updateChartTotals();
+        }
+        
+        function updateChartTotals() {
+            const totalWealth = equilibriumChart.data.datasets[0].data.reduce((a,b) => a + b, 0);
+            document.getElementById('equilibriumTotal').textContent = totalWealth.toFixed(2);
+            
+            const totalVolume = actionVolumeChart.data.datasets[0].data.reduce((a,b) => a + b, 0);
+            document.getElementById('totalVolume').textContent = totalVolume.toLocaleString();
+        }
+
+        function updateNetworkProperties() {
+            const totalPhysical = transactions.filter(t => t.type === 'physical').reduce((sum, t) => sum + t.flow, 0);
+            const totalFinancial = transactions.filter(t => t.type === 'financial').reduce((sum, t) => sum + t.flow, 0);
+            
+            // These would be calculated from actual network in a real implementation
+            document.getElementById('networkStatus').innerHTML = 
+                `<i class="fas fa-circle" style="color: #10b981;"></i> ${transactions.length} Transactions`;
+        }
+
+        // Modal Functions
+        function openModal(modalId) {
+            document.getElementById(`${modalId}-modal`).style.display = 'flex';
+            if (modalId === 'transaction-history') {
+                updateTransactionHistory();
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(`${modalId}-modal`).style.display = 'none';
+        }
+
+        // Space Toggle
+        document.querySelectorAll('.space-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const space = this.dataset.space;
+                const messages = {
+                    'double-entry': 'Showing Double-Entry Space: Incidence matrices and traditional accounting statements',
+                    'topological': 'Showing Topological Space: Network adjacency matrices and input-output analysis',
+                    'affine': 'Showing Affine Space: Cost-value added analysis and potential fields'
+                };
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.innerHTML = `
+                    <div style="
+                        position: fixed;
+                        top: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: ${space === 'double-entry' ? '#3b82f6' : space === 'topological' ? '#8b5cf6' : '#10b981'};
+                        color: white;
+                        padding: 12px 24px;
+                        border-radius: 10px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                        z-index: 1000;
+                        animation: slideIn 0.3s;
+                        text-align: center;
+                        max-width: 80%;
+                    ">
+                        <i class="fas fa-info-circle"></i> ${messages[space]}
+                    </div>
+                `;
+                document.body.appendChild(infoDiv);
+                setTimeout(() => infoDiv.remove(), 3000);
+            });
+        });
+
+        // Other Functions
+        function showHomomorphicQuotient() {
+            alert('Homomorphic quotient view:\n\n• Assets aggregated\n• Liabilities aggregated\n• Equity aggregated\n\nShowing simplified network topology');
+        }
+
+        function exportNetwork() {
+            const data = {
+                transactions: transactions,
+                networkProperties: {
+                    independence: true,
+                    structuralCoupling: true,
+                    compositionality: true,
+                    flowEquilibrium: 0,
+                    stockEquilibrium: 0,
+                    timestamp: new Date().toISOString()
+                }
+            };
+            
+            const dataStr = JSON.stringify(data, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `4d-accounting-network-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            alert('Network data exported successfully as JSON!');
+        }
+        
+        function verifyEquilibrium() {
+            const totalFlow = transactions.reduce((sum, t) => sum + t.flow, 0);
+            const physicalTotal = transactions.filter(t => t.type === 'physical').reduce((sum, t) => sum + t.flow, 0);
+            const financialTotal = transactions.filter(t => t.type === 'financial').reduce((sum, t) => sum + t.flow, 0);
+            
+            const msg = `Equilibrium Check:\n\n` +
+                       `Total Flow: $${totalFlow.toLocaleString()}\n` +
+                       `Physical Total: $${physicalTotal.toLocaleString()}\n` +
+                       `Financial Total: $${financialTotal.toLocaleString()}\n\n` +
+                       `Structural Coupling: ${Math.abs(physicalTotal + financialTotal) < 0.01 ? '✓ VALID' : '✗ INVALID'}`;
+            
+            alert(msg);
+        }
+        
+        function showNetworkMetrics() {
+            const metrics = `Network Metrics:\n\n` +
+                          `Total Nodes: 6 accounts\n` +
+                          `Total Edges: ${transactions.length} transactions\n` +
+                          `Network Density: 0.42\n` +
+                          `Average Degree: ${(transactions.length * 2 / 6).toFixed(2)}\n` +
+                          `Diameter: 3 (longest shortest path)\n` +
+                          `Clustering Coefficient: 0.38`;
+            
+            alert(metrics);
+        }
+        
+        function filterByActionType() {
+            const type = prompt('Filter by type (physical/financial/all):', 'all');
+            if (type && ['physical', 'financial', 'all'].includes(type.toLowerCase())) {
+                alert(`Filtering transactions by: ${type}`);
+                // In real implementation, this would filter the network display
+            }
+        }
+        
+        function showNodeDetails(nodeId) {
+            const nodeNames = {
+                'payables': 'Payables',
+                'physical_assets': 'Physical Assets',
+                'earnings': 'Earnings',
+                'receivables': 'Receivables',
+                'cash': 'Cash',
+                'capital': 'Capital'
+            };
+            
+            const nodeTransactions = transactions.filter(t => 
+                t.tail.toLowerCase().replace(' ', '_') === nodeId || 
+                t.head.toLowerCase().replace(' ', '_') === nodeId
+            );
+            
+            const inflows = nodeTransactions.filter(t => t.head.toLowerCase().replace(' ', '_') === nodeId)
+                .reduce((sum, t) => sum + t.flow, 0);
+            const outflows = nodeTransactions.filter(t => t.tail.toLowerCase().replace(' ', '_') === nodeId)
+                .reduce((sum, t) => sum + t.flow, 0);
+            
+            alert(`Account: ${nodeNames[nodeId]}\n\n` +
+                  `Balance: $${(inflows - outflows).toLocaleString()}\n` +
+                  `Inflows: $${inflows.toLocaleString()}\n` +
+                  `Outflows: $${outflows.toLocaleString()}\n` +
+                  `Degree: ${nodeTransactions.length} connections\n` +
+                  `Transactions: ${nodeTransactions.length}`);
+        }
+        
+        function showEdgeDetails(edgeId) {
+            const tx = transactions.find(t => t.id === parseInt(edgeId));
+            if (tx) {
+                alert(`Transaction Details:\n\n` +
+                      `Action: ${tx.action}\n` +
+                      `Flow: $${tx.flow.toLocaleString()}\n` +
+                      `From: ${tx.tail}\n` +
+                      `To: ${tx.head}\n` +
+                      `Network: ${tx.type === 'physical' ? 'Physical' : 'Financial'}\n` +
+                      `Connection: [${tx.action}, (${tx.tail}, ${tx.head})]\n` +
+                      `4D Tuple: ($${tx.flow}, ${tx.action}, ${tx.tail}, ${tx.head})`);
+            }
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            visualizeNetwork();
+            initCharts();
+            updateTransactionHistory();
+            updateActionInfo();
+            updateNetworkProperties();
+            
+            // Set up event listeners for form changes
+            document.getElementById('flowAmount').addEventListener('input', updateActionInfo);
+            document.getElementById('actionSelect').addEventListener('change', updateActionInfo);
+            document.getElementById('tailAccount').addEventListener('change', updateActionInfo);
+            document.getElementById('headAccount').addEventListener('change', updateActionInfo);
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Add CSS for animations
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateY(-20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+                .btn-submit:active {
+                    animation: pulse 0.3s;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

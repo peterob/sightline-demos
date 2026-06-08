@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sightline — Deterministic Event Fabric for Financial Reality</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #111113;
+      --bg-tertiary: #18181b;
+      --bg-card: #1a1a1d;
+      --border-subtle: #27272a;
+      --border-accent: #3f3f46;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent-cyan: #22d3ee;
+      --accent-cyan-dim: #0891b2;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --accent-amber: #fbbf24;
+      --accent-violet: #a78bfa;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-body: 'IBM Plex Sans', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Grid background */
+    .grid-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(var(--border-subtle) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.25rem 2rem;
+      background: rgba(10, 10, 11, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    .nav-links a {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-cyan);
+    }
+
+    .btn-nav {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.6rem 1.25rem;
+      background: transparent;
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-nav:hover {
+      background: var(--accent-cyan);
+      color: var(--bg-primary);
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 2rem 4rem;
+      position: relative;
+    }
+
+    .hero-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-content {
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent-cyan);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .hero-label::before {
+      content: '';
+      width: 24px;
+      height: 1px;
+      background: var(--accent-cyan);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 6vw, 5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 span {
+      display: block;
+      background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-violet) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      max-width: 520px;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-subtitle strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1rem 2rem;
+      background: var(--accent-cyan);
+      border: none;
+      color: var(--bg-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .btn-primary:hover {
+      background: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1rem 2rem;
+      background: transparent;
+      border: 1px solid var(--border-accent);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    /* Hero Visual */
+    .hero-visual {
+      position: relative;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .tensor-diagram {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 2rem;
+      position: relative;
+    }
+
+    .tensor-header {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tensor-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .tensor-cells {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .tensor-cell {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      transition: all 0.3s;
+    }
+
+    .tensor-cell:hover {
+      border-color: var(--accent-cyan);
+      transform: translateX(4px);
+    }
+
+    .cell-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .cell-icon.obs {
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+
+    .cell-icon.op {
+      background: rgba(251, 191, 36, 0.1);
+      color: var(--accent-amber);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .cell-icon.obl {
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .cell-content {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .cell-label {
+      color: var(--text-muted);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+
+    .cell-value {
+      color: var(--text-primary);
+    }
+
+    .cell-hash {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    .tensor-connector {
+      width: 1px;
+      height: 20px;
+      background: linear-gradient(to bottom, var(--accent-cyan), transparent);
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .tensor-connector::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 5px;
+      height: 5px;
+      background: var(--accent-cyan);
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+    }
+
+    /* Comparison Strip */
+    .comparison {
+      padding: 6rem 2rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comparison-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .comparison-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .comparison-header h2 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .comparison-header p {
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .comparison-card {
+      padding: 2.5rem;
+      position: relative;
+    }
+
+    .comparison-card.legacy {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .comparison-card.sightline {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.05), rgba(167, 139, 250, 0.05));
+      border: 1px solid var(--accent-cyan-dim);
+    }
+
+    .card-badge {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      padding: 0.4rem 0.75rem;
+      display: inline-block;
+      margin-bottom: 1.5rem;
+    }
+
+    .comparison-card.legacy .card-badge {
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .comparison-card.sightline .card-badge {
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid var(--accent-cyan-dim);
+    }
+
+    .comparison-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .comparison-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .comparison-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+    }
+
+    .comparison-list li::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .comparison-card.legacy .comparison-list li::before {
+      background: var(--text-muted);
+    }
+
+    .comparison-card.sightline .comparison-list li::before {
+      background: var(--accent-cyan);
+    }
+
+    /* Section: What Is */
+    .what-is {
+      padding: 8rem 2rem;
+    }
+
+    .what-is-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 6rem;
+      align-items: center;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--accent-cyan);
+      margin-bottom: 1rem;
+    }
+
+    .what-is h2 {
+      font-family: var(--font-display);
+      font-size: 2.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+      line-height: 1.15;
+    }
+
+    .what-is p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+    }
+
+    .what-is p strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .tensor-breakdown {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 2.5rem;
+    }
+
+    .breakdown-item {
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .breakdown-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .breakdown-item:first-child {
+      padding-top: 0;
+    }
+
+    .breakdown-num {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+      width: 48px;
+    }
+
+    .breakdown-item:nth-child(1) .breakdown-num { color: var(--accent-cyan); }
+    .breakdown-item:nth-child(2) .breakdown-num { color: var(--accent-amber); }
+    .breakdown-item:nth-child(3) .breakdown-num { color: var(--accent-green); }
+
+    .breakdown-content h4 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .breakdown-content p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* How It Works */
+    .how-it-works {
+      padding: 8rem 2rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .how-it-works-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .how-it-works-header {
+      text-align: center;
+      margin-bottom: 5rem;
+    }
+
+    .how-it-works h2 {
+      font-family: var(--font-display);
+      font-size: 2.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .how-it-works-header p {
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    .step-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      padding: 2rem;
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .step-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-4px);
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 1.5rem;
+    }
+
+    .step-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .step-card ul {
+      list-style: none;
+    }
+
+    .step-card li {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .step-card li:last-child {
+      border-bottom: none;
+    }
+
+    .step-card li::before {
+      content: '→';
+      color: var(--text-muted);
+    }
+
+    /* Features */
+    .features {
+      padding: 8rem 2rem;
+    }
+
+    .features-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .features-header {
+      margin-bottom: 4rem;
+    }
+
+    .features h2 {
+      font-family: var(--font-display);
+      font-size: 2.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .features-header p {
+      color: var(--text-secondary);
+      max-width: 600px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 2.5rem;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent-cyan-dim);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .feature-card:nth-child(1) .feature-icon {
+      background: rgba(34, 211, 238, 0.1);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+
+    .feature-card:nth-child(2) .feature-icon {
+      background: rgba(167, 139, 250, 0.1);
+      color: var(--accent-violet);
+      border: 1px solid rgba(167, 139, 250, 0.3);
+    }
+
+    .feature-card:nth-child(3) .feature-icon {
+      background: rgba(74, 222, 128, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+    }
+
+    .feature-card:nth-child(4) .feature-icon {
+      background: rgba(251, 191, 36, 0.1);
+      color: var(--accent-amber);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .feature-card code {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border: 1px solid var(--border-subtle);
+      color: var(--accent-cyan);
+    }
+
+    /* Architecture */
+    .architecture {
+      padding: 8rem 2rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .architecture-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .architecture-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .architecture h2 {
+      font-family: var(--font-display);
+      font-size: 2.75rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .architecture-header p {
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .arch-layers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .arch-layer {
+      padding: 2.5rem;
+      border-right: 1px solid var(--border-subtle);
+      background: var(--bg-tertiary);
+      position: relative;
+    }
+
+    .arch-layer:last-child {
+      border-right: none;
+    }
+
+    .arch-layer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .arch-layer:nth-child(1)::before { background: var(--accent-cyan); }
+    .arch-layer:nth-child(2)::before { background: var(--accent-amber); }
+    .arch-layer:nth-child(3)::before { background: var(--accent-green); }
+
+    .layer-num {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .arch-layer h3 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+
+    .arch-layer ul {
+      list-style: none;
+    }
+
+    .arch-layer li {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      padding: 0.5rem 0;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .arch-layer li::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: var(--text-muted);
+    }
+
+    .arch-quote {
+      margin-top: 3rem;
+      padding: 2rem;
+      background: var(--bg-tertiary);
+      border-left: 3px solid var(--accent-cyan);
+    }
+
+    .arch-quote p {
+      font-family: var(--font-body);
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .arch-cta {
+      margin-top: 3rem;
+      text-align: center;
+    }
+
+    /* Comparison Table */
+    .table-section {
+      padding: 8rem 2rem;
+    }
+
+    .table-section-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .table-section h2 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .comparison-table th {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: left;
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .comparison-table th:nth-child(3) {
+      color: var(--accent-cyan);
+      background: rgba(34, 211, 238, 0.05);
+    }
+
+    .comparison-table td {
+      padding: 1.25rem 1.5rem;
+      border: 1px solid var(--border-subtle);
+      vertical-align: top;
+    }
+
+    .comparison-table td:first-child {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+    }
+
+    .comparison-table td:nth-child(2) {
+      color: var(--text-secondary);
+    }
+
+    .comparison-table td:nth-child(3) {
+      background: rgba(34, 211, 238, 0.03);
+      color: var(--text-primary);
+    }
+
+    .comparison-table tr:hover td {
+      background: var(--bg-secondary);
+    }
+
+    .comparison-table tr:hover td:nth-child(3) {
+      background: rgba(34, 211, 238, 0.08);
+    }
+
+    /* Use Cases */
+    .use-cases {
+      padding: 8rem 2rem;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .use-cases-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .use-cases-header {
+      margin-bottom: 4rem;
+    }
+
+    .use-cases h2 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .use-cases-header p {
+      color: var(--text-secondary);
+    }
+
+    .use-cases-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+    }
+
+    .use-case-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-subtle);
+      padding: 2rem;
+      transition: all 0.3s;
+    }
+
+    .use-case-card:hover {
+      border-color: var(--accent-cyan-dim);
+      transform: translateY(-2px);
+    }
+
+    .use-case-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent-cyan);
+      margin-bottom: 1rem;
+      display: inline-block;
+      padding: 0.3rem 0.6rem;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.2);
+    }
+
+    .use-case-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    .use-case-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    /* Final CTA */
+    .final-cta {
+      padding: 8rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .final-cta::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.08), transparent 70%);
+      pointer-events: none;
+    }
+
+    .final-cta-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .final-cta h2 {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+      line-height: 1.15;
+    }
+
+    .final-cta p {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .final-cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Footer */
+    footer {
+      padding: 3rem 2rem;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-secondary);
+    }
+
+    .footer-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-logo .logo-mark {
+      width: 20px;
+      height: 20px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .what-is-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .arch-layers {
+        grid-template-columns: 1fr;
+      }
+
+      .arch-layer {
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .arch-layer:last-child {
+        border-bottom: none;
+      }
+    }
+
+    @media (max-width: 768px) {
+      nav {
+        padding: 1rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding: 6rem 1.5rem 3rem;
+      }
+
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .comparison-grid,
+      .features-grid,
+      .use-cases-grid,
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-table {
+        font-size: 0.75rem;
+      }
+
+      .comparison-table th,
+      .comparison-table td {
+        padding: 0.75rem;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: 1.5rem;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav>
+    <div class="nav-inner">
+      <div class="logo">
+        <div class="logo-mark"></div>
+        Sightline
+      </div>
+      <div class="nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#use-cases">Use Cases</a>
+        <button class="btn-nav">Talk to Engineering</button>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-content">
+        <div class="hero-label">Event-Sourced Financial Infrastructure</div>
+        <h1>
+          A Deterministic<br>
+          <span>Event Fabric</span><br>
+          for Financial Reality
+        </h1>
+        <p class="hero-subtitle">
+          Most "modern" accounting systems just put the phonebook online: mutable tables, operator edits, endless reconciliation. Sightline captures every physical and financial event as a <strong>causally ordered tensor</strong> that can be replayed at any time. Same inputs, same outputs, every time.
+        </p>
+        <div class="hero-ctas">
+          <a href="#architecture" class="btn-primary">
+            <span>▶</span> Inspect the Architecture
+          </a>
+          <a href="#contact" class="btn-secondary">Talk to Engineering</a>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="tensor-diagram">
+          <div class="tensor-header">
+            <span>Causal Tensor Cell</span>
+            <div class="tensor-status">
+              <div class="status-dot"></div>
+              <span>Live</span>
+            </div>
+          </div>
+          <div class="tensor-cells">
+            <div class="tensor-cell">
+              <div class="cell-icon obs">O</div>
+              <div class="cell-content">
+                <div class="cell-label">Observation</div>
+                <div class="cell-value">received_qty: 60 units @ $48.50</div>
+              </div>
+              <div class="cell-hash">0x7f3a...</div>
+            </div>
+            <div class="tensor-connector"></div>
+            <div class="tensor-cell">
+              <div class="cell-icon op">Δ</div>
+              <div class="cell-content">
+                <div class="cell-label">Operation</div>
+                <div class="cell-value">approve_payment: 60 units @ $48.50</div>
+              </div>
+              <div class="cell-hash">0x2e8b...</div>
+            </div>
+            <div class="tensor-connector"></div>
+            <div class="tensor-cell">
+              <div class="cell-icon obl">✓</div>
+              <div class="cell-content">
+                <div class="cell-label">Obligation / Proof</div>
+                <div class="cell-value">invoice_qty ≤ received_qty: PASS</div>
+              </div>
+              <div class="cell-hash">0x9c4d...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="comparison">
+    <div class="comparison-inner">
+      <div class="comparison-header">
+        <h2>The Phonebook vs. The Video Feed</h2>
+        <p>Legacy systems capture snapshots. Sightline captures the movie—and can replay any frame.</p>
+      </div>
+      <div class="comparison-grid">
+        <div class="comparison-card legacy">
+          <div class="card-badge">Status Quo</div>
+          <h3>The Phonebook Online</h3>
+          <ul class="comparison-list">
+            <li>Static ledger snapshots</li>
+            <li>Human-entered journal entries</li>
+            <li>Order- and user-dependent results</li>
+            <li>Reconciliation as a permanent job</li>
+            <li>"Close the books and hope nothing broke"</li>
+          </ul>
+        </div>
+        <div class="comparison-card sightline">
+          <div class="card-badge">Sightline</div>
+          <h3>The Always-On Video Feed</h3>
+          <ul class="comparison-list">
+            <li>Immutable event graph</li>
+            <li>Every event = Observation + Operation + Obligation</li>
+            <li>Deterministic policy evaluation</li>
+            <li>Views are derived functions, not hand-built reports</li>
+            <li>Replaying history is as simple as pressing "play"</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="what-is">
+    <div class="what-is-inner">
+      <div class="what-is-content">
+        <div class="section-label">Core Primitive</div>
+        <h2>What Is the<br>Causal Tensor?</h2>
+        <p>
+          A <strong>Causal Tensor</strong> is Sightline's atomic primitive. Each business event is captured as a self-contained, replayable state transition that encodes what actually happened—not what someone typed into a ledger.
+        </p>
+        <p>
+          Tensor cells are chained together into a <strong>DAG of events</strong> that represents your business reality with mathematical precision. Any point-in-time view is just a deterministic query over this graph.
+        </p>
+      </div>
+      <div class="tensor-breakdown">
+        <div class="breakdown-item">
+          <div class="breakdown-num">01</div>
+          <div class="breakdown-content">
+            <h4>Observation</h4>
+            <p>What the system believed to be true—inputs, balances, quantities, locations. The ground truth at the moment of the event.</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-num">02</div>
+          <div class="breakdown-content">
+            <h4>Operation</h4>
+            <p>The attempted change—approve invoice, ship goods, release payment. Every mutation is explicit and traceable.</p>
+          </div>
+        </div>
+        <div class="breakdown-item">
+          <div class="breakdown-num">03</div>
+          <div class="breakdown-content">
+            <h4>Obligation / Proof</h4>
+            <p>The policies, invariants, and evidence required for acceptance. Every transition carries its justification.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="how-it-works" id="how-it-works">
+    <div class="how-it-works-inner">
+      <div class="how-it-works-header">
+        <div class="section-label">For Engineers</div>
+        <h2>Engineering-Grade Financial Truth</h2>
+        <p>From signal ingestion to policy evaluation to materialized views—every step is deterministic and auditable.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">Step 01</div>
+          <h3>Ingest Signals</h3>
+          <ul>
+            <li>Receipts from WMS / 3PL</li>
+            <li>Invoices from AP / vendors</li>
+            <li>Approvals from workflow tools</li>
+            <li>Payments from banking rails</li>
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 02</div>
+          <h3>Construct Tensor Cells</h3>
+          <ul>
+            <li>Observation: prior state</li>
+            <li>Operation: proposed transition</li>
+            <li>Obligation: invariants + proofs</li>
+            <li>Hash chain: immutable linkage</li>
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 03</div>
+          <h3>Evaluate Policy Engine</h3>
+          <ul>
+            <li>Invariants are code, not checklists</li>
+            <li>Deterministic evaluation</li>
+            <li>Result: accepted / blocked / flagged</li>
+            <li>Versioned policy history</li>
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-num">Step 04</div>
+          <h3>Materialize Views</h3>
+          <ul>
+            <li>AP/AR, GL, inventory, margin</li>
+            <li>Cash forecasts, variance analysis</li>
+            <li>Computed, not manually reconciled</li>
+            <li>Any point-in-time = a query</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="features-inner">
+      <div class="features-header">
+        <div class="section-label">Why It Matters</div>
+        <h2>A Different Substrate</h2>
+        <p>The Causal Tensor isn't an incremental improvement—it's a fundamentally different foundation for financial systems.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">Δ=</div>
+          <h3>Deterministic</h3>
+          <p>Same event graph → same financial state. No "it depends who closed the month." Reproducible by construction.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">∞</div>
+          <h3>Immutable</h3>
+          <p>Operators can't edit history; they can only add new events. Like Git for finance, not a shared Excel file.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">{}</div>
+          <h3>Policy as Code</h3>
+          <p>Invariants are versioned and testable. <code>invoice_qty ≤ received_qty</code> is a function, not a slide deck.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">↺</div>
+          <h3>Fully Replayable</h3>
+          <p>Rewind to any day, recompute state, and prove every number. Audits become queries, not projects.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="architecture" id="architecture">
+    <div class="architecture-inner">
+      <div class="architecture-header">
+        <div class="section-label">Deep Dive</div>
+        <h2>Architecture Overview</h2>
+        <p>Sightline's architecture intentionally separates fact capture, policy evaluation, and explainability into distinct, composable layers.</p>
+      </div>
+      <div class="arch-layers">
+        <div class="arch-layer">
+          <div class="layer-num">Layer 01</div>
+          <h3>Causal Tensor Layer</h3>
+          <ul>
+            <li>Event DAG storage</li>
+            <li>State snapshots and deltas</li>
+            <li>Idempotent ingestion</li>
+            <li>Deterministic replay</li>
+          </ul>
+        </div>
+        <div class="arch-layer">
+          <div class="layer-num">Layer 02</div>
+          <h3>Policy Engine Layer</h3>
+          <ul>
+            <li>Declarative invariants</li>
+            <li>Quantity, pricing, timing rules</li>
+            <li>Versioned policies with tests</li>
+            <li>Outcome classification</li>
+          </ul>
+        </div>
+        <div class="arch-layer">
+          <div class="layer-num">Layer 03</div>
+          <h3>Proof Layer</h3>
+          <ul>
+            <li>Human-readable explanations</li>
+            <li>Audit trails and narratives</li>
+            <li>Investigation views</li>
+            <li>API hooks for ERP / FP&A</li>
+          </ul>
+        </div>
+      </div>
+      <div class="arch-quote">
+        <p>"If blockchain gives you consensus over who owns a coin, Causal Tensor gives you consensus over what actually happened in your business."</p>
+      </div>
+      <div class="arch-cta">
+        <a href="#" class="btn-secondary">Download the Architecture Paper</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="table-section">
+    <div class="table-section-inner">
+      <h2>Sightline vs. Legacy Systems</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Legacy ERP / GL</th>
+            <th>Sightline Causal Tensor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Data model</td>
+            <td>Mutable tables & journal entries</td>
+            <td>Immutable event DAG (tensor cells)</td>
+          </tr>
+          <tr>
+            <td>Truth source</td>
+            <td>Human-entered postings</td>
+            <td>Derived from physical + financial events</td>
+          </tr>
+          <tr>
+            <td>Policies</td>
+            <td>Workflows, approvals, manuals</td>
+            <td>Executable invariants / policy-as-code</td>
+          </tr>
+          <tr>
+            <td>Time handling</td>
+            <td>Period closes, back-dating, restatements</td>
+            <td>Full replay of any point in time</td>
+          </tr>
+          <tr>
+            <td>Reconciliation</td>
+            <td>Continuous, manual, multi-system</td>
+            <td>Eliminated—one canonical event fabric</td>
+          </tr>
+          <tr>
+            <td>Operator influence</td>
+            <td>High—edits, overrides, timing</td>
+            <td>Low—operators annotate, cannot change history</td>
+          </tr>
+          <tr>
+            <td>Explainability</td>
+            <td>After-the-fact spreadsheet analysis</td>
+            <td>Native: every number → event chain</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="use-cases" id="use-cases">
+    <div class="use-cases-inner">
+      <div class="use-cases-header">
+        <div class="section-label">Deploy First</div>
+        <h2>Where Engineering Teams Start</h2>
+        <p>High-value entry points where the causal tensor delivers immediate ROI.</p>
+      </div>
+      <div class="use-cases-grid">
+        <div class="use-case-card">
+          <div class="use-case-tag">AP / Procurement</div>
+          <h3>High-Volume Payables</h3>
+          <p>Prevent "phantom" payables, quantity mismatches, and unapproved changes before cash moves. Every payment traces to a verified receipt.</p>
+        </div>
+        <div class="use-case-card">
+          <div class="use-case-tag">Supply Chain</div>
+          <h3>E-commerce & Logistics</h3>
+          <p>Bind warehouse receipts, shipments, and order events to cash flow and margin in real time. No more month-end surprises.</p>
+        </div>
+        <div class="use-case-card">
+          <div class="use-case-tag">Cloud Spend</div>
+          <h3>GPU / Compute Procurement</h3>
+          <p>Tie job-level usage events to billing and budget invariants. Auto-block runaway spend at the event boundary, not after the invoice.</p>
+        </div>
+        <div class="use-case-card">
+          <div class="use-case-tag">Multi-Entity</div>
+          <h3>Complex Consolidation</h3>
+          <p>Use a single event fabric across entities. Views become just different lenses on the same causal graph—no manual intercompany reconciliation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="final-cta" id="contact">
+    <div class="final-cta-inner">
+      <div class="section-label">For CTOs & Engineering Leaders</div>
+      <h2>Bring Engineering Discipline to Finance</h2>
+      <p>
+        You wouldn't ship production code without logs, tests, and deterministic behavior. Why accept anything less from the system that moves your cash?<br><br>
+        Sightline lets CTOs and CFOs share a common, rigorous substrate: events, invariants, proofs.
+      </p>
+      <div class="final-cta-buttons">
+        <a href="#" class="btn-primary">Book a Technical Deep Dive</a>
+        <a href="#" class="btn-secondary">Get the System Architecture PDF</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <div class="logo-mark"></div>
+        Sightline
+      </div>
+      <div class="footer-links">
+        <a href="#">Documentation</a>
+        <a href="#">API Reference</a>
+        <a href="#">GitHub</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copy">
+        © 2025 Sightline. All rights reserved.
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

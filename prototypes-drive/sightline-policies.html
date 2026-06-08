@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - Policy Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0b0d;
+            --bg-secondary: #12141a;
+            --bg-tertiary: #1a1d24;
+            --bg-card: #1e2128;
+            --border-color: #2a2e38;
+            --text-primary: #ffffff;
+            --text-secondary: #9aa0ab;
+            --text-muted: #6b7280;
+            --accent-blue: #4da6ff;
+            --accent-green: #00d4aa;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffc107;
+            --accent-orange: #ff9f43;
+            --accent-purple: #a78bfa;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .app { display: flex; height: 100vh; }
+        .sidebar { width: 220px; background: var(--bg-secondary); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo { padding: 20px; border-bottom: 1px solid var(--border-color); font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .nav-section { padding: 16px 12px; }
+        .nav-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding: 0 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 6px; cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .main { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+        .header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .page-title { font-size: 18px; font-weight: 600; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-primary:hover { background: #3d96ef; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-success { background: var(--accent-green); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+        .content { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .page-header h1 { font-size: 24px; font-weight: 600; }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 14px; font-weight: 600; }
+        .card-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .card-body { padding: 20px; }
+
+        /* Policy List */
+        .policy-list { display: flex; flex-direction: column; gap: 12px; }
+        .policy-item { background: var(--bg-tertiary); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; }
+        .policy-item:hover { border-color: var(--border-color); background: var(--bg-card); }
+        .policy-item.disabled { opacity: 0.5; }
+        .policy-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .policy-icon.approval { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+        .policy-icon.payment { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .policy-icon.alert { background: rgba(255, 159, 67, 0.15); color: var(--accent-orange); }
+        .policy-icon.discount { background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .policy-content { flex: 1; }
+        .policy-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .policy-desc { font-size: 12px; color: var(--text-secondary); }
+        .policy-meta { display: flex; gap: 16px; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .policy-status { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.active { background: var(--accent-green); }
+        .status-dot.inactive { background: var(--text-muted); }
+        .policy-toggle { width: 44px; height: 24px; border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-color); cursor: pointer; position: relative; transition: all 0.2s; }
+        .policy-toggle.active { background: var(--accent-green); border-color: var(--accent-green); }
+        .policy-toggle::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: all 0.2s; }
+        .policy-toggle.active::after { left: 22px; }
+        .policy-actions { display: flex; gap: 8px; }
+
+        /* Policy Builder */
+        .policy-builder { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
+        .builder-section { margin-bottom: 24px; }
+        .builder-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .builder-input { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; }
+        .builder-input:focus { outline: none; border-color: var(--accent-blue); }
+        .builder-select { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-tertiary); color: var(--text-primary); font-size: 13px; }
+
+        /* Condition Builder */
+        .condition-group { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+        .condition-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .condition-logic { display: flex; gap: 4px; }
+        .logic-btn { padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary); }
+        .logic-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+        .condition-row { display: grid; grid-template-columns: 1fr 120px 1fr 32px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .condition-row:last-child { margin-bottom: 0; }
+        .condition-field { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 12px; }
+        .condition-remove { width: 32px; height: 32px; border-radius: 6px; border: none; background: rgba(255, 107, 107, 0.1); color: var(--accent-red); cursor: pointer; font-size: 16px; }
+        .condition-remove:hover { background: rgba(255, 107, 107, 0.2); }
+        .add-condition { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 6px; border: 1px dashed var(--border-color); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; margin-top: 12px; width: 100%; justify-content: center; }
+        .add-condition:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+        /* Action Builder */
+        .action-card { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+        .action-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .action-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(77, 166, 255, 0.15); color: var(--accent-blue); }
+        .action-title { font-size: 13px; font-weight: 600; }
+        .action-config { display: flex; flex-direction: column; gap: 10px; }
+        .action-row { display: flex; align-items: center; gap: 8px; }
+        .action-row label { font-size: 12px; color: var(--text-secondary); min-width: 80px; }
+        .action-row input, .action-row select { flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 12px; }
+
+        /* Preview Panel */
+        .preview-panel { background: var(--bg-tertiary); border-radius: 12px; padding: 20px; position: sticky; top: 24px; }
+        .preview-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .preview-title .icon { color: var(--accent-blue); }
+        .preview-code { background: var(--bg-card); border-radius: 8px; padding: 16px; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; }
+        .preview-keyword { color: var(--accent-purple); }
+        .preview-field { color: var(--accent-blue); }
+        .preview-operator { color: var(--accent-orange); }
+        .preview-value { color: var(--accent-green); }
+        .preview-action { color: var(--accent-yellow); }
+
+        /* Test Panel */
+        .test-panel { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); }
+        .test-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+        .test-input { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .test-row { display: flex; align-items: center; gap: 8px; }
+        .test-row label { font-size: 11px; color: var(--text-secondary); min-width: 70px; }
+        .test-row input { flex: 1; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 12px; }
+        .test-result { padding: 12px; border-radius: 8px; font-size: 12px; }
+        .test-result.pass { background: rgba(0, 212, 170, 0.1); border: 1px solid rgba(0, 212, 170, 0.3); color: var(--accent-green); }
+        .test-result.fail { background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: var(--accent-red); }
+
+        /* Category Tabs */
+        .category-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .category-tab { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-color); transition: all 0.15s; }
+        .category-tab:hover { color: var(--text-primary); }
+        .category-tab.active { background: var(--accent-blue); border-color: var(--accent-blue); color: white; }
+        .category-tab .count { margin-left: 6px; padding: 2px 6px; border-radius: 10px; font-size: 10px; background: rgba(255,255,255,0.2); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal { background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); width: 90%; max-width: 1000px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; transform: scale(0.95); transition: transform 0.2s; }
+        .modal-overlay.active .modal { transform: scale(1); }
+        .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 15px; font-weight: 600; }
+        .modal-close { width: 28px; height: 28px; border-radius: 6px; border: none; background: var(--bg-tertiary); color: var(--text-secondary); cursor: pointer; font-size: 16px; }
+        .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+
+        /* Status Badge */
+        .status { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status.active { background: rgba(0, 212, 170, 0.15); color: var(--accent-green); }
+        .status.inactive { background: rgba(107, 114, 128, 0.15); color: var(--text-muted); }
+        .status.draft { background: rgba(255, 193, 7, 0.15); color: var(--accent-yellow); }
+
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-blue { color: var(--accent-blue); }
+        .text-muted { color: var(--text-muted); }
+        .font-mono { font-family: 'SF Mono', Monaco, monospace; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo"><div class="logo-icon">◈</div>Sightline</div>
+            <nav class="nav-section">
+                <div class="nav-title">Overview</div>
+                <div class="nav-item"><span>◉</span> Dashboard</div>
+                <div class="nav-item"><span>◈</span> Cash Position</div>
+                <div class="nav-item"><span>▤</span> 13-Week Forecast</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Operations</div>
+                <div class="nav-item"><span>↓</span> Collections (AR)</div>
+                <div class="nav-item"><span>↑</span> Payables (AP)</div>
+                <div class="nav-item"><span>◧</span> Purchase Orders</div>
+                <div class="nav-item"><span>✓</span> Approvals</div>
+                <div class="nav-item"><span>⟳</span> Payment Runs</div>
+            </nav>
+            <nav class="nav-section">
+                <div class="nav-title">Configuration</div>
+                <div class="nav-item active"><span>⚡</span> Policy Engine</div>
+                <div class="nav-item"><span>⚙</span> Settings</div>
+            </nav>
+        </aside>
+        
+        <main class="main">
+            <header class="header">
+                <div class="header-left">
+                    <h2 class="page-title">Policy Engine</h2>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary">Import Policies</button>
+                    <button class="btn btn-primary" onclick="openModal('newPolicy')">+ New Policy</button>
+                </div>
+            </header>
+
+            <div class="content">
+                <div class="page-header">
+                    <div>
+                        <h1>Business Rules</h1>
+                        <p style="color: var(--text-secondary); margin-top: 4px;">Define how Sightline automates your workflows</p>
+                    </div>
+                </div>
+
+                <div class="category-tabs">
+                    <div class="category-tab active">All Policies <span class="count">8</span></div>
+                    <div class="category-tab">Approval <span class="count">3</span></div>
+                    <div class="category-tab">Payment <span class="count">2</span></div>
+                    <div class="category-tab">Discount <span class="count">2</span></div>
+                    <div class="category-tab">Alerts <span class="count">1</span></div>
+                </div>
+
+                <!-- Approval Policies -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Approval Policies</div>
+                            <div class="card-subtitle">Rules that determine approval routing</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="policy-list">
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon approval">✓</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Standard PO Approval Chain</div>
+                                    <div class="policy-desc">Route POs through manager → finance → VP based on amount thresholds</div>
+                                    <div class="policy-meta">
+                                        <span>Priority: 1</span>
+                                        <span>Triggered 47 times this month</span>
+                                        <span>Last: 2 hours ago</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon approval">✓</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Capital Expenditure Approval</div>
+                                    <div class="policy-desc">Special routing for CapEx (GL 15xx) with board approval over $250K</div>
+                                    <div class="policy-meta">
+                                        <span>Priority: 10</span>
+                                        <span>Triggered 3 times this month</span>
+                                        <span>Last: 5 days ago</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon approval">✓</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Preferred Vendor Fast Track</div>
+                                    <div class="policy-desc">Streamlined approval for trusted vendors with auto-approve under $5K</div>
+                                    <div class="policy-meta">
+                                        <span>Priority: 5</span>
+                                        <span>Triggered 12 times this month</span>
+                                        <span>Last: 1 day ago</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Policies -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Payment Policies</div>
+                            <div class="card-subtitle">Rules for scheduling and executing payments</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="policy-list">
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon payment">$</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Weekly Payment Batching</div>
+                                    <div class="policy-desc">Batch all approved payments for Friday runs, respecting cash reserve</div>
+                                    <div class="policy-meta">
+                                        <span>Runs every Friday</span>
+                                        <span>Min reserve: $500K</span>
+                                        <span>Last run: 3 days ago</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon payment">$</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Large Payment Approval</div>
+                                    <div class="policy-desc">Require CFO approval for any single payment over $100K</div>
+                                    <div class="policy-meta">
+                                        <span>Threshold: $100,000</span>
+                                        <span>Triggered 8 times this month</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discount Policies -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Discount Capture Policies</div>
+                            <div class="card-subtitle">Rules for early payment discount optimization</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="policy-list">
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon discount">%</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Auto-Capture High APR Discounts</div>
+                                    <div class="policy-desc">Automatically take early-pay discounts when effective APR exceeds 10%</div>
+                                    <div class="policy-meta">
+                                        <span>Min APR: 10%</span>
+                                        <span>Captured $8,420 this month</span>
+                                        <span class="text-green">12 discounts taken</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+
+                            <div class="policy-item disabled" onclick="openModal('editPolicy')">
+                                <div class="policy-icon discount">%</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Preferred Vendor Discount Priority</div>
+                                    <div class="policy-desc">Always take discounts from preferred vendors regardless of APR</div>
+                                    <div class="policy-meta">
+                                        <span>All preferred vendors</span>
+                                        <span>Not triggered yet</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status inactive">Inactive</span>
+                                </div>
+                                <div class="policy-toggle" onclick="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alert Policies -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Alert Policies</div>
+                            <div class="card-subtitle">Rules for notifications and warnings</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="policy-list">
+                            <div class="policy-item" onclick="openModal('editPolicy')">
+                                <div class="policy-icon alert">⚠</div>
+                                <div class="policy-content">
+                                    <div class="policy-name">Spending Anomaly Detection</div>
+                                    <div class="policy-desc">Alert when vendor payment exceeds historical pattern by 20%+</div>
+                                    <div class="policy-meta">
+                                        <span>Threshold: 20% above pattern</span>
+                                        <span>Triggered 3 times this month</span>
+                                        <span>Last: AWS $17,200</span>
+                                    </div>
+                                </div>
+                                <div class="policy-status">
+                                    <span class="status active">Active</span>
+                                </div>
+                                <div class="policy-toggle active" onclick="event.stopPropagation()"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- New Policy Modal -->
+    <div class="modal-overlay" id="newPolicyModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Create New Policy</h3>
+                <button class="modal-close" onclick="closeModal('newPolicy')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="policy-builder">
+                    <div>
+                        <!-- Basic Info -->
+                        <div class="builder-section">
+                            <div class="builder-label">Policy Name</div>
+                            <input type="text" class="builder-input" placeholder="e.g., Emergency PO Fast Track" id="policyName" oninput="updatePreview()">
+                        </div>
+
+                        <div class="builder-section">
+                            <div class="builder-label">Policy Type</div>
+                            <select class="builder-select" id="policyType" onchange="updatePreview()">
+                                <option value="approval">Approval Routing</option>
+                                <option value="payment">Payment Scheduling</option>
+                                <option value="discount">Discount Capture</option>
+                                <option value="alert">Alert / Notification</option>
+                            </select>
+                        </div>
+
+                        <!-- Conditions -->
+                        <div class="builder-section">
+                            <div class="builder-label">When (Conditions)</div>
+                            <div class="condition-group">
+                                <div class="condition-header">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Match</span>
+                                    <div class="condition-logic">
+                                        <button class="logic-btn active" onclick="setLogic(this, 'all')">All</button>
+                                        <button class="logic-btn" onclick="setLogic(this, 'any')">Any</button>
+                                    </div>
+                                </div>
+                                <div id="conditionRows">
+                                    <div class="condition-row">
+                                        <select class="condition-field" onchange="updatePreview()">
+                                            <option value="">Select field...</option>
+                                            <option value="amount" selected>PO Amount</option>
+                                            <option value="vendor">Vendor</option>
+                                            <option value="gl_account">GL Account</option>
+                                            <option value="department">Department</option>
+                                            <option value="vendor_type">Vendor Type</option>
+                                            <option value="urgency">Urgency</option>
+                                        </select>
+                                        <select class="condition-field" onchange="updatePreview()">
+                                            <option value="gt" selected>is greater than</option>
+                                            <option value="lt">is less than</option>
+                                            <option value="eq">equals</option>
+                                            <option value="neq">does not equal</option>
+                                            <option value="contains">contains</option>
+                                            <option value="starts">starts with</option>
+                                        </select>
+                                        <input type="text" class="condition-field" placeholder="Value..." value="50000" oninput="updatePreview()">
+                                        <button class="condition-remove" onclick="removeCondition(this)">×</button>
+                                    </div>
+                                </div>
+                                <button class="add-condition" onclick="addCondition()">+ Add Condition</button>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="builder-section">
+                            <div class="builder-label">Then (Actions)</div>
+                            
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">→</div>
+                                    <div class="action-title">Route to Approver</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>Approver</label>
+                                        <select onchange="updatePreview()" id="approver1">
+                                            <option value="manager">Direct Manager</option>
+                                            <option value="dept_head">Department Head</option>
+                                            <option value="finance_manager" selected>Finance Manager</option>
+                                            <option value="vp_finance">VP Finance</option>
+                                            <option value="cfo">CFO</option>
+                                            <option value="ceo">CEO</option>
+                                        </select>
+                                    </div>
+                                    <div class="action-row">
+                                        <label>Escalate after</label>
+                                        <input type="number" value="48" style="width: 80px;" onchange="updatePreview()">
+                                        <span style="font-size: 12px; color: var(--text-secondary);">hours</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">⚡</div>
+                                    <div class="action-title">Auto-Approve Threshold</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>If under</label>
+                                        <input type="text" value="1000" placeholder="Amount" style="width: 100px;" oninput="updatePreview()" id="autoApprove">
+                                        <span style="font-size: 12px; color: var(--text-secondary);">skip this step</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="add-condition" onclick="addAction()">+ Add Action</button>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="builder-section">
+                            <div class="builder-label">Priority</div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <input type="number" class="builder-input" style="width: 80px;" value="5" id="priority" oninput="updatePreview()">
+                                <span style="font-size: 12px; color: var(--text-secondary);">Lower number = higher priority. Evaluated in order.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Panel -->
+                    <div>
+                        <div class="preview-panel">
+                            <div class="preview-title"><span class="icon">◈</span> Policy Preview</div>
+                            <div class="preview-code" id="previewCode">
+<span class="preview-keyword">POLICY</span> "New Policy"
+<span class="preview-keyword">PRIORITY</span> <span class="preview-value">5</span>
+
+<span class="preview-keyword">WHEN</span>
+  <span class="preview-field">po.amount</span> <span class="preview-operator">></span> <span class="preview-value">$50,000</span>
+
+<span class="preview-keyword">THEN</span>
+  <span class="preview-action">ROUTE_TO</span> <span class="preview-value">finance_manager</span>
+  <span class="preview-action">ESCALATE_AFTER</span> <span class="preview-value">48 hours</span>
+  <span class="preview-action">AUTO_APPROVE_IF</span> <span class="preview-field">amount</span> <span class="preview-operator"><</span> <span class="preview-value">$1,000</span>
+                            </div>
+
+                            <!-- Test Panel -->
+                            <div class="test-panel">
+                                <div class="test-title">🧪 Test This Policy</div>
+                                <div class="test-input">
+                                    <div class="test-row">
+                                        <label>Amount</label>
+                                        <input type="text" value="75000" id="testAmount" oninput="runTest()">
+                                    </div>
+                                    <div class="test-row">
+                                        <label>Vendor</label>
+                                        <input type="text" value="Pacific Steel" id="testVendor">
+                                    </div>
+                                    <div class="test-row">
+                                        <label>GL Account</label>
+                                        <input type="text" value="5100" id="testGL">
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 12px;" onclick="runTest()">Run Test</button>
+                                <div class="test-result pass" id="testResult">
+                                    ✓ Policy matches<br>
+                                    <span style="color: var(--text-secondary);">→ Would route to: Finance Manager</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div>
+                    <span style="font-size: 12px; color: var(--text-muted);">Policy will be saved as draft until activated</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="closeModal('newPolicy')">Cancel</button>
+                    <button class="btn btn-secondary">Save as Draft</button>
+                    <button class="btn btn-primary">Save & Activate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Policy Modal (reuses same structure) -->
+    <div class="modal-overlay" id="editPolicyModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Policy: Standard PO Approval Chain</h3>
+                <button class="modal-close" onclick="closeModal('editPolicy')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="policy-builder">
+                    <div>
+                        <div class="builder-section">
+                            <div class="builder-label">Policy Name</div>
+                            <input type="text" class="builder-input" value="Standard PO Approval Chain">
+                        </div>
+
+                        <div class="builder-section">
+                            <div class="builder-label">Policy Type</div>
+                            <select class="builder-select">
+                                <option value="approval" selected>Approval Routing</option>
+                                <option value="payment">Payment Scheduling</option>
+                                <option value="discount">Discount Capture</option>
+                                <option value="alert">Alert / Notification</option>
+                            </select>
+                        </div>
+
+                        <div class="builder-section">
+                            <div class="builder-label">When (Conditions)</div>
+                            <div class="condition-group">
+                                <div class="condition-header">
+                                    <span style="font-size: 12px; color: var(--text-secondary);">Match</span>
+                                    <div class="condition-logic">
+                                        <button class="logic-btn active">All</button>
+                                        <button class="logic-btn">Any</button>
+                                    </div>
+                                </div>
+                                <div class="condition-row">
+                                    <select class="condition-field">
+                                        <option value="type" selected>Document Type</option>
+                                        <option value="amount">PO Amount</option>
+                                        <option value="vendor">Vendor</option>
+                                    </select>
+                                    <select class="condition-field">
+                                        <option value="eq" selected>equals</option>
+                                        <option value="neq">does not equal</option>
+                                    </select>
+                                    <input type="text" class="condition-field" value="Purchase Order">
+                                    <button class="condition-remove">×</button>
+                                </div>
+                                <button class="add-condition">+ Add Condition</button>
+                            </div>
+                        </div>
+
+                        <div class="builder-section">
+                            <div class="builder-label">Then (Actions) - Approval Chain</div>
+                            
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">1</div>
+                                    <div class="action-title">Step 1: Manager Review</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>Approver</label>
+                                        <select><option selected>Direct Manager</option></select>
+                                    </div>
+                                    <div class="action-row">
+                                        <label>Auto-approve</label>
+                                        <span style="font-size: 12px;">if amount < $1,000</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">2</div>
+                                    <div class="action-title">Step 2: Finance Review</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>Approver</label>
+                                        <select><option selected>Finance Manager</option></select>
+                                    </div>
+                                    <div class="action-row">
+                                        <label>Required if</label>
+                                        <span style="font-size: 12px;">amount ≥ $25,000</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">3</div>
+                                    <div class="action-title">Step 3: VP Finance</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>Approver</label>
+                                        <select><option selected>VP Finance</option></select>
+                                    </div>
+                                    <div class="action-row">
+                                        <label>Required if</label>
+                                        <span style="font-size: 12px;">amount ≥ $100,000</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="action-card">
+                                <div class="action-header">
+                                    <div class="action-icon">4</div>
+                                    <div class="action-title">Step 4: CEO</div>
+                                </div>
+                                <div class="action-config">
+                                    <div class="action-row">
+                                        <label>Approver</label>
+                                        <select><option selected>CEO</option></select>
+                                    </div>
+                                    <div class="action-row">
+                                        <label>Required if</label>
+                                        <span style="font-size: 12px;">amount ≥ $500,000</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="add-condition">+ Add Step</button>
+                        </div>
+
+                        <div class="builder-section">
+                            <div class="builder-label">Priority</div>
+                            <input type="number" class="builder-input" style="width: 80px;" value="1">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="preview-panel">
+                            <div class="preview-title"><span class="icon">◈</span> Policy Preview</div>
+                            <div class="preview-code">
+<span class="preview-keyword">POLICY</span> "Standard PO Approval Chain"
+<span class="preview-keyword">PRIORITY</span> <span class="preview-value">1</span>
+
+<span class="preview-keyword">WHEN</span>
+  <span class="preview-field">document.type</span> <span class="preview-operator">=</span> <span class="preview-value">"Purchase Order"</span>
+
+<span class="preview-keyword">THEN</span>
+  <span class="preview-keyword">STEP 1:</span>
+    <span class="preview-action">ROUTE_TO</span> <span class="preview-value">direct_manager</span>
+    <span class="preview-action">AUTO_APPROVE_IF</span> <span class="preview-field">amount</span> <span class="preview-operator"><</span> <span class="preview-value">$1,000</span>
+  
+  <span class="preview-keyword">STEP 2:</span> <span class="preview-operator">IF</span> <span class="preview-field">amount</span> <span class="preview-operator">>=</span> <span class="preview-value">$25,000</span>
+    <span class="preview-action">ROUTE_TO</span> <span class="preview-value">finance_manager</span>
+  
+  <span class="preview-keyword">STEP 3:</span> <span class="preview-operator">IF</span> <span class="preview-field">amount</span> <span class="preview-operator">>=</span> <span class="preview-value">$100,000</span>
+    <span class="preview-action">ROUTE_TO</span> <span class="preview-value">vp_finance</span>
+  
+  <span class="preview-keyword">STEP 4:</span> <span class="preview-operator">IF</span> <span class="preview-field">amount</span> <span class="preview-operator">>=</span> <span class="preview-value">$500,000</span>
+    <span class="preview-action">ROUTE_TO</span> <span class="preview-value">ceo</span>
+                            </div>
+
+                            <div class="test-panel">
+                                <div class="test-title">🧪 Test This Policy</div>
+                                <div class="test-input">
+                                    <div class="test-row">
+                                        <label>Amount</label>
+                                        <input type="text" value="87000">
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 12px;">Run Test</button>
+                                <div class="test-result pass">
+                                    ✓ Policy matches<br>
+                                    <span style="color: var(--text-secondary);">
+                                        → Step 1: Direct Manager ✓<br>
+                                        → Step 2: Finance Manager ✓<br>
+                                        → Step 3: VP Finance (not required)<br>
+                                        → Step 4: CEO (not required)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" style="color: var(--accent-red);">Delete Policy</button>
+                    <button class="btn btn-secondary">View History</button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="closeModal('editPolicy')">Cancel</button>
+                    <button class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('active');
+        }
+
+        function setLogic(btn, logic) {
+            btn.parentElement.querySelectorAll('.logic-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updatePreview();
+        }
+
+        function addCondition() {
+            const container = document.getElementById('conditionRows');
+            const row = document.createElement('div');
+            row.className = 'condition-row';
+            row.innerHTML = `
+                <select class="condition-field" onchange="updatePreview()">
+                    <option value="">Select field...</option>
+                    <option value="amount">PO Amount</option>
+                    <option value="vendor">Vendor</option>
+                    <option value="gl_account">GL Account</option>
+                    <option value="department">Department</option>
+                    <option value="vendor_type">Vendor Type</option>
+                </select>
+                <select class="condition-field" onchange="updatePreview()">
+                    <option value="gt">is greater than</option>
+                    <option value="lt">is less than</option>
+                    <option value="eq">equals</option>
+                    <option value="neq">does not equal</option>
+                    <option value="contains">contains</option>
+                </select>
+                <input type="text" class="condition-field" placeholder="Value..." oninput="updatePreview()">
+                <button class="condition-remove" onclick="removeCondition(this)">×</button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeCondition(btn) {
+            btn.parentElement.remove();
+            updatePreview();
+        }
+
+        function addAction() {
+            alert('Action builder would open here');
+        }
+
+        function updatePreview() {
+            const name = document.getElementById('policyName')?.value || 'New Policy';
+            const priority = document.getElementById('priority')?.value || '5';
+            const approver = document.getElementById('approver1')?.value || 'finance_manager';
+            const autoApprove = document.getElementById('autoApprove')?.value || '1000';
+            
+            const preview = document.getElementById('previewCode');
+            preview.innerHTML = `
+<span class="preview-keyword">POLICY</span> "${name}"
+<span class="preview-keyword">PRIORITY</span> <span class="preview-value">${priority}</span>
+
+<span class="preview-keyword">WHEN</span>
+  <span class="preview-field">po.amount</span> <span class="preview-operator">></span> <span class="preview-value">$50,000</span>
+
+<span class="preview-keyword">THEN</span>
+  <span class="preview-action">ROUTE_TO</span> <span class="preview-value">${approver}</span>
+  <span class="preview-action">ESCALATE_AFTER</span> <span class="preview-value">48 hours</span>
+  <span class="preview-action">AUTO_APPROVE_IF</span> <span class="preview-field">amount</span> <span class="preview-operator"><</span> <span class="preview-value">$${parseInt(autoApprove).toLocaleString()}</span>
+            `;
+        }
+
+        function runTest() {
+            const amount = parseInt(document.getElementById('testAmount')?.value || 0);
+            const result = document.getElementById('testResult');
+            
+            if (amount > 50000) {
+                result.className = 'test-result pass';
+                result.innerHTML = `✓ Policy matches<br><span style="color: var(--text-secondary);">→ Would route to: Finance Manager</span>`;
+            } else {
+                result.className = 'test-result fail';
+                result.innerHTML = `✗ Policy does not match<br><span style="color: var(--text-secondary);">Amount $${amount.toLocaleString()} is below $50,000 threshold</span>`;
+            }
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(o => {
+            o.addEventListener('click', e => {
+                if (e.target === o) o.classList.remove('active');
+            });
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        document.querySelectorAll('.policy-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

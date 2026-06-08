@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow-Based Accounting System | 4D-FR + Network Intelligence</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #06b6d4;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --border: #e5e7eb;
+            --network-blue: #1d4ed8;
+            --network-green: #059669;
+            --network-purple: #7c3aed;
+            --network-red: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'SF Pro Display', -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* MAIN LAYOUT - Fixed with wider sidebar */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 600px 1fr; /* WIDER SIDEBAR */
+            grid-template-rows: 80px 1fr;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Header - Network Style */
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            color: white;
+            font-weight: 700;
+        }
+
+        .logo-text .tagline {
+            font-size: 13px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* SIDEBAR - MUCH WIDER AND BETTER SPACED */
+        .sidebar {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px; /* More padding */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 30px; /* More gap between sections */
+            overflow-y: auto;
+            min-width: 600px; /* Minimum width */
+            width: 100%; /* Full width of grid column */
+        }
+
+        .section-title {
+            font-size: 15px; /* Slightly larger */
+            font-weight: 600;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px; /* More margin */
+            display: flex;
+            align-items: center;
+            gap: 12px; /* More gap */
+        }
+
+        .section-title i {
+            font-size: 18px; /* Larger icons */
+        }
+
+        /* Enhanced 5-Tuple Transaction Form - WIDER */
+        .tuple-form {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 30px; /* More padding */
+            border-radius: 16px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-width: 550px; /* Minimum width */
+        }
+
+        .tuple-form::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .tuple-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px; /* More margin */
+        }
+
+        .tuple-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* More gap */
+            padding: 8px 16px; /* Larger padding */
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 20px;
+            font-size: 13px; /* Larger font */
+            font-weight: 600;
+        }
+
+        /* WIDER FORM LAYOUT */
+        .tuple-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px; /* More gap */
+        }
+
+        .tuple-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* More gap */
+        }
+
+        .tuple-field {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 12px;
+            padding: 20px; /* More padding */
+            transition: all 0.3s;
+            min-height: 90px; /* Taller fields */
+        }
+
+        .tuple-field:hover {
+            border-color: rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+        }
+
+        .tuple-label {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* More gap */
+            margin-bottom: 12px; /* More margin */
+            font-size: 14px; /* Larger font */
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        .tuple-label i {
+            color: var(--primary);
+            width: 24px; /* More width for icons */
+            font-size: 16px; /* Larger icons */
+        }
+
+        .tuple-value {
+            font-size: 16px; /* Larger font */
+            font-weight: 600;
+            color: white;
+        }
+
+        select, input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px; /* Larger font */
+            outline: none;
+            padding: 8px 0; /* Padding for better touch */
+        }
+
+        select option {
+            background: #1e293b;
+            color: white;
+            font-size: 14px;
+            padding: 12px;
+        }
+
+        /* Flow Control Panel - WIDER */
+        .flow-controls {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 30px; /* More padding */
+            border-radius: 16px;
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            min-width: 550px; /* Minimum width */
+        }
+
+        .flow-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px; /* More gap */
+            margin-top: 25px; /* More margin */
+        }
+
+        .flow-btn {
+            padding: 16px; /* Larger padding */
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+            border-radius: 10px;
+            color: #cbd5e1;
+            font-size: 14px; /* Larger font */
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px; /* More gap */
+            min-height: 90px; /* Taller buttons */
+        }
+
+        .flow-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .flow-btn i {
+            font-size: 22px; /* Larger icons */
+            color: var(--primary);
+        }
+
+        /* Network Statistics - WIDER */
+        .network-stats {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 30px; /* More padding */
+            border-radius: 16px;
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            min-width: 550px; /* Minimum width */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px; /* More gap */
+            margin-top: 25px; /* More margin */
+        }
+
+        .stat-item {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 20px; /* More padding */
+            border-radius: 10px;
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            min-height: 110px; /* Taller stats */
+        }
+
+        .stat-value {
+            font-size: 28px; /* Larger font */
+            font-weight: 700;
+            color: white;
+            margin: 8px 0; /* More margin */
+        }
+
+        .stat-label {
+            font-size: 13px; /* Larger font */
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Main Content - Network Operations Center Style */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr 400px;
+            gap: 20px;
+            min-width: 0; /* Prevent overflow */
+        }
+
+        .network-operations {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+
+        .network-visualization {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .network-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .network-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #network {
+            width: 100%;
+            height: 400px;
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 12px;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+
+        .flow-monitor {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 16px;
+            padding: 20px;
+            border: 2px solid rgba(124, 58, 237, 0.2);
+            overflow: hidden;
+        }
+
+        .flow-list {
+            height: 380px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .flow-item {
+            background: rgba(30, 41, 59, 0.8);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 80px; /* Taller flow items */
+        }
+
+        .flow-item.physical { border-left-color: #3b82f6; }
+        .flow-item.financial { border-left-color: #8b5cf6; }
+
+        .flow-info {
+            flex: 1;
+        }
+
+        .flow-5tuple {
+            font-family: 'Consolas', monospace;
+            font-size: 13px; /* Larger font */
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .flow-stats {
+            text-align: right;
+        }
+
+        /* Analytics Dashboard */
+        .analytics-dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .analytics-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            height: 280px;
+            position: relative;
+        }
+
+        /* Protocol Legend */
+        .protocol-legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 13px; /* Larger font */
+        }
+
+        .protocol-item {
+            display: flex;
+            align-items: center;
+            gap: 8px; /* More gap */
+        }
+
+        .protocol-color {
+            width: 14px; /* Larger */
+            height: 14px; /* Larger */
+            border-radius: 3px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 1000px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* RESPONSIVE DESIGN - Better for all screens */
+        @media (max-width: 1600px) {
+            .dashboard {
+                grid-template-columns: 550px 1fr;
+            }
+            
+            .sidebar {
+                min-width: 550px;
+                padding: 25px;
+            }
+            
+            .tuple-form,
+            .flow-controls,
+            .network-stats {
+                min-width: 500px;
+            }
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                grid-template-rows: 80px auto 1fr;
+            }
+            
+            .sidebar {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                min-width: 100%;
+                padding: 20px;
+            }
+            
+            .tuple-form,
+            .flow-controls,
+            .network-stats {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .network-operations {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .tuple-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                padding: 10px;
+                gap: 10px;
+            }
+            
+            .header {
+                padding: 0 15px;
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .nav-controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Improved Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px; /* Wider scrollbar */
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+
+        /* Additional spacing improvements */
+        .tuple-field select,
+        .tuple-field input {
+            padding: 10px 0; /* More padding for better touch */
+            font-size: 15px;
+        }
+
+        /* Make form elements more touch-friendly */
+        select:focus, input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Larger click areas */
+        .flow-btn, .tuple-field {
+            cursor: pointer;
+        }
+
+        /* Better visual hierarchy */
+        h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        /* Improve readability */
+        .tuple-value, .stat-value, .flow-btn {
+            font-size: 16px;
+        }
+
+        /* Add subtle animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tuple-form, .flow-controls, .network-stats {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Network Operations Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Flow Accounting System</h1>
+                    <div class="tagline">4D-FR + Network Intelligence | 5-Tuple Flow Management</div>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <div class="network-status">
+                    <div class="status-indicator"></div>
+                    <span>FLOW MONITORING ACTIVE</span>
+                </div>
+                <button class="flow-btn" onclick="openModal('flow-analytics')" style="width: auto; padding: 10px 20px;">
+                    <i class="fas fa-chart-network"></i> Flow Analytics
+                </button>
+            </div>
+        </div>
+
+        <!-- SIDEBAR - NOW MUCH WIDER -->
+        <div class="sidebar">
+            <!-- 5-Tuple Transaction Entry - WIDER -->
+            <div class="tuple-form">
+                <div class="tuple-header">
+                    <div>
+                        <h3 style="color: white; margin-bottom: 8px; font-size: 20px;">
+                            <i class="fas fa-satellite-dish"></i> Create Accounting Flow
+                        </h3>
+                        <div style="font-size: 14px; color: #94a3b8;">
+                            Define 5-Tuple for Economic Flow Tracking
+                        </div>
+                    </div>
+                    <div class="tuple-badge">
+                        <i class="fas fa-layer-group"></i>
+                        5-TUPLE IDENTIFIER
+                    </div>
+                </div>
+
+                <div class="tuple-grid">
+                    <div class="tuple-group">
+                        <!-- Source Layer -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-server"></i>
+                                Source Agent (Source IP)
+                            </div>
+                            <select id="sourceAgent">
+                                <option value="supplier_x">🏢 Supplier Corporation X</option>
+                                <option value="employee_a">👤 Employee John Doe</option>
+                                <option value="bank_abc">🏦 ABC National Bank</option>
+                                <option value="customer_y">👥 Customer Enterprises Y</option>
+                                <option value="gov_agency">🏛️ Government Tax Agency</option>
+                                <option value="investor_z">📈 Investor Group Z</option>
+                            </select>
+                        </div>
+
+                        <!-- Action Protocol -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-bolt"></i>
+                                Action Protocol (Source Port)
+                            </div>
+                            <select id="actionProtocol">
+                                <option value="expenditure_10001">🛒 Expenditure - Goods Purchase (Port 10001)</option>
+                                <option value="expense_11001">📉 Expense - Service Cost (Port 11001)</option>
+                                <option value="revenue_12001">📈 Revenue - Sales Income (Port 12001)</option>
+                                <option value="receipt_13001">💰 Receipt - Cash Collection (Port 13001)</option>
+                                <option value="payment_14001">💳 Payment - Supplier Settlement (Port 14001)</option>
+                                <option value="investment_15001">📊 Investment - Capital Infusion (Port 15001)</option>
+                            </select>
+                        </div>
+
+                        <!-- Flow Amount -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-wave-square"></i>
+                                Flow Value & Currency
+                            </div>
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <div style="flex: 3;">
+                                    <input type="number" id="flowValue" placeholder="Enter amount" step="0.01" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <select id="flowCurrency" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                                        <option value="USD">USD $</option>
+                                        <option value="EUR">EUR €</option>
+                                        <option value="GBP">GBP £</option>
+                                        <option value="JPY">JPY ¥</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tuple-group">
+                        <!-- Destination Layer -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-cloud"></i>
+                                Destination Agent (Destination IP)
+                            </div>
+                            <select id="destAgent">
+                                <option value="our_company">🏢 Our Company Inc.</option>
+                                <option value="department_a">📁 R&D Department</option>
+                                <option value="project_x">🚀 Project Apollo</option>
+                                <option value="holding_co">🏛️ Global Holding Company</option>
+                                <option value="subsidiary_b">🏭 Manufacturing Subsidiary B</option>
+                            </select>
+                        </div>
+
+                        <!-- Account Interface -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-plug"></i>
+                                Account Interface (Destination Port)
+                            </div>
+                            <select id="accountInterface">
+                                <option value="physical_assets_20001">🏢 Physical Assets - Machinery (Port 20001)</option>
+                                <option value="cash_21001">💵 Cash - Operating Account (Port 21001)</option>
+                                <option value="receivables_22001">📄 Receivables - Trade (Port 22001)</option>
+                                <option value="payables_23001">🧾 Payables - Suppliers (Port 23001)</option>
+                                <option value="equity_24001">📊 Equity - Share Capital (Port 24001)</option>
+                                <option value="inventory_25001">📦 Inventory - Finished Goods (Port 25001)</option>
+                            </select>
+                        </div>
+
+                        <!-- Transaction Protocol -->
+                        <div class="tuple-field">
+                            <div class="tuple-label">
+                                <i class="fas fa-network-wired"></i>
+                                Transaction Protocol
+                            </div>
+                            <select id="transactionProtocol">
+                                <option value="physical_tcp">📦 Physical Flow (TCP-like - Reliable)</option>
+                                <option value="financial_udp">💸 Financial Flow (UDP-like - Fast)</option>
+                                <option value="hybrid_icmp">🔄 Hybrid Flow (ICMP-like - Control)</option>
+                                <option value="secure_tls">🔒 Secure Flow (TLS-like - Encrypted)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5-Tuple Preview - Larger -->
+                <div style="margin-top: 25px; padding: 20px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-fingerprint" style="color: #3b82f6; font-size: 18px;"></i>
+                        <span style="font-size: 14px; font-weight: 600; color: #cbd5e1;">5-Tuple Flow Identifier:</span>
+                    </div>
+                    <div id="tuplePreview" style="font-family: 'Consolas', monospace; font-size: 14px; color: white; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; word-break: break-all; line-height: 1.6;">
+                        (source_agent, destination_agent, action_protocol, account_interface, transaction_protocol)<br>
+                        Current: (<span id="previewSource">select</span>, <span id="previewDest">select</span>, <span id="previewAction">select</span>, <span id="previewAccount">select</span>, <span id="previewProto">select</span>)
+                    </div>
+                    <div style="margin-top: 12px; font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-info-circle"></i>
+                        This 5-tuple uniquely identifies the economic flow (like network session)
+                    </div>
+                </div>
+
+                <button class="flow-btn" onclick="createFlow()" style="width: 100%; margin-top: 25px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; padding: 18px; font-size: 16px;">
+                    <i class="fas fa-broadcast-tower"></i> ESTABLISH ECONOMIC FLOW
+                </button>
+            </div>
+
+            <!-- Flow Control Panel - WIDER -->
+            <div class="flow-controls">
+                <h3 class="section-title">
+                    <i class="fas fa-sliders-h"></i> Flow Management Controls
+                </h3>
+                <div style="margin-bottom: 20px; color: #cbd5e1; font-size: 14px;">
+                    Manage accounting flows like network sessions with stateful tracking
+                </div>
+                <div class="flow-buttons">
+                    <button class="flow-btn" onclick="analyzeFlows()">
+                        <i class="fas fa-chart-bar"></i>
+                        Flow Analysis
+                    </button>
+                    <button class="flow-btn" onclick="exportFlows()">
+                        <i class="fas fa-file-export"></i>
+                        Export Flows
+                    </button>
+                    <button class="flow-btn" onclick="monitorFlows()">
+                        <i class="fas fa-eye"></i>
+                        Live Monitor
+                    </button>
+                    <button class="flow-btn" onclick="auditFlows()">
+                        <i class="fas fa-shield-alt"></i>
+                        Security Audit
+                    </button>
+                    <button class="flow-btn" onclick="optimizeFlows()">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Optimize QoS
+                    </button>
+                    <button class="flow-btn" onclick="resetFlows()">
+                        <i class="fas fa-redo"></i>
+                        Reset Session
+                    </button>
+                </div>
+            </div>
+
+            <!-- Network Statistics - WIDER -->
+            <div class="network-stats">
+                <h3 class="section-title">
+                    <i class="fas fa-chart-network"></i> Real-time Flow Statistics
+                </h3>
+                <div class="stats-grid">
+                    <div class="stat-item" style="border-left: 4px solid #3b82f6;">
+                        <div class="stat-label">Active Economic Flows</div>
+                        <div class="stat-value" id="activeFlows">0</div>
+                        <div style="font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-arrow-up"></i>
+                            <span id="flowChange">+0 today</span>
+                        </div>
+                    </div>
+                    <div class="stat-item" style="border-left: 4px solid #10b981;">
+                        <div class="stat-label">Total Flow Value</div>
+                        <div class="stat-value" id="totalFlowValue">$0</div>
+                        <div style="font-size: 12px; color: #3b82f6;">
+                            Physical: $<span id="physicalValue">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-item" style="border-left: 4px solid #8b5cf6;">
+                        <div class="stat-label">Avg Flow Duration</div>
+                        <div class="stat-value" id="avgFlowDuration">0d</div>
+                        <div style="font-size: 12px; color: #8b5cf6;">
+                            Range: <span id="flowRange">0min-0d</span>
+                        </div>
+                    </div>
+                    <div class="stat-item" style="border-left: 4px solid #f59e0b;">
+                        <div class="stat-label">Flow Rate</div>
+                        <div class="stat-value" id="flowRate">0/min</div>
+                        <div style="font-size: 12px; color: #f59e0b;">
+                            Peak: <span id="peakRate">0/min</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Flow Table Health</div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="width: 150px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                                    <div id="flowTableHealth" style="height: 100%; background: #10b981; width: 10%; transition: width 0.3s;"></div>
+                                </div>
+                                <span id="flowTablePercent" style="font-size: 12px; color: #cbd5e1;">10%</span>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 12px; color: #94a3b8;">QoS Score</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #10b981;" id="qosScore">98%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Network Operations Panel -->
+            <div class="network-operations">
+                <!-- Network Visualization -->
+                <div class="network-visualization">
+                    <div class="network-header">
+                        <div class="network-title">
+                            <i class="fas fa-sitemap"></i>
+                            <h3 style="color: white;">Accounting Flow Topology Map</h3>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="flow-btn" onclick="refreshTopology()" style="width: auto; padding: 8px 15px;">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button class="flow-btn" onclick="togglePhysics()" id="physicsBtn" style="width: auto; padding: 8px 15px;">
+                                <i class="fas fa-magnet"></i> Physics
+                            </button>
+                            <button class="flow-btn" onclick="exportTopology()" style="width: auto; padding: 8px 15px;">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div id="network"></div>
+                    <div class="protocol-legend">
+                        <div class="protocol-item">
+                            <div class="protocol-color" style="background: #3b82f6;"></div>
+                            <span>Physical Flows (TCP-like - Reliable)</span>
+                        </div>
+                        <div class="protocol-item">
+                            <div class="protocol-color" style="background: #8b5cf6;"></div>
+                            <span>Financial Flows (UDP-like - Fast)</span>
+                        </div>
+                        <div class="protocol-item">
+                            <div class="protocol-color" style="background: #10b981;"></div>
+                            <span>Active Sessions</span>
+                        </div>
+                        <div class="protocol-item">
+                            <div class="protocol-color" style="background: #f59e0b;"></div>
+                            <span>High Priority</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flow Monitor -->
+                <div class="flow-monitor">
+                    <div class="network-header">
+                        <div class="network-title">
+                            <i class="fas fa-stream"></i>
+                            <h3 style="color: white;">Active Flow Monitor</h3>
+                        </div>
+                        <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 10px;">
+                            <span id="flowCount">0 flows</span>
+                            <span id="updateTime">Just now</span>
+                        </div>
+                    </div>
+                    <div class="flow-list" id="flowMonitor">
+                        <!-- Flow items will be added here -->
+                        <div style="text-align: center; padding: 40px 20px; color: #64748b;">
+                            <i class="fas fa-wave-square" style="font-size: 40px; margin-bottom: 15px;"></i>
+                            <div>No active flows</div>
+                            <div style="font-size: 12px; margin-top: 8px;">Create a flow to see real-time monitoring</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Dashboard -->
+            <div class="analytics-dashboard">
+                <!-- Flow Distribution Chart -->
+                <div class="analytics-card">
+                    <div class="chart-header">
+                        <h3 style="color: white;">
+                            <i class="fas fa-chart-pie"></i> Flow Distribution
+                        </h3>
+                        <select id="timeFilter" style="background: rgba(30,41,59,0.8); color: white; border: 1px solid rgba(71,85,105,0.5); padding: 6px 12px; border-radius: 6px; font-size: 12px;">
+                            <option>Last 24 hours</option>
+                            <option>Last 7 days</option>
+                            <option>Last 30 days</option>
+                            <option>All time</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="flowDistributionChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between;">
+                        <span id="totalFlowsText">Total: 0 flows</span>
+                        <span id="avgValueText">Avg: $0</span>
+                    </div>
+                </div>
+
+                <!-- Protocol Analytics -->
+                <div class="analytics-card">
+                    <div class="chart-header">
+                        <h3 style="color: white;">
+                            <i class="fas fa-network-wired"></i> Protocol Analytics
+                        </h3>
+                        <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-info-circle"></i>
+                            Network Protocol Analogy
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="protocolChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 12px; color: #94a3b8;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>TCP-like (Reliable): <span id="tcpCount">0</span></span>
+                            <span>UDP-like (Fast): <span id="udpCount">0</span></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>ICMP-like (Control): <span id="icmpCount">0</span></span>
+                            <span>TLS-like (Secure): <span id="tlsCount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Flow Performance -->
+                <div class="analytics-card">
+                    <div class="chart-header">
+                        <h3 style="color: white;">
+                            <i class="fas fa-tachometer-alt"></i> Flow Performance
+                        </h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="font-size: 11px; padding: 4px 8px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 4px;">
+                                QoS: <span id="qosDisplay">98%</span>
+                            </div>
+                            <div style="font-size: 11px; padding: 4px 8px; background: rgba(59,130,246,0.1); color: #3b82f6; border-radius: 4px;">
+                                Uptime: 100%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 12px; color: #94a3b8;">
+                        <i class="fas fa-info-circle"></i> 
+                        Real-time performance monitoring with Quality of Service metrics
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow Analytics Modal -->
+    <div class="modal" id="flowAnalyticsModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h2 style="color: white;">
+                    <i class="fas fa-chart-network"></i> Advanced Flow Analytics
+                </h2>
+                <button onclick="closeModal('flowAnalytics')" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer;">
+                    &times;
+                </button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <!-- Flow Table -->
+                <div>
+                    <h3 style="color: white; margin-bottom: 20px; font-size: 18px;">
+                        <i class="fas fa-table"></i> Flow Table (NetFlow Style)
+                    </h3>
+                    <div style="background: rgba(15,23,42,0.8); border-radius: 10px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: rgba(59,130,246,0.2);">
+                                    <th style="padding: 12px 15px; text-align: left; font-size: 12px; color: #94a3b8;">Flow ID</th>
+                                    <th style="padding: 12px 15px; text-align: left; font-size: 12px; color: #94a3b8;">5-Tuple</th>
+                                    <th style="padding: 12px 15px; text-align: left; font-size: 12px; color: #94a3b8;">Value</th>
+                                    <th style="padding: 12px 15px; text-align: left; font-size: 12px; color: #94a3b8;">State</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flowTable">
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Flow Analysis -->
+                <div>
+                    <h3 style="color: white; margin-bottom: 20px; font-size: 18px;">
+                        <i class="fas fa-chart-line"></i> Flow Analysis Dashboard
+                    </h3>
+                    <div style="background: rgba(15,23,42,0.8); padding: 20px; border-radius: 10px;">
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Top Economic Agents</div>
+                            <div id="topTalkers" style="font-family: 'Consolas', monospace; font-size: 11px; color: #cbd5e1;">
+                                <!-- Filled by JavaScript -->
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Flow Patterns & Trends</div>
+                            <div id="flowPatterns" style="font-family: 'Consolas', monospace; font-size: 11px; color: #cbd5e1;">
+                                <!-- Filled by JavaScript -->
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">Security & Anomalies</div>
+                            <div id="anomalies" style="font-size: 11px; color: #10b981;">
+                                <!-- Filled by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Flow Data Structure with Networking Concepts
+        class AccountingFlow {
+            constructor(id, source, destination, action, account, protocol, value, currency) {
+                this.id = id;
+                this.flowId = this.generateFlowId(source, destination, action, account, protocol);
+                this.source = source;
+                this.destination = destination;
+                this.action = action;
+                this.account = account;
+                this.protocol = protocol;
+                this.value = value;
+                this.currency = currency;
+                this.state = 'ESTABLISHED';
+                this.startTime = new Date();
+                this.lastActivity = new Date();
+                this.packetCount = 1;
+                this.totalValue = value;
+                this.qos = this.calculateQoS();
+                this.sessionId = `SES_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                this.priority = this.calculatePriority();
+            }
+
+            generateFlowId(src, dst, action, account, proto) {
+                // Create hash from 5-tuple (like network flow ID)
+                const tuple = `${src}|${dst}|${action}|${account}|${proto}`;
+                return btoa(tuple).substr(0, 16);
+            }
+
+            calculateQoS() {
+                // Simulate QoS calculation based on flow characteristics
+                let score = 100;
+                if (this.protocol.includes('udp')) score -= 10; // UDP-like less reliable
+                if (this.value > 10000) score -= 5; // Large flows might have issues
+                if (this.action.includes('payment')) score += 5; // Payments get priority
+                if (this.action.includes('receipt')) score += 5; // Receipts are important
+                return Math.max(0, Math.min(100, score));
+            }
+
+            calculatePriority() {
+                if (this.value > 5000) return 'HIGH';
+                if (this.action.includes('payment') || this.action.includes('receipt')) return 'HIGH';
+                if (this.protocol.includes('tls')) return 'MEDIUM';
+                return 'LOW';
+            }
+
+            update(value) {
+                this.lastActivity = new Date();
+                this.packetCount++;
+                this.totalValue += value;
+            }
+
+            close() {
+                this.state = 'CLOSED';
+                this.endTime = new Date();
+                this.duration = this.endTime - this.startTime;
+            }
+
+            get5Tuple() {
+                return {
+                    src: this.source,
+                    dst: this.destination,
+                    sport: this.getPortFromAction(this.action),
+                    dport: this.getPortFromAccount(this.account),
+                    proto: this.getProtocolNumber(this.protocol)
+                };
+            }
+
+            getPortFromAction(action) {
+                const portMap = {
+                    'expenditure': 10001,
+                    'expense': 11001,
+                    'revenue': 12001,
+                    'receipt': 13001,
+                    'payment': 14001,
+                    'investment': 15001
+                };
+                return portMap[action.split('_')[0]] || 16000;
+            }
+
+            getPortFromAccount(account) {
+                const portMap = {
+                    'physical_assets': 20001,
+                    'cash': 21001,
+                    'receivables': 22001,
+                    'payables': 23001,
+                    'equity': 24001,
+                    'inventory': 25001
+                };
+                return portMap[account.split('_')[0]] || 26000;
+            }
+
+            getProtocolNumber(protocol) {
+                const protoMap = {
+                    'physical_tcp': 6,  // TCP
+                    'financial_udp': 17, // UDP
+                    'hybrid_icmp': 1,    // ICMP
+                    'secure_tls': 443    // TLS
+                };
+                return protoMap[protocol] || 0;
+            }
+
+            getFormattedSource() {
+                return this.source.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+
+            getFormattedDestination() {
+                return this.destination.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            }
+        }
+
+        // Flow Manager (Like Network Flow Controller)
+        class FlowManager {
+            constructor() {
+                this.flows = new Map();
+                this.flowTable = new Map();
+                this.statistics = {
+                    totalFlows: 0,
+                    activeFlows: 0,
+                    totalValue: 0,
+                    physicalFlows: 0,
+                    financialFlows: 0,
+                    secureFlows: 0,
+                    hybridFlows: 0,
+                    flowChangesToday: 0,
+                    peakFlowRate: 0
+                };
+                this.flowHistory = [];
+                this.maxFlows = 1000;
+                this.flowRateHistory = [];
+            }
+
+            createFlow(source, destination, action, account, protocol, value, currency) {
+                const flow = new AccountingFlow(
+                    this.flows.size + 1,
+                    source, destination, action, account, protocol, value, currency
+                );
+
+                // Update flow rate
+                this.updateFlowRate();
+
+                // Check flow table capacity
+                if (this.flows.size >= this.maxFlows) {
+                    this.evictOldestFlow();
+                }
+
+                this.flows.set(flow.flowId, flow);
+                this.updateStatistics(flow, 'add');
+                this.addToFlowHistory(flow);
+                this.updateFlowTable(flow);
+
+                return flow;
+            }
+
+            updateFlowRate() {
+                const now = new Date();
+                this.flowRateHistory.push(now);
+                
+                // Keep only last minute of history
+                const oneMinuteAgo = new Date(now - 60000);
+                this.flowRateHistory = this.flowRateHistory.filter(time => time > oneMinuteAgo);
+                
+                const currentRate = this.flowRateHistory.length;
+                if (currentRate > this.statistics.peakFlowRate) {
+                    this.statistics.peakFlowRate = currentRate;
+                }
+                
+                return currentRate;
+            }
+
+            updateStatistics(flow, action) {
+                if (action === 'add') {
+                    this.statistics.totalFlows++;
+                    this.statistics.activeFlows++;
+                    this.statistics.totalValue += flow.value;
+                    this.statistics.flowChangesToday++;
+                    
+                    if (flow.protocol.includes('physical')) {
+                        this.statistics.physicalFlows++;
+                    } else if (flow.protocol.includes('financial')) {
+                        this.statistics.financialFlows++;
+                    } else if (flow.protocol.includes('secure')) {
+                        this.statistics.secureFlows++;
+                    } else if (flow.protocol.includes('hybrid')) {
+                        this.statistics.hybridFlows++;
+                    }
+                } else if (action === 'close') {
+                    this.statistics.activeFlows--;
+                }
+            }
+
+            addToFlowHistory(flow) {
+                this.flowHistory.push({
+                    timestamp: new Date(),
+                    flowId: flow.flowId,
+                    action: 'CREATED',
+                    details: flow.get5Tuple(),
+                    value: flow.value
+                });
+
+                // Keep only last 1000 history entries
+                if (this.flowHistory.length > 1000) {
+                    this.flowHistory.shift();
+                }
+            }
+
+            updateFlowTable(flow) {
+                this.flowTable.set(flow.flowId, {
+                    flowId: flow.flowId,
+                    5tuple: flow.get5Tuple(),
+                    state: flow.state,
+                    startTime: flow.startTime,
+                    lastActivity: flow.lastActivity,
+                    packetCount: flow.packetCount,
+                    totalValue: flow.totalValue,
+                    qos: flow.qos,
+                    priority: flow.priority,
+                    source: flow.getFormattedSource(),
+                    destination: flow.getFormattedDestination()
+                });
+            }
+
+            getTopTalkers(limit = 5) {
+                const agents = new Map();
+                
+                for (const flow of this.flows.values()) {
+                    agents.set(flow.source, (agents.get(flow.source) || 0) + flow.totalValue);
+                    agents.set(flow.destination, (agents.get(flow.destination) || 0) + flow.totalValue);
+                }
+
+                return Array.from(agents.entries())
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, limit)
+                    .map(([agent, value]) => ({
+                        agent: agent.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+                        value: value
+                    }));
+            }
+
+            getFlowPatterns() {
+                const patterns = {
+                    byHour: new Array(24).fill(0),
+                    byDay: new Array(7).fill(0),
+                    byProtocol: { physical: 0, financial: 0, secure: 0, hybrid: 0 },
+                    byAction: new Map(),
+                    peakTimes: []
+                };
+
+                for (const flow of this.flowHistory) {
+                    const hour = new Date(flow.timestamp).getHours();
+                    const day = new Date(flow.timestamp).getDay();
+                    patterns.byHour[hour]++;
+                    patterns.byDay[day]++;
+                }
+
+                // Find peak hours
+                const maxHourCount = Math.max(...patterns.byHour);
+                patterns.peakTimes = patterns.byHour
+                    .map((count, hour) => ({ hour, count }))
+                    .filter(item => item.count === maxHourCount)
+                    .map(item => item.hour);
+
+                return patterns;
+            }
+
+            getAverageQoS() {
+                let totalQoS = 0;
+                let count = 0;
+                
+                for (const flow of this.flows.values()) {
+                    totalQoS += flow.qos;
+                    count++;
+                }
+                
+                return count > 0 ? Math.round(totalQoS / count) : 100;
+            }
+
+            getPhysicalValue() {
+                let total = 0;
+                for (const flow of this.flows.values()) {
+                    if (flow.protocol.includes('physical')) {
+                        total += flow.totalValue;
+                    }
+                }
+                return total;
+            }
+        }
+
+        // Initialize System
+        const flowManager = new FlowManager();
+        let networkInstance = null;
+        let physicsEnabled = true;
+        let lastUpdateTime = new Date();
+
+        // Create sample flows on startup
+        function initializeSampleFlows() {
+            const sampleFlows = [
+                ['supplier_x', 'our_company', 'expenditure_10001', 'physical_assets_20001', 'physical_tcp', 12500, 'USD'],
+                ['customer_y', 'our_company', 'revenue_12001', 'receivables_22001', 'physical_tcp', 8500, 'USD'],
+                ['bank_abc', 'our_company', 'receipt_13001', 'cash_21001', 'financial_udp', 3200, 'USD'],
+                ['our_company', 'supplier_x', 'payment_14001', 'payables_23001', 'secure_tls', 2100, 'USD'],
+                ['employee_a', 'our_company', 'expenditure_10001', 'physical_assets_20001', 'physical_tcp', 1800, 'USD'],
+                ['gov_agency', 'our_company', 'revenue_12001', 'receivables_22001', 'physical_tcp', 4500, 'USD']
+            ];
+
+            sampleFlows.forEach((flow, index) => {
+                setTimeout(() => {
+                    const createdFlow = flowManager.createFlow(...flow);
+                    updateFlowMonitor(createdFlow);
+                    updateStatisticsDisplay();
+                    updateCharts();
+                }, index * 800);
+            });
+
+            // Update preview initially
+            updateTuplePreview();
+        }
+
+        // Update 5-Tuple Preview
+        function updateTuplePreview() {
+            const source = document.getElementById('sourceAgent').value;
+            const destination = document.getElementById('destAgent').value;
+            const action = document.getElementById('actionProtocol').value;
+            const account = document.getElementById('accountInterface').value;
+            const protocol = document.getElementById('transactionProtocol').value;
+
+            document.getElementById('previewSource').textContent = source.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            document.getElementById('previewDest').textContent = destination.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            document.getElementById('previewAction').textContent = action.split('_')[0].toUpperCase();
+            document.getElementById('previewAccount').textContent = account.split('_')[0].toUpperCase();
+            document.getElementById('previewProto').textContent = protocol.split('_')[0].toUpperCase();
+        }
+
+        // Create New Flow
+        function createFlow() {
+            const source = document.getElementById('sourceAgent').value;
+            const destination = document.getElementById('destAgent').value;
+            const action = document.getElementById('actionProtocol').value;
+            const account = document.getElementById('accountInterface').value;
+            const protocol = document.getElementById('transactionProtocol').value;
+            const value = parseFloat(document.getElementById('flowValue').value);
+            const currency = document.getElementById('flowCurrency').value;
+
+            if (!value || value <= 0) {
+                alert('Please enter a valid flow amount greater than 0');
+                return;
+            }
+
+            const flow = flowManager.createFlow(
+                source, destination, action, account, protocol, value, currency
+            );
+
+            // Update UI
+            updateTuplePreview();
+            updateFlowMonitor(flow);
+            updateNetworkVisualization();
+            updateStatisticsDisplay();
+            updateCharts();
+
+            // Show notification
+            showNotification(`Flow ${flow.flowId} established successfully`, 'success');
+            
+            // Reset form
+            document.getElementById('flowValue').value = '';
+        }
+
+        // Update Flow Monitor
+        function updateFlowMonitor(flow) {
+            const monitor = document.getElementById('flowMonitor');
+            
+            // Remove placeholder if present
+            const placeholder = monitor.querySelector('div[style*="text-align: center"]');
+            if (placeholder) {
+                monitor.removeChild(placeholder);
+            }
+            
+            const flowItem = document.createElement('div');
+            flowItem.className = `flow-item ${flow.protocol.includes('physical') ? 'physical' : flow.protocol.includes('financial') ? 'financial' : 'hybrid'}`;
+            
+            const tuple = flow.get5Tuple();
+            flowItem.innerHTML = `
+                <div class="flow-info">
+                    <div style="font-weight: 600; color: white; font-size: 14px; margin-bottom: 5px;">
+                        ${flow.getFormattedSource()} → ${flow.getFormattedDestination()}
+                    </div>
+                    <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 3px;">
+                        ${flow.action.split('_')[0].toUpperCase()} → ${flow.account.split('_')[0].toUpperCase()}
+                    </div>
+                    <div class="flow-5tuple">
+                        Ports: ${tuple.sport} → ${tuple.dport} | Proto: ${tuple.proto}
+                    </div>
+                </div>
+                <div class="flow-stats">
+                    <div style="font-weight: 700; color: white; font-size: 16px;">
+                        ${flow.currency} ${flow.value.toLocaleString()}
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
+                        QoS: ${flow.qos}% | Priority: ${flow.priority}
+                    </div>
+                    <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                        ${flow.flowId.substr(0, 8)}...
+                    </div>
+                </div>
+            `;
+            
+            monitor.insertBefore(flowItem, monitor.firstChild);
+            
+            // Limit displayed flows
+            while (monitor.children.length > 10) {
+                monitor.removeChild(monitor.lastChild);
+            }
+            
+            // Update flow count
+            document.getElementById('flowCount').textContent = `${flowManager.flows.size} active flows`;
+            document.getElementById('updateTime').textContent = 'Just now';
+        }
+
+        // Update Statistics Display
+        function updateStatisticsDisplay() {
+            const stats = flowManager.statistics;
+            const currentFlowRate = flowManager.updateFlowRate();
+            const avgQoS = flowManager.getAverageQoS();
+            const physicalValue = flowManager.getPhysicalValue();
+            
+            document.getElementById('activeFlows').textContent = stats.activeFlows;
+            document.getElementById('totalFlowValue').textContent = `$${(stats.totalValue).toLocaleString()}`;
+            document.getElementById('flowRate').textContent = `${currentFlowRate}/min`;
+            document.getElementById('flowChange').textContent = `+${stats.flowChangesToday} today`;
+            document.getElementById('physicalValue').textContent = physicalValue.toLocaleString();
+            document.getElementById('peakRate').textContent = `${stats.peakFlowRate}/min`;
+            document.getElementById('qosScore').textContent = `${avgQoS}%`;
+            document.getElementById('qosDisplay').textContent = `${avgQoS}%`;
+            
+            // Update flow table health
+            const tableHealth = (flowManager.flows.size / flowManager.maxFlows) * 100;
+            document.getElementById('flowTableHealth').style.width = `${tableHealth}%`;
+            document.getElementById('flowTablePercent').textContent = `${Math.round(tableHealth)}%`;
+            
+            // Update analytics text
+            document.getElementById('totalFlowsText').textContent = `Total: ${stats.totalFlows} flows`;
+            document.getElementById('avgValueText').textContent = `Avg: $${stats.totalFlows > 0 ? Math.round(stats.totalValue / stats.totalFlows) : 0}`;
+            
+            // Protocol counts
+            document.getElementById('tcpCount').textContent = stats.physicalFlows;
+            document.getElementById('udpCount').textContent = stats.financialFlows;
+            document.getElementById('icmpCount').textContent = stats.hybridFlows;
+            document.getElementById('tlsCount').textContent = stats.secureFlows;
+        }
+
+        // Initialize Charts
+        let flowDistributionChart, protocolChart, performanceChart;
+
+        function initializeCharts() {
+            // Flow Distribution Chart
+            const ctx1 = document.getElementById('flowDistributionChart').getContext('2d');
+            flowDistributionChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Physical Flows', 'Financial Flows', 'Secure Flows', 'Hybrid Flows'],
+                    datasets: [{
+                        data: [65, 25, 5, 5],
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#06b6d4'],
+                        borderWidth: 3,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', padding: 15, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+
+            // Protocol Chart
+            const ctx2 = document.getElementById('protocolChart').getContext('2d');
+            protocolChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['TCP-like', 'UDP-like', 'TLS-like', 'ICMP-like'],
+                    datasets: [{
+                        label: 'Flow Count',
+                        data: [8, 3, 1, 1],
+                        backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#06b6d4'],
+                        borderColor: ['#1d4ed8', '#6d28d9', '#059669', '#0891b2'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const ctx3 = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(ctx3, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [
+                        {
+                            label: 'Flow Rate',
+                            data: [2, 3, 8, 12, 9, 4],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'QoS Score',
+                            data: [98, 96, 95, 92, 94, 97],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            const stats = flowManager.statistics;
+            const total = stats.totalFlows;
+            
+            if (total > 0) {
+                const physicalPct = Math.round((stats.physicalFlows / total) * 100);
+                const financialPct = Math.round((stats.financialFlows / total) * 100);
+                const securePct = Math.round((stats.secureFlows / total) * 100);
+                const hybridPct = Math.round((stats.hybridFlows / total) * 100);
+                
+                flowDistributionChart.data.datasets[0].data = [
+                    physicalPct,
+                    financialPct,
+                    securePct,
+                    hybridPct
+                ];
+                flowDistributionChart.update();
+                
+                protocolChart.data.datasets[0].data = [
+                    stats.physicalFlows,
+                    stats.financialFlows,
+                    stats.secureFlows,
+                    stats.hybridFlows
+                ];
+                protocolChart.update();
+                
+                // Update performance chart with real data
+                const currentRate = flowManager.updateFlowRate();
+                const avgQoS = flowManager.getAverageQoS();
+                performanceChart.data.datasets[0].data[3] = Math.min(currentRate * 2, 20); // Scale for display
+                performanceChart.data.datasets[1].data[3] = avgQoS;
+                performanceChart.update();
+            }
+        }
+
+        // Control Functions
+        function refreshTopology() {
+            updateNetworkVisualization();
+            showNotification('Network topology refreshed', 'info');
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            const btn = document.getElementById('physicsBtn');
+            btn.innerHTML = physicsEnabled ? '<i class="fas fa-magnet"></i> Physics' : '<i class="fas fa-ban"></i> Static';
+            
+            if (networkInstance) {
+                networkInstance.setOptions({ physics: { enabled: physicsEnabled } });
+            }
+            
+            showNotification(`Physics ${physicsEnabled ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        function exportTopology() {
+            const data = {
+                flows: Array.from(flowManager.flows.values()),
+                statistics: flowManager.statistics,
+                flowTable: Array.from(flowManager.flowTable.values()),
+                timestamp: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `flow-topology-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            showNotification('Topology data exported successfully', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: ${type === 'success' ? 'rgba(16,185,129,0.9)' : 
+                            type === 'error' ? 'rgba(239,68,68,0.9)' : 
+                            'rgba(59,130,246,0.9)'};
+                color: white;
+                border-radius: 10px;
+                z-index: 1000;
+                animation: slideIn 0.3s;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.2);
+                max-width: 400px;
+            `;
+            
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                  type === 'error' ? 'exclamation-circle' : 
+                                  'info-circle'}"></i>
+                ${message}
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Modal Functions
+        function openModal(modal) {
+            if (modal === 'flowAnalytics') {
+                updateFlowAnalytics();
+                document.getElementById('flowAnalyticsModal

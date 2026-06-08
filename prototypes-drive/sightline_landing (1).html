@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline — Financial Coordination Infrastructure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #06060a;
+            --bg-secondary: #0c0c12;
+            --bg-tertiary: #12121c;
+            --bg-card: #16161f;
+            --border-subtle: #1e1e2a;
+            --border-medium: #2a2a3a;
+            --text-primary: #f0f0f5;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent-green: #00ff88;
+            --accent-green-dim: #00cc6a;
+            --accent-blue: #4d9fff;
+            --accent-purple: #a855f7;
+            --accent-amber: #ffb020;
+            --gradient-green: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(6, 6, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo-mark {
+            width: 24px;
+            height: 24px;
+            background: var(--gradient-green);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-mark svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+        
+        .nav-cta {
+            background: var(--gradient-green);
+            color: #000;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 255, 136, 0.3);
+            color: #000;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 140px 40px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 80% at 50% 30%, black 20%, transparent 70%);
+        }
+        
+        .hero-glow {
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1000px;
+            height: 600px;
+            background: radial-gradient(ellipse, rgba(0, 255, 136, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .hero-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .hero-badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .hero-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 400;
+            line-height: 1.05;
+            margin-bottom: 30px;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+        
+        .hero-title em {
+            font-style: italic;
+            color: var(--accent-green);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            line-height: 1.7;
+            margin-bottom: 50px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+        
+        .hero-ctas {
+            display: flex;
+            gap: 20px;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-green);
+            color: #000;
+            padding: 16px 36px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 255, 136, 0.35);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            padding: 16px 36px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            text-decoration: none;
+            border: 1px solid var(--border-medium);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* The 5-Tuple Section */
+        .tuple-section {
+            padding: 120px 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 80px;
+        }
+        
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        
+        .tuple-visual {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        .tuple-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 60px;
+            flex-wrap: wrap;
+        }
+        
+        .tuple-bracket {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 4rem;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+        
+        .tuple-elements {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .tuple-element {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: 12px;
+            padding: 20px 28px;
+            text-align: center;
+            min-width: 140px;
+            transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+            cursor: default;
+        }
+        
+        .tuple-element:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-green);
+            box-shadow: 0 8px 30px rgba(0, 255, 136, 0.15);
+        }
+        
+        .tuple-element.policy { border-top: 3px solid var(--accent-purple); }
+        .tuple-element.flow { border-top: 3px solid var(--accent-amber); }
+        .tuple-element.action { border-top: 3px solid var(--accent-green); }
+        .tuple-element.tail { border-top: 3px solid var(--accent-blue); }
+        .tuple-element.head { border-top: 3px solid #ff6b9d; }
+        
+        .tuple-element .label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .tuple-element.policy .label { color: var(--accent-purple); }
+        .tuple-element.flow .label { color: var(--accent-amber); }
+        .tuple-element.action .label { color: var(--accent-green); }
+        .tuple-element.tail .label { color: var(--accent-blue); }
+        .tuple-element.head .label { color: #ff6b9d; }
+        
+        .tuple-element .value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .tuple-element .desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        /* Comparison boxes */
+        .tuple-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .compare-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: 16px;
+            padding: 35px;
+        }
+        
+        .compare-box.old {
+            border-color: #3d2a2a;
+        }
+        
+        .compare-box.new {
+            border-color: #2a3d2a;
+        }
+        
+        .compare-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .compare-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .compare-box.old .compare-icon {
+            background: #2a1a1a;
+        }
+        
+        .compare-box.new .compare-icon {
+            background: #1a2a1a;
+        }
+        
+        .compare-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .compare-box.old .compare-title { color: #ff8a8a; }
+        .compare-box.new .compare-title { color: #8aff8a; }
+        
+        .compare-list {
+            list-style: none;
+        }
+        
+        .compare-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .compare-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .compare-list .icon {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .compare-box.old .compare-list .icon { color: #ff6b6b; }
+        .compare-box.new .compare-list .icon { color: #6bff8b; }
+        
+        /* How It Works */
+        .how-section {
+            padding: 120px 40px;
+            background: var(--bg-primary);
+        }
+        
+        .flow-visual {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            position: relative;
+        }
+        
+        .flow-visual::before {
+            content: '';
+            position: absolute;
+            top: 60px;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--border-medium), var(--border-medium), var(--border-medium), transparent);
+            z-index: 0;
+        }
+        
+        .flow-step {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: 16px;
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .flow-step:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        .flow-number {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            margin: 0 auto 20px;
+        }
+        
+        .flow-step h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .flow-step p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        
+        /* Use Cases */
+        .usecases-section {
+            padding: 120px 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .usecases-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        
+        .usecase-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .usecase-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+        
+        .usecase-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        
+        .usecase-card:nth-child(1)::before { background: var(--accent-green); }
+        .usecase-card:nth-child(2)::before { background: var(--accent-blue); }
+        .usecase-card:nth-child(3)::before { background: var(--accent-purple); }
+        
+        .usecase-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+        }
+        
+        .usecase-card:nth-child(1) .usecase-icon { background: rgba(0, 255, 136, 0.1); }
+        .usecase-card:nth-child(2) .usecase-icon { background: rgba(77, 159, 255, 0.1); }
+        .usecase-card:nth-child(3) .usecase-icon { background: rgba(168, 85, 247, 0.1); }
+        
+        .usecase-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .usecase-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 25px;
+        }
+        
+        .usecase-features {
+            list-style: none;
+        }
+        
+        .usecase-features li {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            padding: 8px 0;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .usecase-features li::before {
+            content: '→';
+            color: var(--accent-green);
+        }
+        
+        /* Architecture */
+        .arch-section {
+            padding: 120px 40px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .arch-visual {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: 20px;
+            padding: 50px;
+        }
+        
+        .arch-layer {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            padding: 25px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .arch-layer:last-child {
+            border-bottom: none;
+        }
+        
+        .arch-label {
+            width: 160px;
+            flex-shrink: 0;
+        }
+        
+        .arch-label h4 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .arch-label p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .arch-boxes {
+            display: flex;
+            gap: 15px;
+            flex-grow: 1;
+            flex-wrap: wrap;
+        }
+        
+        .arch-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-medium);
+            border-radius: 10px;
+            padding: 15px 25px;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        
+        .arch-box:hover {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .arch-box.highlight {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.08);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            padding: 140px 40px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(0, 255, 136, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .cta-content {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .cta-content h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .cta-content p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 60px 40px;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-subtle);
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .footer-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .tuple-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .flow-visual {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .flow-visual::before {
+                display: none;
+            }
+            
+            .usecases-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            nav {
+                padding: 15px 20px;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .hero {
+                padding: 120px 20px 60px;
+            }
+            
+            .hero-ctas {
+                flex-direction: column;
+            }
+            
+            .tuple-section,
+            .how-section,
+            .usecases-section,
+            .arch-section,
+            .cta-section {
+                padding: 80px 20px;
+            }
+            
+            .flow-visual {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .arch-layer {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .arch-label {
+                width: 100%;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            SIGHTLINE
+        </div>
+        <div class="nav-links">
+            <a href="#how">How It Works</a>
+            <a href="#usecases">Use Cases</a>
+            <a href="#architecture">Architecture</a>
+            <a href="#" class="nav-cta">Request Access</a>
+        </div>
+    </nav>
+    
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-grid"></div>
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="dot"></span>
+                Financial Coordination Infrastructure
+            </div>
+            <h1 class="hero-title">
+                Shared economic reality<br>
+                with <em>proofs</em> instead of trust
+            </h1>
+            <p class="hero-subtitle">
+                Sightline is event-sourced financial infrastructure that binds every transaction to its authorizing policy. Multi-party coordination with cryptographic guarantees. Self-explaining variance attribution. The end of reconciliation.
+            </p>
+            <div class="hero-ctas">
+                <a href="#" class="btn-primary">
+                    Request Early Access
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="#how" class="btn-secondary">
+                    See How It Works
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- The 5-Tuple -->
+    <section class="tuple-section" id="tuple">
+        <div class="section-header">
+            <div class="section-label">The Core Innovation</div>
+            <h2 class="section-title">The Policy-Bound Transaction</h2>
+            <p class="section-subtitle">
+                Every financial event is a 5-tuple: a flow of value, bound to an authorizing policy, with explicit cause and direction. No transaction exists without answering "under what authority?"
+            </p>
+        </div>
+        
+        <div class="tuple-visual">
+            <div class="tuple-diagram">
+                <span class="tuple-bracket">{</span>
+                <div class="tuple-elements">
+                    <div class="tuple-element policy">
+                        <div class="label">Policy</div>
+                        <div class="value">PO-2024-0847</div>
+                        <div class="desc">Authorization</div>
+                    </div>
+                    <div class="tuple-element flow">
+                        <div class="label">Flow</div>
+                        <div class="value">$847,000</div>
+                        <div class="desc">Value amount</div>
+                    </div>
+                    <div class="tuple-element action">
+                        <div class="label">Action</div>
+                        <div class="value">Expenditure</div>
+                        <div class="desc">What happened</div>
+                    </div>
+                    <div class="tuple-element tail">
+                        <div class="label">Tail</div>
+                        <div class="value">Payables</div>
+                        <div class="desc">From where</div>
+                    </div>
+                    <div class="tuple-element head">
+                        <div class="label">Head</div>
+                        <div class="value">Assets</div>
+                        <div class="desc">To where</div>
+                    </div>
+                </div>
+                <span class="tuple-bracket">}</span>
+            </div>
+            
+            <div class="tuple-comparison">
+                <div class="compare-box old">
+                    <div class="compare-header">
+                        <div class="compare-icon">📊</div>
+                        <div class="compare-title">Traditional Accounting</div>
+                    </div>
+                    <ul class="compare-list">
+                        <li>
+                            <span class="icon">✕</span>
+                            <span>Debit/Credit entries lose causation</span>
+                        </li>
+                        <li>
+                            <span class="icon">✕</span>
+                            <span>Manual variance analysis required</span>
+                        </li>
+                        <li>
+                            <span class="icon">✕</span>
+                            <span>Reconciliation across parties</span>
+                        </li>
+                        <li>
+                            <span class="icon">✕</span>
+                            <span>Authorization metadata separated</span>
+                        </li>
+                        <li>
+                            <span class="icon">✕</span>
+                            <span>600 years of accumulated complexity</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="compare-box new">
+                    <div class="compare-header">
+                        <div class="compare-icon">⚡</div>
+                        <div class="compare-title">Sightline 5-Tuple</div>
+                    </div>
+                    <ul class="compare-list">
+                        <li>
+                            <span class="icon">✓</span>
+                            <span>Every event has explicit cause (Action)</span>
+                        </li>
+                        <li>
+                            <span class="icon">✓</span>
+                            <span>Automatic variance attribution</span>
+                        </li>
+                        <li>
+                            <span class="icon">✓</span>
+                            <span>Shared event stream, multiple views</span>
+                        </li>
+                        <li>
+                            <span class="icon">✓</span>
+                            <span>Policy binding is structural</span>
+                        </li>
+                        <li>
+                            <span class="icon">✓</span>
+                            <span>Clean-slate architecture for AI age</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- How It Works -->
+    <section class="how-section" id="how">
+        <div class="section-header">
+            <div class="section-label">The Flow</div>
+            <h2 class="section-title">From Policy to Proof</h2>
+            <p class="section-subtitle">
+                Transactions flow through Sightline like packets through a network—validated against policy state, tracked in real-time, with cryptographic guarantees.
+            </p>
+        </div>
+        
+        <div class="flow-visual">
+            <div class="flow-step">
+                <div class="flow-number">1</div>
+                <h4>Policy Created</h4>
+                <p>Contract, PO, or budget establishes authorization context</p>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">2</div>
+                <h4>Session Opens</h4>
+                <p>Policy defines valid actions, directions, and limits</p>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">3</div>
+                <h4>Event Validated</h4>
+                <p>5-tuple checked against Well-Formed rules</p>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">4</div>
+                <h4>Capacity Updated</h4>
+                <p>Policy state decremented, audit trail extended</p>
+            </div>
+            <div class="flow-step">
+                <div class="flow-number">5</div>
+                <h4>Proofs Emitted</h4>
+                <p>All parties see consistent, cryptographically-bound record</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Use Cases -->
+    <section class="usecases-section" id="usecases">
+        <div class="section-header">
+            <div class="section-label">Applications</div>
+            <h2 class="section-title">Built for Complex Coordination</h2>
+            <p class="section-subtitle">
+                When multiple parties, large capital flows, and real-time visibility intersect—that's where Sightline transforms operations.
+            </p>
+        </div>
+        
+        <div class="usecases-grid">
+            <div class="usecase-card">
+                <div class="usecase-icon">🖥️</div>
+                <h3>GPU Compute Procurement</h3>
+                <p>
+                    Coordinate across hardware vendors, financing partners, and cloud providers. Every commitment tracked against authorized capacity.
+                </p>
+                <ul class="usecase-features">
+                    <li>PO → Invoice → Payment as policy session</li>
+                    <li>Multi-party visibility into commitment state</li>
+                    <li>Automatic capacity reconciliation</li>
+                </ul>
+            </div>
+            
+            <div class="usecase-card">
+                <div class="usecase-icon">📦</div>
+                <h3>DTC Supply Chain</h3>
+                <p>
+                    From manufacturer to 3PL to customer—every handoff generates coordinated events. Inventory, payables, and revenue in sync.
+                </p>
+                <ul class="usecase-features">
+                    <li>Supplier → Warehouse → Customer flow</li>
+                    <li>Real-time landed cost calculation</li>
+                    <li>Cash forecast with causal attribution</li>
+                </ul>
+            </div>
+            
+            <div class="usecase-card">
+                <div class="usecase-icon">🏗️</div>
+                <h3>Large CapEx Projects</h3>
+                <p>
+                    Board-approved budgets cascade to work packages. Every expenditure traces back to its authorizing approval chain.
+                </p>
+                <ul class="usecase-features">
+                    <li>Budget → Commitment → Actuals cascade</li>
+                    <li>Variance explanation without analysis</li>
+                    <li>Delegation with structural guardrails</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Architecture -->
+    <section class="arch-section" id="architecture">
+        <div class="section-header">
+            <div class="section-label">Under The Hood</div>
+            <h2 class="section-title">Network-Grade Financial Infrastructure</h2>
+            <p class="section-subtitle">
+                We borrowed 40 years of battle-tested patterns from network engineering. Stateful flow tables, policy enforcement, flow export—all adapted for financial coordination.
+            </p>
+        </div>
+        
+        <div class="arch-visual">
+            <div class="arch-layer">
+                <div class="arch-label">
+                    <h4>Event Layer</h4>
+                    <p>Immutable log</p>
+                </div>
+                <div class="arch-boxes">
+                    <div class="arch-box highlight">5-Tuple Events</div>
+                    <div class="arch-box">Cryptographic Binding</div>
+                    <div class="arch-box">Multi-Party Sync</div>
+                </div>
+            </div>
+            
+            <div class="arch-layer">
+                <div class="arch-label">
+                    <h4>Policy Layer</h4>
+                    <p>Authorization state</p>
+                </div>
+                <div class="arch-boxes">
+                    <div class="arch-box">Policy Sessions</div>
+                    <div class="arch-box highlight">WF Validation</div>
+                    <div class="arch-box">Capacity Tracking</div>
+                </div>
+            </div>
+            
+            <div class="arch-layer">
+                <div class="arch-label">
+                    <h4>Translation Layer</h4>
+                    <p>Multi-party views</p>
+                </div>
+                <div class="arch-boxes">
+                    <div class="arch-box">Policy Mapping</div>
+                    <div class="arch-box">View Filtering</div>
+                    <div class="arch-box highlight">Proof Generation</div>
+                </div>
+            </div>
+            
+            <div class="arch-layer">
+                <div class="arch-label">
+                    <h4>Analytics Layer</h4>
+                    <p>Flow export</p>
+                </div>
+                <div class="arch-boxes">
+                    <div class="arch-box">Event Aggregation</div>
+                    <div class="arch-box highlight">Variance Attribution</div>
+                    <div class="arch-box">Statement Generation</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA -->
+    <section class="cta-section">
+        <div class="cta-glow"></div>
+        <div class="cta-content">
+            <h2>Ready to eliminate reconciliation?</h2>
+            <p>
+                Sightline is currently in private beta with select design partners in GPU procurement and DTC operations. Request access to see if we're a fit.
+            </p>
+            <a href="#" class="btn-primary">
+                Request Early Access
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">© 2024 Sightline</div>
+            <div class="footer-links">
+                <a href="#">Documentation</a>
+                <a href="#">API Reference</a>
+                <a href="#">Security</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

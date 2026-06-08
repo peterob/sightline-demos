@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CaBSCE Dashboard - Sightline/CAST Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15); }
+        .cluster-card:hover { transform: scale(1.02); }
+        .tab-active { border-bottom: 3px solid #6366f1; color: #6366f1; }
+        .confidence-very_high { background: #dcfce7; color: #166534; }
+        .confidence-high { background: #dbeafe; color: #1e40af; }
+        .confidence-medium { background: #fef3c7; color: #92400e; }
+        .confidence-low { background: #fed7aa; color: #c2410c; }
+        .confidence-exploratory { background: #fee2e2; color: #991b1b; }
+        .type-workflow_stage { background: #dbeafe; color: #1d4ed8; }
+        .type-account_category { background: #d1fae5; color: #047857; }
+        .type-complexity_modifier { background: #fef3c7; color: #b45309; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .chart-container { position: relative; height: 300px; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-header text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold flex items-center gap-3">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        CaBSCE Dashboard
+                    </h1>
+                    <p class="text-indigo-100 mt-1">Capability-Based Software Cost Estimation • Sightline/CAST Platform</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-xs text-indigo-200">Analysis Date</p>
+                        <p class="font-semibold">January 2026</p>
+                    </div>
+                    <div class="bg-white/20 rounded-lg px-4 py-2">
+                        <p class="text-xs text-indigo-100">Total Samples</p>
+                        <p class="text-xl font-bold">120</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex gap-1 mt-6 -mb-6">
+                <button onclick="showTab('overview')" id="tab-overview" class="tab-btn px-5 py-3 rounded-t-lg font-medium transition-all bg-white/10 hover:bg-white/20 tab-active">
+                    Overview
+                </button>
+                <button onclick="showTab('clusters')" id="tab-clusters" class="tab-btn px-5 py-3 rounded-t-lg font-medium transition-all bg-white/10 hover:bg-white/20">
+                    Capability Clusters
+                </button>
+                <button onclick="showTab('estimator')" id="tab-estimator" class="tab-btn px-5 py-3 rounded-t-lg font-medium transition-all bg-white/10 hover:bg-white/20">
+                    Cost Estimator
+                </button>
+                <button onclick="showTab('compliance')" id="tab-compliance" class="tab-btn px-5 py-3 rounded-t-lg font-medium transition-all bg-white/10 hover:bg-white/20">
+                    Compliance
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Overview Tab -->
+        <div id="content-overview" class="tab-content">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">Total Clusters</p>
+                    <p class="text-3xl font-bold text-indigo-600 mt-1">12</p>
+                    <p class="text-xs text-gray-400 mt-1">capability groupings</p>
+                </div>
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">Events Analyzed</p>
+                    <p class="text-3xl font-bold text-indigo-600 mt-1">120</p>
+                    <p class="text-xs text-gray-400 mt-1">transaction events</p>
+                </div>
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">Transactions</p>
+                    <p class="text-3xl font-bold text-indigo-600 mt-1">10</p>
+                    <p class="text-xs text-gray-400 mt-1">unique transactions</p>
+                </div>
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">High Confidence</p>
+                    <p class="text-3xl font-bold text-green-600 mt-1">7/12</p>
+                    <p class="text-xs text-gray-400 mt-1">58% of clusters</p>
+                </div>
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">Avg Violation</p>
+                    <p class="text-3xl font-bold text-red-500 mt-1">49.1%</p>
+                    <p class="text-xs text-gray-400 mt-1">policy violations</p>
+                </div>
+                <div class="stat-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm transition-all">
+                    <p class="text-sm font-medium text-gray-500">Avg SLA Breach</p>
+                    <p class="text-3xl font-bold text-amber-500 mt-1">29.9%</p>
+                    <p class="text-xs text-gray-400 mt-1">breach rate</p>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Effort Distribution by Capability (minutes)</h3>
+                    <div class="chart-container">
+                        <canvas id="effortChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Risk Profile by Workflow Stage</h3>
+                    <div class="chart-container">
+                        <canvas id="riskRadarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Cluster Type Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Confidence Level Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CaBSCE Methodology -->
+            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
+                <h3 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    About CaBSCE Methodology
+                </h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    This dashboard implements the SEI's Capability-Based Software Cost Estimation (CaBSCE) methodology, 
+                    designed to align cost estimation with Agile and DevSecOps practices by eliminating SLOC dependencies.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white/70 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-500 text-lg">✓</span>
+                            <h4 class="font-medium text-gray-900">No SLOC Dependencies</h4>
+                        </div>
+                        <p class="text-xs text-gray-600">Estimates based on capability clusters, not source lines of code</p>
+                    </div>
+                    <div class="bg-white/70 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-500 text-lg">✓</span>
+                            <h4 class="font-medium text-gray-900">Historical Actuals</h4>
+                        </div>
+                        <p class="text-xs text-gray-600">Effort ranges derived from actual event_log timestamps</p>
+                    </div>
+                    <div class="bg-white/70 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-green-500 text-lg">✓</span>
+                            <h4 class="font-medium text-gray-900">Uncertainty Accounted</h4>
+                        </div>
+                        <p class="text-xs text-gray-600">Standard deviations and confidence levels reflect real variability</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clusters Tab -->
+        <div id="content-clusters" class="tab-content hidden">
+            <!-- Filter -->
+            <div class="flex items-center gap-4 mb-6">
+                <label class="text-sm font-medium text-gray-700">Filter by Type:</label>
+                <select id="clusterFilter" onchange="filterClusters()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="all">All Types</option>
+                    <option value="workflow_stage">Workflow Stages</option>
+                    <option value="account_category">Account Categories</option>
+                    <option value="complexity_modifier">Complexity Modifiers</option>
+                </select>
+                <span id="clusterCount" class="text-sm text-gray-500">Showing 12 clusters</span>
+            </div>
+
+            <!-- Cluster Grid -->
+            <div id="clusterGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Clusters will be rendered here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Estimator Tab -->
+        <div id="content-estimator" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm mb-6">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    CaBSCE Cost Estimator
+                </h3>
+                
+                <!-- Parameters -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate ($)</label>
+                        <input type="number" id="hourlyRate" value="75" onchange="calculateEstimate()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Overhead (%)</label>
+                        <input type="number" id="overheadPct" value="15" onchange="calculateEstimate()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Complexity Multiplier</label>
+                        <select id="complexityMultiplier" onchange="calculateEstimate()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <option value="0.8">Low (0.8x)</option>
+                            <option value="1.0" selected>Normal (1.0x)</option>
+                            <option value="1.25">Medium (1.25x)</option>
+                            <option value="1.5">High (1.5x)</option>
+                            <option value="2.0">Very High (2.0x)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cluster Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Capability Clusters</label>
+                    <div id="clusterSelector" class="flex flex-wrap gap-2">
+                        <!-- Buttons rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Estimate Results -->
+                <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-6">
+                    <h4 class="font-semibold text-gray-900 mb-4">Estimate Summary</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-sm text-gray-500">Total Effort</p>
+                            <p id="totalEffort" class="text-2xl font-bold text-indigo-600">0 min</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Estimated Cost</p>
+                            <p id="totalCost" class="text-2xl font-bold text-indigo-600">$0</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Range (95% CI)</p>
+                            <p id="costRange" class="text-lg font-semibold text-gray-700">$0 - $0</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Confidence</p>
+                            <p id="estimateConfidence" class="text-lg font-semibold text-gray-700">N/A</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estimation Guidelines -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">When to Use CaBSCE</h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-start gap-2">
+                            <span class="text-indigo-500 mt-0.5">•</span>
+                            Early lifecycle estimates (CNS, ICD phase)
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-indigo-500 mt-0.5">•</span>
+                            Agile/DevSecOps project planning
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-indigo-500 mt-0.5">•</span>
+                            Budget defense and justification
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-indigo-500 mt-0.5">•</span>
+                            What-if scenario analysis
+                        </li>
+                    </ul>
+                </div>
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Interpretation Notes</h3>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-500 mt-0.5">✓</span>
+                            High confidence = more reliable estimates
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-500 mt-0.5">✓</span>
+                            Add complexity modifiers for overrides/escalations
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-500 mt-0.5">✓</span>
+                            Use 95th percentile for risk-adjusted planning
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-green-500 mt-0.5">✓</span>
+                            Review actual vs estimated for continuous improvement
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Tab -->
+        <div id="content-compliance" class="tab-content hidden">
+            <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm mb-6">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    Compliance Mapping
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-gray-200">
+                                <th class="text-left py-3 px-4 font-semibold text-gray-700">Requirement</th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-700">CaBSCE Principle</th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-700">Sightline Implementation</th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <span class="font-semibold text-gray-900">OMB M-24-10</span>
+                                    <p class="text-xs text-gray-500 mt-0.5">Data Governance</p>
+                                </td>
+                                <td class="py-4 px-4 text-gray-600">Data traceability</td>
+                                <td class="py-4 px-4 text-gray-600">Hash-chain audit trail + entity_links graph</td>
+                                <td class="py-4 px-4">
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✓ Compliant</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <span class="font-semibold text-gray-900">NIST AI RMF</span>
+                                    <p class="text-xs text-gray-500 mt-0.5">AI Risk Management</p>
+                                </td>
+                                <td class="py-4 px-4 text-gray-600">Explainability</td>
+                                <td class="py-4 px-4 text-gray-600">Confidence levels + methodology documentation</td>
+                                <td class="py-4 px-4">
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✓ Compliant</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <span class="font-semibold text-gray-900">FFMIA/A-123</span>
+                                    <p class="text-xs text-gray-500 mt-0.5">Financial Management</p>
+                                </td>
+                                <td class="py-4 px-4 text-gray-600">Control documentation</td>
+                                <td class="py-4 px-4 text-gray-600">Policy results + violation tracking</td>
+                                <td class="py-4 px-4">
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✓ Compliant</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <span class="font-semibold text-gray-900">FAR 15.404-1</span>
+                                    <p class="text-xs text-gray-500 mt-0.5">Cost Realism</p>
+                                </td>
+                                <td class="py-4 px-4 text-gray-600">Cost realism analysis</td>
+                                <td class="py-4 px-4 text-gray-600">Historical actuals + variance analysis</td>
+                                <td class="py-4 px-4">
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✓ Compliant</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Confidence Reference -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Confidence Level Reference</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-green-50">
+                            <div>
+                                <span class="font-medium text-green-800">Very High</span>
+                                <p class="text-xs text-green-600">100+ samples</p>
+                            </div>
+                            <span class="text-sm text-green-700">Production estimates</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-blue-50">
+                            <div>
+                                <span class="font-medium text-blue-800">High</span>
+                                <p class="text-xs text-blue-600">50-99 samples</p>
+                            </div>
+                            <span class="text-sm text-blue-700">Budget defense</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-amber-50">
+                            <div>
+                                <span class="font-medium text-amber-800">Medium</span>
+                                <p class="text-xs text-amber-600">20-49 samples</p>
+                            </div>
+                            <span class="text-sm text-amber-700">Planning</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-orange-50">
+                            <div>
+                                <span class="font-medium text-orange-800">Low</span>
+                                <p class="text-xs text-orange-600">5-19 samples</p>
+                            </div>
+                            <span class="text-sm text-orange-700">Rough order of magnitude</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-lg bg-red-50">
+                            <div>
+                                <span class="font-medium text-red-800">Exploratory</span>
+                                <p class="text-xs text-red-600">&lt;5 samples</p>
+                            </div>
+                            <span class="text-sm text-red-700">Initial sizing only</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <h3 class="font-semibold text-gray-900 mb-4">Estimation Formulas</h3>
+                    <div class="space-y-4 text-sm">
+                        <div class="p-3 bg-gray-50 rounded-lg font-mono text-xs">
+                            <p class="text-gray-500 mb-1">// Effort Calculation</p>
+                            <p class="text-gray-800">Effort = Σ(cluster_effort × multiplier)</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg font-mono text-xs">
+                            <p class="text-gray-500 mb-1">// Standard Error</p>
+                            <p class="text-gray-800">SE = √(Σ(std_dev²)) × multiplier</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg font-mono text-xs">
+                            <p class="text-gray-500 mb-1">// 95% Confidence Interval</p>
+                            <p class="text-gray-800">CI = [Effort - 2×SE, Effort + 2×SE]</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg font-mono text-xs">
+                            <p class="text-gray-500 mb-1">// Total Cost</p>
+                            <p class="text-gray-800">Cost = Effort × Rate × (1 + Overhead%)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between text-sm text-gray-500">
+                <p>CaBSCE Dashboard • Sightline/CAST Zero Trust Accounting Platform</p>
+                <p>Generated from transaction analysis • SEI Methodology Compliant</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cluster Detail Modal -->
+    <div id="clusterModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="modalTitle" class="text-xl font-bold text-gray-900"></h2>
+                        <p id="modalCode" class="text-sm text-gray-500 mt-1"></p>
+                    </div>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-1">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="modalContent" class="p-6">
+                <!-- Content rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Capability Clusters Data (from analysis)
+        const capabilityClusters = [
+            { id: 'stage-creation', code: 'STAGE-CREATION', name: 'Creation', type: 'workflow_stage', description: 'Transaction creation and initial submission', effortHours: 0.144, stdHours: 0.1, sampleSize: 10, confidence: 'medium', violationRate: 70.0, breachRate: 20.0, avgAmount: 3033.48 },
+            { id: 'stage-approval', code: 'STAGE-APPROVAL_ROUTING', name: 'Approval Routing', type: 'workflow_stage', description: 'Approval workflow and routing logic', effortHours: 0.136, stdHours: 0.109, sampleSize: 30, confidence: 'high', violationRate: 50.0, breachRate: 36.67, avgAmount: 3033.48 },
+            { id: 'stage-policy', code: 'STAGE-POLICY_EVALUATION', name: 'Policy Evaluation', type: 'workflow_stage', description: 'Policy rule evaluation and compliance checking', effortHours: 0.102, stdHours: 0.076, sampleSize: 30, confidence: 'high', violationRate: 43.33, breachRate: 33.33, avgAmount: 3033.48 },
+            { id: 'stage-payment', code: 'STAGE-PAYMENT_EXECUTION', name: 'Payment Execution', type: 'workflow_stage', description: 'Payment processing and execution', effortHours: 0.117, stdHours: 0.097, sampleSize: 20, confidence: 'high', violationRate: 45.0, breachRate: 30.0, avgAmount: 3033.48 },
+            { id: 'stage-logging', code: 'STAGE-POST-PAYMENT_LOGGING', name: 'Post-Payment Logging', type: 'workflow_stage', description: 'Audit logging and finalization', effortHours: 0.075, stdHours: 0.058, sampleSize: 30, confidence: 'high', violationRate: 23.33, breachRate: 20.0, avgAmount: 3033.48 },
+            { id: 'acct-maintenance', code: 'ACCT-MAINTENANCE', name: 'Maintenance Processing', type: 'account_category', description: 'Maintenance category financial processing', effortHours: 0.111, stdHours: 0.079, sampleSize: 24, confidence: 'high', violationRate: 33.33, breachRate: 25.0, avgAmount: 3087.22 },
+            { id: 'acct-legal', code: 'ACCT-LEGAL', name: 'Legal Processing', type: 'account_category', description: 'Legal category financial processing', effortHours: 0.103, stdHours: 0.078, sampleSize: 48, confidence: 'high', violationRate: 43.75, breachRate: 31.25, avgAmount: 2501.60 },
+            { id: 'acct-landscaping', code: 'ACCT-LANDSCAPING', name: 'Landscaping Processing', type: 'account_category', description: 'Landscaping category financial processing', effortHours: 0.12, stdHours: 0.149, sampleSize: 12, confidence: 'medium', violationRate: 41.67, breachRate: 25.0, avgAmount: 1335.0 },
+            { id: 'acct-security', code: 'ACCT-SECURITY', name: 'Security Processing', type: 'account_category', description: 'Security category financial processing', effortHours: 0.114, stdHours: 0.08, sampleSize: 24, confidence: 'high', violationRate: 45.83, breachRate: 25.0, avgAmount: 5263.02 },
+            { id: 'acct-utilities', code: 'ACCT-UTILITIES', name: 'Utilities Processing', type: 'account_category', description: 'Utilities category financial processing', effortHours: 0.118, stdHours: 0.111, sampleSize: 12, confidence: 'medium', violationRate: 50.0, breachRate: 41.67, avgAmount: 2292.97 },
+            { id: 'cplx-override', code: 'CPLX-OVERRIDE', name: 'Override Processing', type: 'complexity_modifier', description: 'Policy override handling adds significant effort', effortHours: 0.75, stdHours: 0.25, sampleSize: 20, confidence: 'medium', violationRate: 100.0, breachRate: 0.0, avgAmount: 3033.48 },
+            { id: 'cplx-escalation', code: 'CPLX-ESCALATION', name: 'Escalation Handling', type: 'complexity_modifier', description: 'SLA breach escalation handling', effortHours: 1.0, stdHours: 0.333, sampleSize: 35, confidence: 'medium', violationRate: 42.86, breachRate: 100.0, avgAmount: 2805.55 }
+        ];
+
+        let selectedClusters = [];
+
+        // Tab Navigation
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('tab-active'));
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).classList.add('tab-active');
+        }
+
+        // Format helpers
+        function formatHours(hours) {
+            if (hours < 1) return `${Math.round(hours * 60)} min`;
+            return `${hours.toFixed(2)} hrs`;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+        }
+
+        // Render Cluster Cards
+        function renderClusters(filter = 'all') {
+            const grid = document.getElementById('clusterGrid');
+            const filtered = filter === 'all' ? capabilityClusters : capabilityClusters.filter(c => c.type === filter);
+            
+            grid.innerHTML = filtered.map(cluster => `
+                <div class="cluster-card glass-card rounded-xl p-5 border border-gray-100 shadow-sm cursor-pointer transition-all hover:shadow-lg" onclick="showClusterDetail('${cluster.id}')">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">${cluster.name}</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">${cluster.code}</p>
+                        </div>
+                        <span class="confidence-${cluster.confidence} px-2 py-1 rounded-full text-xs font-medium">
+                            ${cluster.confidence.charAt(0).toUpperCase() + cluster.confidence.slice(1)}
+                        </span>
+                    </div>
+                    <span class="type-${cluster.type} px-2 py-1 rounded text-xs font-medium">
+                        ${cluster.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                    <p class="text-sm text-gray-600 mt-3 line-clamp-2">${cluster.description}</p>
+                    <div class="grid grid-cols-2 gap-3 mt-4">
+                        <div>
+                            <p class="text-xs text-gray-500">Typical Effort</p>
+                            <p class="text-sm font-semibold text-gray-900">${formatHours(cluster.effortHours)}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Samples</p>
+                            <p class="text-sm font-semibold text-gray-900">${cluster.sampleSize}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Violation Rate</p>
+                            <p class="text-sm font-semibold ${cluster.violationRate > 50 ? 'text-red-600' : 'text-gray-900'}">${cluster.violationRate.toFixed(1)}%</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Avg Amount</p>
+                            <p class="text-sm font-semibold text-gray-900">${formatCurrency(cluster.avgAmount)}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('clusterCount').textContent = `Showing ${filtered.length} clusters`;
+        }
+
+        function filterClusters() {
+            const filter = document.getElementById('clusterFilter').value;
+            renderClusters(filter);
+        }
+
+        // Cluster Detail Modal
+        function showClusterDetail(clusterId) {
+            const cluster = capabilityClusters.find(c => c.id === clusterId);
+            if (!cluster) return;
+
+            document.getElementById('modalTitle').textContent = cluster.name;
+            document.getElementById('modalCode').textContent = cluster.code;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="flex gap-2 mb-4">
+                    <span class="type-${cluster.type} px-2 py-1 rounded text-xs font-medium">
+                        ${cluster.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                    <span class="confidence-${cluster.confidence} px-2 py-1 rounded-full text-xs font-medium">
+                        ${cluster.confidence.charAt(0).toUpperCase() + cluster.confidence.slice(1)} Confidence
+                    </span>
+                </div>
+                <p class="text-gray-600 mb-6">${cluster.description}</p>
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Effort Metrics</h4>
+                        <dl class="space-y-2">
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">Typical Effort</dt><dd class="text-sm font-medium">${formatHours(cluster.effortHours)}</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">Std Deviation</dt><dd class="text-sm font-medium">±${formatHours(cluster.stdHours)}</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">95th Percentile</dt><dd class="text-sm font-medium">${formatHours(cluster.effortHours + 2 * cluster.stdHours)}</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">Sample Size</dt><dd class="text-sm font-medium">${cluster.sampleSize} events</dd></div>
+                        </dl>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 mb-3">Risk Metrics</h4>
+                        <dl class="space-y-2">
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">Violation Rate</dt><dd class="text-sm font-medium ${cluster.violationRate > 50 ? 'text-red-600' : ''}">${cluster.violationRate.toFixed(1)}%</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">SLA Breach Rate</dt><dd class="text-sm font-medium ${cluster.breachRate > 30 ? 'text-amber-600' : ''}">${cluster.breachRate.toFixed(1)}%</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">Avg Transaction</dt><dd class="text-sm font-medium">${formatCurrency(cluster.avgAmount)}</dd></div>
+                            <div class="flex justify-between"><dt class="text-sm text-gray-500">CoV</dt><dd class="text-sm font-medium">${((cluster.stdHours / cluster.effortHours) * 100).toFixed(1)}%</dd></div>
+                        </dl>
+                    </div>
+                </div>
+                <div class="mt-6 pt-6 border-t border-gray-100">
+                    <h4 class="font-semibold text-gray-900 mb-3">CaBSCE Compliance</h4>
+                    <ul class="text-sm text-gray-600 space-y-2">
+                        <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span> Historical actuals derived from event_log timestamps</li>
+                        <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span> No SLOC dependencies - capability-based sizing</li>
+                        <li class="flex items-start gap-2"><span class="text-green-500 mt-0.5">✓</span> Confidence based on sample size (${cluster.sampleSize} samples)</li>
+                    </ul>
+                </div>
+            `;
+            document.getElementById('clusterModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('clusterModal').classList.add('hidden');
+        }
+
+        // Cost Estimator
+        function renderClusterSelector() {
+            const container = document.getElementById('clusterSelector');
+            container.innerHTML = capabilityClusters.map(cluster => `
+                <button onclick="toggleCluster('${cluster.id}')" id="btn-${cluster.id}" class="px-3 py-1.5 rounded-full text-sm font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    ${cluster.name}
+                </button>
+            `).join('');
+        }
+
+        function toggleCluster(clusterId) {
+            const btn = document.getElementById(`btn-${clusterId}`);
+            if (selectedClusters.includes(clusterId)) {
+                selectedClusters = selectedClusters.filter(id => id !== clusterId);
+                btn.classList.remove('bg-indigo-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            } else {
+                selectedClusters.push(clusterId);
+                btn.classList.remove('bg-gray-100', 'text-gray-700');
+                btn.classList.add('bg-indigo-600', 'text-white');
+            }
+            calculateEstimate();
+        }
+
+        function calculateEstimate() {
+            const hourlyRate = parseFloat(document.getElementById('hourlyRate').value) || 75;
+            const overheadPct = parseFloat(document.getElementById('overheadPct').value) || 15;
+            const multiplier = parseFloat(document.getElementById('complexityMultiplier').value) || 1.0;
+
+            const selected = capabilityClusters.filter(c => selectedClusters.includes(c.id));
+            const totalHours = selected.reduce((sum, c) => sum + c.effortHours, 0) * multiplier;
+            const stdHours = Math.sqrt(selected.reduce((sum, c) => sum + Math.pow(c.stdHours, 2), 0)) * multiplier;
+            const baseCost = totalHours * hourlyRate;
+            const totalCost = baseCost * (1 + overheadPct / 100);
+            const lowEst = Math.max(0, (totalHours - 2 * stdHours) * hourlyRate * (1 + overheadPct / 100));
+            const highEst = (totalHours + 2 * stdHours) * hourlyRate * (1 + overheadPct / 100);
+
+            const highConfCount = selected.filter(c => c.confidence === 'high' || c.confidence === 'very_high').length;
+            const confidence = selected.length === 0 ? 'N/A' : (highConfCount / selected.length > 0.5 ? 'High' : 'Medium');
+
+            document.getElementById('totalEffort').textContent = formatHours(totalHours);
+            document.getElementById('totalCost').textContent = formatCurrency(totalCost);
+            document.getElementById('costRange').textContent = `${formatCurrency(lowEst)} - ${formatCurrency(highEst)}`;
+            document.getElementById('estimateConfidence').textContent = confidence;
+        }
+
+        // Charts
+        function initCharts() {
+            // Effort Distribution Chart
+            const effortCtx = document.getElementById('effortChart').getContext('2d');
+            new Chart(effortCtx, {
+                type: 'bar',
+                data: {
+                    labels: capabilityClusters.map(c => c.name.length > 15 ? c.name.substring(0, 15) + '...' : c.name),
+                    datasets: [
+                        {
+                            label: 'Avg Effort (min)',
+                            data: capabilityClusters.map(c => c.effortHours * 60),
+                            backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Std Dev (min)',
+                            data: capabilityClusters.map(c => c.stdHours * 60),
+                            type: 'line',
+                            borderColor: '#F59E0B',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#F59E0B'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: {
+                        x: { ticks: { maxRotation: 45, minRotation: 45 } },
+                        y: { beginAtZero: true, title: { display: true, text: 'Minutes' } }
+                    }
+                }
+            });
+
+            // Risk Radar Chart
+            const stageData = capabilityClusters.filter(c => c.type === 'workflow_stage');
+            const radarCtx = document.getElementById('riskRadarChart').getContext('2d');
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: stageData.map(c => c.name),
+                    datasets: [
+                        {
+                            label: 'Violation Rate %',
+                            data: stageData.map(c => c.violationRate),
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            borderColor: '#EF4444',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'SLA Breach Rate %',
+                            data: stageData.map(c => c.breachRate),
+                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                            borderColor: '#F59E0B',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { r: { beginAtZero: true, max: 100 } }
+                }
+            });
+
+            // Cluster Type Distribution
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Workflow Stages', 'Account Categories', 'Complexity Modifiers'],
+                    datasets: [{
+                        data: [
+                            capabilityClusters.filter(c => c.type === 'workflow_stage').length,
+                            capabilityClusters.filter(c => c.type === 'account_category').length,
+                            capabilityClusters.filter(c => c.type === 'complexity_modifier').length
+                        ],
+                        backgroundColor: ['#3B82F6', '#10B981', '#F59E0B']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // Confidence Distribution
+            const confCtx = document.getElementById('confidenceChart').getContext('2d');
+            new Chart(confCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['High', 'Medium'],
+                    datasets: [{
+                        label: 'Number of Clusters',
+                        data: [
+                            capabilityClusters.filter(c => c.confidence === 'high').length,
+                            capabilityClusters.filter(c => c.confidence === 'medium').length
+                        ],
+                        backgroundColor: ['#3B82F6', '#EAB308']
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderClusters();
+            renderClusterSelector();
+            calculateEstimate();
+            initCharts();
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Close modal on backdrop click
+        document.getElementById('clusterModal').addEventListener('click', (e) => {
+            if (e.target.id === 'clusterModal') closeModal();
+        });
+    </script>
+</body>
+</html>

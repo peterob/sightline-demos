@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightline - GL Detail & Trial Balance Report</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            color: var(--gray-900);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 2rem 0 3rem;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--gray-600);
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--gray-200);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            color: var(--gray-600);
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* Report Period */
+        .period-selector {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .period-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .period-label {
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .period-value {
+            font-size: 1.1rem;
+            color: var(--gray-900);
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .export-btn {
+            background: white;
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Chart of Accounts */
+        .coa-section {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .coa-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .coa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .coa-item {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .coa-account {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .account-code {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .account-name {
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
+        .account-balance {
+            font-family: monospace;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Data Tables */
+        .data-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--gray-900);
+        }
+
+        .data-table-container {
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--gray-50);
+            color: var(--gray-700);
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* Amount formatting */
+        .amount {
+            font-family: monospace;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        .amount.debit {
+            color: var(--danger);
+        }
+
+        .amount.credit {
+            color: var(--success);
+        }
+
+        .amount.total {
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-top: 2px solid var(--gray-300);
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-posted {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Trial Balance */
+        .trial-balance {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .tb-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .tb-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tb-row {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .tb-row.header {
+            font-weight: 600;
+            color: var(--gray-700);
+            background: var(--gray-100);
+            border-radius: 4px;
+        }
+
+        .tb-row.total {
+            font-weight: 700;
+            border-top: 2px solid var(--gray-300);
+            border-bottom: none;
+            background: var(--gray-100);
+        }
+
+        /* Financial Statements */
+        .financial-statement {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .fs-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .fs-title {
+            font-size: 1.5rem;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .fs-period {
+            color: var(--gray-600);
+        }
+
+        .fs-section {
+            margin-bottom: 2rem;
+        }
+
+        .fs-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .fs-line.total {
+            font-weight: 700;
+            border-top: 2px solid var(--gray-300);
+            border-bottom: none;
+            margin-top: 0.5rem;
+            padding-top: 1rem;
+        }
+
+        .fs-label {
+            color: var(--gray-700);
+        }
+
+        .fs-amount {
+            font-family: monospace;
+            font-weight: 500;
+        }
+
+        /* Metadata Panel */
+        .metadata-panel {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metadata-item {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            padding: 1rem;
+        }
+
+        .metadata-label {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-bottom: 0.25rem;
+        }
+
+        .metadata-value {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--gray-300);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                max-width: 100%;
+            }
+            
+            .nav-tabs,
+            .export-controls,
+            .coa-section,
+            .metadata-panel {
+                display: none;
+            }
+            
+            .data-table-container {
+                border: none;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Sightline Financial Reporting System</h1>
+            <p class="subtitle">General Ledger Detail & Trial Balance - November & December 2024</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="gl-detail">GL Detail</button>
+            <button class="tab-btn" data-tab="trial-balance">Trial Balance</button>
+            <button class="tab-btn" data-tab="financials">Financial Statements</button>
+            <button class="tab-btn" data-tab="coa">Chart of Accounts</button>
+            <button class="tab-btn" data-tab="metadata">Complete Metadata</button>
+        </div>
+
+        <!-- Report Period -->
+        <div class="period-selector">
+            <div class="period-info">
+                <div>
+                    <span class="period-label">Reporting Period:</span>
+                    <span class="period-value">November 1, 2024 - December 31, 2024</span>
+                </div>
+                <div>
+                    <span class="period-label">Currency:</span>
+                    <span class="period-value">USD ($)</span>
+                </div>
+                <div>
+                    <span class="period-label">Generated:</span>
+                    <span class="period-value" id="generatedDate">Loading...</span>
+                </div>
+            </div>
+            <div class="export-controls">
+                <button class="export-btn" onclick="exportReport('excel')">
+                    📊 Excel
+                </button>
+                <button class="export-btn" onclick="exportReport('pdf')">
+                    📄 PDF
+                </button>
+                <button class="export-btn" onclick="exportReport('csv')">
+                    📁 CSV
+                </button>
+                <button class="export-btn" onclick="exportReport('quickbooks')">
+                    💰 QuickBooks
+                </button>
+            </div>
+        </div>
+
+        <!-- GL Detail (Default View) -->
+        <div id="gl-detail" class="data-section" style="display: block;">
+            <div class="section-header">
+                <h2 class="section-title">General Ledger Detail - November & December 2024</h2>
+                <button class="export-btn" onclick="exportGLDetail()">
+                    📥 Export GL Detail
+                </button>
+            </div>
+            <div class="data-table-container">
+                <table id="glDetailTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Journal #</th>
+                            <th>Account</th>
+                            <th>Account Name</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Debit</th>
+                            <th>Credit</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Event ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="glDetailBody">
+                        <!-- GL entries will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Trial Balance -->
+        <div id="trial-balance" class="data-section" style="display: none;">
+            <div class="trial-balance">
+                <div class="tb-header">
+                    <h2 class="section-title">Trial Balance - December 31, 2024</h2>
+                    <button class="export-btn" onclick="exportTrialBalance()">
+                        📥 Export Trial Balance
+                    </button>
+                </div>
+                
+                <div class="tb-grid">
+                    <div class="tb-row header">Account</div>
+                    <div class="tb-row header">Debit</div>
+                    <div class="tb-row header">Credit</div>
+                    
+                    <!-- Trial balance rows will be populated here -->
+                </div>
+                
+                <div id="trialBalanceContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+                
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 2px solid var(--gray-300);">
+                    <div class="fs-line total">
+                        <span>Total</span>
+                        <span class="fs-amount" id="tbTotalDebit">$0.00</span>
+                        <span class="fs-amount" id="tbTotalCredit">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financial Statements -->
+        <div id="financials" class="data-section" style="display: none;">
+            <div class="financial-statement">
+                <div class="fs-header">
+                    <h2 class="fs-title">Income Statement</h2>
+                    <div class="fs-period">For Period: November 1 - December 31, 2024</div>
+                </div>
+                
+                <div class="fs-section">
+                    <div class="fs-line">
+                        <span class="fs-label">Revenue</span>
+                        <span class="fs-amount" id="revenueTotal">$0</span>
+                    </div>
+                    
+                    <div style="margin-left: 1rem;">
+                        <div class="fs-line">
+                            <span class="fs-label">Services Revenue</span>
+                            <span class="fs-amount" id="servicesRevenue">$0</span>
+                        </div>
+                        <div class="fs-line">
+                            <span class="fs-label">License Revenue</span>
+                            <span class="fs-amount" id="licenseRevenue">$0</span>
+                        </div>
+                        <div class="fs-line">
+                            <span class="fs-label">New Business Revenue</span>
+                            <span class="fs-amount" id="newBusinessRevenue">$0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="fs-line">
+                        <span class="fs-label">Cost of Goods Sold</span>
+                        <span class="fs-amount" id="cogsTotal">$0</span>
+                    </div>
+                    
+                    <div class="fs-line total">
+                        <span class="fs-label">Gross Profit</span>
+                        <span class="fs-amount" id="grossProfit">$0</span>
+                    </div>
+                </div>
+                
+                <div class="fs-section">
+                    <div class="fs-line">
+                        <span class="fs-label">Operating Expenses</span>
+                        <span class="fs-amount" id="opexTotal">$0</span>
+                    </div>
+                    
+                    <div style="margin-left: 1rem;">
+                        <div class="fs-line">
+                            <span class="fs-label">Cloud Services</span>
+                            <span class="fs-amount" id="cloudServices">$0</span>
+                        </div>
+                        <div class="fs-line">
+                            <span class="fs-label">Salaries & Wages</span>
+                            <span class="fs-amount" id="salaries">$0</span>
+                        </div>
+                        <div class="fs-line">
+                            <span class="fs-label">Software Licenses</span>
+                            <span class="fs-amount" id="softwareLicenses">$0</span>
+                        </div>
+                    </div>
+                    
+                    <div class="fs-line total">
+                        <span class="fs-label">Operating Income (EBITDA)</span>
+                        <span class="fs-amount" id="ebitda">$0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="financial-statement">
+                <div class="fs-header">
+                    <h2 class="fs-title">Balance Sheet</h2>
+                    <div class="fs-period">As of: December 31, 2024</div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3 style="color: var(--gray-700); margin-bottom: 1rem;">Assets</h3>
+                        <div class="fs-section">
+                            <div class="fs-line">
+                                <span class="fs-label">Current Assets</span>
+                                <span class="fs-amount" id="currentAssets">$0</span>
+                            </div>
+                            <div class="fs-line">
+                                <span class="fs-label">Fixed Assets</span>
+                                <span class="fs-amount" id="fixedAssets">$0</span>
+                            </div>
+                            <div class="fs-line total">
+                                <span class="fs-label">Total Assets</span>
+                                <span class="fs-amount" id="totalAssets">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="color: var(--gray-700); margin-bottom: 1rem;">Liabilities & Equity</h3>
+                        <div class="fs-section">
+                            <div class="fs-line">
+                                <span class="fs-label">Current Liabilities</span>
+                                <span class="fs-amount" id="currentLiabilities">$0</span>
+                            </div>
+                            <div class="fs-line">
+                                <span class="fs-label">Long-term Liabilities</span>
+                                <span class="fs-amount" id="longTermLiabilities">$0</span>
+                            </div>
+                            <div class="fs-line">
+                                <span class="fs-label">Retained Earnings</span>
+                                <span class="fs-amount" id="retainedEarnings">$0</span>
+                            </div>
+                            <div class="fs-line total">
+                                <span class="fs-label">Total Liabilities & Equity</span>
+                                <span class="fs-amount" id="totalLiabilitiesEquity">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart of Accounts -->
+        <div id="coa" class="data-section" style="display: none;">
+            <div class="coa-section">
+                <div class="coa-header">
+                    <h2 class="section-title">Chart of Accounts</h2>
+                    <button class="export-btn" onclick="exportChartOfAccounts()">
+                        📥 Export COA
+                    </button>
+                </div>
+                <div class="coa-grid" id="coaGrid">
+                    <!-- COA items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Metadata -->
+        <div id="metadata" class="data-section" style="display: none;">
+            <div class="metadata-panel">
+                <div class="coa-header">
+                    <h2 class="section-title">Complete Transaction Metadata</h2>
+                    <button class="export-btn" onclick="exportCompleteMetadata()">
+                        📥 Export All Metadata
+                    </button>
+                </div>
+                <div class="metadata-grid" id="metadataGrid">
+                    <!-- Metadata items will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Financial Data for November & December 2024
+        const financialData = {
+            chartOfAccounts: {
+                "1000": { name: "Cash & Cash Equivalents", type: "asset", normal: "debit" },
+                "1100": { name: "Accounts Receivable", type: "asset", normal: "debit" },
+                "1500": { name: "Fixed Assets - Hardware", type: "asset", normal: "debit" },
+                "1510": { name: "Software Licenses", type: "asset", normal: "debit" },
+                "2000": { name: "Accounts Payable", type: "liability", normal: "credit" },
+                "3000": { name: "Long-term Debt", type: "liability", normal: "credit" },
+                "4000": { name: "Services Revenue", type: "revenue", normal: "credit" },
+                "4010": { name: "License Revenue", type: "revenue", normal: "credit" },
+                "4020": { name: "New Business Revenue", type: "revenue", normal: "credit" },
+                "5000": { name: "Cloud Services", type: "expense", normal: "debit" },
+                "5010": { name: "Salaries & Wages", type: "expense", normal: "debit" },
+                "5020": { name: "Software Expense", type: "expense", normal: "debit" },
+                "6000": { name: "Retained Earnings", type: "equity", normal: "credit" }
+            },
+
+            journalEntries: [
+                // November Transactions
+                {
+                    date: "2024-11-01",
+                    journalNo: "JRN-2024-11-001",
+                    entries: [
+                        {
+                            account: "1500",
+                            description: "GPU Cluster Purchase - NVIDIA",
+                            reference: "PO-4567",
+                            debit: 2400000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-01-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "NVIDIA Corporation",
+                                project: "GPU Expansion",
+                                policy: "CAPEX-APPROVAL-3.0",
+                                evidence: "0x8f3c6a9d2e1b4c7a5f8e3d2c1b9a8f7e6d5c4b3"
+                            }
+                        },
+                        {
+                            account: "2000",
+                            description: "GPU Cluster Purchase - NVIDIA",
+                            reference: "PO-4567",
+                            debit: 0,
+                            credit: 2400000,
+                            eventId: "EVT-2024-11-01-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "NVIDIA Corporation",
+                                paymentTerms: "Net 30",
+                                dueDate: "2024-12-01"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-01",
+                    journalNo: "JRN-2024-11-002",
+                    entries: [
+                        {
+                            account: "1100",
+                            description: "Enterprise Contract - TechCorp",
+                            reference: "INV-7890",
+                            debit: 1200000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-01-002",
+                            status: "posted",
+                            metadata: {
+                                customer: "TechCorp Inc.",
+                                contract: "TC-2024-001",
+                                term: "Net 60"
+                            }
+                        },
+                        {
+                            account: "4000",
+                            description: "Enterprise Contract - TechCorp",
+                            reference: "INV-7890",
+                            debit: 0,
+                            credit: 1200000,
+                            eventId: "EVT-2024-11-01-002",
+                            status: "posted",
+                            metadata: {
+                                revenueType: "Services",
+                                salesRep: "Alice",
+                                commission: 120000
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-02",
+                    journalNo: "JRN-2024-11-003",
+                    entries: [
+                        {
+                            account: "5000",
+                            description: "Cloud Services - Monthly",
+                            reference: "INV-7845",
+                            debit: 85000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-02-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "CloudProvider Inc.",
+                                servicePeriod: "November 2024",
+                                costCenter: "OPS-INFRA"
+                            }
+                        },
+                        {
+                            account: "2000",
+                            description: "Cloud Services - Monthly",
+                            reference: "INV-7845",
+                            debit: 0,
+                            credit: 85000,
+                            eventId: "EVT-2024-11-02-001",
+                            status: "posted",
+                            metadata: {
+                                paymentTerms: "Net 30",
+                                dueDate: "2024-12-02"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-05",
+                    journalNo: "JRN-2024-11-004",
+                    entries: [
+                        {
+                            account: "2000",
+                            description: "Vendor Correction - Overbilling",
+                            reference: "ADJ-001",
+                            debit: 125000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-05-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "CloudProvider Inc.",
+                                originalInvoice: "INV-7845",
+                                correctionReason: "Duplicate billing",
+                                detectedBy: "audit_bot"
+                            }
+                        },
+                        {
+                            account: "5000",
+                            description: "Vendor Correction - Overbilling",
+                            reference: "ADJ-001",
+                            debit: 0,
+                            credit: 125000,
+                            eventId: "EVT-2024-11-05-001",
+                            status: "posted",
+                            metadata: {
+                                savings: 125000,
+                                policy: "CORRECTION-PROTOCOL-1.1"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-07",
+                    journalNo: "JRN-2024-11-005",
+                    entries: [
+                        {
+                            account: "1000",
+                            description: "License Renewal - Customer A",
+                            reference: "INV-8901",
+                            debit: 450000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-07-001",
+                            status: "posted",
+                            metadata: {
+                                customer: "Customer A",
+                                renewalType: "Annual",
+                                paymentMethod: "Wire"
+                            }
+                        },
+                        {
+                            account: "4010",
+                            description: "License Renewal - Customer A",
+                            reference: "INV-8901",
+                            debit: 0,
+                            credit: 450000,
+                            eventId: "EVT-2024-11-07-001",
+                            status: "posted",
+                            metadata: {
+                                revenueType: "License",
+                                term: "Annual",
+                                autoRenew: true
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-08",
+                    journalNo: "JRN-2024-11-006",
+                    entries: [
+                        {
+                            account: "1510",
+                            description: "Software License Purchase",
+                            reference: "PO-5678",
+                            debit: 120000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-08-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "Software Corp",
+                                licenses: 50,
+                                term: "Annual",
+                                costCenter: "IT-OPS"
+                            }
+                        },
+                        {
+                            account: "2000",
+                            description: "Software License Purchase",
+                            reference: "PO-5678",
+                            debit: 0,
+                            credit: 120000,
+                            eventId: "EVT-2024-11-08-001",
+                            status: "posted",
+                            metadata: {
+                                paymentTerms: "Net 45",
+                                dueDate: "2024-12-23"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-12",
+                    journalNo: "JRN-2024-11-007",
+                    entries: [
+                        {
+                            account: "1100",
+                            description: "New Customer - Startup B",
+                            reference: "INV-9012",
+                            debit: 375000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-12-001",
+                            status: "partial",
+                            metadata: {
+                                customer: "Startup B",
+                                dealSize: 750000,
+                                paymentTerms: "50% upfront, 50% in 90 days",
+                                salesRep: "David"
+                            }
+                        },
+                        {
+                            account: "4020",
+                            description: "New Customer - Startup B",
+                            reference: "INV-9012",
+                            debit: 0,
+                            credit: 750000,
+                            eventId: "EVT-2024-11-12-001",
+                            status: "partial",
+                            metadata: {
+                                revenueType: "New Business",
+                                customerType: "Startup",
+                                acquisitionChannel: "Referral"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-11-15",
+                    journalNo: "JRN-2024-11-008",
+                    entries: [
+                        {
+                            account: "5010",
+                            description: "Payroll - November 1-15",
+                            reference: "PAYROLL-2024-11-1",
+                            debit: 320000,
+                            credit: 0,
+                            eventId: "EVT-2024-11-15-001",
+                            status: "posted",
+                            metadata: {
+                                period: "November 1-15, 2024",
+                                employees: 45,
+                                department: "All",
+                                taxes: 85000
+                            }
+                        },
+                        {
+                            account: "1000",
+                            description: "Payroll - November 1-15",
+                            reference: "PAYROLL-2024-11-1",
+                            debit: 0,
+                            credit: 320000,
+                            eventId: "EVT-2024-11-15-001",
+                            status: "posted",
+                            metadata: {
+                                paymentDate: "2024-11-15",
+                                paymentMethod: "ACH",
+                                cleared: true
+                            }
+                        }
+                    ]
+                },
+                // December Transactions
+                {
+                    date: "2024-12-01",
+                    journalNo: "JRN-2024-12-001",
+                    entries: [
+                        {
+                            account: "2000",
+                            description: "Payment - NVIDIA GPU Cluster",
+                            reference: "PAY-4567",
+                            debit: 2400000,
+                            credit: 0,
+                            eventId: "EVT-2024-12-01-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "NVIDIA Corporation",
+                                originalPO: "PO-4567",
+                                paymentMethod: "Wire",
+                                clearedDate: "2024-12-02"
+                            }
+                        },
+                        {
+                            account: "1000",
+                            description: "Payment - NVIDIA GPU Cluster",
+                            reference: "PAY-4567",
+                            debit: 0,
+                            credit: 2400000,
+                            eventId: "EVT-2024-12-01-001",
+                            status: "posted",
+                            metadata: {
+                                bank: "Chase Bank",
+                                account: "****1234",
+                                reference: "WIRE-123456"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-12-02",
+                    journalNo: "JRN-2024-12-002",
+                    entries: [
+                        {
+                            account: "2000",
+                            description: "Payment - CloudProvider",
+                            reference: "PAY-7845",
+                            debit: 85000,
+                            credit: 0,
+                            eventId: "EVT-2024-12-02-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "CloudProvider Inc.",
+                                originalInvoice: "INV-7845",
+                                paymentMethod: "ACH",
+                                clearedDate: "2024-12-02"
+                            }
+                        },
+                        {
+                            account: "1000",
+                            description: "Payment - CloudProvider",
+                            reference: "PAY-7845",
+                            debit: 0,
+                            credit: 85000,
+                            eventId: "EVT-2024-12-02-001",
+                            status: "posted",
+                            metadata: {
+                                bank: "Chase Bank",
+                                account: "****1234",
+                                reference: "ACH-789012"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-12-15",
+                    journalNo: "JRN-2024-12-003",
+                    entries: [
+                        {
+                            account: "5010",
+                            description: "Payroll - December 1-15",
+                            reference: "PAYROLL-2024-12-1",
+                            debit: 340000,
+                            credit: 0,
+                            eventId: "EVT-2024-12-15-001",
+                            status: "posted",
+                            metadata: {
+                                period: "December 1-15, 2024",
+                                employees: 45,
+                                bonuses: 20000,
+                                taxes: 90000
+                            }
+                        },
+                        {
+                            account: "1000",
+                            description: "Payroll - December 1-15",
+                            reference: "PAYROLL-2024-12-1",
+                            debit: 0,
+                            credit: 340000,
+                            eventId: "EVT-2024-12-15-001",
+                            status: "posted",
+                            metadata: {
+                                paymentDate: "2024-12-15",
+                                paymentMethod: "ACH",
+                                cleared: true
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-12-23",
+                    journalNo: "JRN-2024-12-004",
+                    entries: [
+                        {
+                            account: "2000",
+                            description: "Payment - Software Corp",
+                            reference: "PAY-5678",
+                            debit: 120000,
+                            credit: 0,
+                            eventId: "EVT-2024-12-23-001",
+                            status: "posted",
+                            metadata: {
+                                vendor: "Software Corp",
+                                originalPO: "PO-5678",
+                                paymentMethod: "ACH",
+                                clearedDate: "2024-12-23"
+                            }
+                        },
+                        {
+                            account: "1000",
+                            description: "Payment - Software Corp",
+                            reference: "PAY-5678",
+                            debit: 0,
+                            credit: 120000,
+                            eventId: "EVT-2024-12-23-001",
+                            status: "posted",
+                            metadata: {
+                                bank: "Chase Bank",
+                                account: "****1234",
+                                reference: "ACH-345678"
+                            }
+                        }
+                    ]
+                },
+                {
+                    date: "2024-12-31",
+                    journalNo: "JRN-2024-12-005",
+                    entries: [
+                        {
+                            account: "1000",
+                            description: "Payment Received - TechCorp",
+                            reference: "RCV-7890",
+                            debit: 1200000,
+                            credit: 0,
+                            eventId: "EVT-2024-12-31-001",
+                            status: "posted",
+                            metadata: {
+                                customer: "TechCorp Inc.",
+                                originalInvoice: "INV-7890",
+                                paymentMethod: "Wire",
+                                clearedDate: "2024-12-31"
+                            }
+                        },
+                        {
+                            account: "1100",
+                            description: "Payment Received - TechCorp",
+                            reference: "RCV-7890",
+                            debit: 0,
+                            credit: 1200000,
+                            eventId: "EVT-2024-12-31-001",
+                            status: "posted",
+                            metadata: {
+                                daysOutstanding: 60,
+                                onTime: true,
+                                reference: "WIRE-654321"
+                            }
+                        }
+                    ]
+                }
+            ],
+
+            // Opening balances (as of Nov 1, 2024)
+            openingBalances: {
+                "1000": 2500000,  // Cash
+                "1100": 1500000,  // AR
+                "1500": 8000000,  // Fixed Assets
+                "1510": 500000,   // Software
+                "2000": 1200000,  // AP
+                "3000": 5000000,  // Long-term Debt
+                "6000": 6300000   // Retained Earnings
+            }
+        };
+
+        // Initialize the financial reporting system
+        function initializeFinancialReporting() {
+            // Set generated date
+            document.getElementById('generatedDate').textContent = new Date().toLocaleDateString();
+            
+            // Initialize all views
+            renderGLDetail();
+            renderTrialBalance();
+            renderFinancialStatements();
+            renderChartOfAccounts();
+            renderMetadata();
+            
+            // Setup tab navigation
+            setupTabNavigation();
+        }
+
+        // Setup tab navigation
+        function setupTabNavigation() {
+            document.querySelectorAll('.tab-btn').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabId = e.target.dataset.tab;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+                    
+                    // Show selected content
+                    document.querySelectorAll('.data-section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    document.getElementById(tabId).style.display = 'block';
+                });
+            });
+        }
+
+        // Render GL Detail
+        function renderGLDetail() {
+            const tbody = document.getElementById('glDetailBody');
+            tbody.innerHTML = '';
+            
+            let runningBalance = { ...financialData.openingBalances };
+            
+            // Add opening balance row
+            const openingRow = document.createElement('tr');
+            openingRow.innerHTML = `
+                <td>2024-11-01</td>
+                <td>OPENING</td>
+                <td></td>
+                <td><strong>Opening Balance</strong></td>
+                <td>Balance brought forward</td>
+                <td></td>
+                <td class="amount"></td>
+                <td class="amount"></td>
+                <td class="amount"></td>
+                <td></td>
+                <td></td>
+            `;
+            tbody.appendChild(openingRow);
+            
+            // Process all journal entries
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach((entry, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Calculate running balance
+                    const account = entry.account;
+                    const normal = financialData.chartOfAccounts[account].normal;
+                    
+                    if (normal === 'debit') {
+                        runningBalance[account] = (runningBalance[account] || 0) + entry.debit - entry.credit;
+                    } else {
+                        runningBalance[account] = (runningBalance[account] || 0) + entry.credit - entry.debit;
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${journal.date}</td>
+                        <td>${journal.journalNo}${journal.entries.length > 1 ? `.${index + 1}` : ''}</td>
+                        <td>${account}</td>
+                        <td>${financialData.chartOfAccounts[account].name}</td>
+                        <td>${entry.description}</td>
+                        <td>${entry.reference}</td>
+                        <td class="amount ${entry.debit > 0 ? 'debit' : ''}">${entry.debit > 0 ? formatCurrency(entry.debit) : ''}</td>
+                        <td class="amount ${entry.credit > 0 ? 'credit' : ''}">${entry.credit > 0 ? formatCurrency(entry.credit) : ''}</td>
+                        <td class="amount">${formatCurrency(runningBalance[account])}</td>
+                        <td><span class="status-badge status-${entry.status}">${entry.status.toUpperCase()}</span></td>
+                        <td title="${entry.eventId}">${entry.eventId.substring(0, 8)}...</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            });
+            
+            // Add closing balance row
+            const closingRow = document.createElement('tr');
+            closingRow.style.background = 'var(--gray-50)';
+            closingRow.innerHTML = `
+                <td>2024-12-31</td>
+                <td>CLOSING</td>
+                <td></td>
+                <td><strong>Closing Balance</strong></td>
+                <td>Balance carried forward</td>
+                <td></td>
+                <td class="amount"></td>
+                <td class="amount"></td>
+                <td class="amount"></td>
+                <td></td>
+                <td></td>
+            `;
+            tbody.appendChild(closingRow);
+        }
+
+        // Render Trial Balance
+        function renderTrialBalance() {
+            const container = document.getElementById('trialBalanceContent');
+            container.innerHTML = '';
+            
+            // Calculate ending balances
+            const balances = calculateEndingBalances();
+            
+            let totalDebit = 0;
+            let totalCredit = 0;
+            
+            // Sort accounts by account number
+            const sortedAccounts = Object.keys(balances).sort();
+            
+            sortedAccounts.forEach(account => {
+                const balance = balances[account];
+                const accountInfo = financialData.chartOfAccounts[account];
+                
+                if (balance !== 0) {
+                    const row = document.createElement('div');
+                    row.className = 'tb-row';
+                    
+                    const debit = accountInfo.normal === 'debit' && balance > 0 ? Math.abs(balance) : 0;
+                    const credit = accountInfo.normal === 'credit' && balance > 0 ? Math.abs(balance) : 
+                                   accountInfo.normal === 'debit' && balance < 0 ? Math.abs(balance) : 0;
+                    
+                    row.innerHTML = `
+                        <div>${account} - ${accountInfo.name}</div>
+                        <div class="amount ${debit > 0 ? 'debit' : ''}">${debit > 0 ? formatCurrency(debit) : ''}</div>
+                        <div class="amount ${credit > 0 ? 'credit' : ''}">${credit > 0 ? formatCurrency(credit) : ''}</div>
+                    `;
+                    
+                    container.appendChild(row);
+                    
+                    totalDebit += debit;
+                    totalCredit += credit;
+                }
+            });
+            
+            // Update totals
+            document.getElementById('tbTotalDebit').textContent = formatCurrency(totalDebit);
+            document.getElementById('tbTotalCredit').textContent = formatCurrency(totalCredit);
+        }
+
+        // Calculate ending balances
+        function calculateEndingBalances() {
+            const balances = { ...financialData.openingBalances };
+            
+            // Apply all journal entries
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach(entry => {
+                    const account = entry.account;
+                    const accountInfo = financialData.chartOfAccounts[account];
+                    
+                    if (accountInfo.normal === 'debit') {
+                        balances[account] = (balances[account] || 0) + entry.debit - entry.credit;
+                    } else {
+                        balances[account] = (balances[account] || 0) + entry.credit - entry.debit;
+                    }
+                });
+            });
+            
+            return balances;
+        }
+
+        // Render Financial Statements
+        function renderFinancialStatements() {
+            const balances = calculateEndingBalances();
+            
+            // Income Statement Calculations
+            const servicesRevenue = balances['4000'] || 0;
+            const licenseRevenue = balances['4010'] || 0;
+            const newBusinessRevenue = balances['4020'] || 0;
+            const totalRevenue = servicesRevenue + licenseRevenue + newBusinessRevenue;
+            
+            const cloudServices = Math.abs(balances['5000'] || 0);
+            const salaries = Math.abs(balances['5010'] || 0);
+            const softwareLicenses = Math.abs(balances['5020'] || 0);
+            const totalOperatingExpenses = cloudServices + salaries + softwareLicenses;
+            
+            // For simplicity, we're calculating a simple EBITDA
+            // In real system, this would account for depreciation, interest, taxes
+            const ebitda = totalRevenue - totalOperatingExpenses;
+            
+            // Update Income Statement
+            document.getElementById('servicesRevenue').textContent = formatCurrency(servicesRevenue);
+            document.getElementById('licenseRevenue').textContent = formatCurrency(licenseRevenue);
+            document.getElementById('newBusinessRevenue').textContent = formatCurrency(newBusinessRevenue);
+            document.getElementById('revenueTotal').textContent = formatCurrency(totalRevenue);
+            
+            document.getElementById('cloudServices').textContent = formatCurrency(cloudServices);
+            document.getElementById('salaries').textContent = formatCurrency(salaries);
+            document.getElementById('softwareLicenses').textContent = formatCurrency(softwareLicenses);
+            document.getElementById('opexTotal').textContent = formatCurrency(totalOperatingExpenses);
+            
+            document.getElementById('grossProfit').textContent = formatCurrency(totalRevenue);
+            document.getElementById('ebitda').textContent = formatCurrency(ebitda);
+            
+            // Balance Sheet Calculations
+            const currentAssets = (balances['1000'] || 0) + (balances['1100'] || 0);
+            const fixedAssets = (balances['1500'] || 0) + (balances['1510'] || 0);
+            const totalAssets = currentAssets + fixedAssets;
+            
+            // For simplicity - these would come from actual liability accounts
+            const currentLiabilities = Math.abs(balances['2000'] || 0);
+            const longTermLiabilities = Math.abs(balances['3000'] || 0);
+            const retainedEarnings = (balances['6000'] || 0) + ebitda; // Simplified
+            const totalLiabilitiesEquity = currentLiabilities + longTermLiabilities + retainedEarnings;
+            
+            // Update Balance Sheet
+            document.getElementById('currentAssets').textContent = formatCurrency(currentAssets);
+            document.getElementById('fixedAssets').textContent = formatCurrency(fixedAssets);
+            document.getElementById('totalAssets').textContent = formatCurrency(totalAssets);
+            
+            document.getElementById('currentLiabilities').textContent = formatCurrency(currentLiabilities);
+            document.getElementById('longTermLiabilities').textContent = formatCurrency(longTermLiabilities);
+            document.getElementById('retainedEarnings').textContent = formatCurrency(retainedEarnings);
+            document.getElementById('totalLiabilitiesEquity').textContent = formatCurrency(totalLiabilitiesEquity);
+        }
+
+        // Render Chart of Accounts
+        function renderChartOfAccounts() {
+            const container = document.getElementById('coaGrid');
+            container.innerHTML = '';
+            
+            const balances = calculateEndingBalances();
+            
+            Object.entries(financialData.chartOfAccounts).forEach(([account, info]) => {
+                const balance = balances[account] || 0;
+                const formattedBalance = formatCurrency(Math.abs(balance));
+                
+                const item = document.createElement('div');
+                item.className = 'coa-item';
+                item.innerHTML = `
+                    <div class="coa-account">
+                        <div>
+                            <div class="account-code">${account}</div>
+                            <div class="account-name">${info.name}</div>
+                        </div>
+                        <div class="account-balance ${info.normal === 'debit' && balance >= 0 ? 'debit' : 'credit'}">
+                            ${info.normal === 'debit' && balance >= 0 ? 'Dr' : 'Cr'} ${formattedBalance}
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--gray-500);">
+                        Type: ${info.type.toUpperCase()} | Normal: ${info.normal.toUpperCase()}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        // Render Metadata
+        function renderMetadata() {
+            const container = document.getElementById('metadataGrid');
+            container.innerHTML = '';
+            
+            // Collect all unique metadata from transactions
+            const metadataSet = new Set();
+            
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach(entry => {
+                    if (entry.metadata) {
+                        Object.entries(entry.metadata).forEach(([key, value]) => {
+                            metadataSet.add(`${key}: ${value}`);
+                        });
+                    }
+                });
+            });
+            
+            // Convert to array and sort
+            const metadataArray = Array.from(metadataSet).sort();
+            
+            // Display metadata items
+            metadataArray.forEach(metadata => {
+                const [label, ...valueParts] = metadata.split(': ');
+                const value = valueParts.join(': ');
+                
+                const item = document.createElement('div');
+                item.className = 'metadata-item';
+                item.innerHTML = `
+                    <div class="metadata-label">${label}</div>
+                    <div class="metadata-value">${value}</div>
+                `;
+                
+                container.appendChild(item);
+            });
+            
+            // Add count
+            const countItem = document.createElement('div');
+            countItem.className = 'metadata-item';
+            countItem.innerHTML = `
+                <div class="metadata-label">Total Metadata Items</div>
+                <div class="metadata-value">${metadataArray.length} unique fields</div>
+            `;
+            container.appendChild(countItem);
+        }
+
+        // Export Functions
+        function exportReport(format) {
+            switch(format) {
+                case 'excel':
+                    exportExcel();
+                    break;
+                case 'pdf':
+                    exportPDF();
+                    break;
+                case 'csv':
+                    exportCSV();
+                    break;
+                case 'quickbooks':
+                    exportQuickBooks();
+                    break;
+            }
+        }
+
+        function exportExcel() {
+            const data = {
+                'GL Detail': getGLDetailForExport(),
+                'Trial Balance': getTrialBalanceForExport(),
+                'Chart of Accounts': getCOAForExport(),
+                'Financial Statements': getFinancialStatementsForExport()
+            };
+            
+            alert('Excel export prepared. In production, this would generate an .xlsx file with multiple sheets containing:\n\n' +
+                  '1. General Ledger Detail (all transactions)\n' +
+                  '2. Trial Balance (account balances)\n' +
+                  '3. Chart of Accounts\n' +
+                  '4. Income Statement\n' +
+                  '5. Balance Sheet\n\n' +
+                  'Total: ' + financialData.journalEntries.length + ' journal entries, ' +
+                  Object.keys(financialData.chartOfAccounts).length + ' accounts');
+        }
+
+        function exportPDF() {
+            window.print();
+        }
+
+        function exportCSV() {
+            const glData = getGLDetailForExport();
+            const csvContent = convertToCSV(glData);
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-gl-detail.csv';
+            a.click();
+            
+            alert(`Exported ${glData.length} GL entries to CSV`);
+        }
+
+        function exportQuickBooks() {
+            const qbData = convertToQuickBooksFormat();
+            
+            const blob = new Blob([qbData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-quickbooks-import.iif';
+            a.click();
+            
+            alert('Exported in QuickBooks IIF format ready for import');
+        }
+
+        function getGLDetailForExport() {
+            const exportData = [];
+            
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach((entry, index) => {
+                    exportData.push({
+                        Date: journal.date,
+                        'Journal #': `${journal.journalNo}${journal.entries.length > 1 ? `.${index + 1}` : ''}`,
+                        Account: entry.account,
+                        'Account Name': financialData.chartOfAccounts[entry.account].name,
+                        Description: entry.description,
+                        Reference: entry.reference,
+                        Debit: entry.debit,
+                        Credit: entry.credit,
+                        'Event ID': entry.eventId,
+                        Status: entry.status,
+                        ...entry.metadata
+                    });
+                });
+            });
+            
+            return exportData;
+        }
+
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => 
+                headers.map(header => {
+                    const value = row[header];
+                    if (value === null || value === undefined) return '';
+                    if (typeof value === 'string') return `"${value.replace(/"/g, '""')}"`;
+                    return value;
+                }).join(',')
+            );
+            
+            return [headers.join(','), ...rows].join('\n');
+        }
+
+        function convertToQuickBooksFormat() {
+            let iifContent = '!TRNS\tDATE\tACCNT\tNAME\tAMOUNT\tMEMO\n';
+            iifContent += '!SPL\tDATE\tACCNT\tNAME\tAMOUNT\tMEMO\n';
+            iifContent += '!ENDTRNS\n';
+            
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach((entry, index) => {
+                    if (index === 0) {
+                        iifContent += `TRNS\t${journal.date}\t${entry.account}\t${entry.description}\t${entry.debit - entry.credit}\t${entry.reference}\n`;
+                    } else {
+                        iifContent += `SPL\t${journal.date}\t${entry.account}\t${entry.description}\t${entry.credit - entry.debit}\t${entry.reference}\n`;
+                    }
+                });
+                iifContent += 'ENDTRNS\n';
+            });
+            
+            return iifContent;
+        }
+
+        function formatCurrency(amount) {
+            if (amount === 0) return '$0';
+            
+            const absAmount = Math.abs(amount);
+            let formatted;
+            
+            if (absAmount >= 1000000) {
+                formatted = '$' + (absAmount / 1000000).toFixed(2) + 'M';
+            } else if (absAmount >= 1000) {
+                formatted = '$' + (absAmount / 1000).toFixed(1) + 'K';
+            } else {
+                formatted = '$' + absAmount.toLocaleString();
+            }
+            
+            return formatted;
+        }
+
+        // Individual export functions for buttons
+        function exportGLDetail() {
+            const data = getGLDetailForExport();
+            const csvContent = convertToCSV(data);
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-general-ledger-detail.csv';
+            a.click();
+        }
+
+        function exportTrialBalance() {
+            const balances = calculateEndingBalances();
+            const tbData = [];
+            
+            Object.entries(balances).forEach(([account, balance]) => {
+                if (balance !== 0) {
+                    const info = financialData.chartOfAccounts[account];
+                    tbData.push({
+                        Account: account,
+                        'Account Name': info.name,
+                        Type: info.type,
+                        'Normal Balance': info.normal.toUpperCase(),
+                        'Ending Balance': balance,
+                        'Balance Type': info.normal === 'debit' && balance > 0 ? 'Debit' : 'Credit'
+                    });
+                }
+            });
+            
+            const csvContent = convertToCSV(tbData);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-trial-balance.csv';
+            a.click();
+        }
+
+        function exportChartOfAccounts() {
+            const coaData = [];
+            
+            Object.entries(financialData.chartOfAccounts).forEach(([account, info]) => {
+                coaData.push({
+                    'Account Number': account,
+                    'Account Name': info.name,
+                    'Account Type': info.type,
+                    'Normal Balance': info.normal,
+                    'Description': `${info.type.toUpperCase()} account for ${info.name.toLowerCase()}`
+                });
+            });
+            
+            const csvContent = convertToCSV(coaData);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-chart-of-accounts.csv';
+            a.click();
+        }
+
+        function exportCompleteMetadata() {
+            const allMetadata = [];
+            
+            financialData.journalEntries.forEach(journal => {
+                journal.entries.forEach(entry => {
+                    const baseRecord = {
+                        Date: journal.date,
+                        'Journal #': journal.journalNo,
+                        Account: entry.account,
+                        Description: entry.description,
+                        Reference: entry.reference,
+                        'Event ID': entry.eventId,
+                        Status: entry.status
+                    };
+                    
+                    if (entry.metadata) {
+                        Object.assign(baseRecord, entry.metadata);
+                    }
+                    
+                    allMetadata.push(baseRecord);
+                });
+            });
+            
+            const csvContent = convertToCSV(allMetadata);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sightline-complete-metadata.csv';
+            a.click();
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initializeFinancialReporting);
+    </script>
+</body>
+</html>

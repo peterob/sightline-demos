@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+<meta charset="UTF-8">
+<title>CAST — Financial Management Layer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root, [data-theme="light"] {
+  --bg: #f5f5f0;
+  --bg-alt: #eceee8;
+  --surface: #ffffff;
+  --surface-2: #f9faf7;
+  --border: #d8dbd2;
+  --border-subtle: #e6e8e1;
+  --text: #1a1d15;
+  --text-muted: #6b7064;
+  --text-faint: #a3a89c;
+  --accent: #0d6e6e;
+  --accent-hover: #095555;
+  --accent-soft: rgba(13,110,110,0.08);
+  --accent-glow: rgba(13,110,110,0.15);
+  --success: #2d7a3a;
+  --success-soft: rgba(45,122,58,0.1);
+  --warning: #b8860b;
+  --warning-soft: rgba(184,134,11,0.1);
+  --error: #b53030;
+  --error-soft: rgba(181,48,48,0.1);
+  --purple: #6a4fb8;
+  --purple-soft: rgba(106,79,184,0.1);
+  --blue: #2e6fa8;
+  --blue-soft: rgba(46,111,168,0.1);
+  --sidebar-bg: #1b1e16;
+  --sidebar-text: #c8cbc2;
+  --sidebar-text-muted: #6b7064;
+  --sidebar-hover: rgba(255,255,255,0.05);
+  --sidebar-active: rgba(13,110,110,0.2);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+  --mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #0f110d;
+  --bg-alt: #151714;
+  --surface: #1a1d16;
+  --surface-2: #20231b;
+  --border: #2e3128;
+  --border-subtle: #252821;
+  --text: #d1d4cb;
+  --text-muted: #8a8e83;
+  --text-faint: #545850;
+  --accent: #3db8a9;
+  --accent-hover: #2d9a8d;
+  --accent-soft: rgba(61,184,169,0.1);
+  --accent-glow: rgba(61,184,169,0.08);
+  --success: #4cb563;
+  --success-soft: rgba(76,181,99,0.12);
+  --warning: #e0a82e;
+  --warning-soft: rgba(224,168,46,0.12);
+  --error: #e05555;
+  --error-soft: rgba(224,85,85,0.12);
+  --purple: #9b84e0;
+  --purple-soft: rgba(155,132,224,0.12);
+  --blue: #5a9fd4;
+  --blue-soft: rgba(90,159,212,0.12);
+  --sidebar-bg: #0c0e0a;
+  --sidebar-text: #b8bbb2;
+  --sidebar-text-muted: #5c6056;
+  --sidebar-hover: rgba(255,255,255,0.04);
+  --sidebar-active: rgba(61,184,169,0.15);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LAYOUT ===== */
+.app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  height: 100dvh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  grid-row: 1 / -1;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar-logo {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-logo svg { flex-shrink: 0; }
+
+.sidebar-logo-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e8ebe2;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-logo-sub {
+  font-size: 10px;
+  color: var(--sidebar-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 1px;
+}
+
+.sidebar-section {
+  padding: 16px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--sidebar-text-muted);
+}
+
+.sidebar-nav { padding: 4px 8px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 400;
+  transition: all 150ms ease;
+  user-select: none;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover { background: var(--sidebar-hover); }
+.nav-item.active {
+  background: var(--sidebar-active);
+  color: var(--accent);
+  font-weight: 500;
+  border-color: rgba(61,184,169,0.1);
+}
+
+.nav-item svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.nav-item.active svg { opacity: 1; }
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--error-soft);
+  color: var(--error);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ===== HEADER ===== */
+.header {
+  grid-column: 2;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.header-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.header-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.header-btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.header-btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  background: transparent;
+  transition: all 150ms ease;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main {
+  grid-column: 2;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+  background: var(--bg);
+}
+
+/* ===== SECTION (each module view) ===== */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ===== KPI CARDS ===== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-family: var(--mono);
+}
+
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.kpi-delta.up { background: var(--success-soft); color: var(--success); }
+.kpi-delta.down { background: var(--error-soft); color: var(--error); }
+.kpi-delta.flat { background: var(--accent-soft); color: var(--text-muted); }
+
+/* ===== TABLES ===== */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+tr.clickable {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+tr.clickable:hover { background: var(--accent-soft); }
+tr.clickable.selected { background: var(--accent-glow); }
+
+/* ===== PILLS / BADGES ===== */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pill-green { background: var(--success-soft); color: var(--success); }
+.pill-red { background: var(--error-soft); color: var(--error); }
+.pill-yellow { background: var(--warning-soft); color: var(--warning); }
+.pill-blue { background: var(--blue-soft); color: var(--blue); }
+.pill-purple { background: var(--purple-soft); color: var(--purple); }
+.pill-muted { background: var(--accent-soft); color: var(--text-muted); }
+
+/* ===== GRID LAYOUTS ===== */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+
+/* ===== TIMELINE ===== */
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.timeline-item:last-child { padding-bottom: 0; }
+
+.timeline-dot {
+  position: absolute;
+  left: -24px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+.timeline-dot.budget { background: var(--blue); }
+.timeline-dot.policy { background: var(--purple); }
+.timeline-dot.workorder { background: var(--warning); }
+.timeline-dot.event { background: var(--accent); }
+.timeline-dot.ledger { background: var(--success); }
+.timeline-dot.hash { background: var(--error); }
+
+.timeline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.timeline-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.timeline-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  font-family: var(--mono);
+}
+
+/* ===== TABS ===== */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.tab-item {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 150ms ease;
+  user-select: none;
+}
+
+.tab-item:hover { color: var(--text); }
+.tab-item.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===== PANELS ===== */
+.detail-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.panel-empty svg {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+/* ===== EXPERIMENT CARDS ===== */
+.experiment-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.experiment-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+.experiment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.experiment-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.experiment-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.experiment-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.experiment-metrics {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.experiment-metric {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.experiment-metric strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 600ms ease;
+}
+
+/* ===== HASH CHAIN ===== */
+.hash-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--purple);
+  opacity: 0.8;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ===== MINI CHART (sparkline-style) ===== */
+.sparkline-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 24px;
+}
+
+.sparkline-bar div {
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+/* ===== BREADCRUMB ===== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.breadcrumb a {
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.breadcrumb a:hover { text-decoration: underline; }
+
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  background: transparent;
+}
+
+.filter-chip:hover, .filter-chip.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ===== FOOTER ===== */
+.footer-attr {
+  text-align: center;
+  padding: 16px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.footer-attr a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.footer-attr a:hover { color: var(--accent); }
+
+/* ===== ANIMATION ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section.active { animation: fadeIn 200ms ease; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===== SIDEBAR ===== -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <rect x="2" y="2" width="28" height="28" rx="6" stroke="#3db8a9" stroke-width="2"/>
+        <path d="M8 16h6l3-6 3 10 3-4h3" stroke="#3db8a9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="sidebar-logo-text">CAST</div>
+        <div class="sidebar-logo-sub">Financial Controller</div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Overview</div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" data-section="dashboard" data-title="Dashboard" data-subtitle="System overview and KPIs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+    </div>
+
+    <div class="sidebar-section">Financial Modules</div>
+    <div class="sidebar-nav">
+      <div class="nav-item" data-section="trialbalance" data-title="Trial Balance" data-subtitle="Budget vs Actual by account">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><rect x="5" y="5" width="4" height="14" rx="1"/><rect x="15" y="8" width="4" height="11" rx="1"/></svg>
+        Trial Balance
+      </div>
+      <div class="nav-item" data-section="ledger" data-title="General Ledger" data-subtitle="Transaction register with full lineage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        Ledger
+      </div>
+      <div class="nav-item" data-section="policies" data-title="Policies" data-subtitle="Active control policies and rules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Policies
+      </div>
+      <div class="nav-item" data-section="workorders" data-title="Work Orders" data-subtitle="Task queue and approvals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Work Orders
+        <span class="nav-badge">4</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">Automation</div>
+    <div class="sidebar-nav">
+      <div class="nav-item" data-section="improvements" data-title="Automated Improvements" data-subtitle="Autonomous research and policy optimization">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Improvements
+        <span class="nav-badge" style="background:var(--success-soft);color:var(--success)">3</span>
+      </div>
+      <div class="nav-item" data-section="audittrail" data-title="Audit Trail" data-subtitle="Immutable hash chain log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Audit Trail
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="nav-item" style="font-size:11px;color:var(--sidebar-text-muted)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        v0.3 Prototype
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HEADER ===== -->
+  <header class="header">
+    <div class="header-left">
+      <div>
+        <div class="header-title" id="header-title">Dashboard</div>
+        <div class="header-sub" id="header-sub">System overview and KPIs</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="header-btn" style="font-family:var(--mono);font-size:11px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Mar 2026
+      </div>
+      <button class="header-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="main">
+
+    <!-- =============================== -->
+    <!-- DASHBOARD MODULE                 -->
+    <!-- =============================== -->
+    <div class="section active" id="section-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Automation Rate</div>
+          <div class="kpi-value">91.4%</div>
+          <div class="kpi-delta up">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            +2.3% this period
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Open Exceptions</div>
+          <div class="kpi-value">4</div>
+          <div class="kpi-delta down">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+            -12 vs last period
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Budget Variance</div>
+          <div class="kpi-value">-2.1%</div>
+          <div class="kpi-delta up">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+            Within tolerance
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Policies Active</div>
+          <div class="kpi-value">23</div>
+          <div class="kpi-delta flat">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            3 pending review
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-bottom:24px">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Recent Exceptions</div>
+              <div class="card-subtitle">Items requiring human judgment</div>
+            </div>
+            <span class="pill pill-red">4 open</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Type</th><th>Vendor</th><th>Amount</th><th>Status</th>
+              </tr></thead>
+              <tbody>
+                <tr class="clickable" onclick="navigateTo('workorders')"><td style="font-family:var(--mono);font-size:12px">EXC-0041</td><td>Bank change</td><td>Acme Supplies</td><td>$12,400</td><td><span class="pill pill-red">Needs review</span></td></tr>
+                <tr class="clickable" onclick="navigateTo('workorders')"><td style="font-family:var(--mono);font-size:12px">EXC-0040</td><td>Over budget</td><td>CloudHost Inc</td><td>$8,750</td><td><span class="pill pill-yellow">Pending</span></td></tr>
+                <tr class="clickable" onclick="navigateTo('workorders')"><td style="font-family:var(--mono);font-size:12px">EXC-0039</td><td>New vendor</td><td>Delta Logistics</td><td>$5,200</td><td><span class="pill pill-yellow">Pending</span></td></tr>
+                <tr class="clickable" onclick="navigateTo('workorders')"><td style="font-family:var(--mono);font-size:12px">EXC-0038</td><td>Amount spike</td><td>Office Pro</td><td>$3,100</td><td><span class="pill pill-blue">In review</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Improvement Activity</div>
+              <div class="card-subtitle">Autonomous research last 7 days</div>
+            </div>
+            <span class="pill pill-green">3 proposals</span>
+          </div>
+          <div style="padding:8px 0">
+            <div class="experiment-card" onclick="navigateTo('improvements')" style="margin-bottom:8px;padding:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="experiment-id">EXP-017</span>
+                <span class="pill pill-green" style="font-size:10px">Ready</span>
+              </div>
+              <div class="experiment-title" style="font-size:12px;margin-top:4px">Raise SaaS auto-approve to $2,500</div>
+              <div class="experiment-desc" style="font-size:11px">40 exceptions could become 3 policies</div>
+            </div>
+            <div class="experiment-card" onclick="navigateTo('improvements')" style="margin-bottom:8px;padding:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="experiment-id">EXP-016</span>
+                <span class="pill pill-yellow" style="font-size:10px">Running</span>
+              </div>
+              <div class="experiment-title" style="font-size:12px;margin-top:4px">Freight invoice contract matching</div>
+              <div class="experiment-desc" style="font-size:11px">Testing rate tolerance from 3% to 5%</div>
+            </div>
+            <div class="experiment-card" onclick="navigateTo('improvements')" style="padding:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="experiment-id">EXP-015</span>
+                <span class="pill pill-purple" style="font-size:10px">Proposed</span>
+              </div>
+              <div class="experiment-title" style="font-size:12px;margin-top:4px">Vendor risk scoring model v2</div>
+              <div class="experiment-desc" style="font-size:11px">Incorporating payment history + external signals</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Budget vs Actual Summary</div>
+            <div class="card-subtitle">March 2026 period, all departments</div>
+          </div>
+          <button class="header-btn" onclick="navigateTo('trialbalance')" style="font-size:11px">View full trial balance &rarr;</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Department</th><th>Budget</th><th>Actual</th><th>Variance</th><th>Var %</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              <tr class="clickable" onclick="navigateTo('trialbalance')"><td>Engineering</td><td style="font-family:var(--mono)">$245,000</td><td style="font-family:var(--mono)">$238,400</td><td style="font-family:var(--mono);color:var(--success)">$6,600</td><td style="font-family:var(--mono)">-2.7%</td><td><span class="pill pill-green">Under</span></td></tr>
+              <tr class="clickable" onclick="navigateTo('trialbalance')"><td>Marketing</td><td style="font-family:var(--mono)">$120,000</td><td style="font-family:var(--mono)">$125,800</td><td style="font-family:var(--mono);color:var(--error)">-$5,800</td><td style="font-family:var(--mono)">+4.8%</td><td><span class="pill pill-yellow">Watch</span></td></tr>
+              <tr class="clickable" onclick="navigateTo('trialbalance')"><td>Operations</td><td style="font-family:var(--mono)">$180,000</td><td style="font-family:var(--mono)">$176,200</td><td style="font-family:var(--mono);color:var(--success)">$3,800</td><td style="font-family:var(--mono)">-2.1%</td><td><span class="pill pill-green">Under</span></td></tr>
+              <tr class="clickable" onclick="navigateTo('trialbalance')"><td>G&A</td><td style="font-family:var(--mono)">$95,000</td><td style="font-family:var(--mono)">$94,100</td><td style="font-family:var(--mono);color:var(--success)">$900</td><td style="font-family:var(--mono)">-0.9%</td><td><span class="pill pill-green">Under</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- TRIAL BALANCE MODULE             -->
+    <!-- =============================== -->
+    <div class="section" id="section-trialbalance">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Trial Balance</div>
+          <div class="section-subtitle">Budget vs Actual by account. Click an account to drill into transactions.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="filter-chip" id="tb-period-filter" style="appearance:auto;padding-right:24px">
+            <option>March 2026</option>
+            <option>February 2026</option>
+            <option>January 2026</option>
+            <option>Q1 2026</option>
+          </select>
+          <select class="filter-chip" id="tb-dept-filter" style="appearance:auto;padding-right:24px">
+            <option>All Departments</option>
+            <option>Engineering</option>
+            <option>Marketing</option>
+            <option>Operations</option>
+            <option>G&A</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Budget</div>
+          <div class="kpi-value" style="font-size:20px">$640,000</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Total Actual</div>
+          <div class="kpi-value" style="font-size:20px">$634,500</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Net Variance</div>
+          <div class="kpi-value" style="font-size:20px;color:var(--success)">$5,500</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Variance %</div>
+          <div class="kpi-value" style="font-size:20px">-0.9%</div>
+        </div>
+      </div>
+
+      <div class="grid-2-1">
+        <!-- Trial Balance Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Accounts</div>
+            <span class="pill pill-muted" id="tb-version-pill">v3 (Active)</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Account</th><th>Name</th><th>Budget</th><th>Actual</th><th>Variance</th><th>Status</th>
+              </tr></thead>
+              <tbody id="tb-accounts-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Account Detail Panel -->
+        <div class="detail-panel" id="tb-detail-panel">
+          <div class="panel-empty" id="tb-empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v18M3 12h18"/><rect x="5" y="5" width="4" height="14" rx="1"/><rect x="15" y="8" width="4" height="11" rx="1"/></svg>
+            <div style="font-size:12px;margin-top:4px">Select an account to view transactions</div>
+          </div>
+          <div id="tb-detail-content" style="display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)" id="tb-detail-title"></div>
+                <div style="font-size:11px;color:var(--text-muted)" id="tb-detail-subtitle"></div>
+              </div>
+              <button class="header-btn" style="font-size:11px" onclick="drillToLedger()">Open in Ledger &rarr;</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr>
+                  <th>Date</th><th>Doc</th><th>Description</th><th>Amount</th><th>Source</th>
+                </tr></thead>
+                <tbody id="tb-detail-txns"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- LEDGER MODULE                    -->
+    <!-- =============================== -->
+    <div class="section" id="section-ledger">
+      <div class="section-header">
+        <div>
+          <div class="section-title">General Ledger</div>
+          <div class="section-subtitle">Click any transaction to see full lineage: Budget &rarr; Policy &rarr; Work Order &rarr; Event &rarr; Posting</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="header-btn" onclick="navigateTo('audittrail')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Hash chain
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-chip active" data-ledger-filter="all">All entries</button>
+        <button class="filter-chip" data-ledger-filter="debit">Debits only</button>
+        <button class="filter-chip" data-ledger-filter="credit">Credits only</button>
+        <button class="filter-chip" data-ledger-filter="exception">Exceptions</button>
+      </div>
+
+      <div class="grid-1-2">
+        <!-- Ledger Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Journal Entries</div>
+          </div>
+          <div class="table-wrap" style="max-height:560px;overflow-y:auto">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Date</th><th>Account</th><th>Debit</th><th>Credit</th><th>Status</th>
+              </tr></thead>
+              <tbody id="ledger-entries-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lineage Panel -->
+        <div class="detail-panel" id="ledger-lineage-panel">
+          <div class="panel-empty" id="ledger-empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            <div style="font-size:12px;margin-top:4px">Select a journal entry to view lineage</div>
+          </div>
+          <div id="ledger-lineage-content" style="display:none">
+            <div style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div style="font-size:15px;font-weight:700" id="lineage-title"></div>
+                <span class="pill" id="lineage-status"></span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px" id="lineage-meta"></div>
+            </div>
+
+            <div class="card-title" style="margin-bottom:12px">Transaction Lineage</div>
+            <div class="timeline" id="lineage-timeline"></div>
+
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+              <div class="card-title" style="margin-bottom:8px">Hash Chain Proof</div>
+              <div class="hash-value" id="lineage-hash"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- POLICIES MODULE                  -->
+    <!-- =============================== -->
+    <div class="section" id="section-policies">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Control Policies</div>
+          <div class="section-subtitle">Rules that underwrite every transaction before it hits the ledger</div>
+        </div>
+        <button class="header-btn header-btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Policy
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        <button class="filter-chip active">All</button>
+        <button class="filter-chip">AP / Payments</button>
+        <button class="filter-chip">Budget</button>
+        <button class="filter-chip">Vendor</button>
+        <button class="filter-chip">Revenue</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Policy</th><th>Scope</th><th>Trigger</th><th>Action</th><th>Priority</th><th>Status</th><th>Source</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600">First-Payment Verification</td><td>AP</td><td>New vendor, first invoice</td><td>Require Trade Message + OTP</td><td><span class="pill pill-red">Critical</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Bank Detail Change Guard</td><td>AP</td><td>Vendor bank info changed</td><td>Block + require bilateral confirm</td><td><span class="pill pill-red">Critical</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Budget Threshold Check</td><td>Budget</td><td>Spend &gt; 90% of line item</td><td>Flag for controller review</td><td><span class="pill pill-yellow">High</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Auto-Approve SaaS &lt; $2K</td><td>AP</td><td>Recurring SaaS, amt &lt; $2,000</td><td>Auto-approve + post</td><td><span class="pill pill-blue">Medium</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Freight Rate Tolerance 3%</td><td>AP</td><td>Carrier invoice &gt; 3% over contract</td><td>Route to logistics manager</td><td><span class="pill pill-yellow">High</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-purple">Learned</span></td></tr>
+              <tr><td style="font-weight:600">Duplicate Invoice Detector</td><td>AP</td><td>Same vendor + amount + 30 days</td><td>Block + flag exception</td><td><span class="pill pill-red">Critical</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Misc Spend Cap $5K</td><td>Budget</td><td>Non-vendor-specific &gt; $5,000</td><td>Require additional approval</td><td><span class="pill pill-blue">Medium</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-muted">Manual</span></td></tr>
+              <tr><td style="font-weight:600">Rush Payment Guard</td><td>AP</td><td>Payment requested &lt; 48hr</td><td>Escalate to CFO</td><td><span class="pill pill-yellow">High</span></td><td><span class="pill pill-green">Active</span></td><td><span class="pill pill-purple">Learned</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- WORK ORDERS MODULE               -->
+    <!-- =============================== -->
+    <div class="section" id="section-workorders">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Work Orders</div>
+          <div class="section-subtitle">Approval tasks and exception handling queue</div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab-item active" data-wo-tab="open">Open (4)</div>
+        <div class="tab-item" data-wo-tab="completed">Completed (28)</div>
+        <div class="tab-item" data-wo-tab="all">All</div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th></th><th>WO ID</th><th>Type</th><th>Subject</th><th>Assigned</th><th>Policy</th><th>Amount</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><input type="checkbox"></td><td style="font-family:var(--mono);font-size:12px">WO-0089</td><td>AP Approval</td><td>Acme Supplies bank change verification</td><td>J. Chen (Controller)</td><td style="font-size:11px">Bank Detail Change Guard</td><td style="font-family:var(--mono)">$12,400</td><td><span class="pill pill-red">Urgent</span></td></tr>
+              <tr><td><input type="checkbox"></td><td style="font-family:var(--mono);font-size:12px">WO-0088</td><td>Budget Override</td><td>CloudHost annual renewal over budget</td><td>S. Martinez (CFO)</td><td style="font-size:11px">Budget Threshold Check</td><td style="font-family:var(--mono)">$8,750</td><td><span class="pill pill-yellow">Pending</span></td></tr>
+              <tr><td><input type="checkbox"></td><td style="font-family:var(--mono);font-size:12px">WO-0087</td><td>Vendor Onboard</td><td>Delta Logistics first payment</td><td>R. Park (AP Lead)</td><td style="font-size:11px">First-Payment Verification</td><td style="font-family:var(--mono)">$5,200</td><td><span class="pill pill-yellow">Pending</span></td></tr>
+              <tr><td><input type="checkbox"></td><td style="font-family:var(--mono);font-size:12px">WO-0086</td><td>Amount Review</td><td>Office Pro monthly 3x usual</td><td>J. Chen (Controller)</td><td style="font-size:11px">Rush Payment Guard</td><td style="font-family:var(--mono)">$3,100</td><td><span class="pill pill-blue">In review</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="header-btn header-btn-primary" id="wo-approve-btn">Approve selected</button>
+          <button class="header-btn" id="wo-escalate-btn">Escalate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- AUTOMATED IMPROVEMENTS MODULE    -->
+    <!-- =============================== -->
+    <div class="section" id="section-improvements">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Automated Improvements</div>
+          <div class="section-subtitle">CAST runs autonomous experiments on policies, workflows, and models to increase automation and strengthen controls</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="header-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            View program.md
+          </button>
+        </div>
+      </div>
+
+      <!-- Guardrails Summary -->
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="kpi-card">
+          <div class="kpi-label">Experiments Run</div>
+          <div class="kpi-value" style="font-size:20px">17</div>
+          <div class="kpi-delta up">+5 this week</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Policies Learned</div>
+          <div class="kpi-value" style="font-size:20px">8</div>
+          <div class="kpi-delta up">from 40+ exceptions</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Automation Gain</div>
+          <div class="kpi-value" style="font-size:20px">+14.2%</div>
+          <div class="kpi-delta up">since deployment</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Guardrail Violations</div>
+          <div class="kpi-value" style="font-size:20px">0</div>
+          <div class="kpi-delta flat">All within bounds</div>
+        </div>
+      </div>
+
+      <!-- Guardrails -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Non-Negotiable Guardrails</div>
+            <div class="card-subtitle">From program_cast.md - These are never bypassed by any experiment</div>
+          </div>
+          <span class="pill pill-green">All enforced</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="padding:12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-size:12px;font-weight:600;color:var(--error);margin-bottom:4px">Zero unauthorized payments</div>
+            <div style="font-size:11px;color:var(--text-muted)">New vendor credentials, bank-detail changes, and payroll/tax flows are never auto-approved by experiments</div>
+          </div>
+          <div style="padding:12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-size:12px;font-weight:600;color:var(--error);margin-bottom:4px">Human-in-loop for high-risk</div>
+            <div style="font-size:11px;color:var(--text-muted)">Payments >= $100,000 and flagged fraud always require human judgment regardless of experiment results</div>
+          </div>
+          <div style="padding:12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:4px">Sandbox-first testing</div>
+            <div style="font-size:11px;color:var(--text-muted)">All experiments run in sandbox with shadow traffic before any production policy change</div>
+          </div>
+          <div style="padding:12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-size:12px;font-weight:600;color:var(--warning);margin-bottom:4px">Controller approval required</div>
+            <div style="font-size:11px;color:var(--text-muted)">Every policy change proposed by CAST requires explicit human approval via POLICY_CHANGE_REVIEW work order</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-bar" id="imp-tabs">
+        <div class="tab-item active" data-imp-tab="experiments">Experiments</div>
+        <div class="tab-item" data-imp-tab="research-log">Research Log</div>
+        <div class="tab-item" data-imp-tab="learned-policies">Learned Policies</div>
+      </div>
+
+      <!-- Experiments Tab -->
+      <div id="imp-tab-experiments">
+        <div class="grid-2">
+          <div>
+            <div class="experiment-card" data-exp="017">
+              <div class="experiment-header">
+                <span class="experiment-id">EXP-017</span>
+                <span class="pill pill-green">Ready for review</span>
+              </div>
+              <div class="experiment-title">Raise SaaS auto-approve threshold to $2,500</div>
+              <div class="experiment-desc">Analysis of 6 months of SaaS invoices shows 94% of items between $2,000-$2,500 are recurring, low-risk subscriptions that were manually approved without changes. Raising the threshold would eliminate ~40 manual reviews per month.</div>
+              <div class="experiment-metrics">
+                <div class="experiment-metric">Tested on <strong>847 txns</strong></div>
+                <div class="experiment-metric">False positive <strong>0.3%</strong></div>
+                <div class="experiment-metric">Time saved <strong>12 hrs/mo</strong></div>
+              </div>
+              <div style="margin-top:12px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                  <span style="color:var(--text-muted)">Confidence</span>
+                  <span style="color:var(--success);font-weight:600">97%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:97%;background:var(--success)"></div></div>
+              </div>
+            </div>
+
+            <div class="experiment-card" data-exp="016">
+              <div class="experiment-header">
+                <span class="experiment-id">EXP-016</span>
+                <span class="pill pill-yellow">Running (day 4/7)</span>
+              </div>
+              <div class="experiment-title">Freight invoice contract rate matching</div>
+              <div class="experiment-desc">Testing whether widening the freight rate tolerance from 3% to 5% reduces manual reviews without increasing overpayment. Shadow-testing against live carrier invoices.</div>
+              <div class="experiment-metrics">
+                <div class="experiment-metric">Tested on <strong>312 txns</strong></div>
+                <div class="experiment-metric">Overpay risk <strong>0.1%</strong></div>
+                <div class="experiment-metric">Reviews saved <strong>23/wk</strong></div>
+              </div>
+              <div style="margin-top:12px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+                  <span style="color:var(--text-muted)">Progress</span>
+                  <span style="color:var(--warning);font-weight:600">57%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:57%;background:var(--warning)"></div></div>
+              </div>
+            </div>
+
+            <div class="experiment-card" data-exp="015">
+              <div class="experiment-header">
+                <span class="experiment-id">EXP-015</span>
+                <span class="pill pill-purple">Proposed</span>
+              </div>
+              <div class="experiment-title">Vendor risk scoring model v2</div>
+              <div class="experiment-desc">Incorporating payment history, external credit signals, and behavioral patterns to auto-tier vendors. High-trust vendors get streamlined approval; new/risky vendors get enhanced checks.</div>
+              <div class="experiment-metrics">
+                <div class="experiment-metric">Training data <strong>2,400 vendors</strong></div>
+                <div class="experiment-metric">Expected gain <strong>+8% automation</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Experiment Detail -->
+          <div class="detail-panel" id="exp-detail-panel">
+            <div class="panel-empty" id="exp-empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              <div style="font-size:12px;margin-top:4px">Click an experiment to view details</div>
+            </div>
+            <div id="exp-detail-content" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Research Log Tab -->
+      <div id="imp-tab-research-log" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Autonomous Research Log</div>
+            <div class="card-subtitle">What CAST investigated overnight</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Timestamp</th><th>Agent</th><th>Action</th><th>Finding</th><th>Outcome</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-12 02:14</td><td>Policy Optimizer</td><td>Analyzed SaaS invoice patterns</td><td>94% of $2K-$2.5K invoices are low-risk recurring</td><td><span class="pill pill-green">EXP-017 created</span></td></tr>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-11 23:42</td><td>Anomaly Detector</td><td>Scanned 48hr payment requests</td><td>3 rush payment requests from same department</td><td><span class="pill pill-yellow">Alert sent</span></td></tr>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-11 22:10</td><td>Budget Analyst</td><td>Projected month-end variances</td><td>Marketing on track to exceed by 4.8%</td><td><span class="pill pill-yellow">Watch flag</span></td></tr>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-11 03:05</td><td>Workflow Miner</td><td>Reviewed completed work orders</td><td>Freight exceptions follow predictable pattern</td><td><span class="pill pill-green">EXP-016 created</span></td></tr>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-10 01:30</td><td>Policy Optimizer</td><td>Cross-referenced vendor payment data</td><td>Payment history correlates with risk score</td><td><span class="pill pill-purple">EXP-015 proposed</span></td></tr>
+                <tr><td style="font-family:var(--mono);font-size:11px">2026-03-09 22:15</td><td>Anomaly Detector</td><td>Checked duplicate invoice patterns</td><td>No anomalies detected in last 7 days</td><td><span class="pill pill-muted">No action</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Learned Policies Tab -->
+      <div id="imp-tab-learned-policies" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Policies Learned from Exceptions</div>
+            <div class="card-subtitle">CAST analyzed exception patterns and proposed these rules, all approved by controller</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Policy</th><th>Learned From</th><th>Exceptions Resolved</th><th>Approved By</th><th>Date</th><th>Status</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style="font-weight:600">Freight Rate Tolerance 3%</td><td>312 carrier invoice exceptions</td><td>23/week</td><td>J. Chen</td><td style="font-family:var(--mono);font-size:11px">2026-02-28</td><td><span class="pill pill-green">Active</span></td></tr>
+                <tr><td style="font-weight:600">Rush Payment Guard</td><td>18 rush payment incidents</td><td>6/month</td><td>S. Martinez</td><td style="font-family:var(--mono);font-size:11px">2026-02-15</td><td><span class="pill pill-green">Active</span></td></tr>
+                <tr><td style="font-weight:600">Marketing Tool Auto-Renew</td><td>45 recurring marketing SaaS invoices</td><td>15/month</td><td>J. Chen</td><td style="font-family:var(--mono);font-size:11px">2026-02-01</td><td><span class="pill pill-green">Active</span></td></tr>
+                <tr><td style="font-weight:600">Small Vendor Consolidation</td><td>67 sub-$500 vendor invoices</td><td>22/month</td><td>R. Park</td><td style="font-family:var(--mono);font-size:11px">2026-01-20</td><td><span class="pill pill-green">Active</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =============================== -->
+    <!-- AUDIT TRAIL MODULE               -->
+    <!-- =============================== -->
+    <div class="section" id="section-audittrail">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Audit Trail</div>
+          <div class="section-subtitle">Immutable, cryptographically chained log of every decision</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Hash Chain</div>
+            <div class="card-subtitle">Every event links to its predecessor. Tamper-evident by design.</div>
+          </div>
+          <span class="pill pill-green">Chain valid</span>
+        </div>
+        <div class="table-wrap" style="max-height:500px;overflow-y:auto">
+          <table>
+            <thead><tr>
+              <th>Block</th><th>Timestamp</th><th>Event</th><th>Actor</th><th>Hash</th><th>Prev Hash</th>
+            </tr></thead>
+            <tbody id="audit-chain-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-attr">
+      <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+    </footer>
+  </main>
+</div>
+
+<script>
+// ==========================================
+// CAST FINANCIAL MANAGEMENT LAYER - DATA
+// ==========================================
+
+const TB_DATA = [
+  { acct: '4000', name: 'Revenue - SaaS Subscriptions', budget: 320000, actual: 315200, dept: 'Engineering', type: 'revenue' },
+  { acct: '4100', name: 'Revenue - Professional Services', budget: 85000, actual: 88400, dept: 'Operations', type: 'revenue' },
+  { acct: '5000', name: 'Cost of Revenue', budget: -95000, actual: -91200, dept: 'Engineering', type: 'cogs' },
+  { acct: '6100', name: 'Engineering Salaries', budget: -150000, actual: -148200, dept: 'Engineering', type: 'expense' },
+  { acct: '6200', name: 'Cloud Infrastructure', budget: -65000, actual: -62800, dept: 'Engineering', type: 'expense' },
+  { acct: '6300', name: 'SaaS Tools & Licenses', budget: -30000, actual: -27400, dept: 'Engineering', type: 'expense' },
+  { acct: '7100', name: 'Marketing - Paid Channels', budget: -70000, actual: -74300, dept: 'Marketing', type: 'expense' },
+  { acct: '7200', name: 'Marketing - Events & Content', budget: -50000, actual: -51500, dept: 'Marketing', type: 'expense' },
+  { acct: '8100', name: 'Office & Facilities', budget: -45000, actual: -43800, dept: 'Operations', type: 'expense' },
+  { acct: '8200', name: 'Travel & Entertainment', budget: -20000, actual: -18600, dept: 'Operations', type: 'expense' },
+  { acct: '9100', name: 'G&A - Legal & Compliance', budget: -40000, actual: -39200, dept: 'G&A', type: 'expense' },
+  { acct: '9200', name: 'G&A - Insurance & Benefits', budget: -55000, actual: -54900, dept: 'G&A', type: 'expense' },
+];
+
+const TXN_DATA = {
+  '4000': [
+    { date: '2026-03-01', doc: 'INV-3401', desc: 'Acme Corp - Enterprise annual', amount: 48000, source: 'Billing' },
+    { date: '2026-03-03', doc: 'INV-3402', desc: 'Beta Labs - Pro monthly', amount: 2400, source: 'Billing' },
+    { date: '2026-03-05', doc: 'INV-3405', desc: 'Gamma Inc - Team plan', amount: 12000, source: 'Billing' },
+    { date: '2026-03-10', doc: 'INV-3412', desc: 'Delta Systems - Enterprise', amount: 36000, source: 'Billing' },
+  ],
+  '6100': [
+    { date: '2026-03-01', doc: 'PAY-0301', desc: 'Engineering payroll - Period 1', amount: -74100, source: 'Payroll' },
+    { date: '2026-03-15', doc: 'PAY-0315', desc: 'Engineering payroll - Period 2', amount: -74100, source: 'Payroll' },
+  ],
+  '6200': [
+    { date: '2026-03-01', doc: 'AP-2201', desc: 'AWS monthly compute', amount: -28400, source: 'AP' },
+    { date: '2026-03-01', doc: 'AP-2202', desc: 'GCP data storage', amount: -18200, source: 'AP' },
+    { date: '2026-03-05', doc: 'AP-2210', desc: 'Vercel hosting', amount: -4800, source: 'AP' },
+    { date: '2026-03-10', doc: 'AP-2215', desc: 'Datadog monitoring', amount: -11400, source: 'AP' },
+  ],
+  '6300': [
+    { date: '2026-03-01', doc: 'AP-2301', desc: 'GitHub Enterprise', amount: -8400, source: 'AP' },
+    { date: '2026-03-01', doc: 'AP-2302', desc: 'Figma business', amount: -3600, source: 'AP' },
+    { date: '2026-03-03', doc: 'AP-2305', desc: 'Notion team plan', amount: -2400, source: 'AP' },
+    { date: '2026-03-05', doc: 'AP-2308', desc: 'Linear project mgmt', amount: -1800, source: 'AP' },
+    { date: '2026-03-10', doc: 'AP-2312', desc: 'Slack business+', amount: -4200, source: 'AP' },
+    { date: '2026-03-10', doc: 'AP-2313', desc: 'Zoom enterprise', amount: -7000, source: 'AP' },
+  ],
+  '7100': [
+    { date: '2026-03-01', doc: 'AP-7101', desc: 'Google Ads - Feb campaign', amount: -32000, source: 'AP' },
+    { date: '2026-03-05', doc: 'AP-7105', desc: 'LinkedIn Ads', amount: -18500, source: 'AP' },
+    { date: '2026-03-08', doc: 'AP-7108', desc: 'Meta Ads - retargeting', amount: -14800, source: 'AP' },
+    { date: '2026-03-12', doc: 'AP-7112', desc: 'Podcast sponsorship - TechPod', amount: -9000, source: 'AP' },
+  ],
+  '7200': [
+    { date: '2026-03-02', doc: 'AP-7201', desc: 'SaaStr conference booth', amount: -25000, source: 'AP' },
+    { date: '2026-03-07', doc: 'AP-7207', desc: 'Content agency retainer', amount: -15000, source: 'AP' },
+    { date: '2026-03-10', doc: 'AP-7210', desc: 'Webinar platform', amount: -6500, source: 'AP' },
+    { date: '2026-03-11', doc: 'AP-7211', desc: 'Photography / video', amount: -5000, source: 'AP' },
+  ],
+};
+
+// Generate default txns for accounts that don't have specific data
+TB_DATA.forEach(a => {
+  if (!TXN_DATA[a.acct]) {
+    TXN_DATA[a.acct] = [
+      { date: '2026-03-01', doc: `JE-${a.acct}-01`, desc: `${a.name} - Period allocation`, amount: Math.round(a.actual * 0.5), source: 'GL' },
+      { date: '2026-03-15', doc: `JE-${a.acct}-02`, desc: `${a.name} - Period allocation`, amount: a.actual - Math.round(a.actual * 0.5), source: 'GL' },
+    ];
+  }
+});
+
+const LEDGER_ENTRIES = [];
+let entryId = 1000;
+TB_DATA.forEach(acct => {
+  (TXN_DATA[acct.acct] || []).forEach(txn => {
+    const isDebit = txn.amount < 0;
+    LEDGER_ENTRIES.push({
+      id: `JE-${entryId++}`,
+      date: txn.date,
+      account: `${acct.acct} - ${acct.name}`,
+      accountCode: acct.acct,
+      debit: isDebit ? Math.abs(txn.amount) : 0,
+      credit: !isDebit ? txn.amount : 0,
+      doc: txn.doc,
+      desc: txn.desc,
+      source: txn.source,
+      status: Math.random() > 0.85 ? 'exception' : 'posted',
+    });
+  });
+});
+LEDGER_ENTRIES.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+const LINEAGE_DATA = {
+  budget: { version: 'v3', approvedBy: 'S. Martinez (CFO)', date: '2026-01-15', scope: 'Q1 2026 Operating Budget' },
+  policies: [
+    { name: 'Auto-Approve SaaS < $2K', id: 'POL-004', action: 'Auto-approve + post' },
+    { name: 'Budget Threshold Check', id: 'POL-003', action: 'Flag if > 90%' },
+    { name: 'First-Payment Verification', id: 'POL-001', action: 'Require Trade Message' },
+  ],
+};
+
+const AUDIT_CHAIN = [];
+let blockNum = 847;
+const auditEvents = [
+  { event: 'LEDGER_POSTED', actor: 'CAST Engine', detail: 'JE-1024 posted to GL' },
+  { event: 'WORK_ORDER_COMPLETED', actor: 'J. Chen', detail: 'WO-0086 approved' },
+  { event: 'POLICY_EVALUATED', actor: 'Policy Engine', detail: 'POL-003 triggered on AP-7112' },
+  { event: 'TRADE_MESSAGE_CONFIRMED', actor: 'Vendor: TechPod', detail: 'Bilateral confirmation received' },
+  { event: 'INVOICE_SUBMITTED', actor: 'AP System', detail: 'INV-7112 ingested from email' },
+  { event: 'EXPERIMENT_COMPLETED', actor: 'CAST Research', detail: 'EXP-017 sandbox run complete' },
+  { event: 'POLICY_CHANGE_PROPOSED', actor: 'Policy Optimizer', detail: 'Raise SaaS threshold to $2,500' },
+  { event: 'BUDGET_VERSION_CREATED', actor: 'S. Martinez', detail: 'v3 approved for Q1 2026' },
+  { event: 'VENDOR_ONBOARDED', actor: 'R. Park', detail: 'Delta Logistics added to vendor master' },
+  { event: 'ANOMALY_DETECTED', actor: 'Anomaly Detector', detail: '3 rush payments from same dept' },
+  { event: 'WORK_ORDER_CREATED', actor: 'Policy Engine', detail: 'WO-0089 for bank change review' },
+  { event: 'LEDGER_POSTED', actor: 'CAST Engine', detail: 'JE-1020 posted to GL' },
+];
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h).toString(16).padStart(8, '0');
+}
+
+let prevHash = 'genesis';
+auditEvents.reverse().forEach((e, i) => {
+  const ts = new Date(2026, 2, 12 - Math.floor(i / 3), 23 - i, Math.floor(Math.random() * 60));
+  const hash = hashStr(`${blockNum}${e.event}${e.actor}${prevHash}`);
+  AUDIT_CHAIN.push({
+    block: blockNum,
+    timestamp: ts.toISOString().replace('T', ' ').substring(0, 16),
+    event: e.event,
+    actor: e.actor,
+    detail: e.detail,
+    hash: `0x${hash}...${hashStr(hash).substring(0, 4)}`,
+    prevHash: prevHash === 'genesis' ? 'genesis' : `0x${prevHash.substring(0, 8)}...`,
+  });
+  prevHash = hash;
+  blockNum++;
+});
+AUDIT_CHAIN.reverse();
+
+// ==========================================
+// RENDERING
+// ==========================================
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  const s = abs >= 1000 ? '$' + abs.toLocaleString('en-US') : '$' + abs;
+  return n < 0 ? '-' + s : s;
+}
+
+function fmtShort(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1000) return (n < 0 ? '-' : '') + '$' + (abs / 1000).toFixed(abs % 1000 === 0 ? 0 : 1) + 'K';
+  return fmt(n);
+}
+
+// Trial Balance
+function renderTB() {
+  const body = document.getElementById('tb-accounts-body');
+  body.innerHTML = '';
+  TB_DATA.forEach(a => {
+    const variance = a.budget + a.actual; // budget is negative for expenses
+    const isExpense = a.budget < 0;
+    const budgetAbs = Math.abs(a.budget);
+    const actualAbs = Math.abs(a.actual);
+    const varianceVal = budgetAbs - actualAbs;
+    const variancePct = ((varianceVal / budgetAbs) * 100).toFixed(1);
+    const isGood = isExpense ? varianceVal >= 0 : varianceVal <= 0;
+
+    const tr = document.createElement('tr');
+    tr.className = 'clickable tb-row';
+    tr.dataset.acct = a.acct;
+    tr.innerHTML = `
+      <td style="font-family:var(--mono);font-size:12px">${a.acct}</td>
+      <td>${a.name}</td>
+      <td style="font-family:var(--mono)">${fmt(Math.abs(a.budget))}</td>
+      <td style="font-family:var(--mono)">${fmt(Math.abs(a.actual))}</td>
+      <td style="font-family:var(--mono);color:${isGood ? 'var(--success)' : 'var(--error)'}">${isGood ? '' : '-'}${fmt(Math.abs(varianceVal))} (${variancePct}%)</td>
+      <td><span class="pill ${isGood ? 'pill-green' : Math.abs(parseFloat(variancePct)) > 5 ? 'pill-red' : 'pill-yellow'}">${isGood ? 'On track' : Math.abs(parseFloat(variancePct)) > 5 ? 'Over' : 'Watch'}</span></td>
+    `;
+    tr.addEventListener('click', () => selectTBAccount(a.acct));
+    body.appendChild(tr);
+  });
+}
+
+function selectTBAccount(acct) {
+  document.querySelectorAll('.tb-row').forEach(r => r.classList.toggle('selected', r.dataset.acct === acct));
+  const account = TB_DATA.find(a => a.acct === acct);
+  const txns = TXN_DATA[acct] || [];
+
+  document.getElementById('tb-empty-state').style.display = 'none';
+  document.getElementById('tb-detail-content').style.display = 'block';
+  document.getElementById('tb-detail-title').textContent = `${acct} - ${account.name}`;
+  document.getElementById('tb-detail-subtitle').textContent = `${txns.length} transactions | ${account.dept}`;
+
+  const tbody = document.getElementById('tb-detail-txns');
+  tbody.innerHTML = '';
+  txns.forEach(t => {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable';
+    tr.innerHTML = `
+      <td style="font-family:var(--mono);font-size:11px">${t.date}</td>
+      <td style="font-family:var(--mono);font-size:11px">${t.doc}</td>
+      <td>${t.desc}</td>
+      <td style="font-family:var(--mono)">${fmt(t.amount)}</td>
+      <td><span class="pill pill-muted">${t.source}</span></td>
+    `;
+    tr.addEventListener('click', () => {
+      // Navigate to ledger and find this transaction
+      navigateTo('ledger');
+      setTimeout(() => {
+        const entry = LEDGER_ENTRIES.find(e => e.doc === t.doc);
+        if (entry) selectLedgerEntry(entry.id);
+      }, 100);
+    });
+    tbody.appendChild(tr);
+  });
+
+  window.currentTBAccount = acct;
+}
+
+function drillToLedger() {
+  if (window.currentTBAccount) {
+    navigateTo('ledger');
+  }
+}
+
+// Ledger
+function renderLedger(filter = 'all') {
+  const body = document.getElementById('ledger-entries-body');
+  body.innerHTML = '';
+  let entries = LEDGER_ENTRIES;
+  if (filter === 'debit') entries = entries.filter(e => e.debit > 0);
+  if (filter === 'credit') entries = entries.filter(e => e.credit > 0);
+  if (filter === 'exception') entries = entries.filter(e => e.status === 'exception');
+
+  entries.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable ledger-row';
+    tr.dataset.id = e.id;
+    tr.innerHTML = `
+      <td style="font-family:var(--mono);font-size:11px">${e.id}</td>
+      <td style="font-family:var(--mono);font-size:11px">${e.date}</td>
+      <td style="font-size:12px">${e.account}</td>
+      <td style="font-family:var(--mono)">${e.debit ? fmt(e.debit) : ''}</td>
+      <td style="font-family:var(--mono)">${e.credit ? fmt(e.credit) : ''}</td>
+      <td><span class="pill ${e.status === 'posted' ? 'pill-green' : 'pill-red'}">${e.status === 'posted' ? 'Posted' : 'Exception'}</span></td>
+    `;
+    tr.addEventListener('click', () => selectLedgerEntry(e.id));
+    body.appendChild(tr);
+  });
+}
+
+function selectLedgerEntry(id) {
+  document.querySelectorAll('.ledger-row').forEach(r => r.classList.toggle('selected', r.dataset.id === id));
+  const entry = LEDGER_ENTRIES.find(e => e.id === id);
+  if (!entry) return;
+
+  document.getElementById('ledger-empty-state').style.display = 'none';
+  document.getElementById('ledger-lineage-content').style.display = 'block';
+
+  document.getElementById('lineage-title').textContent = `${entry.id} — ${entry.desc}`;
+  document.getElementById('lineage-status').textContent = entry.status === 'posted' ? 'Posted' : 'Exception';
+  document.getElementById('lineage-status').className = `pill ${entry.status === 'posted' ? 'pill-green' : 'pill-red'}`;
+  document.getElementById('lineage-meta').textContent = `${entry.date} | ${entry.doc} | ${entry.account}`;
+
+  const amount = entry.debit || entry.credit;
+  const policy = amount > 50000 ? LINEAGE_DATA.policies[2] : amount > 2000 ? LINEAGE_DATA.policies[1] : LINEAGE_DATA.policies[0];
+
+  const timeline = document.getElementById('lineage-timeline');
+  timeline.innerHTML = `
+    <div class="timeline-item">
+      <div class="timeline-dot budget"></div>
+      <div>
+        <div class="timeline-title">Budget Origin</div>
+        <div class="timeline-meta">${LINEAGE_DATA.budget.scope} (${LINEAGE_DATA.budget.version})</div>
+        <div class="timeline-detail">Approved by ${LINEAGE_DATA.budget.approvedBy} on ${LINEAGE_DATA.budget.date}<br>Account ${entry.accountCode} budgeted for this period</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot policy"></div>
+      <div>
+        <div class="timeline-title">Policy Evaluation</div>
+        <div class="timeline-meta">${policy.name} (${policy.id})</div>
+        <div class="timeline-detail">Action: ${policy.action}<br>Amount: ${fmt(amount)} | Result: ${entry.status === 'posted' ? 'Approved' : 'Flagged for review'}</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot workorder"></div>
+      <div>
+        <div class="timeline-title">Work Order</div>
+        <div class="timeline-meta">WO-${Math.floor(Math.random() * 80 + 10).toString().padStart(4, '0')}</div>
+        <div class="timeline-detail">${entry.status === 'posted' ? 'Auto-approved by policy — no human action required' : 'Assigned to Controller for review'}</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot event"></div>
+      <div>
+        <div class="timeline-title">Event Chain</div>
+        <div class="timeline-meta">${entry.source === 'Billing' ? 'INVOICE_CREATED → PAYMENT_RECEIVED' : entry.source === 'Payroll' ? 'PAYROLL_RUN → PAYMENT_SENT' : 'INVOICE_SUBMITTED → TRADE_MESSAGE_CONFIRMED → PAYMENT_APPROVED'}</div>
+        <div class="timeline-detail">Block: ${Math.floor(Math.random() * 100 + 800)}<br>Bilateral confirmation: ${entry.source === 'Billing' ? 'Customer payment received' : 'Vendor confirmed via Trade Message'}</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot ledger"></div>
+      <div>
+        <div class="timeline-title">Ledger Posting</div>
+        <div class="timeline-meta">${entry.id} | ${entry.date}</div>
+        <div class="timeline-detail">${entry.doc} — ${entry.desc}<br>${entry.debit ? 'Debit: ' + fmt(entry.debit) : 'Credit: ' + fmt(entry.credit)}</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot hash"></div>
+      <div>
+        <div class="timeline-title">Hash Chain Seal</div>
+        <div class="timeline-meta">Immutable audit record</div>
+        <div class="timeline-detail">Cryptographically linked to predecessor block<br>Cannot be edited or deleted</div>
+      </div>
+    </div>
+  `;
+
+  const h = hashStr(entry.id + entry.date + entry.doc);
+  document.getElementById('lineage-hash').textContent = `SHA-256: 0x${h}${hashStr(h)}${hashStr(h + 'salt')}...`;
+}
+
+// Audit Trail
+function renderAuditTrail() {
+  const body = document.getElementById('audit-chain-body');
+  body.innerHTML = '';
+  AUDIT_CHAIN.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:var(--mono);font-size:12px;font-weight:600">#${a.block}</td>
+      <td style="font-family:var(--mono);font-size:11px">${a.timestamp}</td>
+      <td><span class="pill pill-muted">${a.event}</span></td>
+      <td>${a.actor}</td>
+      <td><span class="hash-value">${a.hash}</span></td>
+      <td><span class="hash-value">${a.prevHash}</span></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// Experiment Detail
+const EXP_DETAILS = {
+  '017': {
+    title: 'Raise SaaS auto-approve threshold to $2,500',
+    status: 'Ready for review',
+    statusClass: 'pill-green',
+    hypothesis: 'SaaS invoices between $2,000-$2,500 from recurring vendors are consistently low-risk and can be safely auto-approved.',
+    method: 'Analyzed 847 SaaS transactions over 6 months. Shadow-tested auto-approval on the $2K-$2.5K band against actual human decisions.',
+    results: [
+      { label: 'Transactions tested', value: '847' },
+      { label: 'Match rate with human decisions', value: '99.7%' },
+      { label: 'False positive rate', value: '0.3% (3 txns)' },
+      { label: 'Estimated time saved', value: '12 hrs/month' },
+      { label: 'Risk increase', value: 'Negligible ($750 max exposure)' },
+    ],
+    recommendation: 'Approve policy change. Create POLICY_CHANGE_REVIEW work order for controller sign-off. The 3 false positives were all edge cases involving vendor name changes (covered by existing Bank Detail Change Guard).',
+    guardrailCheck: 'All guardrails respected. No high-risk flows affected. First-payment and bank-change policies remain untouched.',
+  },
+  '016': {
+    title: 'Freight invoice contract rate matching',
+    status: 'Running (day 4 of 7)',
+    statusClass: 'pill-yellow',
+    hypothesis: 'Widening freight rate tolerance from 3% to 5% will reduce manual carrier invoice reviews without meaningfully increasing overpayment risk.',
+    method: 'Shadow-testing against live carrier invoices. Comparing auto-approve decisions at 5% tolerance vs actual 3% outcomes.',
+    results: [
+      { label: 'Invoices processed', value: '312 (so far)' },
+      { label: 'Would-be auto-approved at 5%', value: '289 (92.6%)' },
+      { label: 'Overpayment at 5% vs 3%', value: '0.1% additional' },
+      { label: 'Reviews eliminated', value: '23/week' },
+    ],
+    recommendation: 'Experiment still running. Preliminary results are promising. Final analysis expected March 15.',
+    guardrailCheck: 'Running in sandbox only. No live policy changes.',
+  },
+  '015': {
+    title: 'Vendor risk scoring model v2',
+    status: 'Proposed',
+    statusClass: 'pill-purple',
+    hypothesis: 'Incorporating payment history and external credit signals can automatically tier vendors into trust levels, enabling streamlined approval for high-trust vendors.',
+    method: 'Will analyze 2,400 vendors with 18 months of payment and interaction data. External signals from D&B and credit bureaus.',
+    results: [
+      { label: 'Training data', value: '2,400 vendors' },
+      { label: 'Expected automation gain', value: '+8%' },
+      { label: 'Estimated timeline', value: '2 weeks' },
+    ],
+    recommendation: 'Awaiting controller approval to begin sandbox testing.',
+    guardrailCheck: 'Pre-approved scope: sandbox only, max 50 vendors in initial test cohort.',
+  },
+};
+
+function renderExpDetail(expId) {
+  const exp = EXP_DETAILS[expId];
+  if (!exp) return;
+
+  document.getElementById('exp-empty-state').style.display = 'none';
+  const content = document.getElementById('exp-detail-content');
+  content.style.display = 'block';
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <span class="experiment-id">EXP-${expId}</span>
+      <span class="pill ${exp.statusClass}">${exp.status}</span>
+    </div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">${exp.title}</div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Hypothesis</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6">${exp.hypothesis}</div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Method</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6">${exp.method}</div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:8px">Results</div>
+      ${exp.results.map(r => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:12px">
+          <span style="color:var(--text-muted)">${r.label}</span>
+          <span style="font-weight:600;font-family:var(--mono);font-size:11px">${r.value}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Recommendation</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6">${exp.recommendation}</div>
+    </div>
+
+    <div style="padding:12px;background:var(--success-soft);border-radius:8px;border:1px solid var(--success)">
+      <div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:4px">Guardrail Check</div>
+      <div style="font-size:12px;color:var(--text)">${exp.guardrailCheck}</div>
+    </div>
+
+    ${expId === '017' ? `
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="header-btn header-btn-primary" onclick="approveExperiment('017')">Approve &amp; create policy</button>
+      <button class="header-btn">Request changes</button>
+    </div>
+    ` : ''}
+  `;
+}
+
+function approveExperiment(id) {
+  const btn = event.target;
+  btn.textContent = 'Policy created';
+  btn.style.background = 'var(--success)';
+  btn.style.borderColor = 'var(--success)';
+  btn.disabled = true;
+}
+
+// ==========================================
+// NAVIGATION
+// ==========================================
+
+function navigateTo(sectionId) {
+  // Update sidebar
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+  if (navItem) {
+    navItem.classList.add('active');
+    document.getElementById('header-title').textContent = navItem.dataset.title;
+    document.getElementById('header-sub').textContent = navItem.dataset.subtitle;
+  }
+
+  // Show section
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const section = document.getElementById(`section-${sectionId}`);
+  if (section) section.classList.add('active');
+
+  // Reset scroll
+  document.querySelector('.main').scrollTop = 0;
+}
+
+// ==========================================
+// EVENT LISTENERS
+// ==========================================
+
+// Sidebar nav
+document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.section));
+});
+
+// Ledger filter
+document.querySelectorAll('[data-ledger-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-ledger-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLedger(btn.dataset.ledgerFilter);
+  });
+});
+
+// Improvements tabs
+document.querySelectorAll('[data-imp-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-imp-tab]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('imp-tab-experiments').style.display = tab.dataset.impTab === 'experiments' ? '' : 'none';
+    document.getElementById('imp-tab-research-log').style.display = tab.dataset.impTab === 'research-log' ? '' : 'none';
+    document.getElementById('imp-tab-learned-policies').style.display = tab.dataset.impTab === 'learned-policies' ? '' : 'none';
+  });
+});
+
+// Work order tabs
+document.querySelectorAll('[data-wo-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-wo-tab]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+// Experiment cards
+document.querySelectorAll('.experiment-card[data-exp]').forEach(card => {
+  card.addEventListener('click', () => renderExpDetail(card.dataset.exp));
+});
+
+// Work order approve
+document.getElementById('wo-approve-btn').addEventListener('click', () => {
+  const checkboxes = document.querySelectorAll('#section-workorders input[type="checkbox"]:checked');
+  checkboxes.forEach(cb => {
+    const row = cb.closest('tr');
+    const statusCell = row.querySelector('.pill');
+    if (statusCell) {
+      statusCell.textContent = 'Approved';
+      statusCell.className = 'pill pill-green';
+    }
+    cb.checked = false;
+  });
+});
+
+// Theme toggle
+const themeToggle = document.querySelector('[data-theme-toggle]');
+themeToggle.addEventListener('click', () => {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  themeToggle.innerHTML = next === 'dark'
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+});
+
+// Policy filter chips (cosmetic toggle)
+document.querySelectorAll('#section-policies .filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#section-policies .filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+
+// ==========================================
+// INIT
+// ==========================================
+renderTB();
+renderLedger();
+renderAuditTrail();
+</script>
+</body>
+</html>

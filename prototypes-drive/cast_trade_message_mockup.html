@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CAST v1 - Confirm & Pay Mockup</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-2: #11182d;
+      --panel: rgba(17, 24, 45, 0.78);
+      --panel-2: rgba(20, 29, 54, 0.92);
+      --line: rgba(255, 255, 255, 0.09);
+      --muted: #99a3c7;
+      --text: #eef2ff;
+      --text-2: #d5ddfb;
+      --accent: #7c8cff;
+      --accent-2: #5eead4;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --radius-xs: 10px;
+      --card-gap: 16px;
+      --max: 1400px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: radial-gradient(circle at top, #1b2650 0, #0b1020 42%, #070b15 100%); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+
+    .shell {
+      width: min(var(--max), calc(100vw - 32px));
+      margin: 20px auto 36px;
+    }
+
+    .hero {
+      background: linear-gradient(145deg, rgba(124, 140, 255, 0.18), rgba(94, 234, 212, 0.09));
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-2);
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.02;
+      max-width: 850px;
+    }
+
+    .hero p {
+      color: var(--text-2);
+      line-height: 1.55;
+      max-width: 900px;
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .button, .ghost, .chip {
+      border: 1px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .button {
+      background: linear-gradient(135deg, var(--accent), #9ea8ff);
+      color: #070b15;
+      padding: 11px 16px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(124, 140, 255, 0.28);
+    }
+
+    .button:hover { transform: translateY(-1px); }
+
+    .ghost {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.1);
+      color: var(--text);
+      padding: 11px 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--card-gap);
+      margin-top: 22px;
+    }
+
+    .metric {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      min-height: 122px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .metric .value {
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 8px;
+    }
+
+    .metric .sub {
+      color: var(--text-2);
+      line-height: 1.45;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin: 18px 0 0;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-2);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, rgba(124, 140, 255, 0.24), rgba(94, 234, 212, 0.18));
+      color: var(--text);
+      border-color: rgba(124, 140, 255, 0.55);
+    }
+
+    .panel-wrap { margin-top: 20px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar, .content-card, .feature-card, .timeline, .status-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .sidebar {
+      padding: 18px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .sidebar h3, .content-card h3, .feature-card h3, .timeline h3, .status-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .nav-stack {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .nav-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      border-color: rgba(124, 140, 255, 0.56);
+      background: rgba(124, 140, 255, 0.12);
+    }
+
+    .nav-item strong { display: block; font-size: 15px; }
+    .nav-item span { display: block; color: var(--muted); margin-top: 4px; font-size: 13px; }
+
+    .workspace-main {
+      display: grid;
+      gap: 18px;
+    }
+
+    .content-card {
+      padding: 20px;
+      display: none;
+    }
+
+    .content-card.active { display: block; }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .section-header p { margin: 0; color: var(--muted); max-width: 760px; }
+
+    .sub-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .card h4 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .stack { display: grid; gap: 12px; }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: rgba(7, 11, 21, 0.62);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(124, 140, 255, 0.72);
+      box-shadow: 0 0 0 4px rgba(124, 140, 255, 0.14);
+    }
+
+    textarea { min-height: 92px; resize: vertical; }
+
+    .preview-card {
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid rgba(124, 140, 255, 0.34);
+      background: linear-gradient(145deg, rgba(124, 140, 255, 0.14), rgba(94, 234, 212, 0.08));
+    }
+
+    .preview-card .headline {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+
+    .preview-card .body {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text-2);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .table-like {
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 0.9fr 0.8fr 0.8fr;
+      gap: 12px;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .row.header {
+      background: transparent;
+      border: none;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .row .small { color: var(--muted); font-size: 12px; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      width: fit-content;
+    }
+
+    .good { color: #0d1b16; background: rgba(52, 211, 153, 0.92); border-color: rgba(52, 211, 153, 0.92); }
+    .warn { color: #2b2002; background: rgba(251, 191, 36, 0.92); border-color: rgba(251, 191, 36, 0.92); }
+    .bad { color: #2b0909; background: rgba(248, 113, 113, 0.95); border-color: rgba(248, 113, 113, 0.95); }
+    .neutral { background: rgba(255,255,255,0.08); }
+
+    .timeline {
+      padding: 20px;
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .status-card {
+      padding: 16px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 18px;
+    }
+
+    .status-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .status-value {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .event-log {
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .event-item {
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .event-item .time {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .event-item strong { display: block; margin-bottom: 4px; }
+    .event-item span { color: var(--text-2); font-size: 14px; line-height: 1.45; }
+
+    .feature-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      padding: 20px;
+    }
+
+    .feature-card ul {
+      margin: 12px 0 0;
+      padding-left: 20px;
+      color: var(--text-2);
+      line-height: 1.8;
+    }
+
+    .mini-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .mini-kpi {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .mini-kpi .n { font-size: 24px; font-weight: 800; }
+    .mini-kpi .t { color: var(--muted); font-size: 12px; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+    }
+
+    .note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 1120px) {
+      .workspace,
+      .split,
+      .sub-grid,
+      .feature-layout,
+      .timeline-grid,
+      .grid-4,
+      .mini-kpis,
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .row,
+      .row.header {
+        grid-template-columns: 1fr;
+      }
+
+      .workspace { grid-template-columns: 1fr; }
+      .sidebar { position: relative; top: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="eyebrow">CAST v1 / Confirm &amp; Pay / Buyer + Vendor Mockup</div>
+          <h1>Structured trade messages that feel like a text, but carry payment proof, control state, and posting readiness.</h1>
+          <p>
+            This front end shows the first product wedge: a buyer sends a structured payment-intent message, the vendor confirms or disputes in one step,
+            and finance inherits the bilateral proof, approval trail, and ERP-ready record automatically.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button class="button" id="resetDemo">Reset demo</button>
+          <button class="ghost" id="jumpBuyer">Open buyer workspace</button>
+          <button class="ghost" id="jumpVendor">Open vendor workspace</button>
+        </div>
+      </div>
+
+      <div class="grid-4">
+        <div class="metric">
+          <div class="label">Beachhead</div>
+          <div class="value">PE-backed AP</div>
+          <div class="sub">Centralized AP at sponsor-influenced portfolio companies with recurring vendors and fraud pressure.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Buyer promise</div>
+          <div class="value">Confirm &amp; release</div>
+          <div class="sub">One queue for high-risk invoices, vendor confirmation, approvals, and payment readiness.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Vendor promise</div>
+          <div class="value">Reply in 30 sec</div>
+          <div class="sub">Confirm, request change, or dispute from a mobile-first message without heavy onboarding.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Why it wins</div>
+          <div class="value">Tiny recipient action</div>
+          <div class="sub">The protocol is hidden under a familiar message flow with immediate payoff: fewer disputes and faster payment.</div>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Main tabs">
+        <button class="tab active" data-main-tab="buyer" role="tab" aria-selected="true">Buyer / Sender</button>
+        <button class="tab" data-main-tab="vendor" role="tab" aria-selected="false">Vendor / Receiver</button>
+        <button class="tab" data-main-tab="shared" role="tab" aria-selected="false">Shared state</button>
+        <button class="tab" data-main-tab="features" role="tab" aria-selected="false">Core features to build</button>
+      </div>
+    </section>
+
+    <div class="panel-wrap">
+      <section class="tab-panel active" id="panel-buyer">
+        <div class="workspace">
+          <aside class="sidebar">
+            <h3>Buyer workspace</h3>
+            <p class="muted">Sender / payer perspective. AP and controllership manage outbound trade messages, approvals, and payment release from one control plane.</p>
+            <div class="nav-stack" data-scope="buyer-nav">
+              <div class="nav-item active" data-target="buyer-inbox"><strong>AP inbox</strong><span>Queue of high-risk items requiring structured confirmation</span></div>
+              <div class="nav-item" data-target="buyer-compose"><strong>Compose message</strong><span>Create the vendor-facing trade message</span></div>
+              <div class="nav-item" data-target="buyer-case"><strong>Approval and case workbench</strong><span>Resolve exceptions, disputes, and policy flags</span></div>
+              <div class="nav-item" data-target="buyer-ready"><strong>Ready to pay / post</strong><span>ERP export, payment initiation, settlement, posting</span></div>
+              <div class="nav-item" data-target="buyer-admin"><strong>Vendor trust setup</strong><span>Signer, channel, and bank-token controls</span></div>
+            </div>
+          </aside>
+
+          <div class="workspace-main">
+            <section class="content-card active" id="buyer-inbox">
+              <div class="section-header">
+                <div>
+                  <h3>AP inbox / risk queue</h3>
+                  <p>Daily operating view for in-scope invoices: first payments, bank changes, high-value items, and anomalies. One queue replaces fragmented email threads.</p>
+                </div>
+                <div class="status-pill neutral" id="inboxHeaderPill">Draft not yet sent</div>
+              </div>
+
+              <div class="mini-kpis">
+                <div class="mini-kpi"><div class="n" id="kpiAwaiting">1</div><div class="t">Awaiting vendor reply</div></div>
+                <div class="mini-kpi"><div class="n" id="kpiCases">0</div><div class="t">Cases open</div></div>
+                <div class="mini-kpi"><div class="n" id="kpiApproved">0</div><div class="t">Approved to export</div></div>
+                <div class="mini-kpi"><div class="n" id="kpiSettled">0</div><div class="t">Settled today</div></div>
+              </div>
+
+              <div class="table-like" style="margin-top: 18px;">
+                <div class="row header">
+                  <div>Vendor / invoice</div>
+                  <div>Amount</div>
+                  <div>Trigger</div>
+                  <div>Bilateral</div>
+                  <div>Control</div>
+                </div>
+                <div class="row">
+                  <div>
+                    <strong id="rowVendorName">Northwind Components</strong>
+                    <div class="small" id="rowInvoiceRef">INV-1048 / PO-882 / Phase 2 retrofit</div>
+                  </div>
+                  <div id="rowAmount">$47,200</div>
+                  <div id="rowTrigger">First payment + bank change</div>
+                  <div><span class="status-pill neutral" id="rowBilateral">Draft</span></div>
+                  <div><span class="status-pill neutral" id="rowControl">Pending policy</span></div>
+                </div>
+              </div>
+              <div class="note">V1 scope: only high-risk AP flows trigger a trade message. Standard low-risk invoices can continue through the existing AP path until the protocol proves itself.</div>
+            </section>
+
+            <section class="content-card" id="buyer-compose">
+              <div class="section-header">
+                <div>
+                  <h3>Compose structured trade message</h3>
+                  <p>The sender reviews extracted invoice data and sees the exact vendor-facing message before sending.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="sendMessage">Send message</button>
+                  <button class="ghost" id="openVendorView">Preview vendor view</button>
+                </div>
+              </div>
+
+              <div class="split">
+                <div class="card">
+                  <h4>Message details</h4>
+                  <div class="input-grid">
+                    <label>Buyer legal entity
+                      <input id="buyerEntity" value="BrightPath Services LLC" />
+                    </label>
+                    <label>Vendor legal entity
+                      <input id="vendorEntity" value="Northwind Components" />
+                    </label>
+                    <label>Invoice reference
+                      <input id="invoiceRef" value="INV-1048" />
+                    </label>
+                    <label>PO / SOW reference
+                      <input id="poRef" value="PO-882 / Phase 2 retrofit" />
+                    </label>
+                    <label>Amount
+                      <input id="amount" value="$47,200" />
+                    </label>
+                    <label>Payment date
+                      <input id="payDate" value="March 28, 2026" />
+                    </label>
+                    <label>Bank token / last 4
+                      <input id="bankLast4" value="Acct ending 9921" />
+                    </label>
+                    <label>Reply by
+                      <input id="replyBy" value="March 20, 2026 at 5:00 PM ET" />
+                    </label>
+                  </div>
+                  <label style="margin-top: 12px;">Internal note
+                    <textarea id="internalNote">First payment to vendor. New bank instructions received. Require structured confirmation before release.</textarea>
+                  </label>
+                  <div class="note">In production this screen would also display OCR confidence, duplicate risk, bank-token match, signer eligibility, and policy triggers.</div>
+                </div>
+
+                <div class="preview-card">
+                  <div class="eyebrow">Vendor-facing message</div>
+                  <div class="headline" id="previewHeadline">BrightPath Services intends to pay INV-1048</div>
+                  <div class="body" id="previewBody">
+                    <strong>$47,200</strong> on <strong>March 28, 2026</strong> to <strong>Acct ending 9921</strong>.<br/>
+                    Reference: <strong>PO-882 / Phase 2 retrofit</strong>.<br/>
+                    Reply by <strong>March 20, 2026 at 5:00 PM ET</strong>.
+                  </div>
+                  <div class="cta-row">
+                    <button class="ghost">Confirm</button>
+                    <button class="ghost">Request change</button>
+                    <button class="ghost">Dispute</button>
+                  </div>
+                  <div class="note">The whole UX thesis is here: the receiver does not see ledgers or workflow jargon. They just see a precise, trustworthy message.</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card" id="buyer-case">
+              <div class="section-header">
+                <div>
+                  <h3>Approval and case workbench</h3>
+                  <p>Controller / approver view. If the vendor confirms cleanly, the item can move straight to approval. If the vendor disputes or requests changes, a case opens with structured context.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="approveItem">Approve item</button>
+                  <button class="ghost" id="blockItem">Block item</button>
+                </div>
+              </div>
+
+              <div class="sub-grid">
+                <div class="card stack">
+                  <h4>Control checks</h4>
+                  <div><span class="status-pill neutral" id="policyStatus">Policy review pending</span></div>
+                  <div><span class="status-pill neutral" id="signerStatus">Signer not yet confirmed</span></div>
+                  <div><span class="status-pill warn" id="bankStatus">Bank change detected</span></div>
+                  <div><span class="status-pill good" id="dupStatus">No duplicate found</span></div>
+                  <div><span class="status-pill good" id="vendorStatus">Vendor in good standing</span></div>
+                </div>
+
+                <div class="card stack">
+                  <h4>Decision support</h4>
+                  <div class="muted">Recommended path</div>
+                  <strong id="decisionRecommendation">Await vendor confirmation before internal approval.</strong>
+                  <div class="muted">Current workflow note</div>
+                  <span id="workflowNote">No case open. Waiting for the external response to become the bilateral event.</span>
+                  <div class="note">V1 does not need autonomous policy optimization. What matters is clear triggers, clean evidence, and structured exception handling.</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card" id="buyer-ready">
+              <div class="section-header">
+                <div>
+                  <h3>Ready to pay / ERP export / settlement</h3>
+                  <p>Once the vendor confirms and internal controls clear, the item becomes payment-ready and posting-ready. The ERP remains the system of record for booked entries in v1.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="exportErp">Export to ERP / AP</button>
+                  <button class="ghost" id="settlePayment">Mark settled</button>
+                </div>
+              </div>
+
+              <div class="sub-grid">
+                <div class="card stack">
+                  <h4>Export payload</h4>
+                  <div class="muted">Status</div>
+                  <strong id="exportStatus">Not exportable yet</strong>
+                  <div class="muted">Payload includes</div>
+                  <span>CAST reference, buyer/vendor identities, invoice ref, bilateral proof status, approval chain, and posting memo stub.</span>
+                </div>
+                <div class="card stack">
+                  <h4>Settlement and posting</h4>
+                  <div class="muted">Settlement state</div>
+                  <strong id="settlementStatus">Awaiting approval</strong>
+                  <div class="muted">Posting state</div>
+                  <span id="postingStatus">Not posted</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card" id="buyer-admin">
+              <div class="section-header">
+                <div>
+                  <h3>Vendor trust setup</h3>
+                  <p>Admin controls for signers, channels, and bank-token policy. This is intentionally lightweight in v1: enough trust scaffolding to reduce fraud without forcing heavyweight enrollment upfront.</p>
+                </div>
+              </div>
+
+              <div class="sub-grid">
+                <div class="card stack">
+                  <h4>Vendor controls</h4>
+                  <div><span class="status-pill neutral">Preferred channel: email + SMS fallback</span></div>
+                  <div><span class="status-pill neutral">Response mode: magic link + OTP</span></div>
+                  <div><span class="status-pill warn">Dual verification required for bank changes</span></div>
+                  <div><span class="status-pill neutral">Repeat confirmations can upgrade to passkey</span></div>
+                </div>
+                <div class="card stack">
+                  <h4>Why this matters</h4>
+                  <span>The product cannot win if first-run vendor onboarding feels like enterprise software. V1 trust should feel closer to secure checkout than vendor master maintenance.</span>
+                  <span class="note">Later versions can add persistent signer roles, hardware-backed credentials, and portal-only modes for higher-risk counterparties.</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-vendor">
+        <div class="workspace">
+          <aside class="sidebar">
+            <h3>Vendor workspace</h3>
+            <p class="muted">Receiver / payee perspective. The key is a tiny action surface: confirm, request change, or dispute. No accounting jargon. No heavy setup.</p>
+            <div class="nav-stack" data-scope="vendor-nav">
+              <div class="nav-item active" data-target="vendor-inbox"><strong>Message inbox</strong><span>See the incoming trade message</span></div>
+              <div class="nav-item" data-target="vendor-detail"><strong>Message detail</strong><span>Review payment intent and act</span></div>
+              <div class="nav-item" data-target="vendor-change"><strong>Request change</strong><span>Correct amount, due date, or bank details</span></div>
+              <div class="nav-item" data-target="vendor-dispute"><strong>Dispute / fraud</strong><span>Block suspicious or incorrect requests</span></div>
+            </div>
+          </aside>
+
+          <div class="workspace-main">
+            <section class="content-card active" id="vendor-inbox">
+              <div class="section-header">
+                <div>
+                  <h3>Vendor inbox</h3>
+                  <p>First-run experience should feel like a secure message. The vendor sees one precise request with a clear deadline and no need to understand internal finance workflow.</p>
+                </div>
+                <div class="status-pill neutral" id="vendorInboxState">No message sent yet</div>
+              </div>
+
+              <div class="card">
+                <div class="row" style="grid-template-columns: 1.1fr 0.8fr 0.8fr 0.8fr 0.8fr;">
+                  <div>
+                    <strong id="vendorCardBuyer">BrightPath Services LLC</strong>
+                    <div class="small" id="vendorCardRef">INV-1048 / PO-882 / Phase 2 retrofit</div>
+                  </div>
+                  <div id="vendorCardAmount">$47,200</div>
+                  <div id="vendorCardDate">March 28, 2026</div>
+                  <div><span class="status-pill neutral" id="vendorCardBilateral">Draft</span></div>
+                  <div><button class="ghost" id="vendorOpenMessage">Open</button></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card" id="vendor-detail">
+              <div class="section-header">
+                <div>
+                  <h3>Trade message detail</h3>
+                  <p>This is the most important screen in the product. It should be obvious, trustworthy, and fast to complete on a phone.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="vendorConfirm">Confirm</button>
+                  <button class="ghost" id="vendorRequestChange">Request change</button>
+                  <button class="ghost" id="vendorDisputeBtn">Dispute</button>
+                </div>
+              </div>
+
+              <div class="preview-card">
+                <div class="eyebrow">Secure payment-intent message</div>
+                <div class="headline" id="vendorHeadline">BrightPath Services intends to pay INV-1048</div>
+                <div class="body" id="vendorBody">
+                  <strong>$47,200</strong> on <strong>March 28, 2026</strong> to <strong>Acct ending 9921</strong>.<br/>
+                  Reference: <strong>PO-882 / Phase 2 retrofit</strong>.<br/>
+                  Reply by <strong>March 20, 2026 at 5:00 PM ET</strong>.
+                </div>
+                <div class="cta-row">
+                  <span class="status-pill neutral" id="vendorSignerPill">Verify with OTP or passkey</span>
+                  <span class="status-pill neutral" id="vendorActionState">Awaiting response</span>
+                </div>
+              </div>
+              <div class="note">In production this page would include the invoice PDF, past confirmed payment destinations, and a simple trust cue such as “You have confirmed 7 prior payments from this buyer.”</div>
+            </section>
+
+            <section class="content-card" id="vendor-change">
+              <div class="section-header">
+                <div>
+                  <h3>Request change</h3>
+                  <p>Corrections should be structured, not email-based. That keeps the workflow machine-readable and prevents a long exception thread.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="submitChange">Submit change</button>
+                </div>
+              </div>
+
+              <div class="card stack">
+                <label>Reason
+                  <select id="changeReason">
+                    <option>Wrong amount</option>
+                    <option>Wrong invoice reference</option>
+                    <option>Wrong due date</option>
+                    <option>Wrong bank destination</option>
+                    <option>Missing supporting document</option>
+                  </select>
+                </label>
+                <label>Requested correction
+                  <input id="changeDetail" value="Please update destination to acct ending 4410 and extend date to March 30, 2026." />
+                </label>
+                <label>Short note
+                  <textarea id="changeNote">The invoice is valid but the payment destination shown does not match our current approved account on file.</textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="content-card" id="vendor-dispute">
+              <div class="section-header">
+                <div>
+                  <h3>Dispute / fraud block</h3>
+                  <p>Serious issues should trigger an immediate hold. The workflow should feel safe for the vendor to use when something looks wrong.</p>
+                </div>
+                <div class="cta-row">
+                  <button class="button" id="submitDispute">Open dispute</button>
+                </div>
+              </div>
+
+              <div class="card stack">
+                <label>Dispute reason
+                  <select id="disputeReason">
+                    <option>We did not issue this invoice</option>
+                    <option>Duplicate invoice</option>
+                    <option>Services not accepted</option>
+                    <option>Suspicious bank change</option>
+                    <option>Wrong entity / wrong buyer</option>
+                  </select>
+                </label>
+                <label>What is wrong?
+                  <textarea id="disputeNote">This appears to reference our company, but the bank details shown do not match our account. Please hold payment and contact us directly.</textarea>
+                </label>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-shared">
+        <section class="timeline">
+          <div class="section-header">
+            <div>
+              <h3>Shared workflow state</h3>
+              <p>V1 should track three parallel state machines: bilateral response, internal control, and downstream settlement / posting. This keeps trade truth separate from accounting execution.</p>
+            </div>
+            <div class="cta-row">
+              <span class="status-pill neutral" id="sharedSummary">Draft not yet sent</span>
+            </div>
+          </div>
+
+          <div class="timeline-grid">
+            <div class="status-card">
+              <div class="status-label">Bilateral state</div>
+              <div class="status-value" id="sharedBilateral">Draft</div>
+              <div class="muted">Draft, Sent, Viewed, Confirmed, Change Requested, Disputed, Expired, or Canceled.</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Control state</div>
+              <div class="status-value" id="sharedControl">Pending policy</div>
+              <div class="muted">Pending Policy, Needs Approval, Approved, Blocked, Case Open, or Resolved.</div>
+            </div>
+            <div class="status-card">
+              <div class="status-label">Settlement / posting</div>
+              <div class="status-value" id="sharedSettlement">Awaiting export</div>
+              <div class="muted">Awaiting Export, Exported, Payment Initiated, Settled, Posted, or Closed.</div>
+            </div>
+          </div>
+
+          <div class="event-log" id="eventLog"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="panel-features">
+        <div class="feature-layout">
+          <div class="feature-card">
+            <h3>Core buyer-side features</h3>
+            <ul>
+              <li>Invoice intake via email, upload, ERP sync, or API</li>
+              <li>Trigger engine for first payment, bank change, threshold, duplicate risk, and rush requests</li>
+              <li>Message composer with structured payment-intent preview</li>
+              <li>AP queue with bilateral state, control state, and escalation tools</li>
+              <li>Approval workbench with policy checks, signer validation, and anomaly review</li>
+              <li>ERP / AP export with CAST reference and proof metadata</li>
+              <li>Settlement tracking and posting-ready status</li>
+              <li>Vendor trust administration for channels, signers, and bank-token rules</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <h3>Core vendor-side features</h3>
+            <ul>
+              <li>Mobile-first inbound message experience</li>
+              <li>Lightweight authentication: magic link, OTP, then passkey upgrade for repeat use</li>
+              <li>One-tap confirm flow</li>
+              <li>Structured request-change flow for machine-readable corrections</li>
+              <li>Dispute and fraud-block flow that immediately halts payment</li>
+              <li>Message history for repeat counterparties</li>
+              <li>Visible trust cues: buyer identity, past relationship, and approved payment destination indicators</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <h3>Shared system functionality</h3>
+            <ul>
+              <li>Three-track state model: bilateral, control, settlement/posting</li>
+              <li>Immutable event log for all transitions</li>
+              <li>Notification and reminder engine</li>
+              <li>Role-based access for AP, controller, approver, and vendor signer</li>
+              <li>Audit trail with event timestamps, actor, reason code, and attached evidence</li>
+              <li>API layer for ERP/AP integrations</li>
+              <li>Reporting for adoption, confirmation latency, disputes, auto-approval rate, and covered spend</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <h3>MVP build order</h3>
+            <ul>
+              <li>1. Structured trade message object and state model</li>
+              <li>2. Buyer queue + message composer + vendor message page</li>
+              <li>3. Confirm / change / dispute actions</li>
+              <li>4. Basic control rules and approval workbench</li>
+              <li>5. ERP export and settlement sync</li>
+              <li>6. Notifications, reminders, and reporting</li>
+              <li>7. Better identity and signer controls for repeat usage</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const defaultState = () => ({
+      bilateral: 'Draft',
+      control: 'Pending policy',
+      settlement: 'Awaiting export',
+      sent: false,
+      approved: false,
+      exported: false,
+      settled: false,
+      caseOpen: false,
+      log: [
+        { time: '09:00', title: 'Draft created', detail: 'Invoice INV-1048 was ingested and flagged for structured confirmation because it is a first payment with a bank change.' }
+      ]
+    });
+
+    let state = defaultState();
+
+    const mainTabs = document.querySelectorAll('[data-main-tab]');
+    const mainPanels = {
+      buyer: document.getElementById('panel-buyer'),
+      vendor: document.getElementById('panel-vendor'),
+      shared: document.getElementById('panel-shared'),
+      features: document.getElementById('panel-features')
+    };
+
+    function switchMainTab(name) {
+      mainTabs.forEach(btn => {
+        const active = btn.dataset.mainTab === name;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      Object.entries(mainPanels).forEach(([key, panel]) => panel.classList.toggle('active', key === name));
+    }
+
+    mainTabs.forEach(btn => btn.addEventListener('click', () => switchMainTab(btn.dataset.mainTab)));
+
+    document.querySelectorAll('.nav-stack').forEach(stack => {
+      stack.addEventListener('click', e => {
+        const item = e.target.closest('.nav-item');
+        if (!item) return;
+        stack.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const target = item.dataset.target;
+        const workspaceMain = item.closest('.workspace').querySelectorAll('.content-card');
+        workspaceMain.forEach(card => card.classList.toggle('active', card.id === target));
+      });
+    });
+
+    const fields = {
+      buyerEntity: document.getElementById('buyerEntity'),
+      vendorEntity: document.getElementById('vendorEntity'),
+      invoiceRef: document.getElementById('invoiceRef'),
+      poRef: document.getElementById('poRef'),
+      amount: document.getElementById('amount'),
+      payDate: document.getElementById('payDate'),
+      bankLast4: document.getElementById('bankLast4'),
+      replyBy: document.getElementById('replyBy')
+    };
+
+    Object.values(fields).forEach(input => input.addEventListener('input', syncPreview));
+
+    function syncPreview() {
+      const buyer = fields.buyerEntity.value;
+      const invoice = fields.invoiceRef.value;
+      const amount = fields.amount.value;
+      const payDate = fields.payDate.value;
+      const bank = fields.bankLast4.value;
+      const ref = fields.poRef.value;
+      const replyBy = fields.replyBy.value;
+
+      document.getElementById('previewHeadline').textContent = `${buyer} intends to pay ${invoice}`;
+      document.getElementById('previewBody').innerHTML = `<strong>${amount}</strong> on <strong>${payDate}</strong> to <strong>${bank}</strong>.<br/>Reference: <strong>${ref}</strong>.<br/>Reply by <strong>${replyBy}</strong>.`;
+      document.getElementById('vendorHeadline').textContent = `${buyer} intends to pay ${invoice}`;
+      document.getElementById('vendorBody').innerHTML = `<strong>${amount}</strong> on <strong>${payDate}</strong> to <strong>${bank}</strong>.<br/>Reference: <strong>${ref}</strong>.<br/>Reply by <strong>${replyBy}</strong>.`;
+      document.getElementById('rowVendorName').textContent = fields.vendorEntity.value;
+      document.getElementById('rowInvoiceRef').textContent = `${fields.invoiceRef.value} / ${fields.poRef.value}`;
+      document.getElementById('rowAmount').textContent = amount;
+      document.getElementById('vendorCardBuyer').textContent = buyer;
+      document.getElementById('vendorCardRef').textContent = `${fields.invoiceRef.value} / ${fields.poRef.value}`;
+      document.getElementById('vendorCardAmount').textContent = amount;
+      document.getElementById('vendorCardDate').textContent = payDate;
+    }
+
+    function logEvent(title, detail) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      state.log.unshift({ time, title, detail });
+      render();
+    }
+
+    function renderLog() {
+      const eventLog = document.getElementById('eventLog');
+      eventLog.innerHTML = state.log.map(item => `
+        <div class="event-item">
+          <div class="time">${item.time}</div>
+          <div>
+            <strong>${item.title}</strong>
+            <span>${item.detail}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function render() {
+      document.getElementById('sharedBilateral').textContent = state.bilateral;
+      document.getElementById('sharedControl').textContent = state.control;
+      document.getElementById('sharedSettlement').textContent = state.settlement;
+      document.getElementById('sharedSummary').textContent = `${state.bilateral} / ${state.control} / ${state.settlement}`;
+      document.getElementById('rowBilateral').textContent = state.bilateral;
+      document.getElementById('rowControl').textContent = state.control;
+      document.getElementById('vendorCardBilateral').textContent = state.bilateral;
+      document.getElementById('vendorInboxState').textContent = state.sent ? `${state.bilateral}` : 'No message sent yet';
+      document.getElementById('vendorActionState').textContent = state.sent ? state.bilateral : 'Awaiting message';
+      document.getElementById('inboxHeaderPill').textContent = state.sent ? `${state.bilateral} / ${state.control}` : 'Draft not yet sent';
+      document.getElementById('policyStatus').textContent = state.control;
+      document.getElementById('exportStatus').textContent = state.exported ? 'Exported to ERP / AP' : (state.approved ? 'Ready for ERP export' : 'Not exportable yet');
+      document.getElementById('settlementStatus').textContent = state.settled ? 'Settled' : (state.exported ? 'Payment initiated' : (state.approved ? 'Awaiting payment initiation' : 'Awaiting approval'));
+      document.getElementById('postingStatus').textContent = state.settled ? 'Posted / closed' : (state.exported ? 'Ready to post on settlement' : 'Not posted');
+
+      document.getElementById('kpiAwaiting').textContent = (!state.sent || ['Sent', 'Viewed'].includes(state.bilateral)) ? '1' : '0';
+      document.getElementById('kpiCases').textContent = state.caseOpen ? '1' : '0';
+      document.getElementById('kpiApproved').textContent = state.approved ? '1' : '0';
+      document.getElementById('kpiSettled').textContent = state.settled ? '1' : '0';
+
+      if (!state.sent) {
+        document.getElementById('decisionRecommendation').textContent = 'Await vendor confirmation before internal approval.';
+        document.getElementById('workflowNote').textContent = 'No case open. Waiting for the external response to become the bilateral event.';
+        document.getElementById('signerStatus').textContent = 'Signer not yet confirmed';
+      } else if (state.bilateral === 'Confirmed') {
+        document.getElementById('decisionRecommendation').textContent = 'Vendor confirmed. Internal approval can proceed.';
+        document.getElementById('workflowNote').textContent = 'Bilateral proof captured. Move to approval or auto-approve if policy allows.';
+        document.getElementById('signerStatus').textContent = 'Signer verified';
+      } else if (state.bilateral === 'Change Requested') {
+        document.getElementById('decisionRecommendation').textContent = 'Case open. Review requested correction before any approval.';
+        document.getElementById('workflowNote').textContent = 'Vendor supplied a structured change request. Buyer must amend or reject.';
+        document.getElementById('signerStatus').textContent = 'Signer verified';
+      } else if (state.bilateral === 'Disputed') {
+        document.getElementById('decisionRecommendation').textContent = 'Hold payment and investigate.';
+        document.getElementById('workflowNote').textContent = 'Vendor flagged the request as disputed or suspicious.';
+        document.getElementById('signerStatus').textContent = 'Signer verified';
+      }
+
+      renderLog();
+    }
+
+    document.getElementById('sendMessage').addEventListener('click', () => {
+      state.sent = true;
+      state.bilateral = 'Sent';
+      state.control = 'Pending policy';
+      state.caseOpen = false;
+      logEvent('Message sent', 'Buyer sent the structured trade message to the vendor for confirmation.');
+      switchMainTab('vendor');
+      document.querySelector('[data-target="vendor-detail"]').click();
+      render();
+    });
+
+    document.getElementById('vendorOpenMessage').addEventListener('click', () => {
+      switchMainTab('vendor');
+      document.querySelector('[data-target="vendor-detail"]').click();
+      if (state.sent && state.bilateral === 'Sent') {
+        state.bilateral = 'Viewed';
+        logEvent('Vendor viewed message', 'Vendor opened the payment-intent message and can now confirm, request a change, or dispute it.');
+      }
+      render();
+    });
+
+    document.getElementById('vendorConfirm').addEventListener('click', () => {
+      if (!state.sent) return;
+      state.bilateral = 'Confirmed';
+      state.control = 'Needs Approval';
+      state.caseOpen = false;
+      logEvent('Vendor confirmed', 'Vendor confirmed the amount, timing, and destination. The item is now ready for internal approval.');
+      switchMainTab('shared');
+      render();
+    });
+
+    document.getElementById('vendorRequestChange').addEventListener('click', () => {
+      switchMainTab('vendor');
+      document.querySelector('[data-target="vendor-change"]').click();
+    });
+
+    document.getElementById('submitChange').addEventListener('click', () => {
+      if (!state.sent) return;
+      state.bilateral = 'Change Requested';
+      state.control = 'Case Open';
+      state.caseOpen = true;
+      logEvent('Vendor requested change', `${document.getElementById('changeReason').value}: ${document.getElementById('changeDetail').value}`);
+      switchMainTab('buyer');
+      document.querySelector('[data-target="buyer-case"]').click();
+      render();
+    });
+
+    document.getElementById('vendorDisputeBtn').addEventListener('click', () => {
+      switchMainTab('vendor');
+      document.querySelector('[data-target="vendor-dispute"]').click();
+    });
+
+    document.getElementById('submitDispute').addEventListener('click', () => {
+      if (!state.sent) return;
+      state.bilateral = 'Disputed';
+      state.control = 'Case Open';
+      state.caseOpen = true;
+      logEvent('Dispute opened', `${document.getElementById('disputeReason').value}: ${document.getElementById('disputeNote').value}`);
+      switchMainTab('buyer');
+      document.querySelector('[data-target="buyer-case"]').click();
+      render();
+    });
+
+    document.getElementById('approveItem').addEventListener('click', () => {
+      if (state.bilateral !== 'Confirmed') {
+        logEvent('Approval blocked', 'Internal approval attempted before clean bilateral confirmation.');
+        return;
+      }
+      state.control = 'Approved';
+      state.approved = true;
+      logEvent('Item approved', 'Internal approver cleared the item for ERP export and payment release.');
+      document.querySelector('[data-target="buyer-ready"]').click();
+      render();
+    });
+
+    document.getElementById('blockItem').addEventListener('click', () => {
+      state.control = 'Blocked';
+      state.caseOpen = true;
+      logEvent('Item blocked', 'Approver blocked the item pending further investigation.');
+      render();
+    });
+
+    document.getElementById('exportErp').addEventListener('click', () => {
+      if (!state.approved) {
+        logEvent('Export blocked', 'ERP export attempted before approval.');
+        return;
+      }
+      state.exported = true;
+      state.settlement = 'Exported';
+      logEvent('Exported to ERP / AP', 'Payment-ready record exported with CAST reference and proof metadata.');
+      render();
+    });
+
+    document.getElementById('settlePayment').addEventListener('click', () => {
+      if (!state.exported) {
+        logEvent('Settlement blocked', 'Settlement attempted before ERP export / payment initiation.');
+        return;
+      }
+      state.settlement = 'Closed';
+      state.settled = true;
+      logEvent('Payment settled', 'Cash movement confirmed and the covered flow can now be marked posted / closed.');
+      render();
+    });
+
+    document.getElementById('resetDemo').addEventListener('click', () => {
+      state = defaultState();
+      render();
+      switchMainTab('buyer');
+      document.querySelector('[data-scope="buyer-nav"] .nav-item[data-target="buyer-inbox"]').click();
+      document.querySelector('[data-scope="vendor-nav"] .nav-item[data-target="vendor-inbox"]').click();
+    });
+
+    document.getElementById('jumpBuyer').addEventListener('click', () => switchMainTab('buyer'));
+    document.getElementById('jumpVendor').addEventListener('click', () => switchMainTab('vendor'));
+    document.getElementById('openVendorView').addEventListener('click', () => switchMainTab('vendor'));
+
+    syncPreview();
+    render();
+  </script>
+</body>
+</html>
